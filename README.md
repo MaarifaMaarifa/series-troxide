@@ -14,7 +14,7 @@ Series Troxide is in the very early stages of development. APIs can and will cha
 
 ## Installation
 
-Series Troxide can be installed via the following shell commands assuming you have Cargo and Rustc setup on your machine. You can check the [guide](https://rustup.rs/) incase you're not setup.
+Series Troxide can be installed via the following shell commands assuming you have Cargo and Rustc set up on your machine. You can check the [guide](https://rustup.rs/) incase you're not setup.
 
 ```shell
 git clone https://github.com/MaarifaMaarifa/series-troxide
