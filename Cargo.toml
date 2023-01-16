@@ -1,0 +1,21 @@
+[package]
+name = "series-troxide"
+authors = ["Maarifa Maarifa"]
+description = "A Series Tracker with powerfull command-line options"
+categories = ["command-line-utilities", "series", "TV"]
+repository = "https://github.com/MaarifaMaarifa/series-troxide"
+version = "0.0.1"
+edition = "2021"
+
+[profile.release]
+lto = true
+strip = true
+codegen-units = 1
+panic = "abort"
+
+[dependencies]
+thiserror = "1"
+anyhow = "1"
+ron = "0"
+serde = { version = "1", features = ["derive"] }
+clap = { version = "4", features = ["derive"] }
