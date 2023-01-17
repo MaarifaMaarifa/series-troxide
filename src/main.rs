@@ -13,26 +13,22 @@ fn main() -> Result<()> {
 
     match cli.command {
         Command::AddSeason(add_season_cli) => {
-            let series = series_collection.get_series_mut(&add_season_cli.series)?;
-            series
+            series_collection.get_series_mut(&add_season_cli.series)?
                 .add_season(add_season_cli.season)
                 .context("Could not add season")?;
         }
         Command::AddEpisode(add_episode_cli) => {
-            let series = series_collection.get_series_mut(&add_episode_cli.series)?;
-            series
+            series_collection.get_series_mut(&add_episode_cli.series)?
                 .add_episode(add_episode_cli.season, add_episode_cli.episode)
                 .context("Could not add episode")?;
         }
         Command::RemoveSeason(remove_season_cli) => {
-            let series = series_collection.get_series_mut(&remove_season_cli.series)?;
-            series
+            series_collection.get_series_mut(&remove_season_cli.series)?
                 .remove_season(remove_season_cli.season)
                 .context("Could not remove season")?;
         }
         Command::RemoveEpisode(remove_episode_cli) => {
-            let series = series_collection.get_series_mut(&remove_episode_cli.series)?;
-            series
+            series_collection.get_series_mut(&remove_episode_cli.series)?
                 .remove_episode(remove_episode_cli.season, remove_episode_cli.episode)
                 .context("Could not remove episode")?;
         }
