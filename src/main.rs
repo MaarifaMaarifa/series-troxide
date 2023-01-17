@@ -33,22 +33,6 @@ fn main() -> Result<()> {
                 .context("Could not remove episode")?;
         }
         Command::Series(series_cli) => match series_cli.command {
-            SeriesCommand::WatchTime(watch_time_cli) => {
-                match watch_time_cli.watch_time_command {
-                    WatchTimeCommand::Seconds => {
-                        println!("{} seconds", series_collection.get_total_watch_time().as_secs())
-                    },
-                    WatchTimeCommand::Minutes => {                        
-                        println!("{} minutes", series_collection.get_total_watch_time().as_secs() / 60)
-                    },
-                    WatchTimeCommand::Hours => {
-                        println!("{} hours", series_collection.get_total_watch_time().as_secs() / (60*60))
-                    },
-                    WatchTimeCommand::Days => {
-                        println!("{} days", series_collection.get_total_watch_time().as_secs() / (60*60*24))
-                    },
-                }
-            }
             SeriesCommand::List(list_cli) => {
                 series_collection
                     .get_series_names_sorted(list_cli.sort_command)
@@ -65,6 +49,40 @@ fn main() -> Result<()> {
             }
             SeriesCommand::Summary(series_summary_cli) => {
                 println!("{}", series_collection.get_summary(&series_summary_cli.name)?);
+            }
+            SeriesCommand::WatchTime(watch_time_cli) => {
+                let series = series_collection.get_series(&watch_time_cli.name)?;
+
+                match watch_time_cli.watch_time_command {
+                    WatchTimeCommand::Seconds => {
+                        println!("{} seconds", series.get_total_watch_time().as_secs())
+                    },
+                    WatchTimeCommand::Minutes => {                        
+                        println!("{} minutes", series.get_total_watch_time().as_secs() / 60)
+                    },
+                    WatchTimeCommand::Hours => {
+                        println!("{} hours", series.get_total_watch_time().as_secs() / (60*60))
+                    },
+                    WatchTimeCommand::Days => {
+                        println!("{} days", series.get_total_watch_time().as_secs() / (60*60*24))
+                    },
+                }
+            },
+            SeriesCommand::TotalWatchTime(total_watch_time_cli) => {
+                match total_watch_time_cli.watch_time_command {
+                    WatchTimeCommand::Seconds => {
+                        println!("{} seconds", series_collection.get_total_watch_time().as_secs())
+                    },
+                    WatchTimeCommand::Minutes => {                        
+                        println!("{} minutes", series_collection.get_total_watch_time().as_secs() / 60)
+                    },
+                    WatchTimeCommand::Hours => {
+                        println!("{} hours", series_collection.get_total_watch_time().as_secs() / (60*60))
+                    },
+                    WatchTimeCommand::Days => {
+                        println!("{} days", series_collection.get_total_watch_time().as_secs() / (60*60*24))
+                    },
+                }
             }
         },
     }

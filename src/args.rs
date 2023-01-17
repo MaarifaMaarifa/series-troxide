@@ -87,9 +87,12 @@ pub enum SeriesCommand {
 
     /// Get the summary of the specified series
     Summary(SeriesSummaryCli),
+
+    /// Get the total watch time of a particular series
+    WatchTime(WatchTimeCli),
     
     /// Get the total watch time of all series collection
-    WatchTime(WatchTimeCli),
+    TotalWatchTime(TotalWatchTimeCli),
 }
 
 #[derive(Parser)]
@@ -116,6 +119,15 @@ pub struct SeriesRemoveCli {
 
 #[derive(Parser)]
 pub struct WatchTimeCli {
+    /// The name of the series
+    pub name: String,
+
+    #[clap(subcommand)]
+    pub watch_time_command: WatchTimeCommand,
+}
+
+#[derive(Parser)]
+pub struct TotalWatchTimeCli {
     #[clap(subcommand)]
     pub watch_time_command: WatchTimeCommand,
 }
