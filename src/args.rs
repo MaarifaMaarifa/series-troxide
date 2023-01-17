@@ -23,9 +23,6 @@ pub enum Command {
 
     /// Remove episode from a series
     RemoveEpisode(RemoveEpisodeCli),
-
-    /// Remove a whole series
-    RemoveSeries(RemoveSeriesCli),
 }
 
 #[derive(Parser)]
@@ -72,12 +69,6 @@ pub struct RemoveEpisodeCli {
 }
 
 #[derive(Parser)]
-pub struct RemoveSeriesCli {
-    /// The name of the series to remove
-    pub series_name: String,
-}
-
-#[derive(Parser)]
 pub struct SeriesCli {
     #[clap(subcommand)]
     pub command: SeriesCommand,
@@ -91,11 +82,14 @@ pub enum SeriesCommand {
     /// Add series to the collection
     Add(SeriesAddCli),
 
+    /// Remove a whole series
+    Remove(SeriesRemoveCli),
+
     /// Get the summary of the specified series
     Summary(SeriesSummaryCli),
     
-    /// Get the total watch time of all series
-    GetTotalWatchTime(WatchTimeCli),
+    /// Get the total watch time of all series collection
+    WatchTime(WatchTimeCli),
 }
 
 #[derive(Parser)]
@@ -112,6 +106,13 @@ pub struct SeriesAddCli {
     /// The duration of episode in minutes
     pub episode_duration: u32,
 }
+
+#[derive(Parser)]
+pub struct SeriesRemoveCli {
+    /// The name of the series to remove
+    pub name: String,
+}
+
 
 #[derive(Parser)]
 pub struct WatchTimeCli {

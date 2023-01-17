@@ -36,13 +36,8 @@ fn main() -> Result<()> {
                 .remove_episode(remove_episode_cli.season, remove_episode_cli.episode)
                 .context("Could not remove episode")?;
         }
-        Command::RemoveSeries(remove_series_cli) => {
-            series_collection
-                .remove_series(&remove_series_cli.series_name)
-                .context("Could not remove series")?;
-        }
         Command::Series(series_cli) => match series_cli.command {
-            SeriesCommand::GetTotalWatchTime(watch_time_cli) => {
+            SeriesCommand::WatchTime(watch_time_cli) => {
                 match watch_time_cli.watch_time_command {
                     WatchTimeCommand::Seconds => {
                         println!("{} seconds", series_collection.get_total_watch_time().as_secs())
@@ -66,6 +61,11 @@ fn main() -> Result<()> {
             }
             SeriesCommand::Add(series_add_cli) => {
                 series_collection.add_series(series_add_cli.name, series_add_cli.episode_duration).context("Failed to add series")?;
+            }
+            SeriesCommand::Remove(series_remove_cli) => {
+                series_collection
+                    .remove_series(&series_remove_cli.name)
+                    .context("Could not remove series")?;
             }
             SeriesCommand::Summary(series_summary_cli) => {
                 println!("{}", series_collection.get_summary(&series_summary_cli.name)?);
