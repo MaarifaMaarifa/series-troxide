@@ -154,7 +154,7 @@ impl PartialEq for Series {
 /// Enum providing different ways to sort series in the collection
 #[derive(clap::Subcommand)]
 pub enum SeriesSort {
-    /// Unsorted
+    /// Unsorted (default option when unspecified)
     Default,
 
     /// Sort based on watch time
