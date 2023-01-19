@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs;
@@ -186,15 +186,37 @@ pub enum SeriesCollectionError {
 }
 
 /// struct providing the abstraction for the whole series currently tracked
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct SeriesCollection {
     collection: Vec<Series>,
 }
 
 impl SeriesCollection {
     /// Loads series from a ron file and returns Self
-    pub fn load_series(path: impl AsRef<Path>) -> Result<Self> {
-        let file_content = fs::read_to_string(path)?;
+    pub fn load_series(path: &Path) -> Result<Self> {
+        /* Attempts to read the file if it exists, when not it will create a new
+        empty ron file, by creating it's directory first */
+        let file_content = match fs::read_to_string(&path) {
+            Ok(content) => content,
+            Err(error) => match error.kind() {
+                std::io::ErrorKind::NotFound => {
+                    fs::create_dir_all(
+                        path.parent()
+                            .context("Could not obtain the database directory")?,
+                    )
+                    .context("Could not create database directory")?;
+
+                    // creating empty database content
+                    // SAFETY: The unwrap here is guaranteed to never panic
+                    let default_empty_database = ron::to_string(&SeriesCollection::default()).unwrap();
+
+                    fs::write(path, &default_empty_database)
+                        .context("Could not create database")?;
+                    default_empty_database
+                }
+                err => return Err(anyhow!(err)),
+            },
+        };
 
         let series_collection: Self = ron::from_str(&file_content)?;
 
@@ -296,7 +318,11 @@ impl SeriesCollection {
     /// Get summary of the given series name
     pub fn get_summary(&self, series_name: &str) -> Result<String> {
         let series = self.get_series(series_name)?;
-        let mut season_episodes: Vec<(_, _)> = series .seasons .iter() .map(|(season, episode)| (season, episode.get_total_episodes())) .collect();
+        let mut season_episodes: Vec<(_, _)> = series
+            .seasons
+            .iter()
+            .map(|(season, episode)| (season, episode.get_total_episodes()))
+            .collect();
 
         season_episodes.sort_by_key(|x| x.0);
 

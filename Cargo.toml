@@ -19,3 +19,4 @@ anyhow = "1"
 ron = "0"
 serde = { version = "1", features = ["derive"] }
 clap = { version = "4", features = ["derive"] }
+directories = "4"

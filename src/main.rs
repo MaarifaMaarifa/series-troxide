@@ -2,15 +2,16 @@ mod args;
 
 use anyhow::{Context, Result};
 use args::*;
+use database::get_database_path;
 use series_troxide::*;
-
-const SERIES_DATABASE_PATH: &str = "series.ron";
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    let mut series_collection = SeriesCollection::load_series(SERIES_DATABASE_PATH)
-        .context("Failed to load the database")?;
+    let database_path = get_database_path().context("Could not get the database path")?;
+
+    let mut series_collection =
+        SeriesCollection::load_series(&database_path).context("Failed to load the database")?;
 
     match cli.command {
         Command::AddSeason(add_season_cli) => {
@@ -119,8 +120,34 @@ fn main() -> Result<()> {
     }
 
     series_collection
-        .save_file(SERIES_DATABASE_PATH)
+        .save_file(database_path)
         .context("Failed to save the series file")?;
 
     Ok(())
+}
+
+/// Module that deals with operations that involves obtaining database path
+mod database {
+    use super::*;
+    use directories::ProjectDirs;
+    use std::path;
+    use thiserror::Error;
+
+    const SERIES_DATABASE_NAME: &str = "series.ron";
+
+    #[derive(Debug, Error)]
+    pub enum DatabaseError {
+        #[error("standard database path could not be found")]
+        DatabasePathNotFound,
+    }
+
+    pub fn get_database_path() -> Result<path::PathBuf, DatabaseError> {
+        if let Some(path) = ProjectDirs::from("", "", "series-troxide") {
+            let mut path = path.data_dir().to_owned();
+            path.push(SERIES_DATABASE_NAME);
+            Ok(path)
+        } else {
+            Err(DatabaseError::DatabasePathNotFound)
+        }
+    }
 }
