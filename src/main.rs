@@ -14,23 +14,11 @@ fn main() -> Result<()> {
         SeriesCollection::load_series(&database_path).context("Failed to load the database")?;
 
     match cli.command {
-        Command::AddSeason(add_season_cli) => {
-            series_collection
-                .get_series_mut(&add_season_cli.series)?
-                .add_season(add_season_cli.season)
-                .context("Could not add season")?;
-        }
         Command::AddEpisode(add_episode_cli) => {
             series_collection
                 .get_series_mut(&add_episode_cli.series)?
                 .add_episode(add_episode_cli.season, add_episode_cli.episode)
                 .context("Could not add episode")?;
-        }
-        Command::RemoveSeason(remove_season_cli) => {
-            series_collection
-                .get_series_mut(&remove_season_cli.series)?
-                .remove_season(remove_season_cli.season)
-                .context("Could not remove season")?;
         }
         Command::RemoveEpisode(remove_episode_cli) => {
             series_collection
@@ -38,6 +26,22 @@ fn main() -> Result<()> {
                 .remove_episode(remove_episode_cli.season, remove_episode_cli.episode)
                 .context("Could not remove episode")?;
         }
+        Command::Season(season_cli) => {
+            match season_cli.season_command {
+                SeasonCommand::Add(add_season_cli) => {
+                    series_collection
+                        .get_series_mut(&add_season_cli.series)?
+                        .add_season(add_season_cli.season)
+                        .context("Could not add season")?;
+                },
+                SeasonCommand::Remove(remove_season_cli) => {
+                    series_collection
+                        .get_series_mut(&remove_season_cli.series)?
+                        .remove_season(remove_season_cli.season)
+                        .context("Could not remove season")?;
+                },
+            }
+        },
         Command::Series(series_cli) => match series_cli.command {
             SeriesCommand::List(list_cli) => {
                 let series_list;

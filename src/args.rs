@@ -11,18 +11,30 @@ pub struct Cli {
 pub enum Command {
     /// Perform actions related to series
     Series(SeriesCli),
-    
-    /// Add season into a series
-    AddSeason(AddSeasonCli),
 
+    /// Perform actions related to season
+    Season(SeasonCli),
+    
     /// Add episode into a series
     AddEpisode(AddEpisodeCli),
 
-    /// Remove season from a series
-    RemoveSeason(RemoveSeasonCli),
-
     /// Remove episode from a series
     RemoveEpisode(RemoveEpisodeCli),
+}
+
+#[derive(Parser)]
+pub struct SeasonCli {
+    #[clap(subcommand)]
+    pub season_command: SeasonCommand,
+}
+
+#[derive(Subcommand)]
+pub enum SeasonCommand {
+    /// Add season into a series
+    Add(AddSeasonCli),
+
+    /// Remove season into a series
+    Remove(RemoveSeasonCli),
 }
 
 #[derive(Parser)]
