@@ -16,13 +16,7 @@ pub enum Command {
     Season(SeasonCli),
 
     /// Perform actions related to episode
-    Episode(EpisodeCli),
-    
-    // Add episode into a series
-    // AddEpisode(AddEpisodeCli),
-
-    // Remove episode from a series
-    // RemoveEpisode(RemoveEpisodeCli),
+    Episode(EpisodeCli),    
 }
 
 #[derive(Parser)]
