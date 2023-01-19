@@ -14,18 +14,35 @@ fn main() -> Result<()> {
         SeriesCollection::load_series(&database_path).context("Failed to load the database")?;
 
     match cli.command {
-        Command::AddEpisode(add_episode_cli) => {
-            series_collection
-                .get_series_mut(&add_episode_cli.series)?
-                .add_episode(add_episode_cli.season, add_episode_cli.episode)
-                .context("Could not add episode")?;
-        }
-        Command::RemoveEpisode(remove_episode_cli) => {
-            series_collection
-                .get_series_mut(&remove_episode_cli.series)?
-                .remove_episode(remove_episode_cli.season, remove_episode_cli.episode)
-                .context("Could not remove episode")?;
-        }
+        Command::Episode(episode_cli) => {
+            match episode_cli.episode_command {
+                EpisodeCommand::Add(add_episode_cli) => {
+                    series_collection
+                        .get_series_mut(&add_episode_cli.series)?
+                        .add_episode(add_episode_cli.season, add_episode_cli.episode)
+                        .context("Could not add episode")?;
+                }
+                EpisodeCommand::Remove(remove_episode_cli) => {
+                    series_collection
+                        .get_series_mut(&remove_episode_cli.series)?
+                        .remove_episode(remove_episode_cli.season, remove_episode_cli.episode)
+                        .context("Could not remove episode")?;
+                }
+                
+            }
+        },
+        // Command::AddEpisode(add_episode_cli) => {
+        //     series_collection
+        //         .get_series_mut(&add_episode_cli.series)?
+        //         .add_episode(add_episode_cli.season, add_episode_cli.episode)
+        //         .context("Could not add episode")?;
+        // }
+        // Command::RemoveEpisode(remove_episode_cli) => {
+        //     series_collection
+        //         .get_series_mut(&remove_episode_cli.series)?
+        //         .remove_episode(remove_episode_cli.season, remove_episode_cli.episode)
+        //         .context("Could not remove episode")?;
+        // }
         Command::Season(season_cli) => {
             match season_cli.season_command {
                 SeasonCommand::Add(add_season_cli) => {

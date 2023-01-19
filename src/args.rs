@@ -14,12 +14,15 @@ pub enum Command {
 
     /// Perform actions related to season
     Season(SeasonCli),
-    
-    /// Add episode into a series
-    AddEpisode(AddEpisodeCli),
 
-    /// Remove episode from a series
-    RemoveEpisode(RemoveEpisodeCli),
+    /// Perform actions related to episode
+    Episode(EpisodeCli),
+    
+    // Add episode into a series
+    // AddEpisode(AddEpisodeCli),
+
+    // Remove episode from a series
+    // RemoveEpisode(RemoveEpisodeCli),
 }
 
 #[derive(Parser)]
@@ -33,7 +36,7 @@ pub enum SeasonCommand {
     /// Add season into a series
     Add(AddSeasonCli),
 
-    /// Remove season into a series
+    /// Remove season from a series
     Remove(RemoveSeasonCli),
 }
 
@@ -54,6 +57,21 @@ pub struct RemoveSeasonCli {
 
     /// Season number or range to be removed
     pub season: u32,
+}
+
+#[derive(Parser)]
+pub struct EpisodeCli {
+    #[clap(subcommand)]
+    pub episode_command: EpisodeCommand,
+}
+
+#[derive(Subcommand)]
+pub enum EpisodeCommand {
+    /// Add episode into a series
+    Add(AddEpisodeCli),
+
+    /// Remove episode from a series
+    Remove(RemoveEpisodeCli),
 }
 
 #[derive(Parser)]
