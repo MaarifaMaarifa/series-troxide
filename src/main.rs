@@ -2,7 +2,7 @@ mod args;
 
 use anyhow::{Context, Result};
 use args::*;
-use database::get_database_path;
+use database::{get_database_path, export_database};
 use series_troxide::*;
 
 fn main() -> Result<()> {
@@ -126,6 +126,18 @@ fn main() -> Result<()> {
                 }
             }
         },
+        Command::Database(database_cli) => {
+            match database_cli.database_command {
+                DatabaseCommand::Import(_import_database_cli) => {
+                    // TODO: Implement the import database functionality
+                    todo!()
+                },
+                DatabaseCommand::Export(export_database_cli) => {
+                    let destination_dir = std::path::PathBuf::from(export_database_cli.folder);
+                    export_database(destination_dir).context("Failed to export the database")?;
+                },
+            }
+        },
     }
 
     series_collection
@@ -158,5 +170,15 @@ mod database {
         } else {
             Err(DatabaseError::DatabasePathNotFound)
         }
+    }
+
+    /// Exports the database to the given directory
+    pub fn export_database(mut destination_dir: path::PathBuf) -> Result<()>{
+        let database_path = get_database_path()?;
+
+        destination_dir.push(SERIES_DATABASE_NAME);
+
+        std::fs::copy(database_path, destination_dir)?;
+        Ok(())
     }
 }

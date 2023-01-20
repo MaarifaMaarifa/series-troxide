@@ -16,7 +16,10 @@ pub enum Command {
     Season(SeasonCli),
 
     /// Perform actions related to episode
-    Episode(EpisodeCli),    
+    Episode(EpisodeCli),
+
+    /// Perform actions related to series database
+    Database(DatabaseCli),
 }
 
 #[derive(Parser)]
@@ -42,7 +45,6 @@ pub struct AddSeasonCli {
     /// Season number or range to be added
     pub season: u32,
 }
-
 
 #[derive(Parser)]
 pub struct RemoveSeasonCli {
@@ -90,6 +92,33 @@ pub struct RemoveEpisodeCli {
 
     /// The episode number or range to be removed
     pub episode: u32,       
+}
+
+#[derive(Parser)]
+pub struct DatabaseCli {
+    #[clap(subcommand)]
+    pub database_command: DatabaseCommand,
+}
+
+#[derive(Subcommand)]
+pub enum DatabaseCommand {
+    /// Import series database file from a specified file path
+    Import(ImportDatabaseCli),
+
+    /// Export series database file to a specified directory
+    Export(ExportDatabaseCli),
+}
+
+#[derive(Parser)]
+pub struct ImportDatabaseCli {
+    /// File Path to database file to be imported
+    pub file: String,
+}
+
+#[derive(Parser)]
+pub struct ExportDatabaseCli {
+    /// Directory path to export the database file
+    pub folder: String,
 }
 
 #[derive(Parser)]
