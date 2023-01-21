@@ -2,7 +2,7 @@ mod args;
 
 use anyhow::{Context, Result};
 use args::*;
-use database::{get_database_path, export_database};
+use database::{get_database_path, export_database, import_database};
 use series_troxide::*;
 
 fn main() -> Result<()> {
@@ -11,7 +11,7 @@ fn main() -> Result<()> {
     let database_path = get_database_path().context("Could not get the database path")?;
 
     let mut series_collection =
-        SeriesCollection::load_series(&database_path).context("Failed to load the database")?;
+        SeriesCollection::load_series_with_db_path(&database_path).context("Failed to load the database")?;
 
     match cli.command {
         Command::Episode(episode_cli) => {
@@ -28,8 +28,11 @@ fn main() -> Result<()> {
                         .remove_episode(remove_episode_cli.season, remove_episode_cli.episode)
                         .context("Could not remove episode")?;
                 }
-                
             }
+            series_collection
+                .save_file(database_path)
+                .context("Failed to save the series file")?;
+
         },
         Command::Season(season_cli) => {
             match season_cli.season_command {
@@ -46,6 +49,9 @@ fn main() -> Result<()> {
                         .context("Could not remove season")?;
                 },
             }
+            series_collection
+                .save_file(database_path)
+                .context("Failed to save the series file")?;
         },
         Command::Series(series_cli) => match series_cli.command {
             SeriesCommand::List(list_cli) => {
@@ -61,11 +67,19 @@ fn main() -> Result<()> {
                 series_collection
                     .add_series(series_add_cli.name, series_add_cli.episode_duration)
                     .context("Failed to add series")?;
+
+                series_collection
+                    .save_file(database_path)
+                    .context("Failed to save the series file")?;
             }
             SeriesCommand::Remove(series_remove_cli) => {
                 series_collection
                     .remove_series(&series_remove_cli.name)
                     .context("Could not remove series")?;
+
+                series_collection
+                    .save_file(database_path)
+                    .context("Failed to save the series file")?;
             }
             SeriesCommand::Summary(series_summary_cli) => {
                 println!(
@@ -128,9 +142,9 @@ fn main() -> Result<()> {
         },
         Command::Database(database_cli) => {
             match database_cli.database_command {
-                DatabaseCommand::Import(_import_database_cli) => {
-                    // TODO: Implement the import database functionality
-                    todo!()
+                DatabaseCommand::Import(import_database_cli) => {
+                    let file_path = std::path::Path::new(&import_database_cli.file);
+                    import_database(file_path).context("Failed to import database")?
                 },
                 DatabaseCommand::Export(export_database_cli) => {
                     let destination_dir = std::path::PathBuf::from(export_database_cli.folder);
@@ -140,18 +154,15 @@ fn main() -> Result<()> {
         },
     }
 
-    series_collection
-        .save_file(database_path)
-        .context("Failed to save the series file")?;
-
     Ok(())
 }
 
 /// Module that deals with operations that involves obtaining database path
 mod database {
     use super::*;
+    use anyhow::anyhow;
     use directories::ProjectDirs;
-    use std::path;
+    use std::{path, fs};
     use thiserror::Error;
 
     const SERIES_DATABASE_NAME: &str = "series.ron";
@@ -180,5 +191,24 @@ mod database {
 
         std::fs::copy(database_path, destination_dir)?;
         Ok(())
+    }
+
+    /// Imports the database file from the given file path
+    pub fn import_database(import_file_path: &path::Path) -> Result<()> {     
+        // Inspecting the file if it is a valid database file by try parsing it into 
+        // a series collection struct
+        let file_contents = fs::read_to_string(import_file_path)?;
+
+        match SeriesCollection::load_series_with_db_content(&file_contents) {
+            Ok(_) => {
+                // when we successfully get a valid SeriesCollection struct, we can copy
+                // it to the database path
+                fs::copy(import_file_path, get_database_path()?).context("Could not copy the database to the default path")?;
+                Ok(())
+            },
+            Err(err) => {
+                Err(anyhow!(err))
+            },
+        }
     }
 }

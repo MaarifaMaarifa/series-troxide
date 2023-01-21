@@ -192,11 +192,18 @@ pub struct SeriesCollection {
 }
 
 impl SeriesCollection {
+    /// Creates a instance of the database collection from contents read from a 
+    /// a database file
+    pub fn load_series_with_db_content(database_content: &str) -> Result<Self> {
+        let series_collection: Self = ron::from_str(database_content)?;
+        Ok(series_collection)
+    }
+
     /// Loads series from a ron file and returns Self
-    pub fn load_series(path: &Path) -> Result<Self> {
+    pub fn load_series_with_db_path(path: &Path) -> Result<Self> {
         /* Attempts to read the file if it exists, when not it will create a new
         empty ron file, by creating it's directory first */
-        let file_content = match fs::read_to_string(&path) {
+        let file_content = match fs::read_to_string(path) {
             Ok(content) => content,
             Err(error) => match error.kind() {
                 std::io::ErrorKind::NotFound => {
@@ -218,9 +225,7 @@ impl SeriesCollection {
             },
         };
 
-        let series_collection: Self = ron::from_str(&file_content)?;
-
-        Ok(series_collection)
+        Self::load_series_with_db_content(&file_content)
     }
 
     /// Adds a new series to the collection
