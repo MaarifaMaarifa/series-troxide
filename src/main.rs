@@ -1,8 +1,8 @@
-mod args;
+mod cli;
 mod database;
 
 use anyhow::{Context, Result};
-use args::*;
+use cli::*;
 use database::*;
 use series_troxide::*;
 
