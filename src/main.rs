@@ -1,8 +1,9 @@
 mod args;
+mod database;
 
 use anyhow::{Context, Result};
 use args::*;
-use database::{get_database_path, export_database, import_database};
+use database::*;
 use series_troxide::*;
 
 fn main() -> Result<()> {
@@ -16,13 +17,13 @@ fn main() -> Result<()> {
     match cli.command {
         Command::Episode(episode_cli) => {
             match episode_cli.episode_command {
-                EpisodeCommand::Add(add_episode_cli) => {
+                episode_cli::EpisodeCommand::Add(add_episode_cli) => {
                     series_collection
                         .get_series_mut(&add_episode_cli.series)?
                         .add_episode(add_episode_cli.season, add_episode_cli.episode)
                         .context("Could not add episode")?;
                 }
-                EpisodeCommand::Remove(remove_episode_cli) => {
+                episode_cli::EpisodeCommand::Remove(remove_episode_cli) => {
                     series_collection
                         .get_series_mut(&remove_episode_cli.series)?
                         .remove_episode(remove_episode_cli.season, remove_episode_cli.episode)
@@ -36,13 +37,13 @@ fn main() -> Result<()> {
         },
         Command::Season(season_cli) => {
             match season_cli.season_command {
-                SeasonCommand::Add(add_season_cli) => {
+                season_cli::SeasonCommand::Add(add_season_cli) => {
                     series_collection
                         .get_series_mut(&add_season_cli.series)?
                         .add_season(add_season_cli.season)
                         .context("Could not add season")?;
                 },
-                SeasonCommand::Remove(remove_season_cli) => {
+                season_cli::SeasonCommand::Remove(remove_season_cli) => {
                     series_collection
                         .get_series_mut(&remove_season_cli.series)?
                         .remove_season(remove_season_cli.season)
@@ -54,7 +55,7 @@ fn main() -> Result<()> {
                 .context("Failed to save the series file")?;
         },
         Command::Series(series_cli) => match series_cli.command {
-            SeriesCommand::List(list_cli) => {
+            series_cli::SeriesCommand::List(list_cli) => {
                 let series_list;
                 if let Some(sort_command) = list_cli.sort_command {
                     series_list = series_collection.get_series_names_sorted(sort_command);
@@ -63,7 +64,7 @@ fn main() -> Result<()> {
                 };
                 series_list.iter().for_each(|name| println!("{}", name));
             }
-            SeriesCommand::Add(series_add_cli) => {
+            series_cli::SeriesCommand::Add(series_add_cli) => {
                 series_collection
                     .add_series(series_add_cli.name, series_add_cli.episode_duration)
                     .context("Failed to add series")?;
@@ -72,7 +73,7 @@ fn main() -> Result<()> {
                     .save_file(database_path)
                     .context("Failed to save the series file")?;
             }
-            SeriesCommand::Remove(series_remove_cli) => {
+            series_cli::SeriesCommand::Remove(series_remove_cli) => {
                 series_collection
                     .remove_series(&series_remove_cli.name)
                     .context("Could not remove series")?;
@@ -81,29 +82,29 @@ fn main() -> Result<()> {
                     .save_file(database_path)
                     .context("Failed to save the series file")?;
             }
-            SeriesCommand::Summary(series_summary_cli) => {
+            series_cli::SeriesCommand::Summary(series_summary_cli) => {
                 println!(
                     "{}",
                     series_collection.get_summary(&series_summary_cli.name)?
                 );
             }
-            SeriesCommand::WatchTime(watch_time_cli) => {
+            series_cli::SeriesCommand::WatchTime(watch_time_cli) => {
                 let series = series_collection.get_series(&watch_time_cli.name)?;
 
                 match watch_time_cli.watch_time_command {
-                    WatchTimeCommand::Seconds => {
+                    series_cli::WatchTimeCommand::Seconds => {
                         println!("{} seconds", series.get_total_watch_time().as_secs())
                     }
-                    WatchTimeCommand::Minutes => {
+                    series_cli::WatchTimeCommand::Minutes => {
                         println!("{} minutes", series.get_total_watch_time().as_secs() / 60)
                     }
-                    WatchTimeCommand::Hours => {
+                    series_cli::WatchTimeCommand::Hours => {
                         println!(
                             "{} hours",
                             series.get_total_watch_time().as_secs() / (60 * 60)
                         )
                     }
-                    WatchTimeCommand::Days => {
+                    series_cli::WatchTimeCommand::Days => {
                         println!(
                             "{} days",
                             series.get_total_watch_time().as_secs() / (60 * 60 * 24)
@@ -111,27 +112,27 @@ fn main() -> Result<()> {
                     }
                 }
             }
-            SeriesCommand::TotalWatchTime(total_watch_time_cli) => {
+            series_cli::SeriesCommand::TotalWatchTime(total_watch_time_cli) => {
                 match total_watch_time_cli.watch_time_command {
-                    WatchTimeCommand::Seconds => {
+                    series_cli::WatchTimeCommand::Seconds => {
                         println!(
                             "{} seconds",
                             series_collection.get_total_watch_time().as_secs()
                         )
                     }
-                    WatchTimeCommand::Minutes => {
+                    series_cli::WatchTimeCommand::Minutes => {
                         println!(
                             "{} minutes",
                             series_collection.get_total_watch_time().as_secs() / 60
                         )
                     }
-                    WatchTimeCommand::Hours => {
+                    series_cli::WatchTimeCommand::Hours => {
                         println!(
                             "{} hours",
                             series_collection.get_total_watch_time().as_secs() / (60 * 60)
                         )
                     }
-                    WatchTimeCommand::Days => {
+                    series_cli::WatchTimeCommand::Days => {
                         println!(
                             "{} days",
                             series_collection.get_total_watch_time().as_secs() / (60 * 60 * 24)
@@ -142,11 +143,11 @@ fn main() -> Result<()> {
         },
         Command::Database(database_cli) => {
             match database_cli.database_command {
-                DatabaseCommand::Import(import_database_cli) => {
+                database_cli::DatabaseCommand::Import(import_database_cli) => {
                     let file_path = std::path::Path::new(&import_database_cli.file);
                     import_database(file_path).context("Failed to import database")?
                 },
-                DatabaseCommand::Export(export_database_cli) => {
+                database_cli::DatabaseCommand::Export(export_database_cli) => {
                     let destination_dir = std::path::PathBuf::from(export_database_cli.folder);
                     export_database(destination_dir).context("Failed to export the database")?;
                 },
@@ -155,60 +156,4 @@ fn main() -> Result<()> {
     }
 
     Ok(())
-}
-
-/// Module that deals with operations that involves obtaining database path
-mod database {
-    use super::*;
-    use anyhow::anyhow;
-    use directories::ProjectDirs;
-    use std::{path, fs};
-    use thiserror::Error;
-
-    const SERIES_DATABASE_NAME: &str = "series.ron";
-
-    #[derive(Debug, Error)]
-    pub enum DatabaseError {
-        #[error("standard database path could not be found")]
-        DatabasePathNotFound,
-    }
-
-    pub fn get_database_path() -> Result<path::PathBuf, DatabaseError> {
-        if let Some(path) = ProjectDirs::from("", "", "series-troxide") {
-            let mut path = path.data_dir().to_owned();
-            path.push(SERIES_DATABASE_NAME);
-            Ok(path)
-        } else {
-            Err(DatabaseError::DatabasePathNotFound)
-        }
-    }
-
-    /// Exports the database to the given directory
-    pub fn export_database(mut destination_dir: path::PathBuf) -> Result<()>{
-        let database_path = get_database_path()?;
-
-        destination_dir.push(SERIES_DATABASE_NAME);
-
-        std::fs::copy(database_path, destination_dir)?;
-        Ok(())
-    }
-
-    /// Imports the database file from the given file path
-    pub fn import_database(import_file_path: &path::Path) -> Result<()> {     
-        // Inspecting the file if it is a valid database file by try parsing it into 
-        // a series collection struct
-        let file_contents = fs::read_to_string(import_file_path)?;
-
-        match SeriesCollection::load_series_with_db_content(&file_contents) {
-            Ok(_) => {
-                // when we successfully get a valid SeriesCollection struct, we can copy
-                // it to the database path
-                fs::copy(import_file_path, get_database_path()?).context("Could not copy the database to the default path")?;
-                Ok(())
-            },
-            Err(err) => {
-                Err(anyhow!(err))
-            },
-        }
-    }
 }
