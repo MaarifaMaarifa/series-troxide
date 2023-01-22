@@ -29,6 +29,14 @@ fn main() -> Result<()> {
                         .remove_episode(remove_episode_cli.season, remove_episode_cli.episode)
                         .context("Could not remove episode")?;
                 }
+                episode_cli::EpisodeCommand::List(list_episode_cli) => {
+                    let episodes = series_collection
+                        .get_series(&list_episode_cli.series)?
+                        .get_episodes(list_episode_cli.season).context("Could not list episodes")?;
+
+                    episodes.iter().for_each(|episode| print!("{} ", episode));
+                    println!();
+                },
             }
             series_collection
                 .save_file(database_path)

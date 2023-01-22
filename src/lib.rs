@@ -43,10 +43,17 @@ impl Season {
     fn get_total_episodes(&self) -> usize {
         self.episodes.len()
     }
+
+    /// Get all episodes from the season
+    fn get_episodes(&self) -> Vec<Episode> {
+        let mut episodes: Vec<Episode> = self.episodes.iter().copied().collect();
+        episodes.sort();
+        episodes
+    }
 }
 
 #[derive(Debug, Error)]
-enum SeriesError {
+pub enum SeriesError {
     #[error("season '{0}' does not exist")]
     SeasonNotFound(u32),
 
@@ -122,6 +129,14 @@ impl Series {
         }
 
         Ok(())
+    }
+
+    /// Get all episodes on the given season
+    pub fn get_episodes(&self, season: u32) -> Result<Vec<Episode>, SeriesError> {
+        if let Some(season) = self.seasons.get(&season) {
+            return Ok(season.get_episodes());
+        } 
+        Err(SeriesError::SeasonNotFound(season))
     }
 
     /// Get total episodes in the series

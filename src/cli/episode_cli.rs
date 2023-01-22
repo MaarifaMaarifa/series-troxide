@@ -13,6 +13,9 @@ pub enum EpisodeCommand {
 
     /// Remove episode from a series
     Remove(RemoveEpisodeCli),
+
+    /// Lists all the tracked episodes in a series
+    List(ListEpisodeCli),
 }
 
 #[derive(Parser)]
@@ -37,4 +40,13 @@ pub struct RemoveEpisodeCli {
 
     /// The episode number or range to be removed
     pub episode: u32,       
+}
+
+#[derive(Parser)]
+pub struct ListEpisodeCli {
+    /// Series name to get the list from
+    pub series: String,
+
+    /// Season number associated
+    pub season: u32,
 }
