@@ -93,21 +93,21 @@ fn main() -> Result<()> {
 
                 match watch_time_cli.watch_time_command {
                     series_cli::WatchTimeCommand::Seconds => {
-                        println!("{} seconds", series.get_total_watch_time().as_secs())
+                        println!("{:.2} seconds", series.get_total_watch_time().as_secs() as f32)
                     }
                     series_cli::WatchTimeCommand::Minutes => {
-                        println!("{} minutes", series.get_total_watch_time().as_secs() / 60)
+                        println!("{:.2} minutes", series.get_total_watch_time().as_secs() as f32 / 60.0)
                     }
                     series_cli::WatchTimeCommand::Hours => {
                         println!(
-                            "{} hours",
-                            series.get_total_watch_time().as_secs() / (60 * 60)
+                            "{:.2} hours",
+                            series.get_total_watch_time().as_secs() as f32 / (60 * 60) as f32
                         )
                     }
                     series_cli::WatchTimeCommand::Days => {
                         println!(
-                            "{} days",
-                            series.get_total_watch_time().as_secs() / (60 * 60 * 24)
+                            "{:.2} days",
+                            series.get_total_watch_time().as_secs() as f32 / (60 * 60 * 24) as f32
                         )
                     }
                 }
@@ -116,26 +116,26 @@ fn main() -> Result<()> {
                 match total_watch_time_cli.watch_time_command {
                     series_cli::WatchTimeCommand::Seconds => {
                         println!(
-                            "{} seconds",
-                            series_collection.get_total_watch_time().as_secs()
+                            "{:.2} seconds",
+                            series_collection.get_total_watch_time().as_secs() as f32
                         )
                     }
                     series_cli::WatchTimeCommand::Minutes => {
                         println!(
-                            "{} minutes",
-                            series_collection.get_total_watch_time().as_secs() / 60
+                            "{:.2} minutes",
+                            series_collection.get_total_watch_time().as_secs() as f32 / 60.0
                         )
                     }
                     series_cli::WatchTimeCommand::Hours => {
                         println!(
-                            "{} hours",
-                            series_collection.get_total_watch_time().as_secs() / (60 * 60)
+                            "{:.2} hours",
+                            series_collection.get_total_watch_time().as_secs() as f32 / (60 * 60) as f32
                         )
                     }
                     series_cli::WatchTimeCommand::Days => {
                         println!(
-                            "{} days",
-                            series_collection.get_total_watch_time().as_secs() / (60 * 60 * 24)
+                            "{:.2} days",
+                            series_collection.get_total_watch_time().as_secs() as f32 / (60 * 60 * 24) as f32
                         )
                     }
                 }
