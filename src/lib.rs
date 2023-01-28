@@ -2,6 +2,7 @@ use anyhow::{anyhow, Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs;
+use std::ops::RangeInclusive;
 use std::path::Path;
 use std::time;
 use thiserror::Error;
@@ -29,6 +30,14 @@ impl Season {
             return Err(anyhow!(SeasonError::EpisodeExists(episode)));
         };
         Ok(())
+    }
+
+    fn add_episode_range(&mut self, episode_range: RangeInclusive<u32>) {
+        for episode in episode_range {
+            if let Err(err) = self.add_episode(episode) {
+                eprintln!("Warning: {}", err)
+            };
+        }
     }
 
     /// Removes an episode from a season
@@ -117,6 +126,15 @@ impl Series {
             return Err(anyhow!(SeriesError::SeasonNotFound(season_number)));
         }
 
+        Ok(())
+    }
+
+    pub fn add_episode_range(&mut self, season_number: u32, episode_range: RangeInclusive<u32>) -> Result<()>{
+        if let Some(season) = self.seasons.get_mut(&season_number) {
+            season.add_episode_range(episode_range);
+        } else {
+            return Err(anyhow!(SeriesError::SeasonNotFound(season_number)));
+        }
         Ok(())
     }
 
