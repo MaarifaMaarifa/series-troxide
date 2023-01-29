@@ -1,9 +1,7 @@
 mod cli;
 mod database;
 
-use std::num::ParseIntError;
 use anyhow::{Context, Result};
-use thiserror::Error;
 use cli::*;
 use database::*;
 use series_troxide::*;
@@ -182,43 +180,3 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-/// Error cases that can be returned by methods in RangeParser Struct
-#[derive(Debug, Error)]
-enum RangeParserError {
-    #[error("The string syntax is incorrect, correct form is 3-7")]
-    Syntax,
-
-    #[error("The start range number is invalid")]
-    StartRange(ParseIntError),
-
-    #[error("The end range number is invalid")]
-    EndRange(ParseIntError),
-}
-
-/// Struct dealing with Parsing of ranges given by the user through the command line options
-struct RangeParser;
-
-impl RangeParser {
-    /// Parses a Range out of a str
-    fn get_range(range_str: &str) -> Result<std::ops::RangeInclusive<u32>, RangeParserError> {
-        let range_components = range_str.split_once('-');
-
-        let range_components = if let Some(components) = range_components {
-            components
-        } else {
-            return Err(RangeParserError::Syntax)
-        };
-
-        let start: u32 = match range_components.0.parse() {
-            Ok(num) => num,
-            Err(err) => return Err(RangeParserError::StartRange(err)),
-        };
-
-        let end: u32 = match range_components.1.parse() {
-            Ok(num) => num,
-            Err(err) => return Err(RangeParserError::EndRange(err)),
-        };
-
-        Ok(start..=end)
-    }
-}
