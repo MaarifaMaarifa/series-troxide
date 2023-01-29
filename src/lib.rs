@@ -378,8 +378,8 @@ impl SeriesCollection {
     }
 
     /// Get summary of the given series name
-    pub fn get_summary(&self, series_name: &str) -> Result<SeriesSummary> {
-        let summary = SeriesSummary::new(self.get_series(series_name)?);
+    pub fn get_summary(&self, series_name: &str) -> Result<summary::SeriesSummary> {
+        let summary = summary::SeriesSummary::new(self.get_series(series_name)?);
         Ok(summary)
     }
 
@@ -394,46 +394,50 @@ impl SeriesCollection {
     }
 }
 
-/// Summary for a Series
-/// Provide useful summary information for a paricular series
-pub struct SeriesSummary<'a> {
-    series: &'a Series,
-}
 
-impl<'a> SeriesSummary<'a> {
-    /// Creates a new instance of series summary using the supplied &Series
-    fn new(series: &'a Series) -> Self {
-        Self {series}
+pub mod summary {
+    use super::*;
+    /// Summary for a Series
+    /// Provide useful summary information for a paricular series
+    pub struct SeriesSummary<'a> {
+        series: &'a Series,
     }
-}
 
-impl<'a> std::fmt::Display for SeriesSummary<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut season_episodes: Vec<(_, _)> = self.series
-            .seasons
-            .iter()
-            .map(|(season, episode)| (season, episode.get_total_episodes()))
-            .collect();
+    impl<'a> SeriesSummary<'a> {
+        /// Creates a new instance of series summary using the supplied &Series
+        pub fn new(series: &'a Series) -> Self {
+            Self {series}
+        }
+    }
 
-        season_episodes.sort_by_key(|x| x.0);
+    impl<'a> std::fmt::Display for SeriesSummary<'a> {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            let mut season_episodes: Vec<(_, _)> = self.series
+                .seasons
+                .iter()
+                .map(|(season, episode)| (season, episode.get_total_episodes()))
+                .collect();
 
-        let mut summary = format!(
-            "\
+            season_episodes.sort_by_key(|x| x.0);
+
+            let mut summary = format!(
+                "\
 Series Name: {}
 Episode Duration: {} mins
 Total Seasons: {}
 Total Episodes: {}",
-            self.series.name,
-            self.series.episode_duration,
-            self.series.get_total_seasons(),
-            self.series.get_total_episodes(),
-        );
+                self.series.name,
+                self.series.episode_duration,
+                self.series.get_total_seasons(),
+                self.series.get_total_episodes(),
+            );
 
-        // Appending the {season} => {episode} information to the summary
-        for (season, episode) in season_episodes {
-            summary.push_str(&format!("\nSeason {} => {} Episodes", season, episode));
+            // Appending the {season} => {episode} information to the summary
+            for (season, episode) in season_episodes {
+                summary.push_str(&format!("\nSeason {} => {} Episodes", season, episode));
+            }
+
+            write!(f, "{}", summary)
         }
-
-        write!(f, "{}", summary)
     }
 }
