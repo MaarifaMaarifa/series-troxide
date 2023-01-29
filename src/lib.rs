@@ -168,6 +168,11 @@ impl Series {
         Ok(())
     }
 
+    /// Changes the episode duration of the series using the provided episode duration
+    pub fn change_episode_duration(&mut self, episode_duration: u32) {
+        self.episode_duration = episode_duration;
+    }
+
     /// Get all episodes on the given season
     pub fn get_episodes(&self, season: u32) -> Result<Vec<Episode>, SeriesError> {
         if let Some(season) = self.seasons.get(&season) {

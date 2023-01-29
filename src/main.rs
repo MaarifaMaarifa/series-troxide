@@ -110,6 +110,15 @@ fn main() -> Result<()> {
                     series_collection.get_summary(&series_summary_cli.name)?
                 );
             }
+            series_cli::SeriesCommand::ChangeEpisodeDuration(series_change_duration_cli) => {
+                series_collection
+                .get_series_mut(&series_change_duration_cli.name)?
+                .change_episode_duration(series_change_duration_cli.episode_duration);
+
+                series_collection
+                    .save_file(database_path)
+                    .context("Failed to save the series file")?;
+            },
             series_cli::SeriesCommand::WatchTime(watch_time_cli) => {
                 let series = series_collection.get_series(&watch_time_cli.name)?;
 
