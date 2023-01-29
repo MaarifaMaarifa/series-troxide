@@ -32,6 +32,7 @@ impl Season {
         Ok(())
     }
 
+    /// Adds episodes using the provided range
     fn add_episode_range(&mut self, episode_range: RangeInclusive<u32>) {
         for episode in episode_range {
             if let Err(err) = self.add_episode(episode) {
