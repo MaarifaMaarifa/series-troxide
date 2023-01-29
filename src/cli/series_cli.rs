@@ -20,6 +20,9 @@ pub enum SeriesCommand {
     /// Get the summary of the specified series
     Summary(SeriesSummaryCli),
 
+    /// Get the seasons summary of the specified series
+    SeasonSummary(SeasonSummaryCli),
+
     /// Change episode duration of the specified series
     ChangeEpisodeDuration(SeriesChangeDurationCli),
 
@@ -78,6 +81,12 @@ pub struct TotalWatchTimeCli {
 
 #[derive(Parser)]
 pub struct SeriesSummaryCli {
+    /// Series' name
+    pub name: String,
+}
+
+#[derive(Parser)]
+pub struct SeasonSummaryCli {
     /// Series' name
     pub name: String,
 }

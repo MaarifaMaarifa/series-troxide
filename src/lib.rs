@@ -18,12 +18,19 @@ enum SeasonError {
 
 type Episode = u32;
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
-struct Season {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Season {
+    season_number: u32,
     episodes: HashSet<Episode>,
 }
 
 impl Season {
+    fn new(season_number: u32) -> Self {
+        Self {
+            season_number,
+            episodes: HashSet::new(),
+        }
+    }
     /// Adds an episode into a season
     fn add_episode(&mut self, episode: Episode) -> Result<()> {
         if !self.episodes.insert(episode) {
@@ -47,6 +54,11 @@ impl Season {
             return Err(anyhow!(SeasonError::EpisodeNotFound(episode)));
         };
         Ok(())
+    }
+
+    fn get_episodes_summary(&self) -> summary::EpisodesSummary {
+        let episodes: Vec<Episode> = self.episodes.iter().copied().collect();
+        summary::EpisodesSummary::new(episodes)
     }
 
     /// Get the total number of episodes in a season
@@ -99,7 +111,7 @@ impl Series {
             return Err(anyhow!(SeriesError::SeasonAlreadyExists(season_number)));
         }
 
-        let season = Season::default();
+        let season = Season::new(season_number);
         self.seasons.insert(season_number, season);
 
         Ok(())
@@ -115,9 +127,9 @@ impl Series {
         }   
 
         // Now adding the season after conferming that they all don't exist
-        let default_season = Season::default();
-        for season in season_range {
-            self.seasons.insert(season, default_season.clone());
+        for season_num in season_range {
+            let season = Season::new(season_num);
+            self.seasons.insert(season_num, season);
         }
 
         Ok(())
@@ -185,6 +197,27 @@ impl Series {
         let episode_summary = summary::EpisodesSummary::new(self.get_episodes(season)?);
         Ok(episode_summary)
     }
+
+    /// Get all the Season Summary from the series
+    pub fn get_seasons_summary(&self) -> Option<Vec<summary::SeasonSummary>> {
+        let seasons_number = self.get_total_seasons();
+
+        if seasons_number == 0 {
+            return None
+        }
+
+        let mut seasons_summaries = Vec::with_capacity(seasons_number);
+
+        for season in self.seasons.values() {
+            let season_summary = summary::SeasonSummary::new(season);
+            seasons_summaries.push(season_summary);
+        }
+
+        // Getting a sorted season summary for clarity
+        seasons_summaries.sort_by(|a, b| a.season.season_number.cmp(&b.season.season_number));
+
+        Some(seasons_summaries)
+    } 
 
     /// Get total episodes in the series
     pub fn get_total_episodes(&self) -> usize {
@@ -431,6 +464,28 @@ pub mod summary {
         }
     }
 
+    /// Summary for a Season
+    /// Provide useful summary information for a particular season
+    pub struct SeasonSummary<'a> {
+        pub season: &'a Season,
+    }
+
+    impl<'a> SeasonSummary<'a> {
+        pub fn new(season: &'a Season) -> Self {
+            Self {season}
+        }
+    }
+
+    impl<'a> Display for SeasonSummary<'a> {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(
+                f,
+                "Season: {}\nEpisodes: {}",
+                self.season.season_number,
+                self.season.get_episodes_summary())
+        }
+    }
+
     
     /// Summary for a Series
     /// Provide useful summary information for a paricular series
@@ -445,7 +500,7 @@ pub mod summary {
         }
     }
 
-    impl<'a> std::fmt::Display for SeriesSummary<'a> {
+    impl<'a> Display for SeriesSummary<'a> {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             let mut season_episodes: Vec<(_, _)> = self.series
                 .seasons

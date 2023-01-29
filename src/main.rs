@@ -110,6 +110,20 @@ fn main() -> Result<()> {
                     series_collection.get_summary(&series_summary_cli.name)?
                 );
             }
+            series_cli::SeriesCommand::SeasonSummary(season_summary_cli) => {
+                let seasons_summaries = series_collection
+                .get_series(&season_summary_cli.name)?
+                .get_seasons_summary();
+
+                if let Some(season_summaries) = seasons_summaries {
+                    for summary in season_summaries {
+                        println!("{}\n", summary)
+                    }
+                } else {
+                    println!("No seasons found for series {}", season_summary_cli.name);
+                }
+
+            },
             series_cli::SeriesCommand::ChangeEpisodeDuration(series_change_duration_cli) => {
                 series_collection
                 .get_series_mut(&series_change_duration_cli.name)?
