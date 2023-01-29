@@ -378,9 +378,38 @@ impl SeriesCollection {
     }
 
     /// Get summary of the given series name
-    pub fn get_summary(&self, series_name: &str) -> Result<String> {
-        let series = self.get_series(series_name)?;
-        let mut season_episodes: Vec<(_, _)> = series
+    pub fn get_summary(&self, series_name: &str) -> Result<SeriesSummary> {
+        let summary = SeriesSummary::new(self.get_series(series_name)?);
+        Ok(summary)
+    }
+
+    /// Saves the series collection into the ron file
+    pub fn save_file(&self, path: impl AsRef<Path>) -> Result<()> {
+        // Choosing the config depth_limit of 4 because it provides good visual of the ron file
+        // that might be usefull for manual inspection of the file
+        let config = ron::ser::PrettyConfig::new().depth_limit(4);
+        let file_contents = ron::ser::to_string_pretty(&self, config)?;
+        fs::write(path, file_contents)?;
+        Ok(())
+    }
+}
+
+/// Summary for a Series
+/// Provide useful summary information for a paricular series
+pub struct SeriesSummary<'a> {
+    series: &'a Series,
+}
+
+impl<'a> SeriesSummary<'a> {
+    /// Creates a new instance of series summary using the supplied &Series
+    fn new(series: &'a Series) -> Self {
+        Self {series}
+    }
+}
+
+impl<'a> std::fmt::Display for SeriesSummary<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut season_episodes: Vec<(_, _)> = self.series
             .seasons
             .iter()
             .map(|(season, episode)| (season, episode.get_total_episodes()))
@@ -394,10 +423,10 @@ Series Name: {}
 Episode Duration: {} mins
 Total Seasons: {}
 Total Episodes: {}",
-            series_name,
-            series.episode_duration,
-            series.get_total_seasons(),
-            series.get_total_episodes(),
+            self.series.name,
+            self.series.episode_duration,
+            self.series.get_total_seasons(),
+            self.series.get_total_episodes(),
         );
 
         // Appending the {season} => {episode} information to the summary
@@ -405,14 +434,6 @@ Total Episodes: {}",
             summary.push_str(&format!("\nSeason {} => {} Episodes", season, episode));
         }
 
-        Ok(summary)
-    }
-
-    /// Saves the series collection into the ron file
-    pub fn save_file(&self, path: impl AsRef<Path>) -> Result<()> {
-        let config = ron::ser::PrettyConfig::new().depth_limit(4);
-        let file_contents = ron::ser::to_string_pretty(&self, config)?;
-        fs::write(path, file_contents)?;
-        Ok(())
+        write!(f, "{}", summary)
     }
 }
