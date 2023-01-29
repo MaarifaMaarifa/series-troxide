@@ -30,12 +30,12 @@ fn main() -> Result<()> {
                         .context("Could not remove episode")?;
                 }
                 episode_cli::EpisodeCommand::List(list_episode_cli) => {
-                    let episodes = series_collection
+                    let episodes_summary = series_collection
                         .get_series(&list_episode_cli.series)?
-                        .get_episodes(list_episode_cli.season).context("Could not list episodes")?;
+                        .get_episodes_summary(list_episode_cli.season)?;
 
-                    episodes.iter().for_each(|episode| print!("{} ", episode));
-                    println!();
+                    println!("{}", episodes_summary);
+                    
                 },
                 episode_cli::EpisodeCommand::AddRange(add_episode_range_cli) => {
                     let episode_range = RangeParser::get_range(&add_episode_range_cli.episode_range)?;

@@ -174,11 +174,16 @@ impl Series {
     }
 
     /// Get all episodes on the given season
-    pub fn get_episodes(&self, season: u32) -> Result<Vec<Episode>, SeriesError> {
+    fn get_episodes(&self, season: u32) -> Result<Vec<Episode>, SeriesError> {
         if let Some(season) = self.seasons.get(&season) {
             return Ok(season.get_episodes());
         } 
         Err(SeriesError::SeasonNotFound(season))
+    }
+
+    pub fn get_episodes_summary(&self, season: u32) -> Result<summary::EpisodesSummary, SeriesError> {
+        let episode_summary = summary::EpisodesSummary::new(self.get_episodes(season)?);
+        Ok(episode_summary)
     }
 
     /// Get total episodes in the series
@@ -397,6 +402,36 @@ impl SeriesCollection {
 
 pub mod summary {
     use super::*;
+    use std::fmt::Display;
+
+    /// Summary for sorted episodes
+    /// Provides sorted summary of episodes for the given Vec of Episodes
+    pub struct EpisodesSummary {
+        episodes: Vec<Episode>,
+    }
+
+    impl EpisodesSummary {
+        pub fn new(mut episodes: Vec<Episode>) -> Self {
+            episodes.sort();
+            Self {episodes}
+        }
+    }
+
+    impl Display for EpisodesSummary {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            let mut summary = String::new();
+
+            for episode in &self.episodes {
+                summary.push_str(
+                    &format!("{} ", episode)
+                )
+            }
+
+            write!(f, "{}", summary)
+        }
+    }
+
+    
     /// Summary for a Series
     /// Provide useful summary information for a paricular series
     pub struct SeriesSummary<'a> {
