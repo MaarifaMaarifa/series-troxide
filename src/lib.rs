@@ -68,8 +68,7 @@ impl Season {
 
     /// Get all episodes from the season
     fn get_episodes(&self) -> Vec<Episode> {
-        let mut episodes: Vec<Episode> = self.episodes.iter().copied().collect();
-        episodes.sort();
+        let episodes: Vec<Episode> = self.episodes.iter().copied().collect();
         episodes
     }
 }
