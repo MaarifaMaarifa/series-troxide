@@ -4,7 +4,7 @@ authors = ["Maarifa Maarifa"]
 description = "A Series Tracker with powerfull command-line options"
 categories = ["command-line-utilities", "series", "TV"]
 repository = "https://github.com/MaarifaMaarifa/series-troxide"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 
 [profile.release]
