@@ -18,7 +18,7 @@ enum SeasonError {
 
 type Episode = u32;
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 struct Season {
     episodes: HashSet<Episode>,
 }
@@ -100,6 +100,24 @@ impl Series {
 
         let season = Season::default();
         self.seasons.insert(season_number, season);
+
+        Ok(())
+    }
+
+    /// Add new seasons using the specified season range
+    pub fn add_season_range(&mut self, season_range: RangeInclusive<u32>) -> Result<()> {
+        // Checking if any of season in range exist before adding them to the collection
+        for season in season_range.clone() {
+            if self.seasons.contains_key(&season) {
+                return Err(anyhow!(SeriesError::SeasonAlreadyExists(season)));
+            }
+        }   
+
+        // Now adding the season after conferming that they all don't exist
+        let default_season = Season::default();
+        for season in season_range {
+            self.seasons.insert(season, default_season.clone());
+        }
 
         Ok(())
     }

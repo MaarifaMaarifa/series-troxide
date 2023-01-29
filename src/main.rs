@@ -66,6 +66,13 @@ fn main() -> Result<()> {
                         .remove_season(remove_season_cli.season)
                         .context("Could not remove season")?;
                 },
+                season_cli::SeasonCommand::AddRange(add_season_range_cli) => {
+                    let season_range = RangeParser::get_range(&add_season_range_cli.season_range)?;
+                    series_collection
+                        .get_series_mut(&add_season_range_cli.series)?
+                        .add_season_range(season_range)
+                        .context("Could not add season range")?;
+                },
             }
             series_collection
                 .save_file(database_path)
