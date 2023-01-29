@@ -117,7 +117,7 @@ fn main() -> Result<()> {
 
                 match watch_time_cli.watch_time_command {
                     series_cli::WatchTimeCommand::Seconds => {
-                        println!("{:.2} seconds", series.get_total_watch_time().as_secs() as f32)
+                        println!("{} seconds", series.get_total_watch_time().as_secs())
                     }
                     series_cli::WatchTimeCommand::Minutes => {
                         println!("{:.2} minutes", series.get_total_watch_time().as_secs() as f32 / 60.0)
@@ -140,8 +140,8 @@ fn main() -> Result<()> {
                 match total_watch_time_cli.watch_time_command {
                     series_cli::WatchTimeCommand::Seconds => {
                         println!(
-                            "{:.2} seconds",
-                            series_collection.get_total_watch_time().as_secs() as f32
+                            "{} seconds",
+                            series_collection.get_total_watch_time().as_secs()
                         )
                     }
                     series_cli::WatchTimeCommand::Minutes => {
