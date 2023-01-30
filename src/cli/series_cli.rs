@@ -34,6 +34,9 @@ pub enum SeriesCommand {
 
     /// Get the total watch time of all series collection
     TotalWatchTime(TotalWatchTimeCli),
+
+    /// Get the total tracked episodes in the entire series collection
+    TotalEpisodes,
 }
 
 #[derive(Parser)]
