@@ -110,6 +110,15 @@ fn main() -> Result<()> {
                     series_collection.get_summary(&series_summary_cli.name)?
                 );
             }
+            series_cli::SeriesCommand::ChangeName(series_change_name_cli) => {
+                series_collection
+                    .change_series_name(&series_change_name_cli.old_name, series_change_name_cli.new_name)
+                    .context("Failed to change series name")?;
+
+                series_collection
+                    .save_file(database_path)
+                    .context("Failed to save the series file")?;
+            },
             series_cli::SeriesCommand::SeasonSummary(season_summary_cli) => {
                 let seasons_summaries = series_collection
                 .get_series(&season_summary_cli.name)?

@@ -17,6 +17,9 @@ pub enum SeriesCommand {
     /// Remove a whole series
     Remove(SeriesRemoveCli),
 
+    /// Change the name of the specified series
+    ChangeName(SeriesChangeNameCli),
+
     /// Get the summary of the specified series
     Summary(SeriesSummaryCli),
 
@@ -46,6 +49,15 @@ pub struct SeriesAddCli {
 
     /// The duration of episode in minutes
     pub episode_duration: u32,
+}
+
+#[derive(Parser)]
+pub struct SeriesChangeNameCli {
+    /// The old name of the series to changed
+    pub old_name: String,
+
+    /// The new name to be assigned the specified series
+    pub new_name: String,
 }
 
 #[derive(Parser)]

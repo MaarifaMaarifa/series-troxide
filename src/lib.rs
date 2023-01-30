@@ -350,6 +350,13 @@ impl SeriesCollection {
         ))
     }
 
+    /// Change the name of a particular series by providing it's old name and new name
+    pub fn change_series_name(&mut self, old_name: &str, new_name: String) -> Result<(), SeriesCollectionError> {
+        let series = self.get_series_mut(old_name)?;
+        series.name = new_name;
+        Ok(())
+    }
+
     /// Get an immutable reference from the series collection
     pub fn get_series(&self, series_name: &str) -> Result<&Series, SeriesCollectionError> {
         for series in &self.collection {
