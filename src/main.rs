@@ -197,6 +197,9 @@ fn main() -> Result<()> {
             series_cli::SeriesCommand::TotalEpisodes => {
                 println!{"{} episodes",series_collection.get_total_episodes()};
             },
+            series_cli::SeriesCommand::TotalSeasons => {
+                println!{"{} seasons",series_collection.get_total_seasons()};
+            },
         },
         Command::Database(database_cli) => {
             match database_cli.database_command {

@@ -37,6 +37,9 @@ pub enum SeriesCommand {
 
     /// Get the total tracked episodes in the entire series collection
     TotalEpisodes,
+
+    /// Get the total tracked seasons in the entire series collection
+    TotalSeasons,
 }
 
 #[derive(Parser)]

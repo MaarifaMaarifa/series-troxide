@@ -429,6 +429,14 @@ impl SeriesCollection {
             .sum()
     }
 
+    /// Get the total seasons in the entire series collection
+    pub fn get_total_seasons(&self) -> usize {
+        self.collection
+            .iter()
+            .map(|series| series.get_total_seasons())
+            .sum()
+    }
+
     /// Get summary of the given series name
     pub fn get_summary(&self, series_name: &str) -> Result<summary::SeriesSummary> {
         let summary = summary::SeriesSummary::new(self.get_series(series_name)?);
