@@ -17,7 +17,7 @@ pub enum EpisodeCommand {
     /// Remove episode from a series
     Remove(RemoveEpisodeCli),
 
-    /// Lists all the tracked episodes in a series
+    /// Lists all the tracked episodes in a season of a series
     List(ListEpisodeCli),
 }
 
