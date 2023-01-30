@@ -437,6 +437,11 @@ impl SeriesCollection {
             .sum()
     }
 
+    /// Get the total series in the entire series collection
+    pub fn get_total_series(&self) -> usize {
+        self.collection.len()
+    }
+
     /// Get summary of the given series name
     pub fn get_summary(&self, series_name: &str) -> Result<summary::SeriesSummary> {
         let summary = summary::SeriesSummary::new(self.get_series(series_name)?);

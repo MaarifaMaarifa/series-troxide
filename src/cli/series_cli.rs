@@ -40,6 +40,9 @@ pub enum SeriesCommand {
 
     /// Get the total tracked seasons in the entire series collection
     TotalSeasons,
+
+    /// Get the total count of tracked series in the entire series collection
+    TotalSeries,
 }
 
 #[derive(Parser)]
