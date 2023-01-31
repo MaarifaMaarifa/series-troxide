@@ -26,6 +26,10 @@ pub enum DatabaseCommand {
 pub struct ImportDatabaseCli {
     /// File Path to database file to be imported
     pub file: String,
+
+    /// Import the database even if database file already exists
+    #[clap(short, long)]
+    pub force: bool,
 }
 
 #[derive(Parser)]

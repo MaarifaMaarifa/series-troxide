@@ -66,7 +66,9 @@ pub fn export_database(mut destination_dir: path::PathBuf) -> Result<()>{
 }
 
 /// Imports the database file from the given file path
-pub fn import_database(import_file_path: &path::Path) -> Result<()> {     
+/// It takes import_file_path and force_import bool which indicates whether to overwrite
+/// file that already exists or not.
+pub fn import_database(import_file_path: &path::Path, force_import: bool) -> Result<()> {     
     // Inspecting the file if it is a valid database file by try parsing it into 
     // a series collection struct
     let file_contents = fs::read_to_string(import_file_path)?;
@@ -75,7 +77,16 @@ pub fn import_database(import_file_path: &path::Path) -> Result<()> {
         Ok(_) => {
             // when we successfully get a valid SeriesCollection struct, we can copy
             // it to the database path
-            fs::copy(import_file_path, get_database_path()?).context("Could not copy the database to the default path")?;
+
+            let database_path = get_database_path()?;
+
+            // Checking if the user forcefully allow us to overwrite the database file
+            // if already exists
+            if path::Path::new(&database_path).exists() && !force_import {
+                return Err(anyhow!(DatabaseError::DatabaseFileExists));
+            };
+
+            fs::copy(import_file_path, database_path).context("Could not copy the database to the default path")?;
             Ok(())
         },
         Err(err) => {

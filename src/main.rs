@@ -255,7 +255,7 @@ fn main() -> Result<()> {
                 },
                 database_cli::DatabaseCommand::Import(import_database_cli) => {
                     let file_path = std::path::Path::new(&import_database_cli.file);
-                    import_database(file_path).context("Failed to import database")?
+                    import_database(file_path, import_database_cli.force).context("Failed to import database")?
                 },
                 database_cli::DatabaseCommand::Export(export_database_cli) => {
                     let destination_dir = std::path::PathBuf::from(export_database_cli.folder);
