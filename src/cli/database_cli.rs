@@ -8,6 +8,9 @@ pub struct DatabaseCli {
 
 #[derive(Subcommand)]
 pub enum DatabaseCommand {
+    /// Create an empty database file
+    Create,
+
     /// Import series database file from a specified file path
     Import(ImportDatabaseCli),
 

@@ -7,6 +7,8 @@ use std::path::Path;
 use std::time;
 use thiserror::Error;
 
+pub mod database;
+
 #[derive(Debug, Error)]
 enum SeasonError {
     #[error("episode '{0}' does not exist")]
@@ -301,19 +303,9 @@ impl SeriesCollection {
             Ok(content) => content,
             Err(error) => match error.kind() {
                 std::io::ErrorKind::NotFound => {
-                    fs::create_dir_all(
-                        path.parent()
-                            .context("Could not obtain the database directory")?,
-                    )
-                    .context("Could not create database directory")?;
-
-                    // creating empty database content
-                    // SAFETY: The unwrap here is guaranteed to never panic
-                    let default_empty_database = ron::to_string(&SeriesCollection::default()).unwrap();
-
-                    fs::write(path, &default_empty_database)
-                        .context("Could not create database")?;
-                    default_empty_database
+                    return Err(anyhow!(
+                            database::DatabaseError::DatabaseFileNotFound("use 'database create' command to create empty database or import it using 'database import' command")   
+                        ));
                 }
                 err => return Err(anyhow!(err)),
             },

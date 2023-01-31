@@ -11,6 +11,9 @@ const SERIES_DATABASE_NAME: &str = "series.ron";
 pub enum DatabaseError {
     #[error("standard database path could not be found")]
     DatabasePathNotFound,
+
+    #[error("Database file not found: {0}")]
+    DatabaseFileNotFound(&'static str),
 }
 
 pub fn get_database_path() -> Result<path::PathBuf, DatabaseError> {
@@ -21,6 +24,25 @@ pub fn get_database_path() -> Result<path::PathBuf, DatabaseError> {
     } else {
         Err(DatabaseError::DatabasePathNotFound)
     }
+}
+
+/// Creates empty database in the default database path
+pub fn create_empty_database() -> Result<()> {
+    let database_path = get_database_path()?;
+
+    fs::create_dir_all(
+        database_path.parent()
+            .context("Could not obtain the database directory")?
+    ).context("Could not create database directory")?;
+
+    // SAFETY: The unwrap in the next line is guaranteed to not panic as we are 
+    // serializing the SeriesCollection itself
+    let default_empty_database = ron::to_string(&SeriesCollection::default()).unwrap();
+
+    fs::write(database_path, &default_empty_database)
+        .context("Could not create database")?;
+
+    Ok(())
 }
 
 /// Exports the database to the given directory
