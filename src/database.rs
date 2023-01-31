@@ -49,7 +49,7 @@ pub fn create_empty_database(force_create: bool) -> Result<()> {
     // serializing the SeriesCollection itself
     let default_empty_database = ron::to_string(&SeriesCollection::default()).unwrap();
 
-    fs::write(database_path, &default_empty_database)
+    fs::write(database_path, default_empty_database)
         .context("Could not create database")?;
 
     Ok(())
