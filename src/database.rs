@@ -14,6 +14,9 @@ pub enum DatabaseError {
 
     #[error("Database file not found: {0}")]
     DatabaseFileNotFound(&'static str),
+
+    #[error("Database file already exists, use --force to override")]
+    DatabaseFileExists,
 }
 
 pub fn get_database_path() -> Result<path::PathBuf, DatabaseError> {
@@ -27,8 +30,15 @@ pub fn get_database_path() -> Result<path::PathBuf, DatabaseError> {
 }
 
 /// Creates empty database in the default database path
-pub fn create_empty_database() -> Result<()> {
+/// takes in a bool indicating when to overwrite the database file 
+/// it already exists
+pub fn create_empty_database(force_create: bool) -> Result<()> {
     let database_path = get_database_path()?;
+
+    // Checking if we can overwrite the file if it exists
+    if database_path.exists() && !force_create {
+        return Err(anyhow!(DatabaseError::DatabaseFileExists));
+    }
 
     fs::create_dir_all(
         database_path.parent()

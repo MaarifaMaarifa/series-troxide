@@ -9,7 +9,11 @@ pub struct DatabaseCli {
 #[derive(Subcommand)]
 pub enum DatabaseCommand {
     /// Create an empty database file
-    Create,
+    Create {
+        /// Overwrites existing database file with a new empty one
+        #[clap(short, long)]
+        force: bool,
+    },
 
     /// Import series database file from a specified file path
     Import(ImportDatabaseCli),

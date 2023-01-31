@@ -250,8 +250,8 @@ fn main() -> Result<()> {
         },
         Command::Database(database_cli) => {
             match database_cli.database_command {
-                database_cli::DatabaseCommand::Create => {
-                    create_empty_database().context("Failed to create empty database")?;
+                database_cli::DatabaseCommand::Create {force} => {
+                    create_empty_database(force).context("Failed to create empty database")?;
                 },
                 database_cli::DatabaseCommand::Import(import_database_cli) => {
                     let file_path = std::path::Path::new(&import_database_cli.file);
