@@ -30,7 +30,7 @@ pub struct AddEpisodeCli {
     pub season: u32,
 
     /// The episode number to be added
-    pub episode: u32,       
+    pub episode: u32,
 }
 
 #[derive(Parser)]
@@ -42,7 +42,7 @@ pub struct AddEpisodeRangeCli {
     pub season: u32,
 
     /// The episode range to be added ie. 3-9 means (three to nine inclusively)
-    pub episode_range: String,       
+    pub episode_range: String,
 }
 
 #[derive(Parser)]
@@ -54,7 +54,7 @@ pub struct RemoveEpisodeCli {
     pub season: u32,
 
     /// The episode number or range to be removed
-    pub episode: u32,       
+    pub episode: u32,
 }
 
 #[derive(Parser)]

@@ -1,15 +1,15 @@
 pub use clap::{Parser, Subcommand};
+use database_cli::DatabaseCli;
+use episode_cli::EpisodeCli;
+use season_cli::SeasonCli;
+use series_cli::SeriesCli;
 use std::num::ParseIntError;
 use thiserror::Error;
-use series_cli::SeriesCli;
-use season_cli::SeasonCli;
-use episode_cli::EpisodeCli;
-use database_cli::DatabaseCli;
 
-pub mod series_cli;
-pub mod season_cli;
-pub mod episode_cli;
 pub mod database_cli;
+pub mod episode_cli;
+pub mod season_cli;
+pub mod series_cli;
 
 #[derive(Parser)]
 #[clap(about, version, author)]
@@ -57,7 +57,7 @@ impl RangeParser {
         let range_components = if let Some(components) = range_components {
             components
         } else {
-            return Err(RangeParserError::Syntax)
+            return Err(RangeParserError::Syntax);
         };
 
         let start: u32 = match range_components.0.parse() {

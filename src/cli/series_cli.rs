@@ -84,7 +84,6 @@ pub struct SeriesChangeDurationCli {
     pub episode_duration: u32,
 }
 
-
 #[derive(Parser)]
 pub struct WatchTimeCli {
     /// The name of the series

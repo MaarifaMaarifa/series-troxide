@@ -1,8 +1,7 @@
-
 use super::*;
 use anyhow::anyhow;
 use directories::ProjectDirs;
-use std::{path, fs};
+use std::{fs, path};
 use thiserror::Error;
 
 const SERIES_DATABASE_NAME: &str = "series.ron";
@@ -30,7 +29,7 @@ pub fn get_database_path() -> Result<path::PathBuf, DatabaseError> {
 }
 
 /// Creates empty database in the default database path
-/// takes in a bool indicating when to overwrite the database file 
+/// takes in a bool indicating when to overwrite the database file
 /// it already exists
 pub fn create_empty_database(force_create: bool) -> Result<()> {
     let database_path = get_database_path()?;
@@ -41,22 +40,23 @@ pub fn create_empty_database(force_create: bool) -> Result<()> {
     }
 
     fs::create_dir_all(
-        database_path.parent()
-            .context("Could not obtain the database directory")?
-    ).context("Could not create database directory")?;
+        database_path
+            .parent()
+            .context("Could not obtain the database directory")?,
+    )
+    .context("Could not create database directory")?;
 
-    // SAFETY: The unwrap in the next line is guaranteed to not panic as we are 
+    // SAFETY: The unwrap in the next line is guaranteed to not panic as we are
     // serializing the SeriesCollection itself
     let default_empty_database = ron::to_string(&SeriesCollection::default()).unwrap();
 
-    fs::write(database_path, default_empty_database)
-        .context("Could not create database")?;
+    fs::write(database_path, default_empty_database).context("Could not create database")?;
 
     Ok(())
 }
 
 /// Exports the database to the given directory
-pub fn export_database(mut destination_dir: path::PathBuf) -> Result<()>{
+pub fn export_database(mut destination_dir: path::PathBuf) -> Result<()> {
     let database_path = get_database_path()?;
 
     destination_dir.push(SERIES_DATABASE_NAME);
@@ -68,8 +68,8 @@ pub fn export_database(mut destination_dir: path::PathBuf) -> Result<()>{
 /// Imports the database file from the given file path
 /// It takes import_file_path and force_import bool which indicates whether to overwrite
 /// file that already exists or not.
-pub fn import_database(import_file_path: &path::Path, force_import: bool) -> Result<()> {     
-    // Inspecting the file if it is a valid database file by try parsing it into 
+pub fn import_database(import_file_path: &path::Path, force_import: bool) -> Result<()> {
+    // Inspecting the file if it is a valid database file by try parsing it into
     // a series collection struct
     let file_contents = fs::read_to_string(import_file_path)?;
 
@@ -86,11 +86,10 @@ pub fn import_database(import_file_path: &path::Path, force_import: bool) -> Res
                 return Err(anyhow!(DatabaseError::DatabaseFileExists));
             };
 
-            fs::copy(import_file_path, database_path).context("Could not copy the database to the default path")?;
+            fs::copy(import_file_path, database_path)
+                .context("Could not copy the database to the default path")?;
             Ok(())
-        },
-        Err(err) => {
-            Err(anyhow!(err))
-        },
+        }
+        Err(err) => Err(anyhow!(err)),
     }
 }

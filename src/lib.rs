@@ -125,7 +125,7 @@ impl Series {
             if self.seasons.contains_key(&season) {
                 return Err(anyhow!(SeriesError::SeasonAlreadyExists(season)));
             }
-        }   
+        }
 
         // Now adding the season after conferming that they all don't exist
         for season_num in season_range {
@@ -161,7 +161,11 @@ impl Series {
         Ok(())
     }
 
-    pub fn add_episode_range(&mut self, season_number: u32, episode_range: RangeInclusive<u32>) -> Result<()>{
+    pub fn add_episode_range(
+        &mut self,
+        season_number: u32,
+        episode_range: RangeInclusive<u32>,
+    ) -> Result<()> {
         if let Some(season) = self.seasons.get_mut(&season_number) {
             season.add_episode_range(episode_range);
         } else {
@@ -190,11 +194,14 @@ impl Series {
     fn get_episodes(&self, season: u32) -> Result<Vec<Episode>, SeriesError> {
         if let Some(season) = self.seasons.get(&season) {
             return Ok(season.get_episodes());
-        } 
+        }
         Err(SeriesError::SeasonNotFound(season))
     }
 
-    pub fn get_episodes_summary(&self, season: u32) -> Result<summary::EpisodesSummary, SeriesError> {
+    pub fn get_episodes_summary(
+        &self,
+        season: u32,
+    ) -> Result<summary::EpisodesSummary, SeriesError> {
         let episode_summary = summary::EpisodesSummary::new(self.get_episodes(season)?);
         Ok(episode_summary)
     }
@@ -204,7 +211,7 @@ impl Series {
         let seasons_number = self.get_total_seasons();
 
         if seasons_number == 0 {
-            return None
+            return None;
         }
 
         let mut seasons_summaries = Vec::with_capacity(seasons_number);
@@ -218,7 +225,7 @@ impl Series {
         seasons_summaries.sort_by(|a, b| a.season.season_number.cmp(&b.season.season_number));
 
         Some(seasons_summaries)
-    } 
+    }
 
     /// Get total episodes in the series
     pub fn get_total_episodes(&self) -> usize {
@@ -288,7 +295,7 @@ pub struct SeriesCollection {
 }
 
 impl SeriesCollection {
-    /// Creates a instance of the database collection from contents read from a 
+    /// Creates a instance of the database collection from contents read from a
     /// a database file
     pub fn load_series_with_db_content(database_content: &str) -> Result<Self> {
         let series_collection: Self = ron::from_str(database_content)?;
@@ -343,7 +350,11 @@ impl SeriesCollection {
     }
 
     /// Change the name of a particular series by providing it's old name and new name
-    pub fn change_series_name(&mut self, old_name: &str, new_name: String) -> Result<(), SeriesCollectionError> {
+    pub fn change_series_name(
+        &mut self,
+        old_name: &str,
+        new_name: String,
+    ) -> Result<(), SeriesCollectionError> {
         let series = self.get_series_mut(old_name)?;
         series.name = new_name;
         Ok(())
@@ -451,7 +462,6 @@ impl SeriesCollection {
     }
 }
 
-
 pub mod summary {
     use super::*;
     use std::fmt::Display;
@@ -465,7 +475,7 @@ pub mod summary {
     impl EpisodesSummary {
         pub fn new(mut episodes: Vec<Episode>) -> Self {
             episodes.sort();
-            Self {episodes}
+            Self { episodes }
         }
     }
 
@@ -474,9 +484,7 @@ pub mod summary {
             let mut summary = String::new();
 
             for episode in &self.episodes {
-                summary.push_str(
-                    &format!("{} ", episode)
-                )
+                summary.push_str(&format!("{} ", episode))
             }
 
             write!(f, "{}", summary)
@@ -491,7 +499,7 @@ pub mod summary {
 
     impl<'a> SeasonSummary<'a> {
         pub fn new(season: &'a Season) -> Self {
-            Self {season}
+            Self { season }
         }
     }
 
@@ -501,11 +509,11 @@ pub mod summary {
                 f,
                 "Season: {}\nEpisodes: {}",
                 self.season.season_number,
-                self.season.get_episodes_summary())
+                self.season.get_episodes_summary()
+            )
         }
     }
 
-    
     /// Summary for a Series
     /// Provide useful summary information for a paricular series
     pub struct SeriesSummary<'a> {
@@ -515,13 +523,14 @@ pub mod summary {
     impl<'a> SeriesSummary<'a> {
         /// Creates a new instance of series summary using the supplied &Series
         pub fn new(series: &'a Series) -> Self {
-            Self {series}
+            Self { series }
         }
     }
 
     impl<'a> Display for SeriesSummary<'a> {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            let mut season_episodes: Vec<(_, _)> = self.series
+            let mut season_episodes: Vec<(_, _)> = self
+                .series
                 .seasons
                 .iter()
                 .map(|(season, episode)| (season, episode.get_total_episodes()))
