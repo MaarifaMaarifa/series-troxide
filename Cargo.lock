@@ -294,6 +294,7 @@ name = "series-troxide"
 version = "0.0.2"
 dependencies = [
  "anyhow",
+ "clap",
  "troxide_core",
  "troxide_term",
 ]
@@ -360,6 +361,7 @@ dependencies = [
 name = "troxide_term"
 version = "0.0.2"
 dependencies = [
+ "anyhow",
  "clap",
  "thiserror",
  "troxide_core",

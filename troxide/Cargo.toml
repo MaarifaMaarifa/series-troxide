@@ -10,4 +10,5 @@ edition = "2021"
 [dependencies]
 troxide_core = { path = "../troxide_core" }
 troxide_term = { path = "../troxide_term" }
+clap = { version = "4"}
 anyhow = "1"

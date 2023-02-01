@@ -6,5 +6,6 @@ edition = "2021"
 [dependencies]
 troxide_core = { path = "../troxide_core"}
 thiserror = "1"
+anyhow = "1"
 clap = { version = "4", features = ["derive"]}
 
