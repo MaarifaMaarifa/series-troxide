@@ -1,9 +1,7 @@
-mod cli;
-
 use anyhow::{Context, Result};
-use cli::*;
+use troxide_term::cli::*;
 use database::*;
-use series_troxide::*;
+use troxide_core::*;
 
 fn main() -> Result<()> {
     let cli = Cli::parse();

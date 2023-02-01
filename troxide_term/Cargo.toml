@@ -1,0 +1,10 @@
+[package]
+name = "troxide_term"
+version = "0.0.2"
+edition = "2021"
+
+[dependencies]
+troxide_core = { path = "../troxide_core"}
+thiserror = "1"
+clap = { version = "4", features = ["derive"]}
+

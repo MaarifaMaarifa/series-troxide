@@ -1,0 +1,12 @@
+[package]
+name = "troxide_core"
+version = "0.0.2"
+edition = "2021"
+
+[dependencies]
+thiserror = "1"
+anyhow = "1"
+ron = "0"
+directories = "4"
+serde = { version = "1", features = ["derive"]}
+clap = { version = "4", features = ["derive"]}

@@ -48,7 +48,7 @@ pub enum SeriesCommand {
 #[derive(Parser)]
 pub struct ListCli {
     #[clap(subcommand)]
-    pub sort_command: Option<series_troxide::SeriesSort>,
+    pub sort_command: Option<troxide_core::SeriesSort>,
 }
 
 #[derive(Parser)]
