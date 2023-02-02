@@ -335,7 +335,7 @@ impl SeriesCollection {
     }
 
     /// Removes series from series collection
-    pub fn remove_series(&mut self, series_name: &str) -> Result<(), SeriesCollectionError> {
+    fn remove_series(&mut self, series_name: &str) -> Result<(), SeriesCollectionError> {
         if let Some(series_index) = self
             .collection
             .iter()
@@ -347,6 +347,15 @@ impl SeriesCollection {
         Err(SeriesCollectionError::SeriesNotFound(
             series_name.to_string(),
         ))
+    }
+
+    /// Removes a list of series (supplied as a Vec of series names) from the series collection
+    pub fn remove_series_list(&mut self, series_list: &Vec<String>) -> Result<(), SeriesCollectionError> {
+        for series in series_list {
+            self.remove_series(series)?;
+            println!("Removed {}", series);
+        }
+        Ok(())
     }
 
     /// Change the name of a particular series by providing it's old name and new name

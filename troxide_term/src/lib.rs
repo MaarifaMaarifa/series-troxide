@@ -32,7 +32,7 @@ pub fn run_series_command(series_cli: series_cli::SeriesCli) -> Result<()> {
         }
         series_cli::SeriesCommand::Remove(series_remove_cli) => {
             series_collection
-                .remove_series(&series_remove_cli.name)
+                .remove_series_list(&series_remove_cli.names)
                 .context("Could not remove series")?;
 
             series_collection

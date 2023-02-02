@@ -14,7 +14,7 @@ pub enum SeriesCommand {
     /// Add series to the collection
     Add(SeriesAddCli),
 
-    /// Remove a whole series
+    /// Remove a serie(s) from the collection
     Remove(SeriesRemoveCli),
 
     /// Change the name of the specified series
@@ -71,8 +71,8 @@ pub struct SeriesChangeNameCli {
 
 #[derive(Parser)]
 pub struct SeriesRemoveCli {
-    /// The name of the series to remove
-    pub name: String,
+    /// The name(s) of the series to remove
+    pub names: Vec<String>,
 }
 
 #[derive(Parser)]
