@@ -1,13 +1,10 @@
-[workspace]
+[package]
+name = "series-troxide"
+authors = ["Maarifa Maarifa"]
+description = "A Series Tracker"
+categories = ["series", "TV"]
+repository = "https://github.com/MaarifaMaarifa/series-troxide"
+version = "0.0.2"
+edition = "2021"
 
-members = [
-  "troxide",
-  "troxide_core",
-  "troxide_term",
-]
-
-[profile.release]
-lto = true
-strip = true
-codegen-units = 1
-panic = "abort"
+[dependencies]
