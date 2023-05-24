@@ -49,9 +49,9 @@ pub mod series_information {
         pub premiered: Option<String>,
         pub ended: Option<String>,
         pub rating: Rating,
-        pub network: Option<String>,
+        pub network: Option<Network>,
         #[serde(rename = "webChannel")]
-        pub web_channel: WebChannel,
+        pub web_channel: Option<WebChannel>,
         pub summary: String,
     }
 
@@ -60,6 +60,19 @@ pub mod series_information {
         pub name: String,
         #[serde(rename = "officialSite")]
         pub official_site: String,
+    }
+
+    #[derive(Debug, Deserialize, Clone)]
+    pub struct Network {
+        name: String,
+        country: Country,
+        #[serde(rename = "officialSite")]
+        official_site_url: String,
+    }
+
+    #[derive(Debug, Deserialize, Clone)]
+    pub struct Country {
+        name: String,
     }
 
     pub async fn get_series_main_info(
