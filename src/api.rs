@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Rating {
     average: f32,
 }
@@ -11,12 +11,12 @@ pub mod series_searching {
     // The series name goes after the equals sign
     const SERIES_SEARCH_ADDRESS: &str = "https://api.tvmaze.com/search/shows?q=";
 
-    #[derive(Debug, Deserialize)]
+    #[derive(Debug, Deserialize, Clone)]
     pub struct SeriesSearchResult {
         pub show: Show,
     }
 
-    #[derive(Debug, Deserialize)]
+    #[derive(Debug, Deserialize, Clone)]
     pub struct Show {
         pub id: u32,
         pub name: String,
@@ -24,9 +24,11 @@ pub mod series_searching {
         pub genres: Vec<String>,
     }
 
-    pub fn search_series(series_name: &str) -> Result<Vec<SeriesSearchResult>, reqwest::Error> {
+    pub async fn search_series(
+        series_name: String,
+    ) -> Result<Vec<SeriesSearchResult>, reqwest::Error> {
         let url = format!("{}{}", SERIES_SEARCH_ADDRESS, series_name);
-        reqwest::blocking::get(url)?.json()
+        reqwest::get(url).await?.json().await
     }
 }
 
@@ -36,33 +38,35 @@ pub mod series_information {
     // The series id goes after the last slash(append at the end of the string)
     const SERIES_INFORMATION_ADDRESS: &str = "https://api.tvmaze.com/shows/";
 
-    #[derive(Debug, Deserialize)]
+    #[derive(Debug, Deserialize, Clone)]
     pub struct SeriesMainInformation {
-        name: String,
-        language: String,
-        genres: Vec<String>,
-        status: String,
+        pub name: String,
+        pub language: String,
+        pub genres: Vec<String>,
+        pub status: String,
         #[serde(rename = "averageRuntime")]
-        average_runtime: u32,
-        premiered: Option<String>,
-        ended: Option<String>,
-        rating: Rating,
-        network: Option<String>,
+        pub average_runtime: u32,
+        pub premiered: Option<String>,
+        pub ended: Option<String>,
+        pub rating: Rating,
+        pub network: Option<String>,
         #[serde(rename = "webChannel")]
-        web_channel: WebChannel,
-        summary: String,
+        pub web_channel: WebChannel,
+        pub summary: String,
     }
 
-    #[derive(Debug, Deserialize)]
+    #[derive(Debug, Deserialize, Clone)]
     pub struct WebChannel {
-        name: String,
+        pub name: String,
         #[serde(rename = "officialSite")]
-        official_site: String,
+        pub official_site: String,
     }
 
-    pub fn get_series_main_info(series_id: u32) -> Result<SeriesMainInformation, reqwest::Error> {
+    pub async fn get_series_main_info(
+        series_id: u32,
+    ) -> Result<SeriesMainInformation, reqwest::Error> {
         let url = format!("{}{}", SERIES_INFORMATION_ADDRESS, series_id);
-        reqwest::blocking::get(url)?.json()
+        reqwest::get(url).await?.json().await
     }
 }
 
@@ -83,9 +87,9 @@ pub mod seasons_list {
         end_date: Option<String>,
     }
 
-    pub fn get_seasons_list(series_id: u32) -> Result<Vec<Season>, reqwest::Error> {
+    pub async fn get_seasons_list(series_id: u32) -> Result<Vec<Season>, reqwest::Error> {
         let url = SEASONS_LIST_ADDRESS.replace("SERIES-ID", &series_id.to_string());
-        reqwest::blocking::get(url)?.json()
+        reqwest::get(url).await?.json().await
     }
 }
 
@@ -117,7 +121,7 @@ pub mod episodes_information {
         medium_image_url: String,
     }
 
-    pub fn get_episode_information(
+    pub async fn get_episode_information(
         series_id: u32,
         season: u32,
         episode: u32,
@@ -126,6 +130,6 @@ pub mod episodes_information {
         let url = url.replace("SEASON", &season.to_string());
         let url = url.replace("EPISODE", &episode.to_string());
 
-        reqwest::blocking::get(url)?.json()
+        reqwest::get(url).await?.json().await
     }
 }
