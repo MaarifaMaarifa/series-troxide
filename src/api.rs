@@ -1,5 +1,11 @@
 use serde::Deserialize;
 
+#[derive(Debug)]
+pub enum ApiError {
+    Network(reqwest::Error),
+    Deserialization(serde_json::Error),
+}
+
 #[derive(Debug, Deserialize, Clone)]
 pub struct Rating {
     average: f32,
@@ -33,11 +39,24 @@ pub mod series_searching {
         pub image: Option<Image>,
     }
 
-    pub async fn search_series(
-        series_name: String,
-    ) -> Result<Vec<SeriesSearchResult>, reqwest::Error> {
+    pub async fn search_series(series_name: String) -> Result<Vec<SeriesSearchResult>, ApiError> {
         let url = format!("{}{}", SERIES_SEARCH_ADDRESS, series_name);
-        reqwest::get(url).await?.json().await
+        // let text = reqwest::get(url).await?.text().await?;
+
+        let response = match reqwest::get(url).await.map(|response| response) {
+            Ok(response) => response,
+            Err(err) => return Err(ApiError::Network(err)),
+        };
+
+        let text = match response.text().await.map(|text| text) {
+            Ok(text) => text,
+            Err(err) => return Err(ApiError::Network(err)),
+        };
+
+        match serde_json::from_str::<Vec<SeriesSearchResult>>(&text) {
+            Ok(results) => Ok(results),
+            Err(err) => Err(ApiError::Deserialization(err)),
+        }
     }
 }
 

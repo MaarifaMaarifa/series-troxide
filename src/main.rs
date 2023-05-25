@@ -84,7 +84,10 @@ impl Application for Gui {
 
                 Command::perform(series_result, |res| match res {
                     Ok(res) => Message::SeriesResultsObtained(res),
-                    Err(_) => Message::SeriesResultsFailed,
+                    Err(err) => {
+                        println!("{:?}", err);
+                        Message::SeriesResultsFailed
+                    }
                 })
             }
             Message::SeriesResultsObtained(series_results) => {
