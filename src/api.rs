@@ -5,6 +5,14 @@ pub struct Rating {
     average: f32,
 }
 
+#[derive(Debug, Deserialize, Clone)]
+pub struct Image {
+    #[serde(rename = "original")]
+    original_image_url: String,
+    #[serde(rename = "medium")]
+    medium_image_url: String,
+}
+
 pub mod series_searching {
     use super::*;
 
@@ -22,6 +30,7 @@ pub mod series_searching {
         pub name: String,
         pub premiered: Option<String>,
         pub genres: Vec<String>,
+        pub image: Option<Image>,
     }
 
     pub async fn search_series(
@@ -124,14 +133,6 @@ pub mod episodes_information {
         rating: Rating,
         image: Image,
         summary: String,
-    }
-
-    #[derive(Debug, Deserialize)]
-    pub struct Image {
-        #[serde(rename = "original")]
-        original_image_url: String,
-        #[serde(rename = "medium")]
-        medium_image_url: String,
     }
 
     pub async fn get_episode_information(
