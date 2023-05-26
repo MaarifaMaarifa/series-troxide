@@ -57,6 +57,7 @@ pub mod series_searching {
                     if let Ok(bytes) = response.bytes().await {
                         let bytes: Vec<u8> = bytes.into();
                         image_bytes = Some(bytes);
+                        println!("Fetched image of: {}", series_search_result.show.name);
                     }
                 }
             };
