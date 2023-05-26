@@ -1,4 +1,5 @@
-use crate::{api::series_information, api::series_searching, Message};
+use crate::gui::Message;
+use crate::{api::series_information, api::series_searching};
 use iced::{
     widget::{button, column, container, horizontal_space, image, row, text},
     Alignment, Renderer,
