@@ -78,6 +78,27 @@ pub fn series_page(
     let series_data = column!(
         text(format!("Status: {}", series_information.status)),
         text(genres_parse(&series_information.genres)).size(18),
+        text(format!("Language: {}", series_information.language)),
+        text(format!(
+            "Average runtime(mins): {}",
+            series_information
+                .average_runtime
+                .map_or("Unavailable".to_owned(), |t| t.to_string())
+        )),
+        text(format!(
+            "Premiered: {}",
+            series_information
+                .premiered
+                .as_ref()
+                .map_or("unavailable".to_owned(), |p| p.clone())
+        )),
+        text(format!(
+            "Ended: {}",
+            series_information
+                .ended
+                .as_ref()
+                .map_or("unavailable".to_owned(), |p| p.clone())
+        )),
         text(&series_information.summary).size(15),
     )
     .spacing(3);
