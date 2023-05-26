@@ -98,7 +98,7 @@ pub mod series_information {
         pub genres: Vec<String>,
         pub status: String,
         #[serde(rename = "averageRuntime")]
-        pub average_runtime: u32,
+        pub average_runtime: Option<u32>,
         pub premiered: Option<String>,
         pub ended: Option<String>,
         pub rating: Rating,
