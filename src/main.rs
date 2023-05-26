@@ -179,7 +179,11 @@ impl Application for Gui {
                 let series_information =
                     &self.series_page_data.as_ref().unwrap().series_information;
 
-                series_page(&series_information.0, series_information.1.to_owned()).into()
+                troxide_widget::series_page::series_page(
+                    &series_information.0,
+                    series_information.1.to_owned(),
+                )
+                .into()
                 // let title = text(&series_information.name);
                 // let summary = text(&series_information.summary);
 
