@@ -8,7 +8,18 @@ pub enum ApiError {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Rating {
-    average: f32,
+    average: Option<f32>,
+}
+
+/// Loads the image from the provided url
+async fn load_image(image_url: &str) -> Option<Vec<u8>> {
+    if let Ok(response) = reqwest::get(image_url).await {
+        if let Ok(bytes) = response.bytes().await {
+            let bytes: Vec<u8> = bytes.into();
+            return Some(bytes);
+        }
+    }
+    None
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -26,12 +37,12 @@ pub mod series_searching {
     const SERIES_SEARCH_ADDRESS: &str = "https://api.tvmaze.com/search/shows?q=";
 
     #[derive(Debug, Deserialize, Clone)]
-    struct SeriesSearchResult {
+    pub struct SeriesSearchResult {
         pub show: Show,
     }
 
     #[derive(Debug, Deserialize, Clone)]
-    struct Show {
+    pub struct Show {
         pub id: u32,
         pub name: String,
         pub premiered: Option<String>,
@@ -39,41 +50,9 @@ pub mod series_searching {
         pub image: Option<Image>,
     }
 
-    //TODO: finding a better name
-    #[derive(Debug, Clone)]
-    pub struct SeriesSearchResultLoaded {
-        pub id: u32,
-        pub name: String,
-        pub premiered: Option<String>,
-        pub genres: Vec<String>,
-        pub image_bytes: Option<Vec<u8>>,
-    }
-
-    impl SeriesSearchResultLoaded {
-        async fn from_series_search_result(series_search_result: SeriesSearchResult) -> Self {
-            let mut image_bytes = None;
-            if let Some(images) = &series_search_result.show.image {
-                if let Ok(response) = reqwest::get(&images.medium_image_url).await {
-                    if let Ok(bytes) = response.bytes().await {
-                        let bytes: Vec<u8> = bytes.into();
-                        image_bytes = Some(bytes);
-                        println!("Fetched image of: {}", series_search_result.show.name);
-                    }
-                }
-            };
-            Self {
-                id: series_search_result.show.id,
-                name: series_search_result.show.name,
-                premiered: series_search_result.show.premiered,
-                genres: series_search_result.show.genres,
-                image_bytes,
-            }
-        }
-    }
-
     pub async fn search_series(
         series_name: String,
-    ) -> Result<Vec<SeriesSearchResultLoaded>, ApiError> {
+    ) -> Result<Vec<(SeriesSearchResult, Option<Vec<u8>>)>, ApiError> {
         let url = format!("{}{}", SERIES_SEARCH_ADDRESS, series_name);
         // let text = reqwest::get(url).await?.text().await?;
 
@@ -91,9 +70,13 @@ pub mod series_searching {
             Ok(results) => {
                 let mut loaded_results = Vec::with_capacity(results.len());
                 for result in results {
-                    let loaded_result =
-                        SeriesSearchResultLoaded::from_series_search_result(result).await;
-                    loaded_results.push(loaded_result);
+                    let image_bytes = if let Some(ref url) = result.show.image {
+                        println!("Loading image for {}", result.show.name);
+                        load_image(&url.medium_image_url).await
+                    } else {
+                        None
+                    };
+                    loaded_results.push((result, image_bytes));
                 }
                 Ok(loaded_results)
             }
@@ -123,6 +106,7 @@ pub mod series_information {
         #[serde(rename = "webChannel")]
         pub web_channel: Option<WebChannel>,
         pub summary: String,
+        pub image: Option<Image>,
     }
 
     #[derive(Debug, Deserialize, Clone)]
@@ -137,7 +121,7 @@ pub mod series_information {
         name: String,
         country: Country,
         #[serde(rename = "officialSite")]
-        official_site_url: String,
+        official_site_url: Option<String>,
     }
 
     #[derive(Debug, Deserialize, Clone)]
@@ -147,9 +131,34 @@ pub mod series_information {
 
     pub async fn get_series_main_info(
         series_id: u32,
-    ) -> Result<SeriesMainInformation, reqwest::Error> {
+    ) -> Result<(SeriesMainInformation, Option<Vec<u8>>), ApiError> {
         let url = format!("{}{}", SERIES_INFORMATION_ADDRESS, series_id);
-        reqwest::get(url).await?.json().await
+        // reqwest::get(url).await?.json().await
+
+        let response = match reqwest::get(url).await.map(|response| response) {
+            Ok(response) => response,
+            Err(err) => return Err(ApiError::Network(err)),
+        };
+
+        let text = match response.text().await.map(|text| text) {
+            Ok(text) => text,
+            Err(err) => return Err(ApiError::Network(err)),
+        };
+
+        match serde_json::from_str::<SeriesMainInformation>(&text) {
+            Ok(series_info) => {
+                let image_bytes = if let Some(image_url) = &series_info.image {
+                    load_image(&image_url.original_image_url).await
+                } else {
+                    None
+                };
+                return Ok((series_info, image_bytes));
+            }
+            Err(err) => {
+                println!("Deserialization text: \n{}\n", text);
+                return Err(ApiError::Deserialization(err));
+            }
+        }
     }
 }
 

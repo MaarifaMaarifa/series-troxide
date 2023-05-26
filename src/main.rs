@@ -5,6 +5,7 @@ use iced::widget::{
 };
 use iced::Alignment;
 use iced::{Application, Command, Length, Settings};
+use widget::series_page;
 
 pub mod api;
 mod cli;
@@ -23,10 +24,12 @@ pub enum Message {
     SearchTermChanged(String),
     SearchTheTerm,
     SeriesResultPressed(u32),
-    SeriesResultObtained(series_information::SeriesMainInformation),
+    SeriesResultObtained((series_information::SeriesMainInformation, Option<Vec<u8>>)),
     SeriesResultFailed,
-    SeriesResultsObtained(Vec<series_searching::SeriesSearchResultLoaded>),
+    SeriesResultsObtained(Vec<(series_searching::SeriesSearchResult, Option<Vec<u8>>)>),
     SeriesResultsFailed,
+    TrackSeries,
+    GoToSearchPage,
 }
 
 #[derive(Default)]
@@ -47,13 +50,13 @@ enum SearchState {
 
 #[derive(Debug)]
 struct SeriesPageData {
-    series_information: series_information::SeriesMainInformation,
+    series_information: (series_information::SeriesMainInformation, Option<Vec<u8>>),
 }
 
 #[derive(Default)]
 struct Gui {
     search_term: String,
-    series_result: Vec<series_searching::SeriesSearchResultLoaded>,
+    series_result: Vec<(series_searching::SeriesSearchResult, Option<Vec<u8>>)>,
     search_state: SearchState,
     series_page_data: Option<SeriesPageData>,
     page: Page,
@@ -111,7 +114,7 @@ impl Application for Gui {
                 Command::perform(series_information, |res| match res {
                     Ok(res) => Message::SeriesResultObtained(res),
                     Err(err) => {
-                        println!("Error obtaining series information: {}", err);
+                        println!("Error obtaining series information: {:?}", err);
                         Message::SeriesResultFailed
                     }
                 })
@@ -123,6 +126,14 @@ impl Application for Gui {
             }
             Message::SeriesResultFailed => {
                 println!("Failed to obtain Series Information");
+                Command::none()
+            }
+            Message::TrackSeries => {
+                println!("Added series to tracking");
+                Command::none()
+            }
+            Message::GoToSearchPage => {
+                self.page = Page::Search;
                 Command::none()
             }
         }
@@ -143,10 +154,10 @@ impl Application for Gui {
                         SearchState::Complete => {
                             let mut results = Column::new();
 
-                            for series in &self.series_result {
-                                let row = widget::series_result(series);
+                            for (series, image_bytes) in &self.series_result {
+                                let row = widget::series_result(series, image_bytes.to_owned());
                                 let row = mouse_area(row)
-                                    .on_press(Message::SeriesResultPressed(series.id));
+                                    .on_press(Message::SeriesResultPressed(series.show.id));
                                 results = results.push(row).push(vertical_space(7));
                             }
                             results
@@ -166,10 +177,12 @@ impl Application for Gui {
             Page::Series => {
                 let series_information =
                     &self.series_page_data.as_ref().unwrap().series_information;
-                let title = text(&series_information.name);
-                let summary = text(&series_information.summary);
 
-                column!(title, summary).into()
+                series_page(&series_information.0, series_information.1.to_owned()).into()
+                // let title = text(&series_information.name);
+                // let summary = text(&series_information.summary);
+
+                // column!(title, summary).into()
             }
             Page::season => todo!(),
             Page::Episode => todo!(),
