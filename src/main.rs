@@ -1,11 +1,14 @@
 use api::series_information;
 use api::series_searching;
-use iced::widget::{column, container, mouse_area, row, text, text_input, Column};
-use iced::{Application, Command, Settings};
+use iced::widget::{
+    column, container, mouse_area, row, scrollable, text, text_input, vertical_space, Column,
+};
+use iced::{Application, Command, Length, Settings};
 
-mod api;
+pub mod api;
 mod cli;
 mod database;
+mod widget;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -15,13 +18,13 @@ async fn main() -> anyhow::Result<()> {
 }
 
 #[derive(Debug, Clone)]
-enum Message {
+pub enum Message {
     SearchTermChanged(String),
     SearchTheTerm,
     SeriesResultPressed(u32),
     SeriesResultObtained(series_information::SeriesMainInformation),
     SeriesResultFailed,
-    SeriesResultsObtained(Vec<series_searching::SeriesSearchResult>),
+    SeriesResultsObtained(Vec<series_searching::SeriesSearchResultLoaded>),
     SeriesResultsFailed,
 }
 
@@ -49,7 +52,7 @@ struct SeriesPageData {
 #[derive(Default)]
 struct Gui {
     search_term: String,
-    series_result: Vec<series_searching::SeriesSearchResult>,
+    series_result: Vec<series_searching::SeriesSearchResultLoaded>,
     search_state: SearchState,
     series_page_data: Option<SeriesPageData>,
     page: Page,
@@ -129,7 +132,8 @@ impl Application for Gui {
             Page::Search => {
                 let text_input = text_input("Search Series", &self.search_term)
                     .on_input(|term| Message::SearchTermChanged(term))
-                    .on_submit(Message::SearchTheTerm);
+                    .on_submit(Message::SearchTheTerm)
+                    .padding(5);
 
                 let series_results = {
                     match self.search_state {
@@ -138,26 +142,22 @@ impl Application for Gui {
                             let mut results = Column::new();
 
                             for series in &self.series_result {
-                                let mut row = row!(
-                                    text(&series.show.name),
-                                    text(format!("{:?}", &series.show.genres)),
-                                );
-
-                                if let Some(premier) = &series.show.premiered {
-                                    row = row.push(text(premier));
-                                }
-
+                                let row = widget::series_result(series);
                                 let row = mouse_area(row)
-                                    .on_press(Message::SeriesResultPressed(series.show.id));
-
-                                results = results.push(row);
+                                    .on_press(Message::SeriesResultPressed(series.id));
+                                results = results.push(row).push(vertical_space(7));
                             }
                             results
                         }
                     }
                 };
 
-                let content = column!(text_input, series_results);
+                let content = column!(
+                    vertical_space(15),
+                    text_input,
+                    vertical_space(10),
+                    scrollable(series_results).width(Length::Fill)
+                );
                 container(content).into()
             }
             Page::Series => {
