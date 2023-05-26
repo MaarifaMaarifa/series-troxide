@@ -1,9 +1,17 @@
 use crate::gui::Message;
 use crate::{api::series_information, api::series_searching};
+use iced::alignment;
 use iced::{
     widget::{button, column, container, horizontal_space, image, row, text},
     Alignment, Renderer,
 };
+
+// The text size of the beginning part of a info
+const INFO_HEADER: u16 = 20;
+// The text size of the main part of a info
+const INFO_BODY: u16 = 15;
+
+// const INFO_BODY_HEIGHT: u16 = INFO_HEADER - (INFO_HEADER - INFO_BODY);
 
 pub mod series_page;
 /// Generates the SeriesSearchResult widget
@@ -51,10 +59,11 @@ pub fn series_result(
     row.push(column)
 }
 
-fn genres_parse(genres: &Vec<String>) -> String {
+fn genres_widget(genres: &Vec<String>) -> iced::widget::Row<'_, Message, Renderer> {
     if !genres.is_empty() {
-        let mut parsed_genres = String::from("Genres: ");
+        let parsed_genres_row = row!(text("Genres: ").size(INFO_HEADER));
 
+        let mut parsed_genres = String::new();
         let mut series_result_iter = genres.iter().peekable();
         while let Some(genre) = series_result_iter.next() {
             parsed_genres.push_str(genre);
@@ -62,8 +71,13 @@ fn genres_parse(genres: &Vec<String>) -> String {
                 parsed_genres.push_str(", ");
             }
         }
-        parsed_genres
+        parsed_genres_row.push(
+            text(parsed_genres)
+                .size(INFO_BODY)
+                .height(INFO_HEADER)
+                .vertical_alignment(alignment::Vertical::Bottom),
+        )
     } else {
-        String::new()
+        row!()
     }
 }
