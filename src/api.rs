@@ -53,7 +53,7 @@ pub mod series_searching {
         async fn from_series_search_result(series_search_result: SeriesSearchResult) -> Self {
             let mut image_bytes = None;
             if let Some(images) = &series_search_result.show.image {
-                if let Ok(response) = reqwest::get(&images.original_image_url).await {
+                if let Ok(response) = reqwest::get(&images.medium_image_url).await {
                     if let Ok(bytes) = response.bytes().await {
                         let bytes: Vec<u8> = bytes.into();
                         image_bytes = Some(bytes);

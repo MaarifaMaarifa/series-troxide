@@ -3,6 +3,7 @@ use api::series_searching;
 use iced::widget::{
     column, container, mouse_area, row, scrollable, text, text_input, vertical_space, Column,
 };
+use iced::Alignment;
 use iced::{Application, Command, Length, Settings};
 
 pub mod api;
@@ -133,7 +134,8 @@ impl Application for Gui {
                 let text_input = text_input("Search Series", &self.search_term)
                     .on_input(|term| Message::SearchTermChanged(term))
                     .on_submit(Message::SearchTheTerm)
-                    .padding(5);
+                    .padding(5)
+                    .width(500);
 
                 let series_results = {
                     match self.search_state {
@@ -157,7 +159,8 @@ impl Application for Gui {
                     text_input,
                     vertical_space(10),
                     scrollable(series_results).width(Length::Fill)
-                );
+                )
+                .align_items(Alignment::Center);
                 container(content).into()
             }
             Page::Series => {
