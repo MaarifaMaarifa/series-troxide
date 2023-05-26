@@ -5,12 +5,12 @@ use iced::widget::{
 };
 use iced::Alignment;
 use iced::{Application, Command, Length, Settings};
-use widget::series_page;
+use troxide_widget::series_page;
 
 pub mod api;
 mod cli;
 mod database;
-mod widget;
+mod troxide_widget;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -155,7 +155,8 @@ impl Application for Gui {
                             let mut results = Column::new();
 
                             for (series, image_bytes) in &self.series_result {
-                                let row = widget::series_result(series, image_bytes.to_owned());
+                                let row =
+                                    troxide_widget::series_result(series, image_bytes.to_owned());
                                 let row = mouse_area(row)
                                     .on_press(Message::SeriesResultPressed(series.show.id));
                                 results = results.push(row).push(vertical_space(7));
