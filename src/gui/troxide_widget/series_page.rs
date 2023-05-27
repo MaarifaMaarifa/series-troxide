@@ -137,7 +137,27 @@ fn rating_widget(series_info: &SeriesMainInformation) -> iced::widget::Row<'_, M
 fn network_widget(series_info: &SeriesMainInformation) -> iced::widget::Row<'_, Message, Renderer> {
     let row = row!(text("Network:  ").size(super::INFO_HEADER));
     let body_wiget = if let Some(network) = &series_info.network {
+        // TODO: Add a clickable link
         text(format!("{} ({})", &network.name, &network.country.name))
+    } else {
+        text("unavailable")
+    };
+
+    row.push(
+        body_wiget
+            .size(super::INFO_BODY)
+            .height(super::INFO_HEADER)
+            .vertical_alignment(alignment::Vertical::Bottom),
+    )
+}
+
+fn webchannel_widget(
+    series_info: &SeriesMainInformation,
+) -> iced::widget::Row<'_, Message, Renderer> {
+    let row = row!(text("Webchannel: ").size(super::INFO_HEADER));
+    let body_wiget = if let Some(webchannel) = &series_info.web_channel {
+        // TODO: Add a clickable link
+        text(&webchannel.name)
     } else {
         text("unavailable")
     };
@@ -184,6 +204,7 @@ pub fn series_page(
         average_runtime_widget(series_information),
         rating_widget(series_information),
         network_widget(series_information),
+        webchannel_widget(series_information),
         premiered_widget(series_information),
         ended_widget(series_information),
         summary_widget(series_information),
