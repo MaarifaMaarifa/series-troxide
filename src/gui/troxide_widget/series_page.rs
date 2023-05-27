@@ -157,20 +157,18 @@ fn network_widget(series_info: &SeriesMainInformation) -> iced::widget::Row<'_, 
 fn webchannel_widget(
     series_info: &SeriesMainInformation,
 ) -> iced::widget::Row<'_, Message, Renderer> {
-    let row = row!(text("Webchannel: ").size(super::INFO_HEADER));
-    let body_wiget = if let Some(webchannel) = &series_info.web_channel {
+    if let Some(webchannel) = &series_info.web_channel {
         // TODO: Add a clickable link
-        text(&webchannel.name)
+        row!(
+            text("Webchannel: ").size(super::INFO_HEADER),
+            text(&webchannel.name)
+                .size(super::INFO_BODY)
+                .height(super::INFO_HEADER)
+                .vertical_alignment(alignment::Vertical::Bottom),
+        )
     } else {
-        text("unavailable")
-    };
-
-    row.push(
-        body_wiget
-            .size(super::INFO_BODY)
-            .height(super::INFO_HEADER)
-            .vertical_alignment(alignment::Vertical::Bottom),
-    )
+        row!()
+    }
 }
 
 /// Generates the Series Page
