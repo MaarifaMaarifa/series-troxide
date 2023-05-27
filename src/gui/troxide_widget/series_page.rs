@@ -114,6 +114,10 @@ fn ended_widget(series_info: &SeriesMainInformation) -> iced::widget::Row<'_, Me
     )
 }
 
+fn summary_widget(series_info: &SeriesMainInformation) -> iced::widget::Text<'_, Renderer> {
+    text(&series_info.summary).size(15)
+}
+
 /// Generates the Series Page
 pub fn series_page(
     series_information: &SeriesMainInformation,
@@ -148,7 +152,7 @@ pub fn series_page(
         average_runtime_widget(series_information),
         premiered_widget(series_information),
         ended_widget(series_information),
-        text(&series_information.summary).size(15),
+        summary_widget(series_information),
     )
     .spacing(3);
 
