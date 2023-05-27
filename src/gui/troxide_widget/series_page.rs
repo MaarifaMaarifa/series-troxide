@@ -12,6 +12,7 @@ enum SeriesStatus {
     Running,
     Ended,
     ToBeDetermined,
+    InDevelopment,
     Other,
 }
 
@@ -21,6 +22,7 @@ impl SeriesStatus {
             "Running" => Self::Running,
             "Ended" => Self::Ended,
             "To Be Determined" => Self::ToBeDetermined,
+            "In Development" => Self::InDevelopment,
             _ => Self::Other,
         }
     }
@@ -33,13 +35,14 @@ const RED_THEME: iced::theme::Text = iced::theme::Text::Color(RED_COLOR);
 const GREEN_THEME: iced::theme::Text = iced::theme::Text::Color(GREEN_COLOR);
 
 fn status_widget(series_info: &SeriesMainInformation) -> iced::widget::Row<'_, Message, Renderer> {
-    let status_str = &series_info.status;
-
     let row = row!(text("Status: ").size(super::INFO_HEADER));
-    let status_text = match status_str.as_ref() {
-        "Running" => text("Running").style(GREEN_THEME),
-        "Ended" => text("Ended").style(RED_THEME),
-        rest => text(rest),
+
+    let status_text = match SeriesStatus::new(series_info) {
+        SeriesStatus::Running => text("Running").style(GREEN_THEME),
+        SeriesStatus::Ended => text("Ended").style(RED_THEME),
+        SeriesStatus::ToBeDetermined => text("To Be Determined"),
+        SeriesStatus::InDevelopment => text("In Development"),
+        SeriesStatus::Other => text(&series_info.status),
     }
     .vertical_alignment(alignment::Vertical::Bottom)
     .size(super::INFO_BODY)
