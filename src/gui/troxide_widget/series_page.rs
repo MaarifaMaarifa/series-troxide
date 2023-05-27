@@ -2,7 +2,9 @@ use crate::api::series_information::SeriesMainInformation;
 use crate::gui::Message;
 use iced::{
     alignment,
-    widget::{button, column, container, horizontal_space, image, row, text, text::Appearance},
+    widget::{
+        button, column, container, horizontal_space, image, row, scrollable, text, text::Appearance,
+    },
     Alignment, Length, Renderer,
 };
 
@@ -218,5 +220,5 @@ pub fn series_page(
 
     content = content.push(main_info);
 
-    container(content)
+    container(scrollable(content))
 }
