@@ -118,6 +118,22 @@ fn summary_widget(series_info: &SeriesMainInformation) -> iced::widget::Text<'_,
     text(&series_info.summary).size(15)
 }
 
+fn rating_widget(series_info: &SeriesMainInformation) -> iced::widget::Row<'_, Message, Renderer> {
+    let row = row!(text("Average rating: ").size(super::INFO_HEADER));
+    let body_wiget = if let Some(average_rating) = series_info.rating.average {
+        text(average_rating.to_string())
+    } else {
+        text("unavailable")
+    };
+
+    row.push(
+        body_wiget
+            .size(super::INFO_BODY)
+            .height(super::INFO_HEADER)
+            .vertical_alignment(alignment::Vertical::Bottom),
+    )
+}
+
 /// Generates the Series Page
 pub fn series_page(
     series_information: &SeriesMainInformation,
@@ -150,6 +166,7 @@ pub fn series_page(
         super::genres_widget(&series_information.genres),
         language_widget(series_information),
         average_runtime_widget(series_information),
+        rating_widget(series_information),
         premiered_widget(series_information),
         ended_widget(series_information),
         summary_widget(series_information),
