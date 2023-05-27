@@ -1,10 +1,10 @@
 use crate::api::series_information;
 use crate::api::series_searching;
 use iced::widget::{
-    column, container, mouse_area, row, scrollable, text, text_input, vertical_space, Column,
+    column, container, mouse_area, scrollable, text, text_input, vertical_space, Column,
 };
 use iced::Alignment;
-use iced::{Application, Command, Length, Settings};
+use iced::{Application, Command, Length};
 
 mod troxide_widget;
 

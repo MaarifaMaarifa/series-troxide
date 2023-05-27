@@ -9,5 +9,5 @@ pub struct Cli {
 #[derive(Subcommand)]
 pub enum Command {
     /// Search series
-    search { series_name: String },
+    Search { series_name: String },
 }
