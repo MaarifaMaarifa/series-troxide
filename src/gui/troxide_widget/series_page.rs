@@ -35,13 +35,12 @@ fn average_runtime_widget(
     if let Some(average_runtime) = series_info.average_runtime {
         row = row.push(
             text(format!("{} mins", average_runtime))
-                .style(GREEN_THEME)
                 .size(super::INFO_BODY)
                 .vertical_alignment(alignment::Vertical::Bottom)
                 .height(super::INFO_HEADER),
         )
     } else {
-        row = row.push(text("unavailable").style(RED_THEME).size(super::INFO_BODY))
+        row = row.push(text("unavailable").size(super::INFO_BODY))
     }
     row
 }
