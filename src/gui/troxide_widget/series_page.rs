@@ -6,6 +6,24 @@ use iced::{
     Alignment, Length, Renderer,
 };
 
+enum SeriesStatus {
+    Running,
+    Ended,
+    ToBeDetermined,
+    Other,
+}
+
+impl SeriesStatus {
+    fn new(series_info: &SeriesMainInformation) -> Self {
+        match series_info.status.as_ref() {
+            "Running" => Self::Running,
+            "Ended" => Self::Ended,
+            "To Be Determined" => Self::ToBeDetermined,
+            _ => Self::Other,
+        }
+    }
+}
+
 const RED_COLOR: iced::Color = iced::Color::from_rgb(2.55, 0.0, 0.0);
 const GREEN_COLOR: iced::Color = iced::Color::from_rgb(0.0, 1.28, 0.0);
 
@@ -58,6 +76,44 @@ fn language_widget(
     row
 }
 
+fn premiered_widget(
+    series_info: &SeriesMainInformation,
+) -> iced::widget::Row<'_, Message, Renderer> {
+    let row = row!(text("Premiered: ").size(super::INFO_HEADER));
+    let body_text = if let Some(premier) = &series_info.premiered {
+        text(premier)
+    } else {
+        text("unavailable")
+    };
+
+    row.push(
+        body_text
+            .size(super::INFO_BODY)
+            .height(super::INFO_HEADER)
+            .vertical_alignment(alignment::Vertical::Bottom),
+    )
+}
+
+fn ended_widget(series_info: &SeriesMainInformation) -> iced::widget::Row<'_, Message, Renderer> {
+    if let SeriesStatus::Running = SeriesStatus::new(series_info) {
+        return row!();
+    }
+
+    let row = row!(text("Ended: ").size(super::INFO_HEADER));
+    let body_text = if let Some(ended) = &series_info.ended {
+        text(ended)
+    } else {
+        text("unavailable")
+    };
+
+    row.push(
+        body_text
+            .size(super::INFO_BODY)
+            .height(super::INFO_HEADER)
+            .vertical_alignment(alignment::Vertical::Bottom),
+    )
+}
+
 /// Generates the Series Page
 pub fn series_page(
     series_information: &SeriesMainInformation,
@@ -90,20 +146,8 @@ pub fn series_page(
         super::genres_widget(&series_information.genres),
         language_widget(series_information),
         average_runtime_widget(series_information),
-        text(format!(
-            "Premiered: {}",
-            series_information
-                .premiered
-                .as_ref()
-                .map_or("unavailable".to_owned(), |p| p.clone())
-        )),
-        text(format!(
-            "Ended: {}",
-            series_information
-                .ended
-                .as_ref()
-                .map_or("unavailable".to_owned(), |p| p.clone())
-        )),
+        premiered_widget(series_information),
+        ended_widget(series_information),
         text(&series_information.summary).size(15),
     )
     .spacing(3);
