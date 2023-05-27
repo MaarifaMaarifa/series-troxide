@@ -138,20 +138,18 @@ fn rating_widget(series_info: &SeriesMainInformation) -> iced::widget::Row<'_, M
 }
 
 fn network_widget(series_info: &SeriesMainInformation) -> iced::widget::Row<'_, Message, Renderer> {
-    let row = row!(text("Network:  ").size(super::INFO_HEADER));
-    let body_wiget = if let Some(network) = &series_info.network {
+    if let Some(network) = &series_info.network {
         // TODO: Add a clickable link
-        text(format!("{} ({})", &network.name, &network.country.name))
+        row!(
+            text("Network:  ").size(super::INFO_HEADER),
+            text(format!("{} ({})", &network.name, &network.country.name))
+                .size(super::INFO_BODY)
+                .height(super::INFO_HEADER)
+                .vertical_alignment(alignment::Vertical::Bottom),
+        )
     } else {
-        text("unavailable")
-    };
-
-    row.push(
-        body_wiget
-            .size(super::INFO_BODY)
-            .height(super::INFO_HEADER)
-            .vertical_alignment(alignment::Vertical::Bottom),
-    )
+        row!()
+    }
 }
 
 fn webchannel_widget(
