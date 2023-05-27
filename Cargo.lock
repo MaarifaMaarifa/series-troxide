@@ -2642,6 +2642,7 @@ dependencies = [
  "serde",
  "serde_json",
  "simple_logger",
+ "thiserror",
  "tokio",
 ]
 

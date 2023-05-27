@@ -1,8 +1,11 @@
 use serde::Deserialize;
+use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum ApiError {
+    #[error("network error during request")]
     Network(reqwest::Error),
+    #[error("tvmaze api error when deserializing json")]
     Deserialization(serde_json::Error),
 }
 
@@ -31,6 +34,9 @@ pub struct Image {
 }
 
 pub mod series_searching {
+    use anyhow::bail;
+    use tokio::task::JoinHandle;
+
     use super::*;
 
     // The series name goes after the equals sign
@@ -52,35 +58,45 @@ pub mod series_searching {
 
     pub async fn search_series(
         series_name: String,
-    ) -> Result<Vec<(SeriesSearchResult, Option<Vec<u8>>)>, ApiError> {
+    ) -> anyhow::Result<Vec<(SeriesSearchResult, Option<Vec<u8>>)>> {
         let url = format!("{}{}", SERIES_SEARCH_ADDRESS, series_name);
         // let text = reqwest::get(url).await?.text().await?;
 
         let response = match reqwest::get(url).await.map(|response| response) {
             Ok(response) => response,
-            Err(err) => return Err(ApiError::Network(err)),
+            Err(err) => bail!(ApiError::Network(err)),
         };
 
         let text = match response.text().await.map(|text| text) {
             Ok(text) => text,
-            Err(err) => return Err(ApiError::Network(err)),
+            Err(err) => bail!(ApiError::Network(err)),
         };
 
         match serde_json::from_str::<Vec<SeriesSearchResult>>(&text) {
             Ok(results) => {
                 let mut loaded_results = Vec::with_capacity(results.len());
-                for result in results {
-                    let image_bytes = if let Some(ref url) = result.show.image {
+                let handles: Vec<JoinHandle<(SeriesSearchResult, Option<Vec<u8>>)>> = results
+                    .into_iter()
+                    .map(|result| {
                         println!("Loading image for {}", result.show.name);
-                        load_image(&url.medium_image_url).await
-                    } else {
-                        None
-                    };
-                    loaded_results.push((result, image_bytes));
+                        tokio::task::spawn(async {
+                            if let Some(url) = &result.show.image {
+                                let bytes = load_image(&url.medium_image_url).await;
+                                (result, bytes)
+                            } else {
+                                (result, None)
+                            }
+                        })
+                    })
+                    .collect();
+
+                for handle in handles {
+                    let loaded_result = handle.await?;
+                    loaded_results.push(loaded_result)
                 }
                 Ok(loaded_results)
             }
-            Err(err) => Err(ApiError::Deserialization(err)),
+            Err(err) => bail!(ApiError::Deserialization(err)),
         }
     }
 }
