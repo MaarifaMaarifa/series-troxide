@@ -11,7 +11,7 @@ pub enum ApiError {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Rating {
-    average: Option<f32>,
+    pub average: Option<f32>,
 }
 
 /// Loads the image from the provided url
