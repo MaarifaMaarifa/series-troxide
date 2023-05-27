@@ -134,15 +134,15 @@ pub mod series_information {
 
     #[derive(Debug, Deserialize, Clone)]
     pub struct Network {
-        name: String,
-        country: Country,
+        pub name: String,
+        pub country: Country,
         #[serde(rename = "officialSite")]
-        official_site_url: Option<String>,
+        pub official_site_url: Option<String>,
     }
 
     #[derive(Debug, Deserialize, Clone)]
     pub struct Country {
-        name: String,
+        pub name: String,
     }
 
     pub async fn get_series_main_info(
