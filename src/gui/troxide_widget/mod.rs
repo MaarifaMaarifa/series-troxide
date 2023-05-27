@@ -7,7 +7,7 @@ use iced::{
 };
 
 // The text size of the beginning part of a info
-const INFO_HEADER: u16 = 20;
+const INFO_HEADER: u16 = 18;
 // The text size of the main part of a info
 const INFO_BODY: u16 = 15;
 
