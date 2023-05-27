@@ -179,13 +179,15 @@ pub fn series_page(
 
     let header = row!(
         button("<-").on_press(Message::GoToSearchPage),
+        horizontal_space(Length::Fill),
         text(&series_information.name).size(30),
-        button("Track Series").on_press(Message::TrackSeries)
+        horizontal_space(Length::Fill),
+        button("add to track list").on_press(Message::TrackSeries)
     );
 
     content = content.push(header);
 
-    let mut main_info = row!();
+    let mut main_info = row!().padding(5);
 
     // Putting the image to the main info
     if let Some(image_bytes) = image_bytes {
@@ -209,7 +211,8 @@ pub fn series_page(
         ended_widget(series_information),
         summary_widget(series_information),
     )
-    .spacing(3);
+    .spacing(3)
+    .padding(5);
 
     main_info = main_info.push(series_data);
 
