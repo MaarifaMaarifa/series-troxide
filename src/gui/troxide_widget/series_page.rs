@@ -49,18 +49,18 @@ fn status_widget(series_info: &SeriesMainInformation) -> iced::widget::Row<'_, M
 fn average_runtime_widget(
     series_info: &SeriesMainInformation,
 ) -> iced::widget::Row<'_, Message, Renderer> {
-    let mut row = row!(text("Average runtime: ").size(super::INFO_HEADER));
-    if let Some(average_runtime) = series_info.average_runtime {
-        row = row.push(
-            text(format!("{} mins", average_runtime))
-                .size(super::INFO_BODY)
-                .vertical_alignment(alignment::Vertical::Bottom)
-                .height(super::INFO_HEADER),
-        )
+    let row = row!(text("Average runtime: ").size(super::INFO_HEADER));
+    let body_widget = if let Some(average_runtime) = series_info.average_runtime {
+        text(format!("{} mins", average_runtime))
     } else {
-        row = row.push(text("unavailable").size(super::INFO_BODY))
-    }
-    row
+        text("unavailable")
+    };
+    row.push(
+        body_widget
+            .size(super::INFO_BODY)
+            .height(super::INFO_HEADER)
+            .vertical_alignment(alignment::Vertical::Bottom),
+    )
 }
 
 fn language_widget(
