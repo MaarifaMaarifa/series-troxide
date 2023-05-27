@@ -134,6 +134,22 @@ fn rating_widget(series_info: &SeriesMainInformation) -> iced::widget::Row<'_, M
     )
 }
 
+fn network_widget(series_info: &SeriesMainInformation) -> iced::widget::Row<'_, Message, Renderer> {
+    let row = row!(text("Network:  ").size(super::INFO_HEADER));
+    let body_wiget = if let Some(network) = &series_info.network {
+        text(format!("{} ({})", &network.name, &network.country.name))
+    } else {
+        text("unavailable")
+    };
+
+    row.push(
+        body_wiget
+            .size(super::INFO_BODY)
+            .height(super::INFO_HEADER)
+            .vertical_alignment(alignment::Vertical::Bottom),
+    )
+}
+
 /// Generates the Series Page
 pub fn series_page(
     series_information: &SeriesMainInformation,
@@ -167,6 +183,7 @@ pub fn series_page(
         language_widget(series_information),
         average_runtime_widget(series_information),
         rating_widget(series_information),
+        network_widget(series_information),
         premiered_widget(series_information),
         ended_widget(series_information),
         summary_widget(series_information),
