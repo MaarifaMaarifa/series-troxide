@@ -26,7 +26,7 @@ enum Page {
     #[default]
     Search,
     Series,
-    season,
+    Season,
     Episode,
 }
 
@@ -178,7 +178,7 @@ impl Application for Gui {
 
                 // column!(title, summary).into()
             }
-            Page::season => todo!(),
+            Page::Season => todo!(),
             Page::Episode => todo!(),
         }
     }
