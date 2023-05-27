@@ -45,6 +45,19 @@ fn average_runtime_widget(
     row
 }
 
+fn language_widget(
+    series_info: &SeriesMainInformation,
+) -> iced::widget::Row<'_, Message, Renderer> {
+    let row = row!(
+        text("Language: ").size(super::INFO_HEADER),
+        text(&series_info.language)
+            .size(super::INFO_BODY)
+            .height(super::INFO_HEADER)
+            .vertical_alignment(alignment::Vertical::Bottom)
+    );
+    row
+}
+
 /// Generates the Series Page
 pub fn series_page(
     series_information: &SeriesMainInformation,
@@ -75,7 +88,7 @@ pub fn series_page(
         // text(format!("Status: {}", series_information.status)),
         status_widget(series_information),
         super::genres_widget(&series_information.genres),
-        text(format!("Language: {}", series_information.language)),
+        language_widget(series_information),
         average_runtime_widget(series_information),
         text(format!(
             "Premiered: {}",
