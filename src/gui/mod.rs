@@ -45,7 +45,7 @@ struct SeriesPageData {
 }
 
 #[derive(Default)]
-pub struct Gui {
+pub struct TroxideGui {
     search_term: String,
     series_result: Vec<(series_searching::SeriesSearchResult, Option<Vec<u8>>)>,
     search_state: SearchState,
@@ -53,7 +53,7 @@ pub struct Gui {
     page: Page,
 }
 
-impl Application for Gui {
+impl Application for TroxideGui {
     type Executor = iced::executor::Default;
     type Message = Message;
     type Theme = iced::Theme;

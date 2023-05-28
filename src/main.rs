@@ -1,10 +1,10 @@
-use iced::{Application, Settings};
-
 pub mod core;
 mod gui;
 
+use iced::{Application, Settings};
+
 fn main() -> anyhow::Result<()> {
     // simple_logger::init()?;
-    gui::Gui::run(Settings::default())?;
+    gui::TroxideGui::run(Settings::default())?;
     Ok(())
 }
