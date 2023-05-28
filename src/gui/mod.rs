@@ -1,12 +1,13 @@
-use crate::api::series_information;
-use crate::api::series_searching;
+mod troxide_widget;
+
+use crate::core::api::series_information;
+use crate::core::api::series_searching;
+
 use iced::widget::{
     column, container, mouse_area, scrollable, text, text_input, vertical_space, Column,
 };
 use iced::Alignment;
 use iced::{Application, Command, Length};
-
-mod troxide_widget;
 
 #[derive(Debug, Clone)]
 pub enum Message {

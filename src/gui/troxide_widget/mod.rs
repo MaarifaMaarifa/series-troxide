@@ -1,4 +1,4 @@
-use crate::api::series_searching;
+use crate::core::api::series_searching;
 use crate::gui::Message;
 use iced::alignment;
 use iced::{

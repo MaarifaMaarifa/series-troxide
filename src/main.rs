@@ -1,8 +1,6 @@
 use iced::{Application, Settings};
 
-pub mod api;
-mod cli;
-mod database;
+pub mod core;
 mod gui;
 
 fn main() -> anyhow::Result<()> {

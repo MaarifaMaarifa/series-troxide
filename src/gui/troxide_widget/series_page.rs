@@ -1,4 +1,4 @@
-use crate::api::series_information::SeriesMainInformation;
+use crate::core::api::series_information::SeriesMainInformation;
 use crate::gui::Message;
 use iced::{
     alignment,
