@@ -62,15 +62,14 @@ pub mod series_searching {
         let url = format!("{}{}", SERIES_SEARCH_ADDRESS, series_name);
         // let text = reqwest::get(url).await?.text().await?;
 
-        let response = match reqwest::get(url).await.map(|response| response) {
-            Ok(response) => response,
-            Err(err) => bail!(ApiError::Network(err)),
-        };
+        let response = reqwest::get(url)
+            .await
+            .map_err(|err| ApiError::Network(err))?;
 
-        let text = match response.text().await.map(|text| text) {
-            Ok(text) => text,
-            Err(err) => bail!(ApiError::Network(err)),
-        };
+        let text = response
+            .text()
+            .await
+            .map_err(|err| ApiError::Network(err))?;
 
         match serde_json::from_str::<Vec<SeriesSearchResult>>(&text) {
             Ok(results) => {
@@ -151,15 +150,14 @@ pub mod series_information {
         let url = format!("{}{}", SERIES_INFORMATION_ADDRESS, series_id);
         // reqwest::get(url).await?.json().await
 
-        let response = match reqwest::get(url).await.map(|response| response) {
-            Ok(response) => response,
-            Err(err) => return Err(ApiError::Network(err)),
-        };
+        let response = reqwest::get(url)
+            .await
+            .map_err(|err| ApiError::Network(err))?;
 
-        let text = match response.text().await.map(|text| text) {
-            Ok(text) => text,
-            Err(err) => return Err(ApiError::Network(err)),
-        };
+        let text = response
+            .text()
+            .await
+            .map_err(|err| ApiError::Network(err))?;
 
         match serde_json::from_str::<SeriesMainInformation>(&text) {
             Ok(series_info) => {
