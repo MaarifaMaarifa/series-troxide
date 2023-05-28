@@ -1,4 +1,6 @@
 use crate::core::api::series_information::SeriesMainInformation;
+use crate::gui::troxide_widget::genres_widget;
+use crate::gui::troxide_widget::{INFO_BODY, INFO_HEADER};
 use crate::gui::Message;
 use iced::{
     alignment,
@@ -33,7 +35,7 @@ const RED_THEME: iced::theme::Text = iced::theme::Text::Color(RED_COLOR);
 const GREEN_THEME: iced::theme::Text = iced::theme::Text::Color(GREEN_COLOR);
 
 fn status_widget(series_info: &SeriesMainInformation) -> iced::widget::Row<'_, Message, Renderer> {
-    let row = row!(text("Status: ").size(super::INFO_HEADER));
+    let row = row!(text("Status: ").size(INFO_HEADER));
 
     let status_text = match SeriesStatus::new(series_info) {
         SeriesStatus::Running => text("Running").style(GREEN_THEME),
@@ -43,8 +45,8 @@ fn status_widget(series_info: &SeriesMainInformation) -> iced::widget::Row<'_, M
         SeriesStatus::Other => text(&series_info.status),
     }
     .vertical_alignment(alignment::Vertical::Bottom)
-    .size(super::INFO_BODY)
-    .height(super::INFO_HEADER);
+    .size(INFO_BODY)
+    .height(INFO_HEADER);
 
     row.push(status_text)
 }
@@ -52,7 +54,7 @@ fn status_widget(series_info: &SeriesMainInformation) -> iced::widget::Row<'_, M
 fn average_runtime_widget(
     series_info: &SeriesMainInformation,
 ) -> iced::widget::Row<'_, Message, Renderer> {
-    let row = row!(text("Average runtime: ").size(super::INFO_HEADER));
+    let row = row!(text("Average runtime: ").size(INFO_HEADER));
     let body_widget = if let Some(average_runtime) = series_info.average_runtime {
         text(format!("{} mins", average_runtime))
     } else {
@@ -60,8 +62,8 @@ fn average_runtime_widget(
     };
     row.push(
         body_widget
-            .size(super::INFO_BODY)
-            .height(super::INFO_HEADER)
+            .size(INFO_BODY)
+            .height(INFO_HEADER)
             .vertical_alignment(alignment::Vertical::Bottom),
     )
 }
@@ -70,10 +72,10 @@ fn language_widget(
     series_info: &SeriesMainInformation,
 ) -> iced::widget::Row<'_, Message, Renderer> {
     let row = row!(
-        text("Language: ").size(super::INFO_HEADER),
+        text("Language: ").size(INFO_HEADER),
         text(&series_info.language)
-            .size(super::INFO_BODY)
-            .height(super::INFO_HEADER)
+            .size(INFO_BODY)
+            .height(INFO_HEADER)
             .vertical_alignment(alignment::Vertical::Bottom)
     );
     row
@@ -82,7 +84,7 @@ fn language_widget(
 fn premiered_widget(
     series_info: &SeriesMainInformation,
 ) -> iced::widget::Row<'_, Message, Renderer> {
-    let row = row!(text("Premiered: ").size(super::INFO_HEADER));
+    let row = row!(text("Premiered: ").size(INFO_HEADER));
     let body_text = if let Some(premier) = &series_info.premiered {
         text(premier)
     } else {
@@ -91,8 +93,8 @@ fn premiered_widget(
 
     row.push(
         body_text
-            .size(super::INFO_BODY)
-            .height(super::INFO_HEADER)
+            .size(INFO_BODY)
+            .height(INFO_HEADER)
             .vertical_alignment(alignment::Vertical::Bottom),
     )
 }
@@ -102,7 +104,7 @@ fn ended_widget(series_info: &SeriesMainInformation) -> iced::widget::Row<'_, Me
         return row!();
     }
 
-    let row = row!(text("Ended: ").size(super::INFO_HEADER));
+    let row = row!(text("Ended: ").size(INFO_HEADER));
     let body_text = if let Some(ended) = &series_info.ended {
         text(ended)
     } else {
@@ -111,8 +113,8 @@ fn ended_widget(series_info: &SeriesMainInformation) -> iced::widget::Row<'_, Me
 
     row.push(
         body_text
-            .size(super::INFO_BODY)
-            .height(super::INFO_HEADER)
+            .size(INFO_BODY)
+            .height(INFO_HEADER)
             .vertical_alignment(alignment::Vertical::Bottom),
     )
 }
@@ -122,7 +124,7 @@ fn summary_widget(series_info: &SeriesMainInformation) -> iced::widget::Text<'_,
 }
 
 fn rating_widget(series_info: &SeriesMainInformation) -> iced::widget::Row<'_, Message, Renderer> {
-    let row = row!(text("Average rating: ").size(super::INFO_HEADER));
+    let row = row!(text("Average rating: ").size(INFO_HEADER));
     let body_wiget = if let Some(average_rating) = series_info.rating.average {
         text(average_rating.to_string())
     } else {
@@ -131,8 +133,8 @@ fn rating_widget(series_info: &SeriesMainInformation) -> iced::widget::Row<'_, M
 
     row.push(
         body_wiget
-            .size(super::INFO_BODY)
-            .height(super::INFO_HEADER)
+            .size(INFO_BODY)
+            .height(INFO_HEADER)
             .vertical_alignment(alignment::Vertical::Bottom),
     )
 }
@@ -141,10 +143,10 @@ fn network_widget(series_info: &SeriesMainInformation) -> iced::widget::Row<'_, 
     if let Some(network) = &series_info.network {
         // TODO: Add a clickable link
         row!(
-            text("Network:  ").size(super::INFO_HEADER),
+            text("Network:  ").size(INFO_HEADER),
             text(format!("{} ({})", &network.name, &network.country.name))
-                .size(super::INFO_BODY)
-                .height(super::INFO_HEADER)
+                .size(INFO_BODY)
+                .height(INFO_HEADER)
                 .vertical_alignment(alignment::Vertical::Bottom),
         )
     } else {
@@ -158,10 +160,10 @@ fn webchannel_widget(
     if let Some(webchannel) = &series_info.web_channel {
         // TODO: Add a clickable link
         row!(
-            text("Webchannel: ").size(super::INFO_HEADER),
+            text("Webchannel: ").size(INFO_HEADER),
             text(&webchannel.name)
-                .size(super::INFO_BODY)
-                .height(super::INFO_HEADER)
+                .size(INFO_BODY)
+                .height(INFO_HEADER)
                 .vertical_alignment(alignment::Vertical::Bottom),
         )
     } else {
@@ -200,7 +202,7 @@ pub fn series_page(
     let series_data = column!(
         // text(format!("Status: {}", series_information.status)),
         status_widget(series_information),
-        super::genres_widget(&series_information.genres),
+        genres_widget(&series_information.genres),
         language_widget(series_information),
         average_runtime_widget(series_information),
         rating_widget(series_information),

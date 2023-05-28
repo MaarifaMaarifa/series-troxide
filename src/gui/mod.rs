@@ -1,4 +1,5 @@
 mod troxide_widget;
+mod view;
 
 use crate::core::api::series_information;
 use crate::core::api::series_searching;
@@ -169,7 +170,7 @@ impl Application for Gui {
                 let series_information =
                     &self.series_page_data.as_ref().unwrap().series_information;
 
-                troxide_widget::series_page::series_page(
+                view::series_view::series_page(
                     &series_information.0,
                     series_information.1.to_owned(),
                 )

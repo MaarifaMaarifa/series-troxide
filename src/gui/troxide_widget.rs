@@ -6,12 +6,10 @@ use iced::{
     Renderer,
 };
 
-pub mod series_page;
-
 // The text size of the beginning part of a info
-const INFO_HEADER: u16 = 18;
+pub const INFO_HEADER: u16 = 18;
 // The text size of the main part of a info
-const INFO_BODY: u16 = 15;
+pub const INFO_BODY: u16 = 15;
 
 // const INFO_BODY_HEIGHT: u16 = INFO_HEADER - (INFO_HEADER - INFO_BODY);
 
@@ -60,7 +58,7 @@ pub fn series_result(
     row.push(column)
 }
 
-fn genres_widget(genres: &Vec<String>) -> iced::widget::Row<'_, Message, Renderer> {
+pub fn genres_widget(genres: &Vec<String>) -> iced::widget::Row<'_, Message, Renderer> {
     if !genres.is_empty() {
         let parsed_genres_row = row!(text("Genres: ").size(INFO_HEADER));
 
