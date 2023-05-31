@@ -198,11 +198,11 @@ pub fn series_page(
     let mut content = column!();
 
     let header = row!(
-        button("<-").on_press(Message::GoToSearchPage),
+        button("<-"),
         horizontal_space(Length::Fill),
         text(&series_information.name).size(30),
         horizontal_space(Length::Fill),
-        button("add to track list").on_press(Message::TrackSeries)
+        button("add to track list")
     );
 
     content = content.push(header);

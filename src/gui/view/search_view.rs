@@ -1,4 +1,6 @@
-use iced::widget::{column, horizontal_space, image, row, text, text_input};
+use iced::widget::{
+    column, horizontal_space, image, row, scrollable, text, text_input, vertical_space,
+};
 use iced::{Command, Element, Length, Renderer};
 
 use crate::core::api::series_searching;
@@ -56,9 +58,15 @@ impl Search {
     }
 
     pub fn view(&self) -> Element<'_, Message, Renderer> {
-        let search_bar = text_input("Search Series", &self.search_term)
-            .on_input(|term| Message::SearchTermChanged(term))
-            .on_submit(Message::SearchTermSearched);
+        let search_bar = column!(
+            vertical_space(10),
+            text_input("Search Series", &self.search_term)
+                .width(300)
+                .on_input(|term| Message::SearchTermChanged(term))
+                .on_submit(Message::SearchTermSearched)
+        )
+        .width(Length::Fill)
+        .align_items(iced::Alignment::Center);
 
         let search_body = column!();
 
@@ -76,7 +84,7 @@ impl Search {
             ),
         };
 
-        column!(search_bar, search_body).into()
+        column!(search_bar, scrollable(search_body).width(Length::Fill)).into()
     }
 }
 

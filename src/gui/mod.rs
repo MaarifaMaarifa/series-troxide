@@ -15,8 +15,6 @@ pub enum Message {
     SeriesResultPressed(u32),
     SeriesResultObtained((series_information::SeriesMainInformation, Option<Vec<u8>>)),
     SeriesResultFailed,
-    TrackSeries,
-    GoToSearchPage,
     MenuAction(MenuMessage),
     SearchAction(SearchMessage),
     SearchActionCommand(SearchMessage),
@@ -86,18 +84,6 @@ impl Application for TroxideGui {
                 self.page = Page::Series;
                 Command::none()
             }
-            Message::SeriesResultFailed => {
-                println!("Failed to obtain Series Information");
-                Command::none()
-            }
-            Message::TrackSeries => {
-                println!("Added series to tracking");
-                Command::none()
-            }
-            Message::GoToSearchPage => {
-                self.page = Page::Search;
-                Command::none()
-            }
             Message::MenuAction(message) => {
                 self.menu_view.update(message);
                 Command::none()
@@ -110,13 +96,13 @@ impl Application for TroxideGui {
                 .search_view
                 .update(message)
                 .map(Message::SearchActionCommand),
+            Message::SeriesResultFailed => todo!(),
         }
     }
 
     fn view(&self) -> iced::Element<'_, Self::Message, iced::Renderer<Self::Theme>> {
-        let main_view = self.search_view.view().map(Message::SearchAction);
-
         let menu_view = self.menu_view.view().map(Message::MenuAction);
+        let main_view = self.search_view.view().map(Message::SearchAction);
 
         row!(menu_view, main_view).into()
     }
