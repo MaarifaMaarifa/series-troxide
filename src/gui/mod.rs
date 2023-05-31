@@ -150,7 +150,9 @@ impl Application for TroxideGui {
 
                 let series_results = {
                     match self.search_state {
-                        SearchState::Searching => column!(text("Searching...")),
+                        SearchState::Searching => column!(text("Searching..."))
+                            .width(Length::Fill)
+                            .align_items(Alignment::Center),
                         SearchState::Complete => {
                             let mut results = Column::new();
 
