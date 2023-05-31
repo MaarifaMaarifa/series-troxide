@@ -100,8 +100,10 @@ fn premiered_widget(
 }
 
 fn ended_widget(series_info: &SeriesMainInformation) -> iced::widget::Row<'_, Message, Renderer> {
-    if let SeriesStatus::Running = SeriesStatus::new(series_info) {
-        return row!();
+    // Creating the widget only when the series has ended
+    match SeriesStatus::new(series_info) {
+        SeriesStatus::Ended => {}
+        _ => return row!(),
     }
 
     let row = row!(text("Ended: ").size(INFO_HEADER));
