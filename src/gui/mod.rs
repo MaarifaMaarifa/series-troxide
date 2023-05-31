@@ -5,6 +5,7 @@ use crate::core::api::series_information;
 use crate::core::api::series_searching;
 
 use view::menu_view::Message as MenuMessage;
+use view::search_view::Message as SearchMessage;
 
 use iced::widget::row;
 use iced::widget::{
@@ -25,6 +26,8 @@ pub enum Message {
     TrackSeries,
     GoToSearchPage,
     MenuAction(MenuMessage),
+    SearchAction(SearchMessage),
+    SearchActionCommand(SearchMessage),
 }
 
 #[derive(Default)]
@@ -51,6 +54,7 @@ struct SeriesPageData {
 #[derive(Default)]
 pub struct TroxideGui {
     menu_view: view::menu_view::Menu,
+    search_view: view::search_view::Search,
     search_term: String,
     series_result: Vec<(series_searching::SeriesSearchResult, Option<Vec<u8>>)>,
     search_state: SearchState,
@@ -136,63 +140,19 @@ impl Application for TroxideGui {
                 self.menu_view.update(message);
                 Command::none()
             }
+            Message::SearchAction(message) => self
+                .search_view
+                .update(message)
+                .map(Message::SearchActionCommand),
+            Message::SearchActionCommand(message) => self
+                .search_view
+                .update(message)
+                .map(Message::SearchActionCommand),
         }
     }
 
     fn view(&self) -> iced::Element<'_, Self::Message, iced::Renderer<Self::Theme>> {
-        let main_view = match &self.page {
-            Page::Search => {
-                let text_input = text_input("Search Series", &self.search_term)
-                    .on_input(|term| Message::SearchTermChanged(term))
-                    .on_submit(Message::SearchTheTerm)
-                    .padding(5)
-                    .width(500);
-
-                let series_results = {
-                    match self.search_state {
-                        SearchState::Searching => column!(text("Searching..."))
-                            .width(Length::Fill)
-                            .align_items(Alignment::Center),
-                        SearchState::Complete => {
-                            let mut results = Column::new();
-
-                            for (series, image_bytes) in &self.series_result {
-                                let row =
-                                    troxide_widget::series_result(series, image_bytes.to_owned());
-                                let row = mouse_area(row)
-                                    .on_press(Message::SeriesResultPressed(series.show.id));
-                                results = results.push(row).push(vertical_space(7));
-                            }
-                            results
-                        }
-                    }
-                };
-
-                let content = column!(
-                    vertical_space(15),
-                    text_input,
-                    vertical_space(10),
-                    scrollable(series_results).width(Length::Fill)
-                )
-                .align_items(Alignment::Center);
-                container(content)
-            }
-            Page::Series => {
-                let series_information =
-                    &self.series_page_data.as_ref().unwrap().series_information;
-
-                view::series_view::series_page(
-                    &series_information.0,
-                    series_information.1.to_owned(),
-                )
-                // let title = text(&series_information.name);
-                // let summary = text(&series_information.summary);
-
-                // column!(title, summary).into()
-            }
-            Page::Season => todo!(),
-            Page::Episode => todo!(),
-        };
+        let main_view = self.search_view.view().map(Message::SearchAction);
 
         let menu_view = self.menu_view.view().map(Message::MenuAction);
 
