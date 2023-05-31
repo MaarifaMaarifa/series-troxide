@@ -4,6 +4,7 @@ use iced::{Element, Renderer};
 #[derive(Default, Debug)]
 enum MenuItem {
     #[default]
+    Search,
     Discover,
     Watchlist,
     MyShows,
@@ -12,6 +13,7 @@ enum MenuItem {
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    SearchPressed,
     DiscoverPressed,
     WatchlistPressed,
     MyShowsPressed,
@@ -30,6 +32,7 @@ impl Menu {
             Message::WatchlistPressed => self.menu_item_selected = MenuItem::Watchlist,
             Message::MyShowsPressed => self.menu_item_selected = MenuItem::MyShows,
             Message::StatisticsPressed => self.menu_item_selected = MenuItem::Statistics,
+            Message::SearchPressed => self.menu_item_selected = MenuItem::Search,
         }
     }
 
@@ -37,6 +40,7 @@ impl Menu {
         column!(
             text("Series Troxide").size(25),
             vertical_space(10),
+            mouse_area("Search").on_press(Message::SearchPressed),
             mouse_area("Discover").on_press(Message::DiscoverPressed),
             mouse_area("Watchlist").on_press(Message::WatchlistPressed),
             mouse_area("MyShows").on_press(Message::MyShowsPressed),
