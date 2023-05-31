@@ -1,6 +1,7 @@
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::gui::troxide_widget::{INFO_BODY, INFO_HEADER};
 use crate::gui::Message;
+use iced::Element;
 use iced::{
     alignment,
     widget::{button, column, container, horizontal_space, image, row, scrollable, text},
@@ -239,4 +240,15 @@ pub fn series_page(
     content = content.push(main_info);
 
     container(scrollable(content))
+}
+
+enum SMessage {}
+
+#[derive(Default)]
+struct Series;
+
+impl Series {
+    fn view(&self) -> Element<SMessage, Renderer> {
+        text("Discover View").into()
+    }
 }

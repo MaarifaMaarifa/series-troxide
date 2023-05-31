@@ -2,10 +2,13 @@ mod troxide_widget;
 mod view;
 
 use crate::core::api::series_information;
-use crate::core::api::series_searching;
 
+use view::discover_view::Message as DiscoverMessage;
 use view::menu_view::Message as MenuMessage;
+use view::my_shows_view::Message as MyShowsMessage;
 use view::search_view::Message as SearchMessage;
+use view::statistics_view::Message as StatisticsMessage;
+use view::watchlist_view::Message as WatchlistMessage;
 
 use iced::widget::row;
 use iced::{Application, Command};
@@ -18,6 +21,10 @@ pub enum Message {
     MenuAction(MenuMessage),
     SearchAction(SearchMessage),
     SearchActionCommand(SearchMessage),
+    DiscoverAction(DiscoverMessage),
+    WatchlistAction(WatchlistMessage),
+    MyShowsAction(MyShowsMessage),
+    StatisticsAction(StatisticsMessage),
 }
 
 #[derive(Default)]
@@ -29,13 +36,6 @@ enum Page {
     Episode,
 }
 
-#[derive(Default)]
-enum SearchState {
-    Searching,
-    #[default]
-    Complete,
-}
-
 #[derive(Debug)]
 struct SeriesPageData {
     series_information: (series_information::SeriesMainInformation, Option<Vec<u8>>),
@@ -43,11 +43,13 @@ struct SeriesPageData {
 
 #[derive(Default)]
 pub struct TroxideGui {
+    view: view::View,
     menu_view: view::menu_view::Menu,
     search_view: view::search_view::Search,
-    search_term: String,
-    series_result: Vec<(series_searching::SeriesSearchResult, Option<Vec<u8>>)>,
-    search_state: SearchState,
+    discover_view: view::discover_view::Discover,
+    watchlist_view: view::watchlist_view::Watchlist,
+    my_shows_view: view::my_shows_view::MyShows,
+    statistic_view: view::statistics_view::Statistics,
     series_page_data: Option<SeriesPageData>,
     page: Page,
 }
@@ -85,7 +87,14 @@ impl Application for TroxideGui {
                 Command::none()
             }
             Message::MenuAction(message) => {
-                self.menu_view.update(message);
+                self.menu_view.update(message.clone());
+                match message {
+                    MenuMessage::SearchPressed => self.view = view::View::Search,
+                    MenuMessage::DiscoverPressed => self.view = view::View::Discover,
+                    MenuMessage::WatchlistPressed => self.view = view::View::Watchlist,
+                    MenuMessage::MyShowsPressed => self.view = view::View::MyShows,
+                    MenuMessage::StatisticsPressed => self.view = view::View::Statistics,
+                };
                 Command::none()
             }
             Message::SearchAction(message) => self
@@ -97,12 +106,25 @@ impl Application for TroxideGui {
                 .update(message)
                 .map(Message::SearchActionCommand),
             Message::SeriesResultFailed => todo!(),
+            Message::DiscoverAction(_) => todo!(),
+            Message::WatchlistAction(_) => todo!(),
+            Message::MyShowsAction(_) => todo!(),
+            Message::StatisticsAction(_) => todo!(),
         }
     }
 
     fn view(&self) -> iced::Element<'_, Self::Message, iced::Renderer<Self::Theme>> {
         let menu_view = self.menu_view.view().map(Message::MenuAction);
-        let main_view = self.search_view.view().map(Message::SearchAction);
+
+        let main_view = match self.view {
+            view::View::Search => self.search_view.view().map(Message::SearchAction),
+            view::View::Discover => self.discover_view.view().map(Message::DiscoverAction),
+            view::View::MyShows => self.my_shows_view.view().map(Message::MyShowsAction),
+            view::View::Statistics => self.statistic_view.view().map(Message::StatisticsAction),
+            view::View::Watchlist => self.watchlist_view.view().map(Message::WatchlistAction),
+            view::View::Series => todo!(),
+            view::View::Menu => unreachable!("menu view should have been handled separately"),
+        };
 
         row!(menu_view, main_view).into()
     }
