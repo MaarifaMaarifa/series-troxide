@@ -4,6 +4,9 @@ mod view;
 use crate::core::api::series_information;
 use crate::core::api::series_searching;
 
+use view::menu_view::Message as MenuMessage;
+
+use iced::widget::row;
 use iced::widget::{
     column, container, mouse_area, scrollable, text, text_input, vertical_space, Column,
 };
@@ -21,6 +24,7 @@ pub enum Message {
     SeriesResultsFailed,
     TrackSeries,
     GoToSearchPage,
+    MenuAction(MenuMessage),
 }
 
 #[derive(Default)]
@@ -46,6 +50,7 @@ struct SeriesPageData {
 
 #[derive(Default)]
 pub struct TroxideGui {
+    menu_view: view::menu_view::Menu,
     search_term: String,
     series_result: Vec<(series_searching::SeriesSearchResult, Option<Vec<u8>>)>,
     search_state: SearchState,
@@ -127,11 +132,15 @@ impl Application for TroxideGui {
                 self.page = Page::Search;
                 Command::none()
             }
+            Message::MenuAction(message) => {
+                self.menu_view.update(message);
+                Command::none()
+            }
         }
     }
 
     fn view(&self) -> iced::Element<'_, Self::Message, iced::Renderer<Self::Theme>> {
-        match &self.page {
+        let main_view = match &self.page {
             Page::Search => {
                 let text_input = text_input("Search Series", &self.search_term)
                     .on_input(|term| Message::SearchTermChanged(term))
@@ -164,7 +173,7 @@ impl Application for TroxideGui {
                     scrollable(series_results).width(Length::Fill)
                 )
                 .align_items(Alignment::Center);
-                container(content).into()
+                container(content)
             }
             Page::Series => {
                 let series_information =
@@ -174,7 +183,6 @@ impl Application for TroxideGui {
                     &series_information.0,
                     series_information.1.to_owned(),
                 )
-                .into()
                 // let title = text(&series_information.name);
                 // let summary = text(&series_information.summary);
 
@@ -182,6 +190,10 @@ impl Application for TroxideGui {
             }
             Page::Season => todo!(),
             Page::Episode => todo!(),
-        }
+        };
+
+        let menu_view = self.menu_view.view().map(Message::MenuAction);
+
+        row!(menu_view, main_view).into()
     }
 }
