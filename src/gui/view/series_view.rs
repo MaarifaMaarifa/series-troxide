@@ -1,5 +1,4 @@
 use crate::core::api::series_information::SeriesMainInformation;
-use crate::gui::troxide_widget::genres_widget;
 use crate::gui::troxide_widget::{INFO_BODY, INFO_HEADER};
 use crate::gui::Message;
 use iced::{
@@ -66,6 +65,24 @@ fn average_runtime_widget(
             .height(INFO_HEADER)
             .vertical_alignment(alignment::Vertical::Bottom),
     )
+}
+
+fn genres_widget(series_info: &SeriesMainInformation) -> iced::widget::Row<'_, Message, Renderer> {
+    if !series_info.genres.is_empty() {
+        let row = row!(text("Genres: ").size(INFO_HEADER));
+        let mut genres = String::new();
+
+        let mut series_result_iter = series_info.genres.iter().peekable();
+        while let Some(genre) = series_result_iter.next() {
+            genres.push_str(genre);
+            if let Some(_) = series_result_iter.peek() {
+                genres.push_str(", ");
+            }
+        }
+        row.push(text(genres).size(INFO_BODY))
+    } else {
+        row!()
+    }
 }
 
 fn language_widget(
@@ -204,7 +221,7 @@ pub fn series_page(
     let series_data = column!(
         // text(format!("Status: {}", series_information.status)),
         status_widget(series_information),
-        genres_widget(&series_information.genres),
+        genres_widget(&series_information),
         language_widget(series_information),
         average_runtime_widget(series_information),
         rating_widget(series_information),

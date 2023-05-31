@@ -8,21 +8,13 @@ use view::menu_view::Message as MenuMessage;
 use view::search_view::Message as SearchMessage;
 
 use iced::widget::row;
-use iced::widget::{
-    column, container, mouse_area, scrollable, text, text_input, vertical_space, Column,
-};
-use iced::Alignment;
-use iced::{Application, Command, Length};
+use iced::{Application, Command};
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    SearchTermChanged(String),
-    SearchTheTerm,
     SeriesResultPressed(u32),
     SeriesResultObtained((series_information::SeriesMainInformation, Option<Vec<u8>>)),
     SeriesResultFailed,
-    SeriesResultsObtained(Vec<(series_searching::SeriesSearchResult, Option<Vec<u8>>)>),
-    SeriesResultsFailed,
     TrackSeries,
     GoToSearchPage,
     MenuAction(MenuMessage),
@@ -78,36 +70,6 @@ impl Application for TroxideGui {
 
     fn update(&mut self, message: Self::Message) -> iced::Command<Self::Message> {
         match message {
-            Message::SearchTermChanged(search_term) => {
-                if let SearchState::Complete = self.search_state {
-                    self.search_term = search_term;
-                }
-                Command::none()
-            }
-            Message::SearchTheTerm => {
-                self.search_state = SearchState::Searching;
-
-                let series_result = series_searching::search_series(self.search_term.clone());
-
-                Command::perform(series_result, |res| match res {
-                    Ok(res) => Message::SeriesResultsObtained(res),
-                    Err(err) => {
-                        println!("{:?}", err);
-                        Message::SeriesResultsFailed
-                    }
-                })
-            }
-            Message::SeriesResultsObtained(series_results) => {
-                self.series_result = series_results;
-                self.search_state = SearchState::Complete;
-                Command::none()
-            }
-            Message::SeriesResultsFailed => {
-                // log::error!("Failed to obtain series search results");
-                println!("Failed to obtain series search results");
-                self.search_state = SearchState::Complete;
-                Command::none()
-            }
             Message::SeriesResultPressed(series_id) => {
                 let series_information = series_information::get_series_main_info(series_id);
 
