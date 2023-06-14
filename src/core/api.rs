@@ -15,7 +15,7 @@ pub struct Rating {
 }
 
 /// Loads the image from the provided url
-async fn load_image(image_url: &str) -> Option<Vec<u8>> {
+pub async fn load_image(image_url: &str) -> Option<Vec<u8>> {
     if let Ok(response) = reqwest::get(image_url).await {
         if let Ok(bytes) = response.bytes().await {
             let bytes: Vec<u8> = bytes.into();
@@ -34,8 +34,8 @@ pub struct Image {
 }
 
 pub mod series_searching {
-    use anyhow::bail;
-    use tokio::task::JoinHandle;
+    // use anyhow::bail;
+    // use tokio::task::JoinHandle;
 
     use super::*;
 
@@ -56,9 +56,7 @@ pub mod series_searching {
         pub image: Option<Image>,
     }
 
-    pub async fn search_series(
-        series_name: String,
-    ) -> anyhow::Result<Vec<(SeriesSearchResult, Option<Vec<u8>>)>> {
+    pub async fn search_series(series_name: String) -> Result<Vec<SeriesSearchResult>, ApiError> {
         let url = format!("{}{}", SERIES_SEARCH_ADDRESS, series_name);
         // let text = reqwest::get(url).await?.text().await?;
 
@@ -71,32 +69,8 @@ pub mod series_searching {
             .await
             .map_err(|err| ApiError::Network(err))?;
 
-        match serde_json::from_str::<Vec<SeriesSearchResult>>(&text) {
-            Ok(results) => {
-                let mut loaded_results = Vec::with_capacity(results.len());
-                let handles: Vec<JoinHandle<(SeriesSearchResult, Option<Vec<u8>>)>> = results
-                    .into_iter()
-                    .map(|result| {
-                        println!("Loading image for {}", result.show.name);
-                        tokio::task::spawn(async {
-                            if let Some(url) = &result.show.image {
-                                let bytes = load_image(&url.medium_image_url).await;
-                                (result, bytes)
-                            } else {
-                                (result, None)
-                            }
-                        })
-                    })
-                    .collect();
-
-                for handle in handles {
-                    let loaded_result = handle.await?;
-                    loaded_results.push(loaded_result)
-                }
-                Ok(loaded_results)
-            }
-            Err(err) => bail!(ApiError::Deserialization(err)),
-        }
+        serde_json::from_str::<Vec<SeriesSearchResult>>(&text)
+            .map_err(|err| ApiError::Deserialization(err))
     }
 }
 

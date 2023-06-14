@@ -2,7 +2,9 @@ use iced::widget::{
     column, horizontal_space, image, row, scrollable, text, text_input, vertical_space,
 };
 use iced::{Command, Element, Length, Renderer};
+use tokio::task::JoinHandle;
 
+use crate::core::api::load_image;
 use crate::core::api::series_searching;
 use crate::gui::Message as GuiMessage;
 
@@ -18,14 +20,16 @@ pub enum LoadState {
 pub enum Message {
     SearchTermChanged(String),
     SearchTermSearched,
-    SearchSuccess(Vec<(series_searching::SeriesSearchResult, Option<Vec<u8>>)>),
+    SearchSuccess(Vec<series_searching::SeriesSearchResult>),
     SearchFail,
+    ImagesLoaded(Vec<Option<Vec<u8>>>),
 }
 
 #[derive(Default)]
 pub struct Search {
     search_term: String,
-    series_search_result: Vec<(series_searching::SeriesSearchResult, Option<Vec<u8>>)>,
+    series_search_result: Vec<series_searching::SeriesSearchResult>,
+    series_search_results_images: Vec<Option<Vec<u8>>>,
     load_state: LoadState,
 }
 
@@ -34,28 +38,33 @@ impl Search {
         match message {
             Message::SearchTermChanged(term) => {
                 self.search_term = term;
-                Command::none()
+                return Command::none();
             }
             Message::SearchTermSearched => {
                 self.load_state = LoadState::Loading;
 
                 let series_result = series_searching::search_series(self.search_term.clone());
 
-                Command::perform(series_result, |res| match res {
+                return Command::perform(series_result, |res| match res {
                     Ok(res) => GuiMessage::SearchAction(Message::SearchSuccess(res)),
                     Err(err) => {
                         println!("{:?}", err);
                         GuiMessage::SearchAction(Message::SearchFail)
                     }
-                })
+                });
             }
             Message::SearchSuccess(res) => {
                 self.load_state = LoadState::Loaded;
-                self.series_search_result = res;
-                Command::none()
+                self.series_search_results_images.clear();
+                self.series_search_result = res.clone();
+                return Command::perform(load_series_result_images(res), |images| {
+                    GuiMessage::SearchAction(Message::ImagesLoaded(images))
+                });
             }
             Message::SearchFail => panic!("Series Search Failed"),
+            Message::ImagesLoaded(images) => self.series_search_results_images = images,
         }
+        Command::none()
     }
 
     pub fn view(&self) -> Element<'_, Message, Renderer> {
@@ -72,7 +81,10 @@ impl Search {
         let search_body = column!();
 
         let search_body = match self.load_state {
-            LoadState::Loaded => search_body.push(load(&self.series_search_result)),
+            LoadState::Loaded => search_body.push(load(
+                &self.series_search_result,
+                &self.series_search_results_images,
+            )),
             LoadState::Loading => search_body.push(
                 column!("Loading Search Results")
                     .width(Length::Fill)
@@ -89,13 +101,21 @@ impl Search {
     }
 }
 
-fn load(
-    series_result: &Vec<(series_searching::SeriesSearchResult, Option<Vec<u8>>)>,
-) -> Element<'_, Message, Renderer> {
+fn load<'a>(
+    series_result: &'a Vec<series_searching::SeriesSearchResult>,
+    series_images: &Vec<Option<Vec<u8>>>,
+) -> Element<'a, Message, Renderer> {
     let mut results = column!();
 
-    for (series, image_bytes) in series_result {
-        results = results.push(series_result_widget(series, image_bytes.clone()));
+    for (index, series_result) in series_result.iter().enumerate() {
+        results = results.push(series_result_widget(
+            series_result,
+            if series_images.is_empty() {
+                None
+            } else {
+                series_images[index].clone().take()
+            },
+        ));
     }
     results.spacing(5).into()
 }
@@ -142,4 +162,31 @@ pub fn series_result_widget(
     }
 
     row.push(column)
+}
+
+async fn load_series_result_images(
+    series_results: Vec<series_searching::SeriesSearchResult>,
+) -> Vec<Option<Vec<u8>>> {
+    let mut loaded_results = Vec::with_capacity(series_results.len());
+    let handles: Vec<JoinHandle<Option<Vec<u8>>>> = series_results
+        .into_iter()
+        .map(|result| {
+            println!("Loading image for {}", result.show.name);
+            tokio::task::spawn(async {
+                if let Some(url) = result.show.image {
+                    load_image(&url.medium_image_url).await
+                } else {
+                    None
+                }
+            })
+        })
+        .collect();
+
+    for handle in handles {
+        let loaded_result = handle
+            .await
+            .expect("Failed to await all the search images handles");
+        loaded_results.push(loaded_result)
+    }
+    loaded_results
 }
