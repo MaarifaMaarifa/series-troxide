@@ -1,5 +1,5 @@
 use iced::widget::{
-    column, horizontal_space, image, row, scrollable, text, text_input, vertical_space,
+    column, horizontal_space, image, mouse_area, row, scrollable, text, text_input, vertical_space,
 };
 use iced::{Command, Element, Length, Renderer};
 use tokio::task::JoinHandle;
@@ -23,6 +23,7 @@ pub enum Message {
     SearchSuccess(Vec<series_searching::SeriesSearchResult>),
     SearchFail,
     ImagesLoaded(Vec<Option<Vec<u8>>>),
+    SeriesResultPressed(/*series id*/ u32),
 }
 
 #[derive(Default)]
@@ -63,6 +64,9 @@ impl Search {
             }
             Message::SearchFail => panic!("Series Search Failed"),
             Message::ImagesLoaded(images) => self.series_search_results_images = images,
+            Message::SeriesResultPressed(_) => {
+                unreachable!("Search page should not handle series page result")
+            }
         }
         Command::none()
     }
@@ -123,7 +127,7 @@ fn load<'a>(
 pub fn series_result_widget(
     series_result: &series_searching::SeriesSearchResult,
     image_bytes: Option<Vec<u8>>,
-) -> iced::widget::Row<'_, Message, Renderer> {
+) -> iced::Element<'_, Message, Renderer> {
     let mut row = row!();
 
     if let Some(image_bytes) = image_bytes {
@@ -161,7 +165,9 @@ pub fn series_result_widget(
         column = column.push(text(format!("Premiered: {}", premier)).size(13));
     }
 
-    row.push(column)
+    mouse_area(row.push(column))
+        .on_press(Message::SeriesResultPressed(series_result.show.id))
+        .into()
 }
 
 async fn load_series_result_images(
@@ -174,7 +180,7 @@ async fn load_series_result_images(
             println!("Loading image for {}", result.show.name);
             tokio::task::spawn(async {
                 if let Some(url) = result.show.image {
-                    load_image(&url.medium_image_url).await
+                    load_image(url.medium_image_url).await
                 } else {
                     None
                 }

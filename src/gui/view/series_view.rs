@@ -1,12 +1,14 @@
+use crate::core::api::load_image;
+use crate::core::api::series_information::get_series_main_info;
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::gui::troxide_widget::{INFO_BODY, INFO_HEADER};
-use crate::gui::Message;
-use iced::Element;
+use crate::gui::Message as GuiMessage;
 use iced::{
     alignment,
     widget::{button, column, container, horizontal_space, image, row, scrollable, text},
     Length, Renderer,
 };
+use iced::{Command, Element};
 
 enum SeriesStatus {
     Running,
@@ -242,13 +244,67 @@ pub fn series_page(
     container(scrollable(content))
 }
 
-enum SMessage {}
+#[derive(Clone, Debug)]
+pub enum Message {
+    SeriesInfoObtained(SeriesMainInformation),
+    SeriesImageLoaded(Option<Vec<u8>>),
+}
 
-#[derive(Default)]
-struct Series;
+enum LoadState {
+    Loading,
+    Loaded,
+}
+
+pub struct Series {
+    load_state: LoadState,
+    series_information: Option<SeriesMainInformation>,
+    series_image: Option<Vec<u8>>,
+}
 
 impl Series {
-    fn view(&self) -> Element<SMessage, Renderer> {
-        text("Discover View").into()
+    pub fn new(series_id: u32) -> (Self, Command<GuiMessage>) {
+        let series = Self {
+            load_state: LoadState::Loading,
+            series_information: None,
+            series_image: None,
+        };
+
+        (
+            series,
+            Command::perform(get_series_main_info(series_id), |info| {
+                GuiMessage::SeriesAction(Message::SeriesInfoObtained(
+                    info.expect("Failed to load series information"),
+                ))
+            }),
+        )
+    }
+    pub fn update(&mut self, message: Message) -> Command<GuiMessage> {
+        match message {
+            Message::SeriesInfoObtained(info) => {
+                self.load_state = LoadState::Loaded;
+                let info_image = info.image.clone();
+                self.series_information = Some(info);
+
+                if let Some(image_url) = info_image {
+                    return Command::perform(
+                        load_image(image_url.original_image_url.clone()),
+                        |image| GuiMessage::SeriesAction(Message::SeriesImageLoaded(image)),
+                    );
+                }
+            }
+            Message::SeriesImageLoaded(image) => self.series_image = image,
+        }
+        Command::none()
+    }
+
+    pub fn view(&self) -> Element<Message, Renderer> {
+        match self.load_state {
+            LoadState::Loading => text("Loading..").into(),
+            LoadState::Loaded => series_page(
+                self.series_information.as_ref().unwrap(),
+                self.series_image.clone(),
+            )
+            .into(),
+        }
     }
 }

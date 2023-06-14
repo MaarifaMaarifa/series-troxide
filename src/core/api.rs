@@ -15,7 +15,7 @@ pub struct Rating {
 }
 
 /// Loads the image from the provided url
-pub async fn load_image(image_url: &str) -> Option<Vec<u8>> {
+pub async fn load_image(image_url: String) -> Option<Vec<u8>> {
     if let Ok(response) = reqwest::get(image_url).await {
         if let Ok(bytes) = response.bytes().await {
             let bytes: Vec<u8> = bytes.into();
@@ -118,9 +118,7 @@ pub mod series_information {
         pub name: String,
     }
 
-    pub async fn get_series_main_info(
-        series_id: u32,
-    ) -> Result<(SeriesMainInformation, Option<Vec<u8>>), ApiError> {
+    pub async fn get_series_main_info(series_id: u32) -> Result<SeriesMainInformation, ApiError> {
         let url = format!("{}{}", SERIES_INFORMATION_ADDRESS, series_id);
         // reqwest::get(url).await?.json().await
 
@@ -133,20 +131,22 @@ pub mod series_information {
             .await
             .map_err(|err| ApiError::Network(err))?;
 
-        match serde_json::from_str::<SeriesMainInformation>(&text) {
-            Ok(series_info) => {
-                let image_bytes = if let Some(image_url) = &series_info.image {
-                    load_image(&image_url.original_image_url).await
-                } else {
-                    None
-                };
-                return Ok((series_info, image_bytes));
-            }
-            Err(err) => {
-                println!("Deserialization text: \n{}\n", text);
-                return Err(ApiError::Deserialization(err));
-            }
-        }
+        // match serde_json::from_str::<SeriesMainInformation>(&text) {
+        //     Ok(series_info) => {
+        //         let image_bytes = if let Some(image_url) = &series_info.image {
+        //             load_image(&image_url.original_image_url).await
+        //         } else {
+        //             None
+        //         };
+        //         return Ok((series_info, image_bytes));
+        //     }
+        //     Err(err) => {
+        //         println!("Deserialization text: \n{}\n", text);
+        //         return Err(ApiError::Deserialization(err));
+        //     }
+
+        serde_json::from_str::<SeriesMainInformation>(&text)
+            .map_err(|err| ApiError::Deserialization(err))
     }
 }
 
