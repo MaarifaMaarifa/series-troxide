@@ -201,7 +201,7 @@ pub fn series_page(
     let mut content = column!();
 
     let header = row!(
-        button("<-"),
+        button("<-").on_press(Message::GoToSearchPage),
         horizontal_space(Length::Fill),
         text(&series_information.name).size(30),
         horizontal_space(Length::Fill),
@@ -248,6 +248,7 @@ pub fn series_page(
 pub enum Message {
     SeriesInfoObtained(SeriesMainInformation),
     SeriesImageLoaded(Option<Vec<u8>>),
+    GoToSearchPage,
 }
 
 enum LoadState {
@@ -293,6 +294,11 @@ impl Series {
                 }
             }
             Message::SeriesImageLoaded(image) => self.series_image = image,
+            Message::GoToSearchPage => {
+                return Command::perform(async {}, |_| {
+                    GuiMessage::SeriesAction(Message::GoToSearchPage)
+                })
+            }
         }
         Command::none()
     }

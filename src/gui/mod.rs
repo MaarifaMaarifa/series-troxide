@@ -113,6 +113,10 @@ impl Application for TroxideGui {
             Message::MyShowsAction(_) => todo!(),
             Message::StatisticsAction(_) => todo!(),
             Message::SeriesAction(message) => {
+                if let SeriesMessage::GoToSearchPage = message {
+                    self.view = view::View::Search;
+                    return Command::none();
+                };
                 return self
                     .series_view
                     .as_mut()
