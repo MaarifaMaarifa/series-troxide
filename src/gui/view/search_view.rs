@@ -4,6 +4,7 @@ use iced::widget::{
 use iced::{Command, Element, Length, Renderer};
 
 use crate::core::api::series_searching;
+use crate::gui::Message as GuiMessage;
 
 #[derive(Default)]
 pub enum LoadState {
@@ -29,7 +30,7 @@ pub struct Search {
 }
 
 impl Search {
-    pub fn update(&mut self, message: Message) -> Command<Message> {
+    pub fn update(&mut self, message: Message) -> Command<GuiMessage> {
         match message {
             Message::SearchTermChanged(term) => {
                 self.search_term = term;
@@ -41,10 +42,10 @@ impl Search {
                 let series_result = series_searching::search_series(self.search_term.clone());
 
                 Command::perform(series_result, |res| match res {
-                    Ok(res) => Message::SearchSuccess(res),
+                    Ok(res) => GuiMessage::SearchAction(Message::SearchSuccess(res)),
                     Err(err) => {
                         println!("{:?}", err);
-                        Message::SearchFail
+                        GuiMessage::SearchAction(Message::SearchFail)
                     }
                 })
             }

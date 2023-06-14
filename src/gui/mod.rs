@@ -20,7 +20,6 @@ pub enum Message {
     SeriesResultFailed,
     MenuAction(MenuMessage),
     SearchAction(SearchMessage),
-    SearchActionCommand(SearchMessage),
     DiscoverAction(DiscoverMessage),
     WatchlistAction(WatchlistMessage),
     MyShowsAction(MyShowsMessage),
@@ -97,14 +96,7 @@ impl Application for TroxideGui {
                 };
                 Command::none()
             }
-            Message::SearchAction(message) => self
-                .search_view
-                .update(message)
-                .map(Message::SearchActionCommand),
-            Message::SearchActionCommand(message) => self
-                .search_view
-                .update(message)
-                .map(Message::SearchActionCommand),
+            Message::SearchAction(message) => self.search_view.update(message),
             Message::SeriesResultFailed => todo!(),
             Message::DiscoverAction(_) => todo!(),
             Message::WatchlistAction(_) => todo!(),
