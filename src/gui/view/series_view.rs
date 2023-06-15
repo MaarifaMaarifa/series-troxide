@@ -297,20 +297,27 @@ impl Series {
                 let info_image = info.image.clone();
                 self.series_information = Some(info);
 
-                if let Some(image_url) = info_image {
-                    return Command::perform(
-                        load_image(image_url.original_image_url.clone()),
-                        |image| GuiMessage::SeriesAction(Message::SeriesImageLoaded(image)),
-                    );
-                }
+                // Requesting series image and seasons list right after getting series information
+                let commands = [
+                    if let Some(image_url) = info_image {
+                        Command::perform(
+                            load_image(image_url.original_image_url.clone()),
+                            |image| GuiMessage::SeriesAction(Message::SeriesImageLoaded(image)),
+                        )
+                    } else {
+                        Command::none()
+                    },
+                    Command::perform(get_seasons_list(self.series_id), |seasons_list| {
+                        GuiMessage::SeriesAction(Message::SeasonsLoaded(
+                            seasons_list.expect("Failed to load seasons"),
+                        ))
+                    }),
+                ];
+
+                return Command::batch(commands);
             }
             Message::SeriesImageLoaded(image) => {
                 self.series_image = image;
-                return Command::perform(get_seasons_list(self.series_id), |seasons_list| {
-                    GuiMessage::SeriesAction(Message::SeasonsLoaded(
-                        seasons_list.expect("Failed to load seasons"),
-                    ))
-                });
             }
             Message::GoToSearchPage => {
                 return Command::perform(async {}, |_| {
