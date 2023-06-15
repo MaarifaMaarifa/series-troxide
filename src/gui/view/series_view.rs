@@ -327,11 +327,21 @@ impl Series {
             Message::SeasonsLoaded(season_list) => {
                 self.season_widgets = season_list
                     .into_iter()
-                    .map(|season| season_widget::Season::new(season))
+                    .enumerate()
+                    .map(|(index, season)| {
+                        season_widget::Season::new(index, season, self.series_id)
+                    })
                     .collect()
             }
             Message::SeasonAction(index, message) => {
-                return self.season_widgets[index].update(message)
+                // return Command::perform(async {}, |_| {
+                //     GuiMessage::SeriesAction(Message::GoToSearchPage)
+                // return self.season_widgets[index].update(message).
+
+                // })
+                return self.season_widgets[index]
+                    .update(message)
+                    .map(|m| GuiMessage::SeriesAction(m));
             }
         }
         Command::none()
@@ -359,7 +369,7 @@ impl Series {
                     .spacing(5)
                 );
 
-                column!(main_body, seasons_widget).into()
+                scrollable(column!(main_body, seasons_widget)).into()
             }
         }
     }

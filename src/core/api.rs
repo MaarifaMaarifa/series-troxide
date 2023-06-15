@@ -165,18 +165,18 @@ pub mod episodes_information {
     const EPISODE_INFORMATION_ADDRESS: &str =
         "https://api.tvmaze.com/shows/SERIES-ID/episodebynumber?season=SEASON&number=EPISODE";
 
-    #[derive(Debug, Deserialize)]
+    #[derive(Debug, Deserialize, Clone)]
     pub struct Episode {
-        name: String,
-        season: u32,
-        number: u32,
-        runtime: u32,
-        airdate: Option<String>,
-        airtime: String, // can be empty
-        airstamp: String,
-        rating: Rating,
-        image: Image,
-        summary: String,
+        pub name: String,
+        pub season: u32,
+        pub number: u32,
+        pub runtime: Option<u32>,
+        pub airdate: Option<String>,
+        pub airtime: String, // can be empty
+        pub airstamp: String,
+        pub rating: Rating,
+        pub image: Option<Image>,
+        pub summary: Option<String>,
     }
 
     pub async fn get_episode_information(
