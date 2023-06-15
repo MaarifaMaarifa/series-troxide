@@ -1,14 +1,19 @@
 use crate::core::api::load_image;
+use crate::core::api::seasons_list::{get_seasons_list, Season as SeasonInfo};
 use crate::core::api::series_information::get_series_main_info;
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::gui::troxide_widget::{INFO_BODY, INFO_HEADER};
 use crate::gui::Message as GuiMessage;
+use iced::widget::Column;
 use iced::{
     alignment,
     widget::{button, column, container, horizontal_space, image, row, scrollable, text},
     Length, Renderer,
 };
 use iced::{Command, Element};
+use season_widget::Message as SeasonMessage;
+
+mod season_widget;
 
 enum SeriesStatus {
     Running,
@@ -249,6 +254,8 @@ pub enum Message {
     SeriesInfoObtained(SeriesMainInformation),
     SeriesImageLoaded(Option<Vec<u8>>),
     GoToSearchPage,
+    SeasonsLoaded(Vec<SeasonInfo>),
+    SeasonAction(usize, SeasonMessage),
 }
 
 enum LoadState {
@@ -257,17 +264,21 @@ enum LoadState {
 }
 
 pub struct Series {
+    series_id: u32,
     load_state: LoadState,
     series_information: Option<SeriesMainInformation>,
     series_image: Option<Vec<u8>>,
+    season_widgets: Vec<season_widget::Season>,
 }
 
 impl Series {
     pub fn new(series_id: u32) -> (Self, Command<GuiMessage>) {
         let series = Self {
+            series_id,
             load_state: LoadState::Loading,
             series_information: None,
             series_image: None,
+            season_widgets: vec![],
         };
 
         (
@@ -293,11 +304,27 @@ impl Series {
                     );
                 }
             }
-            Message::SeriesImageLoaded(image) => self.series_image = image,
+            Message::SeriesImageLoaded(image) => {
+                self.series_image = image;
+                return Command::perform(get_seasons_list(self.series_id), |seasons_list| {
+                    GuiMessage::SeriesAction(Message::SeasonsLoaded(
+                        seasons_list.expect("Failed to load seasons"),
+                    ))
+                });
+            }
             Message::GoToSearchPage => {
                 return Command::perform(async {}, |_| {
                     GuiMessage::SeriesAction(Message::GoToSearchPage)
                 })
+            }
+            Message::SeasonsLoaded(season_list) => {
+                self.season_widgets = season_list
+                    .into_iter()
+                    .map(|season| season_widget::Season::new(season))
+                    .collect()
+            }
+            Message::SeasonAction(index, message) => {
+                return self.season_widgets[index].update(message)
             }
         }
         Command::none()
@@ -306,11 +333,27 @@ impl Series {
     pub fn view(&self) -> Element<Message, Renderer> {
         match self.load_state {
             LoadState::Loading => text("Loading..").into(),
-            LoadState::Loaded => series_page(
-                self.series_information.as_ref().unwrap(),
-                self.series_image.clone(),
-            )
-            .into(),
+            LoadState::Loaded => {
+                let main_body = series_page(
+                    self.series_information.as_ref().unwrap(),
+                    self.series_image.clone(),
+                );
+                let seasons_widget = column!(
+                    text("Seasons").size(25),
+                    Column::with_children(
+                        self.season_widgets
+                            .iter()
+                            .enumerate()
+                            .map(|(index, widget)| {
+                                widget.view().map(move |m| Message::SeasonAction(index, m))
+                            })
+                            .collect(),
+                    )
+                    .spacing(5)
+                );
+
+                column!(main_body, seasons_widget).into()
+            }
         }
     }
 }

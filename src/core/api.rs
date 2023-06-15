@@ -142,15 +142,15 @@ pub mod seasons_list {
     // replace the word SERIES-ID with the actual series id
     const SEASONS_LIST_ADDRESS: &str = "https://api.tvmaze.com/shows/SERIES-ID/seasons";
 
-    #[derive(Debug, Deserialize)]
+    #[derive(Debug, Deserialize, Clone)]
     pub struct Season {
-        number: u32,
+        pub number: u32,
         #[serde(rename = "episodeOrder")]
-        episode_order: u32,
+        pub episode_order: Option<u32>,
         #[serde(rename = "premiereDate")]
-        premiere_date: Option<String>,
+        pub premiere_date: Option<String>,
         #[serde(rename = "endDate")]
-        end_date: Option<String>,
+        pub end_date: Option<String>,
     }
 
     pub async fn get_seasons_list(series_id: u32) -> Result<Vec<Season>, reqwest::Error> {
