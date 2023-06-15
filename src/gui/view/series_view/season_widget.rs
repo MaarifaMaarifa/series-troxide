@@ -225,8 +225,9 @@ mod episode_widget {
             let info = column!(
                 heading_widget(&self.episode_information),
                 summary_widget(&self.episode_information)
-            );
-            content.push(info).padding(5).into()
+            )
+            .padding(5);
+            content.push(info).padding(5).width(600).into()
         }
     }
 
@@ -244,8 +245,9 @@ mod episode_widget {
                 "S{}E{}",
                 parse_season_episode_number(episode_information.season),
                 parse_season_episode_number(episode_information.number)
-            )),
-            text(&episode_information.name),
+            ))
+            .size(17),
+            text(&episode_information.name).size(17),
         )
         .spacing(5)
     }
