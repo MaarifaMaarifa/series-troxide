@@ -149,9 +149,21 @@ async fn load_episode_infos(
         .into_iter()
         .map(|episode_number| {
             tokio::task::spawn(async move {
-                get_episode_information(series_id, season_number, episode_number)
-                    .await
-                    .expect("Failed to load episode information")
+                loop {
+                    match get_episode_information(series_id, season_number, episode_number).await {
+                        Ok(episode_info) => break episode_info,
+                        Err(err) => {
+                            if err.is_request() {
+                                println!("Retrying denied api request");
+                                tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+                            } else {
+                                panic!("{}", err);
+                            }
+                        }
+                    }
+                }
+
+                // .expect("Failed to load episode information")
             })
         })
         .collect();
