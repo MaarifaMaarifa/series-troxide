@@ -23,7 +23,11 @@ impl Season {
     }
     pub fn update(&mut self, message: Message) -> Command<GuiMessage> {
         match message {
-            Message::CheckboxPressed(tracking_status) => self.is_tracked = tracking_status,
+            Message::CheckboxPressed(tracking_status) => {
+                if let Some(_) = self.season.episode_order {
+                    self.is_tracked = tracking_status;
+                }
+            }
         }
         Command::none()
     }
