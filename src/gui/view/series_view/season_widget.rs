@@ -169,13 +169,14 @@ mod episode_widget {
     use super::Message as SeasonMessage;
     use crate::core::api::{episodes_information::Episode as EpisodeInfo, load_image};
     use iced::{
-        widget::{column, image, row, text, Row, Text},
-        Command, Element, Renderer,
+        widget::{checkbox, column, horizontal_space, image, row, text, Row, Text},
+        Command, Element, Length, Renderer,
     };
 
     #[derive(Clone, Debug)]
     pub enum Message {
         ImageLoaded(Option<Vec<u8>>),
+        TrackCheckboxPressed(bool),
     }
 
     #[derive(Clone)]
@@ -183,6 +184,7 @@ mod episode_widget {
         index: usize,
         episode_information: EpisodeInfo,
         episode_image: Option<Vec<u8>>,
+        is_tracked: bool,
     }
 
     impl Episode {
@@ -195,6 +197,7 @@ mod episode_widget {
                 index,
                 episode_information,
                 episode_image: None,
+                is_tracked: false,
             };
 
             let command = if let Some(image) = episode_image {
@@ -211,6 +214,7 @@ mod episode_widget {
         pub fn update(&mut self, message: Message) -> Command<SeasonMessage> {
             match message {
                 Message::ImageLoaded(image) => self.episode_image = image,
+                Message::TrackCheckboxPressed(val) => self.is_tracked = val,
             }
             Command::none()
         }
@@ -223,7 +227,7 @@ mod episode_widget {
                 content = content.push(image);
             };
             let info = column!(
-                heading_widget(&self.episode_information),
+                heading_widget(&self.episode_information, self.is_tracked),
                 airdate_widget(&self.episode_information),
                 airstamp_widget(&self.episode_information),
                 summary_widget(&self.episode_information)
@@ -253,15 +257,21 @@ mod episode_widget {
         text(&episode_information.airstamp).size(15)
     }
 
-    fn heading_widget(episode_information: &EpisodeInfo) -> Row<'static, Message, Renderer> {
+    fn heading_widget(
+        episode_information: &EpisodeInfo,
+        track_status: bool,
+    ) -> Row<'static, Message, Renderer> {
+        let tracking_checkbox =
+            checkbox("", track_status, |val| Message::TrackCheckboxPressed(val));
         row!(
             text(format!(
                 "S{}E{}",
                 parse_season_episode_number(episode_information.season),
                 parse_season_episode_number(episode_information.number)
-            ))
-            .size(17),
+            ),),
             text(&episode_information.name).size(17),
+            horizontal_space(Length::Fill),
+            tracking_checkbox.size(17),
         )
         .spacing(5)
     }
