@@ -224,6 +224,8 @@ mod episode_widget {
             };
             let info = column!(
                 heading_widget(&self.episode_information),
+                airdate_widget(&self.episode_information),
+                airstamp_widget(&self.episode_information),
                 summary_widget(&self.episode_information)
             )
             .padding(5);
@@ -237,6 +239,18 @@ mod episode_widget {
         } else {
             text("")
         }
+    }
+
+    fn airdate_widget(episode_information: &EpisodeInfo) -> Text<'static, Renderer> {
+        if let Some(airdate) = &episode_information.airdate {
+            text(airdate).size(15)
+        } else {
+            text("")
+        }
+    }
+
+    fn airstamp_widget(episode_information: &EpisodeInfo) -> Text<'static, Renderer> {
+        text(&episode_information.airstamp).size(15)
     }
 
     fn heading_widget(episode_information: &EpisodeInfo) -> Row<'static, Message, Renderer> {
