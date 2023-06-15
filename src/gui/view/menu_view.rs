@@ -1,4 +1,4 @@
-use iced::widget::{button, column, mouse_area, text, vertical_space};
+use iced::widget::{column, mouse_area, text, vertical_space};
 use iced::{Element, Renderer};
 
 #[derive(Default, Debug)]

@@ -1,8 +1,6 @@
 mod troxide_widget;
 mod view;
 
-use crate::core::api::series_information;
-
 use view::discover_view::Message as DiscoverMessage;
 use view::menu_view::Message as MenuMessage;
 use view::my_shows_view::Message as MyShowsMessage;
@@ -16,9 +14,6 @@ use iced::{Application, Command};
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    // SeriesResultPressed(u32),
-    // SeriesResultObtained((series_information::SeriesMainInformation, Option<Vec<u8>>)),
-    // SeriesResultFailed,
     MenuAction(MenuMessage),
     SearchAction(SearchMessage),
     DiscoverAction(DiscoverMessage),
@@ -26,20 +21,6 @@ pub enum Message {
     MyShowsAction(MyShowsMessage),
     StatisticsAction(StatisticsMessage),
     SeriesAction(SeriesMessage),
-}
-
-#[derive(Default)]
-enum Page {
-    #[default]
-    Search,
-    Series,
-    Season,
-    Episode,
-}
-
-#[derive(Debug)]
-struct SeriesPageData {
-    series_information: (series_information::SeriesMainInformation, Option<Vec<u8>>),
 }
 
 #[derive(Default)]
@@ -52,7 +33,6 @@ pub struct TroxideGui {
     my_shows_view: view::my_shows_view::MyShows,
     statistic_view: view::statistics_view::Statistics,
     series_view: Option<view::series_view::Series>,
-    page: Page,
 }
 
 impl Application for TroxideGui {
@@ -71,22 +51,6 @@ impl Application for TroxideGui {
 
     fn update(&mut self, message: Self::Message) -> iced::Command<Self::Message> {
         match message {
-            // Message::SeriesResultPressed(series_id) => {
-            //     let series_information = series_information::get_series_main_info(series_id);
-
-            //     Command::perform(series_information, |res| match res {
-            //         Ok(res) => Message::SeriesResultObtained(res),
-            //         Err(err) => {
-            //             println!("Error obtaining series information: {:?}", err);
-            //             Message::SeriesResultFailed
-            //         }
-            //     })
-            // }
-            // Message::SeriesResultObtained(series_information) => {
-            //     // self.series_page_data = Some(SeriesPageData { series_information });
-            //     self.page = Page::Series;
-            //     Command::none()
-            // }
             Message::MenuAction(message) => {
                 self.menu_view.update(message.clone());
                 match message {
