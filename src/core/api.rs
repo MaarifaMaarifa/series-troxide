@@ -131,20 +131,6 @@ pub mod series_information {
             .await
             .map_err(|err| ApiError::Network(err))?;
 
-        // match serde_json::from_str::<SeriesMainInformation>(&text) {
-        //     Ok(series_info) => {
-        //         let image_bytes = if let Some(image_url) = &series_info.image {
-        //             load_image(&image_url.original_image_url).await
-        //         } else {
-        //             None
-        //         };
-        //         return Ok((series_info, image_bytes));
-        //     }
-        //     Err(err) => {
-        //         println!("Deserialization text: \n{}\n", text);
-        //         return Err(ApiError::Deserialization(err));
-        //     }
-
         serde_json::from_str::<SeriesMainInformation>(&text)
             .map_err(|err| ApiError::Deserialization(err))
     }
