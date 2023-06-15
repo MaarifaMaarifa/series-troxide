@@ -155,6 +155,7 @@ async fn load_episode_infos(
                         Err(err) => {
                             if err.is_request() {
                                 println!("Retrying denied api request");
+                                // TODO: make sleep time randomly generated
                                 tokio::time::sleep(std::time::Duration::from_millis(5)).await;
                             } else {
                                 panic!("{}", err);
