@@ -5,8 +5,8 @@ use thiserror::Error;
 pub enum ApiError {
     #[error("network error during request")]
     Network(reqwest::Error),
-    #[error("tvmaze api error when deserializing json")]
-    Deserialization(serde_json::Error),
+    #[error("tvmaze api error when deserializing json: unexpected '{0}'")]
+    Deserialization(String, serde_json::Error),
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -35,9 +35,26 @@ pub async fn load_image(image_url: String) -> Option<Vec<u8>> {
     }
 }
 
+fn deserialize_json<'a, T: serde::Deserialize<'a>>(
+    prettified_json: &'a str,
+) -> Result<T, ApiError> {
+    serde_json::from_str::<T>(&prettified_json).map_err(|err| {
+        let line_number = err.line() - 1;
+
+        let mut errored_line = String::new();
+        prettified_json
+            .lines()
+            .skip(line_number)
+            .take(1)
+            .for_each(|line| errored_line = line.to_owned());
+        ApiError::Deserialization(errored_line, err)
+    })
+}
+
 /// Requests text response from the provided url
-async fn get_text_from_url(url: String) -> Result<String, reqwest::Error> {
-    reqwest::get(url).await?.text().await
+async fn get_pretty_json_from_url(url: String) -> Result<String, reqwest::Error> {
+    let text = reqwest::get(url).await?.text().await?;
+    Ok(json::stringify_pretty(json::parse(&text).unwrap(), 1))
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -73,14 +90,12 @@ pub mod series_searching {
 
     pub async fn search_series(series_name: String) -> Result<Vec<SeriesSearchResult>, ApiError> {
         let url = format!("{}{}", SERIES_SEARCH_ADDRESS, series_name);
-        // let text = reqwest::get(url).await?.text().await?;
 
-        let text = get_text_from_url(url)
+        let prettified_json = get_pretty_json_from_url(url)
             .await
             .map_err(|err| ApiError::Network(err))?;
 
-        serde_json::from_str::<Vec<SeriesSearchResult>>(&text)
-            .map_err(|err| ApiError::Deserialization(err))
+        deserialize_json(&prettified_json)
     }
 }
 
@@ -134,22 +149,11 @@ pub mod series_information {
     pub async fn get_series_main_info_with_url(
         url: String,
     ) -> Result<SeriesMainInformation, ApiError> {
-        let text = get_text_from_url(url)
+        let prettified_json = get_pretty_json_from_url(url)
             .await
             .map_err(|err| ApiError::Network(err))?;
 
-        let parsed_json = json::stringify_pretty(json::parse(&text).unwrap(), 1);
-
-        serde_json::from_str::<SeriesMainInformation>(&parsed_json).map_err(|err| {
-            let line_number = err.line() - 1;
-
-            parsed_json
-                .lines()
-                .skip(line_number)
-                .take(1)
-                .for_each(|line| println!("{}", line));
-            ApiError::Deserialization(err)
-        })
+        deserialize_json(&prettified_json)
     }
 
     pub async fn get_series_main_info_with_id(
@@ -176,9 +180,13 @@ pub mod seasons_list {
         pub end_date: Option<String>,
     }
 
-    pub async fn get_seasons_list(series_id: u32) -> Result<Vec<Season>, reqwest::Error> {
+    pub async fn get_seasons_list(series_id: u32) -> Result<Vec<Season>, ApiError> {
         let url = SEASONS_LIST_ADDRESS.replace("SERIES-ID", &series_id.to_string());
-        reqwest::get(url).await?.json().await
+        let prettified_json = get_pretty_json_from_url(url)
+            .await
+            .map_err(|err| ApiError::Network(err))?;
+
+        deserialize_json(&prettified_json)
     }
 }
 
@@ -218,24 +226,34 @@ pub mod episodes_information {
         series_id: u32,
         season: u32,
         episode: u32,
-    ) -> Result<Episode, reqwest::Error> {
+    ) -> Result<Episode, ApiError> {
         let url = EPISODE_INFORMATION_ADDRESS.replace("SERIES-ID", &series_id.to_string());
         let url = url.replace("SEASON", &season.to_string());
         let url = url.replace("EPISODE", &episode.to_string());
 
-        reqwest::get(url).await?.json().await
+        let prettified_json = get_pretty_json_from_url(url)
+            .await
+            .map_err(|err| ApiError::Network(err))?;
+
+        deserialize_json(&prettified_json)
     }
 }
 
 pub mod tv_schedule {
-    use super::episodes_information::Episode;
+    use super::{
+        deserialize_json, episodes_information::Episode, get_pretty_json_from_url, ApiError,
+    };
 
     // replace "DATE" with an actual date in the format 2020-05-29
     const SCHEDULE_ON_DATE_ADDRESS: &str = "https://api.tvmaze.com/schedule/web?date=DATE";
 
-    pub async fn get_episodes_with_date(date: &str) -> Result<Vec<Episode>, reqwest::Error> {
+    pub async fn get_episodes_with_date(date: &str) -> Result<Vec<Episode>, ApiError> {
         let url = SCHEDULE_ON_DATE_ADDRESS.replace("DATE", date);
 
-        reqwest::get(url).await?.json().await
+        let prettified_json = get_pretty_json_from_url(url)
+            .await
+            .map_err(|err| ApiError::Network(err))?;
+
+        deserialize_json(&prettified_json)
     }
 }
