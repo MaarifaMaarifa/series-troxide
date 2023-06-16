@@ -118,6 +118,24 @@ pub mod series_information {
         pub name: String,
     }
 
+    // TODO: Refactor code repetition in both of these functions
+
+    pub async fn get_series_main_info_with_url(
+        url: String,
+    ) -> Result<SeriesMainInformation, ApiError> {
+        let response = reqwest::get(url)
+            .await
+            .map_err(|err| ApiError::Network(err))?;
+
+        let text = response
+            .text()
+            .await
+            .map_err(|err| ApiError::Network(err))?;
+
+        serde_json::from_str::<SeriesMainInformation>(&text)
+            .map_err(|err| ApiError::Deserialization(err))
+    }
+
     pub async fn get_series_main_info(series_id: u32) -> Result<SeriesMainInformation, ApiError> {
         let url = format!("{}{}", SERIES_INFORMATION_ADDRESS, series_id);
         // reqwest::get(url).await?.json().await
@@ -177,6 +195,18 @@ pub mod episodes_information {
         pub rating: Rating,
         pub image: Option<Image>,
         pub summary: Option<String>,
+        #[serde(rename = "_links")]
+        pub links: Links,
+    }
+
+    #[derive(Debug, Deserialize, Clone)]
+    pub struct Links {
+        pub show: Show,
+    }
+
+    #[derive(Debug, Deserialize, Clone)]
+    pub struct Show {
+        pub href: String,
     }
 
     pub async fn get_episode_information(
@@ -187,6 +217,19 @@ pub mod episodes_information {
         let url = EPISODE_INFORMATION_ADDRESS.replace("SERIES-ID", &series_id.to_string());
         let url = url.replace("SEASON", &season.to_string());
         let url = url.replace("EPISODE", &episode.to_string());
+
+        reqwest::get(url).await?.json().await
+    }
+}
+
+pub mod tv_schedule {
+    use super::episodes_information::Episode;
+
+    // replace "DATE" with an actual date in the format 2020-05-29
+    const SCHEDULE_ON_DATE_ADDRESS: &str = "https://api.tvmaze.com/schedule/web?date=DATE";
+
+    pub async fn get_episodes_with_date(date: &str) -> Result<Vec<Episode>, reqwest::Error> {
+        let url = SCHEDULE_ON_DATE_ADDRESS.replace("DATE", date);
 
         reqwest::get(url).await?.json().await
     }

@@ -55,7 +55,10 @@ impl Application for TroxideGui {
                 self.menu_view.update(message.clone());
                 match message {
                     MenuMessage::SearchPressed => self.view = view::View::Search,
-                    MenuMessage::DiscoverPressed => self.view = view::View::Discover,
+                    MenuMessage::DiscoverPressed => {
+                        self.view = view::View::Discover;
+                        return self.discover_view.update(DiscoverMessage::LoadSchedule);
+                    }
                     MenuMessage::WatchlistPressed => self.view = view::View::Watchlist,
                     MenuMessage::MyShowsPressed => self.view = view::View::MyShows,
                     MenuMessage::StatisticsPressed => self.view = view::View::Statistics,
@@ -72,7 +75,7 @@ impl Application for TroxideGui {
                 return self.search_view.update(message);
             }
             // Message::SeriesResultFailed => todo!(),
-            Message::DiscoverAction(_) => todo!(),
+            Message::DiscoverAction(m) => return self.discover_view.update(m),
             Message::WatchlistAction(_) => todo!(),
             Message::MyShowsAction(_) => todo!(),
             Message::StatisticsAction(_) => todo!(),
