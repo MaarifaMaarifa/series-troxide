@@ -123,13 +123,6 @@ mod episode_poster {
                 image: None,
                 series_belonging: None,
             };
-            let image_command = if let Some(image) = episode_image {
-                Command::perform(load_image(image.medium_image_url.clone()), move |image| {
-                    DiscoverMessage::EpisodePosterAction(index, Message::ImageLoaded(image))
-                })
-            } else {
-                Command::none()
-            };
 
             let series_information_command = Command::perform(
                 async move {
@@ -161,17 +154,28 @@ mod episode_poster {
                 },
             );
 
-            (
-                poster,
-                Command::batch([image_command, series_information_command]),
-            )
+            (poster, series_information_command)
         }
 
         pub fn update(&mut self, message: Message) -> Command<DiscoverMessage> {
             match message {
                 Message::ImageLoaded(image) => self.image = image,
                 Message::SeriesInformationLoaded(series_info) => {
-                    self.series_belonging = Some(series_info)
+                    let series_image_url = series_info.image.clone();
+                    let poster_index = self.index;
+                    self.series_belonging = Some(series_info);
+
+                    if let Some(image) = series_image_url {
+                        return Command::perform(
+                            load_image(image.medium_image_url),
+                            move |image| {
+                                DiscoverMessage::EpisodePosterAction(
+                                    poster_index,
+                                    Message::ImageLoaded(image),
+                                )
+                            },
+                        );
+                    }
                 }
             }
             Command::none()
