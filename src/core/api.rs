@@ -145,20 +145,6 @@ pub mod series_information {
 
         let parsed_json = json::stringify_pretty(json::parse(&text).unwrap(), 1);
 
-        // match serde_json::from_str::<SeriesMainInformation>(&parsed_json) {
-        //     Ok(info) => Ok(info),
-        //     Err(err) => {
-        //         let line_number = err.line() - 1;
-
-        //         parsed_json
-        //             .lines()
-        //             .skip(line_number)
-        //             .take(1)
-        //             .for_each(|line| println!("{}", line));
-        //         return Err(Api);
-        //     }
-        // }
-
         serde_json::from_str::<SeriesMainInformation>(&parsed_json).map_err(|err| {
             let line_number = err.line() - 1;
 
@@ -171,21 +157,10 @@ pub mod series_information {
         })
     }
 
-    pub async fn get_series_main_info(series_id: u32) -> Result<SeriesMainInformation, ApiError> {
-        let url = format!("{}{}", SERIES_INFORMATION_ADDRESS, series_id);
-        // reqwest::get(url).await?.json().await
-
-        let response = reqwest::get(url)
-            .await
-            .map_err(|err| ApiError::Network(err))?;
-
-        let text = response
-            .text()
-            .await
-            .map_err(|err| ApiError::Network(err))?;
-
-        serde_json::from_str::<SeriesMainInformation>(&text)
-            .map_err(|err| ApiError::Deserialization(err))
+    pub async fn get_series_main_info_with_id(
+        series_id: u32,
+    ) -> Result<SeriesMainInformation, ApiError> {
+        get_series_main_info_with_url(format!("{}{}", SERIES_INFORMATION_ADDRESS, series_id)).await
     }
 }
 

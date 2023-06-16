@@ -1,6 +1,6 @@
 use crate::core::api::load_image;
 use crate::core::api::seasons_list::{get_seasons_list, Season as SeasonInfo};
-use crate::core::api::series_information::get_series_main_info;
+use crate::core::api::series_information::get_series_main_info_with_id;
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::gui::troxide_widget::{INFO_BODY, INFO_HEADER};
 use crate::gui::Message as GuiMessage;
@@ -287,7 +287,7 @@ impl Series {
 
         (
             series,
-            Command::perform(get_series_main_info(series_id), |info| {
+            Command::perform(get_series_main_info_with_id(series_id), |info| {
                 GuiMessage::SeriesAction(Message::SeriesInfoObtained(
                     info.expect("Failed to load series information"),
                 ))
