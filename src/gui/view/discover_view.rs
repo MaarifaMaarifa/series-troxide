@@ -4,6 +4,7 @@ use crate::gui::Message as GuiMessage;
 use episode_poster::Message as EpisodePosterMessage;
 
 use iced::{
+    widget::scrollable::Properties,
     widget::{row, scrollable, text, Column, Row},
     Command, Element, Length, Renderer,
 };
@@ -69,7 +70,7 @@ impl Discover {
                 .align_items(iced::Alignment::Center)
                 .width(Length::Fill)
                 .into(),
-            LoadState::Loaded => scrollable(Column::with_children(
+            LoadState::Loaded => scrollable(Row::with_children(
                 self.episodes
                     .iter()
                     .enumerate()
@@ -81,6 +82,7 @@ impl Discover {
                     .collect(),
             ))
             .width(Length::Fill)
+            .horizontal_scroll(Properties::new().width(0).margin(0).scroller_width(0))
             .into(),
         }
     }
