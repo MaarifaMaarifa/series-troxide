@@ -35,6 +35,11 @@ pub async fn load_image(image_url: String) -> Option<Vec<u8>> {
     }
 }
 
+/// Requests text response from the provided url
+async fn get_text_from_url(url: String) -> Result<String, reqwest::Error> {
+    reqwest::get(url).await?.text().await
+}
+
 #[derive(Debug, Deserialize, Clone)]
 pub struct Image {
     #[serde(rename = "original")]
@@ -70,12 +75,7 @@ pub mod series_searching {
         let url = format!("{}{}", SERIES_SEARCH_ADDRESS, series_name);
         // let text = reqwest::get(url).await?.text().await?;
 
-        let response = reqwest::get(url)
-            .await
-            .map_err(|err| ApiError::Network(err))?;
-
-        let text = response
-            .text()
+        let text = get_text_from_url(url)
             .await
             .map_err(|err| ApiError::Network(err))?;
 
@@ -134,12 +134,7 @@ pub mod series_information {
     pub async fn get_series_main_info_with_url(
         url: String,
     ) -> Result<SeriesMainInformation, ApiError> {
-        let response = reqwest::get(url)
-            .await
-            .map_err(|err| ApiError::Network(err))?;
-
-        let text = response
-            .text()
+        let text = get_text_from_url(url)
             .await
             .map_err(|err| ApiError::Network(err))?;
 
