@@ -16,10 +16,17 @@ pub struct Rating {
 
 /// Loads the image from the provided url
 pub async fn load_image(image_url: String) -> Option<Vec<u8>> {
-    if let Ok(response) = reqwest::get(image_url).await {
-        if let Ok(bytes) = response.bytes().await {
-            let bytes: Vec<u8> = bytes.into();
-            return Some(bytes);
+    match reqwest::get(image_url).await {
+        Ok(response) => {
+            if let Ok(bytes) = response.bytes().await {
+                let bytes: Vec<u8> = bytes.into();
+                return Some(bytes);
+            }
+        }
+        Err(ref err) => {
+            if err.is_request() {
+                println!("Api flood when getting image, {:?}", err);
+            }
         }
     }
     None
@@ -94,7 +101,7 @@ pub mod series_information {
         pub network: Option<Network>,
         #[serde(rename = "webChannel")]
         pub web_channel: Option<WebChannel>,
-        pub summary: String,
+        pub summary: Option<String>,
         pub image: Option<Image>,
     }
 
@@ -102,7 +109,7 @@ pub mod series_information {
     pub struct WebChannel {
         pub name: String,
         #[serde(rename = "officialSite")]
-        pub official_site: String,
+        pub official_site: Option<String>,
     }
 
     #[derive(Debug, Deserialize, Clone)]
@@ -119,6 +126,7 @@ pub mod series_information {
     }
 
     // TODO: Refactor code repetition in both of these functions
+    // TODO: Creating a release profile that get's rid of all this boilerplate
 
     pub async fn get_series_main_info_with_url(
         url: String,
@@ -132,8 +140,32 @@ pub mod series_information {
             .await
             .map_err(|err| ApiError::Network(err))?;
 
-        serde_json::from_str::<SeriesMainInformation>(&text)
-            .map_err(|err| ApiError::Deserialization(err))
+        let parsed_json = json::stringify_pretty(json::parse(&text).unwrap(), 1);
+
+        // match serde_json::from_str::<SeriesMainInformation>(&parsed_json) {
+        //     Ok(info) => Ok(info),
+        //     Err(err) => {
+        //         let line_number = err.line() - 1;
+
+        //         parsed_json
+        //             .lines()
+        //             .skip(line_number)
+        //             .take(1)
+        //             .for_each(|line| println!("{}", line));
+        //         return Err(Api);
+        //     }
+        // }
+
+        serde_json::from_str::<SeriesMainInformation>(&parsed_json).map_err(|err| {
+            let line_number = err.line() - 1;
+
+            parsed_json
+                .lines()
+                .skip(line_number)
+                .take(1)
+                .for_each(|line| println!("{}", line));
+            ApiError::Deserialization(err)
+        })
     }
 
     pub async fn get_series_main_info(series_id: u32) -> Result<SeriesMainInformation, ApiError> {

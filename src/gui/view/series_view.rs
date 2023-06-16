@@ -147,7 +147,11 @@ fn ended_widget(series_info: &SeriesMainInformation) -> iced::widget::Row<'_, Me
 }
 
 fn summary_widget(series_info: &SeriesMainInformation) -> iced::widget::Text<'_, Renderer> {
-    text(&series_info.summary).size(15)
+    if let Some(summary) = &series_info.summary {
+        text(summary).size(15)
+    } else {
+        text("")
+    }
 }
 
 fn rating_widget(series_info: &SeriesMainInformation) -> iced::widget::Row<'_, Message, Renderer> {
