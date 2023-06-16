@@ -53,7 +53,21 @@ fn deserialize_json<'a, T: serde::Deserialize<'a>>(
 
 /// Requests text response from the provided url
 async fn get_pretty_json_from_url(url: String) -> Result<String, reqwest::Error> {
-    let text = reqwest::get(url).await?.text().await?;
+    let response = loop {
+        match reqwest::get(&url).await {
+            Ok(response) => break response,
+            Err(err) => {
+                if err.is_request() {
+                    tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+                } else {
+                    return Err(err);
+                }
+            }
+        }
+    };
+
+    let text = response.text().await?;
+
     Ok(json::stringify_pretty(json::parse(&text).unwrap(), 1))
 }
 

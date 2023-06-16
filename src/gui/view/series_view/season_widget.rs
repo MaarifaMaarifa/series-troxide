@@ -7,7 +7,6 @@ use self::episode_widget::Episode;
 use super::Message as SeriesMessage;
 use crate::core::api::episodes_information::{get_episode_information, Episode as EpisodeInfo};
 use crate::core::api::seasons_list::Season as SeasonInfo;
-use crate::core::api::ApiError;
 use episode_widget::Message as EpisodeMessage;
 
 #[derive(Clone, Debug)]
@@ -150,24 +149,9 @@ async fn load_episode_infos(
         .into_iter()
         .map(|episode_number| {
             tokio::task::spawn(async move {
-                loop {
-                    match get_episode_information(series_id, season_number, episode_number).await {
-                        Ok(episode_info) => break episode_info,
-                        Err(err) => {
-                            if let ApiError::Network(err) = err {
-                                if err.is_request() {
-                                    println!("Retrying denied api request");
-                                    // TODO: make sleep time randomly generated
-                                    tokio::time::sleep(std::time::Duration::from_millis(5)).await;
-                                } else {
-                                    panic!("{}", err);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // .expect("Failed to load episode information")
+                get_episode_information(series_id, season_number, episode_number)
+                    .await
+                    .expect("could not get all the episode information")
             })
         })
         .collect();

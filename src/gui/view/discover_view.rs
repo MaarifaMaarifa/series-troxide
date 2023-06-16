@@ -89,12 +89,10 @@ impl Discover {
 }
 
 mod episode_poster {
-    use core::panic;
 
     use crate::core::api::load_image;
     use crate::core::api::series_information::get_series_main_info_with_url;
     use crate::core::api::series_information::SeriesMainInformation;
-    use crate::core::api::ApiError;
     use iced::widget::{column, image, text};
     use iced::{Command, Element, Renderer};
 
@@ -128,25 +126,9 @@ mod episode_poster {
 
             let series_information_command = Command::perform(
                 async move {
-                    loop {
-                        match get_series_main_info_with_url(series_url.clone()).await {
-                            Ok(series_info) => break series_info,
-                            Err(err) => {
-                                if let ApiError::Network(ref err) = err {
-                                    if err.is_request() {
-                                        // TODO: using random sleep time
-                                        tokio::time::sleep(std::time::Duration::from_millis(5))
-                                            .await;
-                                        continue;
-                                    }
-                                }
-                                panic!(
-                                    "Failed to collect series information for discover: {:?}",
-                                    err
-                                )
-                            }
-                        }
-                    }
+                    get_series_main_info_with_url(series_url.clone())
+                        .await
+                        .expect("could not obtain series information")
                 },
                 move |series| {
                     DiscoverMessage::EpisodePosterAction(
