@@ -185,12 +185,12 @@ mod episode_poster {
             let mut content = column!().padding(2).spacing(1);
             if let Some(image_bytes) = self.image.clone() {
                 let image_handle = image::Handle::from_memory(image_bytes);
-                let image = image(image_handle).height(60);
+                let image = image(image_handle).height(120);
                 content = content.push(image);
             };
 
             if let Some(series_info) = &self.series_belonging {
-                content = content.push(text(&series_info.name))
+                content = content.push(text(&series_info.name).size(15))
             }
 
             // content.push(text(&self.episode.name)).into()
