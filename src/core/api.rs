@@ -16,20 +16,23 @@ pub struct Rating {
 
 /// Loads the image from the provided url
 pub async fn load_image(image_url: String) -> Option<Vec<u8>> {
-    match reqwest::get(image_url).await {
-        Ok(response) => {
-            if let Ok(bytes) = response.bytes().await {
-                let bytes: Vec<u8> = bytes.into();
-                return Some(bytes);
+    loop {
+        match reqwest::get(&image_url).await {
+            Ok(response) => {
+                if let Ok(bytes) = response.bytes().await {
+                    let bytes: Vec<u8> = bytes.into();
+                    break Some(bytes);
+                }
             }
-        }
-        Err(ref err) => {
-            if err.is_request() {
-                println!("Api flood when getting image, {:?}", err);
+            Err(ref err) => {
+                if err.is_request() {
+                    tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+                } else {
+                    break None;
+                }
             }
         }
     }
-    None
 }
 
 #[derive(Debug, Deserialize, Clone)]
