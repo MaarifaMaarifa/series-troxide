@@ -9,9 +9,10 @@ use iced::{
     Command, Element, Length, Renderer,
 };
 
-#[derive(Default)]
+#[derive(Default, PartialEq)]
 enum LoadState {
     #[default]
+    Waiting,
     Loading,
     Loaded,
 }
@@ -33,9 +34,11 @@ impl Discover {
     pub fn update(&mut self, message: Message) -> Command<GuiMessage> {
         match message {
             Message::LoadSchedule => {
-                if let LoadState::Loaded = self.load_state {
+                if self.load_state != LoadState::Waiting {
                     return Command::none();
                 }
+                self.load_state = LoadState::Loading;
+
                 return Command::perform(get_episodes_with_date("2023-06-16"), |episodes| {
                     GuiMessage::DiscoverAction(Message::ScheduleLoaded(
                         episodes.expect("Failed to load episodes schedule"),
@@ -84,6 +87,9 @@ impl Discover {
             .width(Length::Fill)
             .horizontal_scroll(Properties::new().width(0).margin(0).scroller_width(0))
             .into(),
+            LoadState::Waiting => unreachable!(
+                "the Waiting state should be changed when discover view is first viewed"
+            ),
         }
     }
 }
