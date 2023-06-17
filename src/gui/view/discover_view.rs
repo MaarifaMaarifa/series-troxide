@@ -27,7 +27,7 @@ pub enum Message {
 #[derive(Default)]
 pub struct Discover {
     load_state: LoadState,
-    episodes: Vec<episode_poster::EpisodePoster>,
+    new_episodes: Vec<episode_poster::EpisodePoster>,
 }
 
 impl Discover {
@@ -56,11 +56,11 @@ impl Discover {
                     commands.push(command);
                 }
 
-                self.episodes = episode_posters;
+                self.new_episodes = episode_posters;
                 return Command::batch(commands).map(|m| GuiMessage::DiscoverAction(m));
             }
             Message::EpisodePosterAction(index, message) => {
-                return self.episodes[index]
+                return self.new_episodes[index]
                     .update(message)
                     .map(GuiMessage::DiscoverAction)
             }
@@ -74,7 +74,7 @@ impl Discover {
                 .width(Length::Fill)
                 .into(),
             LoadState::Loaded => scrollable(Row::with_children(
-                self.episodes
+                self.new_episodes
                     .iter()
                     .enumerate()
                     .map(|(index, poster)| {
