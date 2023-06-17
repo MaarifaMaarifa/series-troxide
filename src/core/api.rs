@@ -40,7 +40,7 @@ pub async fn load_image(image_url: String) -> Option<Vec<u8>> {
             }
             Err(ref err) => {
                 if err.is_request() {
-                    tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+                    random_async_sleep().await;
                 } else {
                     break None;
                 }
@@ -72,7 +72,7 @@ async fn get_pretty_json_from_url(url: String) -> Result<String, reqwest::Error>
             Ok(response) => break response,
             Err(err) => {
                 if err.is_request() {
-                    tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+                    random_async_sleep().await;
                 } else {
                     return Err(err);
                 }
@@ -83,4 +83,11 @@ async fn get_pretty_json_from_url(url: String) -> Result<String, reqwest::Error>
     let text = response.text().await?;
 
     Ok(json::stringify_pretty(json::parse(&text).unwrap(), 1))
+}
+
+/// Sleeps the current thread asynchronously between 0-1 seconds choosing a random
+/// value in between.
+// TODO: make it really choose a random value as it's fixed at 5 miliseconds
+async fn random_async_sleep() {
+    tokio::time::sleep(std::time::Duration::from_millis(5)).await;
 }
