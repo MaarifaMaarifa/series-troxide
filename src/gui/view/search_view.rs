@@ -177,7 +177,6 @@ async fn load_series_result_images(
     let handles: Vec<JoinHandle<Option<Vec<u8>>>> = series_results
         .into_iter()
         .map(|result| {
-            println!("Loading image for {}", result.show.name);
             tokio::task::spawn(async {
                 if let Some(url) = result.show.image {
                     load_image(url.medium_image_url).await
