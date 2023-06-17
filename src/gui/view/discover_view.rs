@@ -27,6 +27,7 @@ pub enum Message {
     SeriesUpdatesLoaded(Vec<SeriesMainInformation>),
     EpisodePosterAction(/*episode poster index*/ usize, EpisodePosterMessage),
     SeriesPosterAction(/*series poster index*/ usize, SeriesPosterMessage),
+    SeriesSelected(/*series_id*/ u32),
 }
 
 #[derive(Default)]
@@ -98,6 +99,9 @@ impl Discover {
                     .update(message)
                     .map(GuiMessage::DiscoverAction)
             }
+            Message::SeriesSelected(_) => {
+                unreachable!("Discover View should not handle Series View")
+            }
         }
     }
 
@@ -156,6 +160,7 @@ mod episode_poster {
     use crate::core::api::load_image;
     use crate::core::api::series_information::get_series_main_info_with_url;
     use crate::core::api::series_information::SeriesMainInformation;
+    use iced::widget::mouse_area;
     use iced::widget::{column, image, text};
     use iced::{Command, Element, Renderer};
 
@@ -166,6 +171,7 @@ mod episode_poster {
     pub enum Message {
         ImageLoaded(Option<Vec<u8>>),
         SeriesInformationLoaded(SeriesMainInformation),
+        EpisodePosterPressed(/*series_id*/ u32),
     }
 
     pub struct EpisodePoster {
@@ -223,6 +229,11 @@ mod episode_poster {
                         );
                     }
                 }
+                Message::EpisodePosterPressed(series_id) => {
+                    return Command::perform(async {}, move |_| {
+                        DiscoverMessage::SeriesSelected(series_id)
+                    })
+                }
             }
             Command::none()
         }
@@ -240,7 +251,13 @@ mod episode_poster {
             }
 
             // content.push(text(&self.episode.name)).into()
-            content.into()
+            if let Some(series_info) = &self.series_belonging {
+                mouse_area(content)
+                    .on_press(Message::EpisodePosterPressed(series_info.id))
+                    .into()
+            } else {
+                content.into()
+            }
         }
     }
 }
@@ -249,7 +266,7 @@ mod series_updates_poster {
 
     use crate::core::api::load_image;
     use crate::core::api::series_information::SeriesMainInformation;
-    use iced::widget::{column, image, text};
+    use iced::widget::{column, image, mouse_area, text};
     use iced::{Command, Element, Renderer};
 
     use super::Message as DiscoverMessage;
@@ -257,6 +274,7 @@ mod series_updates_poster {
     #[derive(Clone, Debug)]
     pub enum Message {
         ImageLoaded(Option<Vec<u8>>),
+        SeriesPosterPressed(/*series_id*/ u32),
     }
 
     pub struct SeriesPoster {
@@ -295,6 +313,11 @@ mod series_updates_poster {
         pub fn update(&mut self, message: Message) -> Command<DiscoverMessage> {
             match message {
                 Message::ImageLoaded(image) => self.image = image,
+                Message::SeriesPosterPressed(series_id) => {
+                    return Command::perform(async {}, move |_| {
+                        DiscoverMessage::SeriesSelected(series_id)
+                    })
+                }
             }
             Command::none()
         }
@@ -310,7 +333,9 @@ mod series_updates_poster {
             content = content.push(text(&self.series_information.name).size(15));
 
             // content.push(text(&self.episode.name)).into()
-            content.into()
+            mouse_area(content)
+                .on_press(Message::SeriesPosterPressed(self.series_information.id))
+                .into()
         }
     }
 }
