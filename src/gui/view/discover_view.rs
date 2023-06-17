@@ -5,7 +5,7 @@ use episode_poster::Message as EpisodePosterMessage;
 
 use iced::{
     widget::scrollable::Properties,
-    widget::{row, scrollable, text, Column, Row},
+    widget::{row, scrollable, text, Row},
     Command, Element, Length, Renderer,
 };
 
@@ -114,7 +114,6 @@ mod episode_poster {
 
     impl EpisodePoster {
         pub fn new(index: usize, episode: Episode) -> (Self, Command<DiscoverMessage>) {
-            let episode_image = episode.image.clone();
             let series_url = episode.links.show.href.clone();
 
             let poster = Self {
