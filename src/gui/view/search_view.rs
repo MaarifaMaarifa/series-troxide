@@ -76,7 +76,7 @@ impl Search {
             vertical_space(10),
             text_input("Search Series", &self.search_term)
                 .width(300)
-                .on_input(|term| Message::SearchTermChanged(term))
+                .on_input(Message::SearchTermChanged)
                 .on_submit(Message::SearchTermSearched)
         )
         .width(Length::Fill)
@@ -106,7 +106,7 @@ impl Search {
 }
 
 fn load<'a>(
-    series_result: &'a Vec<series_searching::SeriesSearchResult>,
+    series_result: &'a [series_searching::SeriesSearchResult],
     series_images: &Vec<Option<Vec<u8>>>,
 ) -> Element<'a, Message, Renderer> {
     let mut results = column!();
@@ -147,7 +147,7 @@ pub fn series_result_widget(
         let mut series_result_iter = series_result.show.genres.iter().peekable();
         while let Some(genre) = series_result_iter.next() {
             genres.push_str(genre);
-            if let Some(_) = series_result_iter.peek() {
+            if series_result_iter.peek().is_some() {
                 genres.push_str(", ");
             }
         }

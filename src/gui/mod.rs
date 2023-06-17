@@ -63,7 +63,7 @@ impl Application for TroxideGui {
                     MenuMessage::MyShowsPressed => self.view = view::View::MyShows,
                     MenuMessage::StatisticsPressed => self.view = view::View::Statistics,
                 };
-                return Command::none();
+                Command::none()
             }
             Message::SearchAction(message) => {
                 if let SearchMessage::SeriesResultPressed(series_id) = message {
@@ -72,7 +72,7 @@ impl Application for TroxideGui {
                     self.view = view::View::Series;
                     return command;
                 }
-                return self.search_view.update(message);
+                self.search_view.update(message)
             }
             Message::DiscoverAction(message) => {
                 if let DiscoverMessage::SeriesSelected(series_id) = message {
@@ -81,7 +81,7 @@ impl Application for TroxideGui {
                     self.view = view::View::Series;
                     return command;
                 }
-                return self.discover_view.update(message);
+                self.discover_view.update(message)
             }
             Message::WatchlistAction(_) => todo!(),
             Message::MyShowsAction(_) => todo!(),

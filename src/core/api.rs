@@ -53,7 +53,7 @@ pub async fn load_image(image_url: String) -> Option<Vec<u8>> {
 fn deserialize_json<'a, T: serde::Deserialize<'a>>(
     prettified_json: &'a str,
 ) -> Result<T, ApiError> {
-    serde_json::from_str::<T>(&prettified_json).map_err(|err| {
+    serde_json::from_str::<T>(prettified_json).map_err(|err| {
         let line_number = err.line() - 1;
 
         let mut errored_line = String::new();

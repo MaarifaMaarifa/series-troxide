@@ -74,13 +74,11 @@ impl Discover {
                 }
 
                 self.new_episodes = episode_posters;
-                return Command::batch(commands).map(|m| GuiMessage::DiscoverAction(m));
+                Command::batch(commands).map(GuiMessage::DiscoverAction)
             }
-            Message::EpisodePosterAction(index, message) => {
-                return self.new_episodes[index]
-                    .update(message)
-                    .map(GuiMessage::DiscoverAction)
-            }
+            Message::EpisodePosterAction(index, message) => self.new_episodes[index]
+                .update(message)
+                .map(GuiMessage::DiscoverAction),
             Message::SeriesUpdatesLoaded(series) => {
                 let mut series_infos = Vec::with_capacity(series.len());
                 let mut series_poster_commands = Vec::with_capacity(series.len());
@@ -94,11 +92,9 @@ impl Discover {
 
                 Command::batch(series_poster_commands).map(GuiMessage::DiscoverAction)
             }
-            Message::SeriesPosterAction(index, message) => {
-                return self.series_updates[index]
-                    .update(message)
-                    .map(GuiMessage::DiscoverAction)
-            }
+            Message::SeriesPosterAction(index, message) => self.series_updates[index]
+                .update(message)
+                .map(GuiMessage::DiscoverAction),
             Message::SeriesSelected(_) => {
                 unreachable!("Discover View should not handle Series View")
             }

@@ -83,7 +83,7 @@ fn genres_widget(series_info: &SeriesMainInformation) -> iced::widget::Row<'_, M
         let mut series_result_iter = series_info.genres.iter().peekable();
         while let Some(genre) = series_result_iter.next() {
             genres.push_str(genre);
-            if let Some(_) = series_result_iter.peek() {
+            if series_result_iter.peek().is_some() {
                 genres.push_str(", ");
             }
         }
@@ -237,7 +237,7 @@ pub fn series_page(
     let series_data = column!(
         // text(format!("Status: {}", series_information.status)),
         status_widget(series_information),
-        genres_widget(&series_information),
+        genres_widget(series_information),
         language_widget(series_information),
         average_runtime_widget(series_information),
         rating_widget(series_information),
@@ -308,10 +308,9 @@ impl Series {
                 // Requesting series image and seasons list right after getting series information
                 let commands = [
                     if let Some(image_url) = info_image {
-                        Command::perform(
-                            load_image(image_url.original_image_url.clone()),
-                            |image| GuiMessage::SeriesAction(Message::SeriesImageLoaded(image)),
-                        )
+                        Command::perform(load_image(image_url.original_image_url), |image| {
+                            GuiMessage::SeriesAction(Message::SeriesImageLoaded(image))
+                        })
                     } else {
                         Command::none()
                     },
@@ -349,7 +348,7 @@ impl Series {
                 // })
                 return self.season_widgets[index]
                     .update(message)
-                    .map(|m| GuiMessage::SeriesAction(m));
+                    .map(GuiMessage::SeriesAction);
             }
         }
         Command::none()

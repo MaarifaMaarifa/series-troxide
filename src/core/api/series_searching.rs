@@ -25,7 +25,7 @@ pub async fn search_series(series_name: String) -> Result<Vec<SeriesSearchResult
 
     let prettified_json = get_pretty_json_from_url(url)
         .await
-        .map_err(|err| ApiError::Network(err))?;
+        .map_err(ApiError::Network)?;
 
     deserialize_json(&prettified_json)
 }

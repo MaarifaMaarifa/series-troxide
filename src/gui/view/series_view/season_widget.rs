@@ -41,7 +41,7 @@ impl Season {
     pub fn update(&mut self, message: Message) -> Command<SeriesMessage> {
         match message {
             Message::CheckboxPressed(tracking_status) => {
-                if let Some(_) = self.season.episode_order {
+                if self.season.episode_order.is_some() {
                     self.is_tracked = tracking_status;
                 }
             }
@@ -146,7 +146,6 @@ async fn load_episode_infos(
 ) -> Vec<EpisodeInfo> {
     let mut loaded_results = Vec::with_capacity(total_episode as usize);
     let handles: Vec<JoinHandle<EpisodeInfo>> = (1..=total_episode)
-        .into_iter()
         .map(|episode_number| {
             tokio::task::spawn(async move {
                 get_episode_information(series_id, season_number, episode_number)
@@ -260,8 +259,7 @@ mod episode_widget {
         episode_information: &EpisodeInfo,
         track_status: bool,
     ) -> Row<'static, Message, Renderer> {
-        let tracking_checkbox =
-            checkbox("", track_status, |val| Message::TrackCheckboxPressed(val));
+        let tracking_checkbox = checkbox("", track_status, Message::TrackCheckboxPressed);
         row!(
             text(format!(
                 "S{}E{}",

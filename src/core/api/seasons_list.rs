@@ -18,7 +18,7 @@ pub async fn get_seasons_list(series_id: u32) -> Result<Vec<Season>, ApiError> {
     let url = SEASONS_LIST_ADDRESS.replace("SERIES-ID", &series_id.to_string());
     let prettified_json = get_pretty_json_from_url(url)
         .await
-        .map_err(|err| ApiError::Network(err))?;
+        .map_err(ApiError::Network)?;
 
     deserialize_json(&prettified_json)
 }
