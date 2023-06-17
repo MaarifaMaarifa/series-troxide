@@ -6,7 +6,11 @@ use super::ApiError;
 // replace "DATE" with an actual date in the format 2020-05-29
 const SCHEDULE_ON_DATE_ADDRESS: &str = "https://api.tvmaze.com/schedule/web?date=DATE";
 
-pub async fn get_episodes_with_date(date: &str) -> Result<Vec<Episode>, ApiError> {
+/// Retrieves episodes aired on a specific date through the provided optional &str
+/// If None is supplied, it will default the the current day
+pub async fn get_episodes_with_date(date: Option<&str>) -> Result<Vec<Episode>, ApiError> {
+    let date = if let Some(date) = date { date } else { "" };
+
     let url = SCHEDULE_ON_DATE_ADDRESS.replace("DATE", date);
 
     let prettified_json = get_pretty_json_from_url(url)

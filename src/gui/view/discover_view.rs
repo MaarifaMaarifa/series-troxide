@@ -53,7 +53,7 @@ impl Discover {
                     });
 
                 let new_episodes_command =
-                    Command::perform(get_episodes_with_date("2023-06-16"), |episodes| {
+                    Command::perform(get_episodes_with_date(None), |episodes| {
                         GuiMessage::DiscoverAction(Message::ScheduleLoaded(
                             episodes.expect("Failed to load episodes schedule"),
                         ))
