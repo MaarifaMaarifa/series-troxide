@@ -13,11 +13,11 @@ enum MenuItem {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    SearchPressed,
-    DiscoverPressed,
-    WatchlistPressed,
-    MyShowsPressed,
-    StatisticsPressed,
+    Search,
+    Discover,
+    Watchlist,
+    MyShows,
+    Statistics,
 }
 
 #[derive(Default)]
@@ -28,11 +28,11 @@ pub struct Menu {
 impl Menu {
     pub fn update(&mut self, message: Message) {
         match message {
-            Message::DiscoverPressed => self.menu_item_selected = MenuItem::Discover,
-            Message::WatchlistPressed => self.menu_item_selected = MenuItem::Watchlist,
-            Message::MyShowsPressed => self.menu_item_selected = MenuItem::MyShows,
-            Message::StatisticsPressed => self.menu_item_selected = MenuItem::Statistics,
-            Message::SearchPressed => self.menu_item_selected = MenuItem::Search,
+            Message::Discover => self.menu_item_selected = MenuItem::Discover,
+            Message::Watchlist => self.menu_item_selected = MenuItem::Watchlist,
+            Message::MyShows => self.menu_item_selected = MenuItem::MyShows,
+            Message::Statistics => self.menu_item_selected = MenuItem::Statistics,
+            Message::Search => self.menu_item_selected = MenuItem::Search,
         }
     }
 
@@ -40,11 +40,11 @@ impl Menu {
         column!(
             text("Series Troxide").size(25),
             vertical_space(10),
-            mouse_area("Search").on_press(Message::SearchPressed),
-            mouse_area("Discover").on_press(Message::DiscoverPressed),
-            mouse_area("Watchlist").on_press(Message::WatchlistPressed),
-            mouse_area("MyShows").on_press(Message::MyShowsPressed),
-            mouse_area("Statistics").on_press(Message::StatisticsPressed),
+            mouse_area("Search").on_press(Message::Search),
+            mouse_area("Discover").on_press(Message::Discover),
+            mouse_area("Watchlist").on_press(Message::Watchlist),
+            mouse_area("MyShows").on_press(Message::MyShows),
+            mouse_area("Statistics").on_press(Message::Statistics),
         )
         .spacing(5)
         .padding(5)

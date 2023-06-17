@@ -12,6 +12,7 @@ use view::watchlist_view::Message as WatchlistMessage;
 use iced::widget::row;
 use iced::{Application, Command};
 
+#[allow(clippy::enum_variant_names)]
 #[derive(Debug, Clone)]
 pub enum Message {
     MenuAction(MenuMessage),
@@ -54,14 +55,14 @@ impl Application for TroxideGui {
             Message::MenuAction(message) => {
                 self.menu_view.update(message.clone());
                 match message {
-                    MenuMessage::SearchPressed => self.view = view::View::Search,
-                    MenuMessage::DiscoverPressed => {
+                    MenuMessage::Search => self.view = view::View::Search,
+                    MenuMessage::Discover => {
                         self.view = view::View::Discover;
                         return self.discover_view.update(DiscoverMessage::LoadSchedule);
                     }
-                    MenuMessage::WatchlistPressed => self.view = view::View::Watchlist,
-                    MenuMessage::MyShowsPressed => self.view = view::View::MyShows,
-                    MenuMessage::StatisticsPressed => self.view = view::View::Statistics,
+                    MenuMessage::Watchlist => self.view = view::View::Watchlist,
+                    MenuMessage::MyShows => self.view = view::View::MyShows,
+                    MenuMessage::Statistics => self.view = view::View::Statistics,
                 };
                 Command::none()
             }

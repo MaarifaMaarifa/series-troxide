@@ -259,11 +259,11 @@ pub fn series_page(
 
 #[derive(Clone, Debug)]
 pub enum Message {
-    SeriesInfoObtained(SeriesMainInformation),
+    SeriesInfoObtained(Box<SeriesMainInformation>),
     SeriesImageLoaded(Option<Vec<u8>>),
     GoToSearchPage,
     SeasonsLoaded(Vec<SeasonInfo>),
-    SeasonAction(usize, SeasonMessage),
+    SeasonAction(usize, Box<SeasonMessage>),
 }
 
 enum LoadState {
@@ -292,9 +292,9 @@ impl Series {
         (
             series,
             Command::perform(get_series_main_info_with_id(series_id), |info| {
-                GuiMessage::SeriesAction(Message::SeriesInfoObtained(
+                GuiMessage::SeriesAction(Message::SeriesInfoObtained(Box::new(
                     info.expect("Failed to load series information"),
-                ))
+                )))
             }),
         )
     }
@@ -303,7 +303,7 @@ impl Series {
             Message::SeriesInfoObtained(info) => {
                 self.load_state = LoadState::Loaded;
                 let info_image = info.image.clone();
-                self.series_information = Some(info);
+                self.series_information = Some(*info);
 
                 // Requesting series image and seasons list right after getting series information
                 let commands = [
@@ -341,13 +341,8 @@ impl Series {
                     .collect()
             }
             Message::SeasonAction(index, message) => {
-                // return Command::perform(async {}, |_| {
-                //     GuiMessage::SeriesAction(Message::GoToSearchPage)
-                // return self.season_widgets[index].update(message).
-
-                // })
                 return self.season_widgets[index]
-                    .update(message)
+                    .update(*message)
                     .map(GuiMessage::SeriesAction);
             }
         }
@@ -369,7 +364,9 @@ impl Series {
                             .iter()
                             .enumerate()
                             .map(|(index, widget)| {
-                                widget.view().map(move |m| Message::SeasonAction(index, m))
+                                widget
+                                    .view()
+                                    .map(move |m| Message::SeasonAction(index, Box::new(m)))
                             })
                             .collect(),
                     )

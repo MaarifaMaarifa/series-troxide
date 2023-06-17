@@ -64,7 +64,7 @@ impl Season {
                         move |episode_infos| {
                             SeriesMessage::SeasonAction(
                                 series_index,
-                                Message::EpisodesLoaded(episode_infos),
+                                Box::new(Message::EpisodesLoaded(episode_infos)),
                             )
                         },
                     );
@@ -82,7 +82,9 @@ impl Season {
                 for (episode, command) in epis {
                     episodes.push(episode);
                     let index = self.index;
-                    commands.push(command.map(move |m| SeriesMessage::SeasonAction(index, m)));
+                    commands.push(
+                        command.map(move |m| SeriesMessage::SeasonAction(index, Box::new(m))),
+                    );
                 }
 
                 self.episodes = episodes;
@@ -92,7 +94,7 @@ impl Season {
                 let season_index = self.index;
                 return self.episodes[index]
                     .update(message)
-                    .map(move |m| SeriesMessage::SeasonAction(season_index, m));
+                    .map(move |m| SeriesMessage::SeasonAction(season_index, Box::new(m)));
             }
         }
         Command::none()

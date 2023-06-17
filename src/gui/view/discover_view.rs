@@ -25,8 +25,11 @@ pub enum Message {
     LoadSchedule,
     ScheduleLoaded(Vec<Episode>),
     SeriesUpdatesLoaded(Vec<SeriesMainInformation>),
-    EpisodePosterAction(/*episode poster index*/ usize, EpisodePosterMessage),
-    SeriesPosterAction(/*series poster index*/ usize, SeriesPosterMessage),
+    EpisodePosterAction(
+        /*episode poster index*/ usize,
+        Box<EpisodePosterMessage>,
+    ),
+    SeriesPosterAction(/*series poster index*/ usize, Box<SeriesPosterMessage>),
     SeriesSelected(/*series_id*/ u32),
 }
 
@@ -77,7 +80,7 @@ impl Discover {
                 Command::batch(commands).map(GuiMessage::DiscoverAction)
             }
             Message::EpisodePosterAction(index, message) => self.new_episodes[index]
-                .update(message)
+                .update(*message)
                 .map(GuiMessage::DiscoverAction),
             Message::SeriesUpdatesLoaded(series) => {
                 let mut series_infos = Vec::with_capacity(series.len());
@@ -93,7 +96,7 @@ impl Discover {
                 Command::batch(series_poster_commands).map(GuiMessage::DiscoverAction)
             }
             Message::SeriesPosterAction(index, message) => self.series_updates[index]
-                .update(message)
+                .update(*message)
                 .map(GuiMessage::DiscoverAction),
             Message::SeriesSelected(_) => {
                 unreachable!("Discover View should not handle Series View")
@@ -124,7 +127,7 @@ fn load_new_episodes(discover_view: &Discover) -> Element<'_, Message, Renderer>
             .map(|(index, poster)| {
                 poster
                     .view()
-                    .map(move |m| Message::EpisodePosterAction(index, m))
+                    .map(move |m| Message::EpisodePosterAction(index, Box::new(m)))
             })
             .collect(),
     ))
@@ -142,7 +145,7 @@ fn load_series_updates(discover_view: &Discover) -> Element<'_, Message, Rendere
             .map(|(index, poster)| {
                 poster
                     .view()
-                    .map(move |m| Message::SeriesPosterAction(index, m))
+                    .map(move |m| Message::SeriesPosterAction(index, Box::new(m)))
             })
             .collect(),
     ))
@@ -165,8 +168,8 @@ mod episode_poster {
 
     #[derive(Clone, Debug)]
     pub enum Message {
-        ImageLoaded(Option<Vec<u8>>),
-        SeriesInformationLoaded(SeriesMainInformation),
+        ImageLoaded(Box<Option<Vec<u8>>>),
+        SeriesInformationLoaded(Box<SeriesMainInformation>),
         EpisodePosterPressed(/*series_id*/ u32),
     }
 
@@ -194,7 +197,7 @@ mod episode_poster {
                 move |series| {
                     DiscoverMessage::EpisodePosterAction(
                         index,
-                        Message::SeriesInformationLoaded(series),
+                        Box::new(Message::SeriesInformationLoaded(Box::new(series))),
                     )
                 },
             );
@@ -204,11 +207,11 @@ mod episode_poster {
 
         pub fn update(&mut self, message: Message) -> Command<DiscoverMessage> {
             match message {
-                Message::ImageLoaded(image) => self.image = image,
+                Message::ImageLoaded(image) => self.image = *image,
                 Message::SeriesInformationLoaded(series_info) => {
                     let series_image_url = series_info.image.clone();
                     let poster_index = self.index;
-                    self.series_belonging = Some(series_info);
+                    self.series_belonging = Some(*series_info);
 
                     if let Some(image) = series_image_url {
                         return Command::perform(
@@ -216,7 +219,7 @@ mod episode_poster {
                             move |image| {
                                 DiscoverMessage::EpisodePosterAction(
                                     poster_index,
-                                    Message::ImageLoaded(image),
+                                    Box::new(Message::ImageLoaded(Box::new(image))),
                                 )
                             },
                         );
@@ -292,7 +295,10 @@ mod series_updates_poster {
                 Command::perform(
                     async move { load_image(image.medium_image_url).await },
                     move |image| {
-                        DiscoverMessage::SeriesPosterAction(index, Message::ImageLoaded(image))
+                        DiscoverMessage::SeriesPosterAction(
+                            index,
+                            Box::new(Message::ImageLoaded(image)),
+                        )
                     },
                 )
             } else {
