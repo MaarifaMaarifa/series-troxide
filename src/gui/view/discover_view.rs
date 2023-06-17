@@ -1,11 +1,14 @@
 use crate::core::api::episodes_information::Episode;
+use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::api::tv_schedule::get_episodes_with_date;
+use crate::core::api::updates::show_updates::*;
 use crate::gui::Message as GuiMessage;
 use episode_poster::Message as EpisodePosterMessage;
+use series_updates_poster::Message as SeriesPosterMessage;
 
 use iced::{
     widget::scrollable::Properties,
-    widget::{row, scrollable, text, Row},
+    widget::{column, row, scrollable, text, Row},
     Command, Element, Length, Renderer,
 };
 
@@ -21,13 +24,16 @@ enum LoadState {
 pub enum Message {
     LoadSchedule,
     ScheduleLoaded(Vec<Episode>),
-    EpisodePosterAction(/*poster index*/ usize, EpisodePosterMessage),
+    SeriesUpdatesLoaded(Vec<SeriesMainInformation>),
+    EpisodePosterAction(/*episode poster index*/ usize, EpisodePosterMessage),
+    SeriesPosterAction(/*series poster index*/ usize, SeriesPosterMessage),
 }
 
 #[derive(Default)]
 pub struct Discover {
     load_state: LoadState,
     new_episodes: Vec<episode_poster::EpisodePoster>,
+    series_updates: Vec<series_updates_poster::SeriesPoster>,
 }
 
 impl Discover {
@@ -39,11 +45,21 @@ impl Discover {
                 }
                 self.load_state = LoadState::Loading;
 
-                return Command::perform(get_episodes_with_date("2023-06-16"), |episodes| {
-                    GuiMessage::DiscoverAction(Message::ScheduleLoaded(
-                        episodes.expect("Failed to load episodes schedule"),
-                    ))
-                });
+                let series_updates_command =
+                    Command::perform(get_show_updates(UpdateTimestamp::Day, Some(10)), |series| {
+                        GuiMessage::DiscoverAction(Message::SeriesUpdatesLoaded(
+                            series.expect("Failed to load series updates"),
+                        ))
+                    });
+
+                let new_episodes_command =
+                    Command::perform(get_episodes_with_date("2023-06-16"), |episodes| {
+                        GuiMessage::DiscoverAction(Message::ScheduleLoaded(
+                            episodes.expect("Failed to load episodes schedule"),
+                        ))
+                    });
+
+                Command::batch([series_updates_command, new_episodes_command])
             }
             Message::ScheduleLoaded(episodes) => {
                 self.load_state = LoadState::Loaded;
@@ -64,6 +80,24 @@ impl Discover {
                     .update(message)
                     .map(GuiMessage::DiscoverAction)
             }
+            Message::SeriesUpdatesLoaded(series) => {
+                let mut series_infos = Vec::with_capacity(series.len());
+                let mut series_poster_commands = Vec::with_capacity(series.len());
+                for (index, series_info) in series.into_iter().enumerate() {
+                    let (series_poster, series_poster_command) =
+                        series_updates_poster::SeriesPoster::new(index, series_info);
+                    series_infos.push(series_poster);
+                    series_poster_commands.push(series_poster_command);
+                }
+                self.series_updates = series_infos;
+
+                Command::batch(series_poster_commands).map(GuiMessage::DiscoverAction)
+            }
+            Message::SeriesPosterAction(index, message) => {
+                return self.series_updates[index]
+                    .update(message)
+                    .map(GuiMessage::DiscoverAction)
+            }
         }
     }
 
@@ -73,25 +107,48 @@ impl Discover {
                 .align_items(iced::Alignment::Center)
                 .width(Length::Fill)
                 .into(),
-            LoadState::Loaded => scrollable(Row::with_children(
-                self.new_episodes
-                    .iter()
-                    .enumerate()
-                    .map(|(index, poster)| {
-                        poster
-                            .view()
-                            .map(move |m| Message::EpisodePosterAction(index, m))
-                    })
-                    .collect(),
-            ))
-            .width(Length::Fill)
-            .horizontal_scroll(Properties::new().width(0).margin(0).scroller_width(0))
-            .into(),
+            LoadState::Loaded => column!(load_new_episodes(self), load_series_updates(self)).into(),
             LoadState::Waiting => unreachable!(
                 "the Waiting state should be changed when discover view is first viewed"
             ),
         }
     }
+}
+
+fn load_new_episodes(discover_view: &Discover) -> Element<'_, Message, Renderer> {
+    scrollable(Row::with_children(
+        discover_view
+            .new_episodes
+            .iter()
+            .enumerate()
+            .map(|(index, poster)| {
+                poster
+                    .view()
+                    .map(move |m| Message::EpisodePosterAction(index, m))
+            })
+            .collect(),
+    ))
+    .width(Length::Fill)
+    .horizontal_scroll(Properties::new().width(0).margin(0).scroller_width(0))
+    .into()
+}
+
+fn load_series_updates(discover_view: &Discover) -> Element<'_, Message, Renderer> {
+    scrollable(Row::with_children(
+        discover_view
+            .series_updates
+            .iter()
+            .enumerate()
+            .map(|(index, poster)| {
+                poster
+                    .view()
+                    .map(move |m| Message::SeriesPosterAction(index, m))
+            })
+            .collect(),
+    ))
+    .width(Length::Fill)
+    .horizontal_scroll(Properties::new().width(0).margin(0).scroller_width(0))
+    .into()
 }
 
 mod episode_poster {
@@ -181,6 +238,76 @@ mod episode_poster {
             if let Some(series_info) = &self.series_belonging {
                 content = content.push(text(&series_info.name).size(15))
             }
+
+            // content.push(text(&self.episode.name)).into()
+            content.into()
+        }
+    }
+}
+
+mod series_updates_poster {
+
+    use crate::core::api::load_image;
+    use crate::core::api::series_information::SeriesMainInformation;
+    use iced::widget::{column, image, text};
+    use iced::{Command, Element, Renderer};
+
+    use super::Message as DiscoverMessage;
+
+    #[derive(Clone, Debug)]
+    pub enum Message {
+        ImageLoaded(Option<Vec<u8>>),
+    }
+
+    pub struct SeriesPoster {
+        index: usize,
+        series_information: SeriesMainInformation,
+        image: Option<Vec<u8>>,
+    }
+
+    impl SeriesPoster {
+        pub fn new(
+            index: usize,
+            series_information: SeriesMainInformation,
+        ) -> (Self, Command<DiscoverMessage>) {
+            let image_url = series_information.image.clone();
+
+            let poster = Self {
+                index,
+                series_information,
+                image: None,
+            };
+
+            let series_image_command = if let Some(image) = image_url {
+                Command::perform(
+                    async move { load_image(image.medium_image_url).await },
+                    move |image| {
+                        DiscoverMessage::SeriesPosterAction(index, Message::ImageLoaded(image))
+                    },
+                )
+            } else {
+                Command::none()
+            };
+
+            (poster, series_image_command)
+        }
+
+        pub fn update(&mut self, message: Message) -> Command<DiscoverMessage> {
+            match message {
+                Message::ImageLoaded(image) => self.image = image,
+            }
+            Command::none()
+        }
+
+        pub fn view(&self) -> Element<'_, Message, Renderer> {
+            let mut content = column!().padding(2).spacing(1);
+            if let Some(image_bytes) = self.image.clone() {
+                let image_handle = image::Handle::from_memory(image_bytes);
+                let image = image(image_handle).height(120);
+                content = content.push(image);
+            };
+
+            content = content.push(text(&self.series_information.name).size(15));
 
             // content.push(text(&self.episode.name)).into()
             content.into()

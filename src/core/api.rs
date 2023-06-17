@@ -6,6 +6,7 @@ pub mod seasons_list;
 pub mod series_information;
 pub mod series_searching;
 pub mod tv_schedule;
+pub mod updates;
 
 #[derive(Debug, Error)]
 pub enum ApiError {
