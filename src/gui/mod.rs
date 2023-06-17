@@ -115,7 +115,6 @@ impl Application for TroxideGui {
                 .unwrap()
                 .view()
                 .map(Message::SeriesAction),
-            view::View::Menu => unreachable!("menu view should have been handled separately"),
         };
 
         row!(menu_view, main_view).into()

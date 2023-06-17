@@ -176,25 +176,22 @@ mod episode_poster {
 
     pub struct EpisodePoster {
         index: usize,
-        episode: Episode,
+        //episode: Episode,
         image: Option<Vec<u8>>,
         series_belonging: Option<SeriesMainInformation>,
     }
 
     impl EpisodePoster {
         pub fn new(index: usize, episode: Episode) -> (Self, Command<DiscoverMessage>) {
-            let series_url = episode.links.show.href.clone();
-
             let poster = Self {
                 index,
-                episode,
                 image: None,
                 series_belonging: None,
             };
 
             let series_information_command = Command::perform(
                 async move {
-                    get_series_main_info_with_url(series_url.clone())
+                    get_series_main_info_with_url(episode.links.show.href)
                         .await
                         .expect("could not obtain series information")
                 },
@@ -278,7 +275,7 @@ mod series_updates_poster {
     }
 
     pub struct SeriesPoster {
-        index: usize,
+        //index: usize,
         series_information: SeriesMainInformation,
         image: Option<Vec<u8>>,
     }
@@ -291,7 +288,6 @@ mod series_updates_poster {
             let image_url = series_information.image.clone();
 
             let poster = Self {
-                index,
                 series_information,
                 image: None,
             };

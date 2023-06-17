@@ -181,7 +181,7 @@ mod episode_widget {
 
     #[derive(Clone)]
     pub struct Episode {
-        index: usize,
+        // index: usize,
         episode_information: EpisodeInfo,
         episode_image: Option<Vec<u8>>,
         is_tracked: bool,
@@ -194,7 +194,6 @@ mod episode_widget {
         ) -> (Self, Command<SeasonMessage>) {
             let episode_image = episode_information.image.clone();
             let episode = Self {
-                index,
                 episode_information,
                 episode_image: None,
                 is_tracked: false,

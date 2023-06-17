@@ -15,5 +15,4 @@ pub enum View {
     Statistics,
     Watchlist,
     Series,
-    Menu,
 }
