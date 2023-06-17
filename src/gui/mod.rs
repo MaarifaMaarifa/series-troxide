@@ -74,7 +74,6 @@ impl Application for TroxideGui {
                 }
                 return self.search_view.update(message);
             }
-            // Message::SeriesResultFailed => todo!(),
             Message::DiscoverAction(m) => return self.discover_view.update(m),
             Message::WatchlistAction(_) => todo!(),
             Message::MyShowsAction(_) => todo!(),
