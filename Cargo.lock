@@ -2645,6 +2645,7 @@ dependencies = [
  "iced",
  "json",
  "log",
+ "rand",
  "reqwest",
  "serde",
  "serde_json",

@@ -85,9 +85,9 @@ async fn get_pretty_json_from_url(url: String) -> Result<String, reqwest::Error>
     Ok(json::stringify_pretty(json::parse(&text).unwrap(), 1))
 }
 
-/// Sleeps the current thread asynchronously between 0-1 seconds choosing a random
+/// Sleeps the current thread asynchronously between 0-0.2 seconds choosing a random
 /// value in between.
-// TODO: make it really choose a random value as it's fixed at 5 miliseconds
 async fn random_async_sleep() {
-    tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+    let random_val = rand::random::<u64>() / 100_000_000_000_000_000;
+    tokio::time::sleep(std::time::Duration::from_millis(random_val)).await;
 }
