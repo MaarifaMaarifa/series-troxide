@@ -6,7 +6,7 @@ const SERIES_INFORMATION_ADDRESS: &str = "https://api.tvmaze.com/shows/";
 #[derive(Debug, Deserialize, Clone)]
 pub struct SeriesMainInformation {
     pub name: String,
-    pub language: String,
+    pub language: Option<String>,
     pub genres: Vec<String>,
     pub status: String,
     #[serde(rename = "averageRuntime")]

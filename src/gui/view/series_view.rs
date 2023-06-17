@@ -98,10 +98,14 @@ fn language_widget(
 ) -> iced::widget::Row<'_, Message, Renderer> {
     let row = row!(
         text("Language: ").size(INFO_HEADER),
-        text(&series_info.language)
-            .size(INFO_BODY)
-            .height(INFO_HEADER)
-            .vertical_alignment(alignment::Vertical::Bottom)
+        if let Some(language) = &series_info.language {
+            text(language)
+        } else {
+            text("unavailable")
+        }
+        .size(INFO_BODY)
+        .height(INFO_HEADER)
+        .vertical_alignment(alignment::Vertical::Bottom)
     );
     row
 }
