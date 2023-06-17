@@ -4,6 +4,8 @@ use super::series_information::{get_series_main_info_with_id, SeriesMainInformat
 use super::ApiError;
 
 pub mod show_updates {
+    use tokio::task::JoinHandle;
+
     use super::*;
 
     pub enum UpdateTimestamp {
@@ -57,13 +59,15 @@ pub mod show_updates {
             series_ids.truncate(len);
         };
 
-        let mut series_infos = Vec::with_capacity(series_ids.len());
-        for series_id in series_ids {
-            let series_id: u32 = series_id
-                .parse()
-                .expect("Unable to convert series id to a u32");
+        let handles: Vec<JoinHandle<Result<SeriesMainInformation, ApiError>>> = series_ids
+            .into_iter()
+            .map(|series_id| series_id.parse::<u32>().expect("Can't parse series id"))
+            .map(|series_id| tokio::task::spawn(get_series_main_info_with_id(series_id)))
+            .collect();
 
-            let series_info = get_series_main_info_with_id(series_id).await?;
+        let mut series_infos = Vec::with_capacity(handles.len());
+        for handle in handles {
+            let series_info = handle.await.expect("failed to await all series updates")?;
             series_infos.push(series_info);
         }
 
