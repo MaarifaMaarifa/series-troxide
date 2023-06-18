@@ -263,11 +263,15 @@ mod episode_widget {
     ) -> Row<'static, Message, Renderer> {
         let tracking_checkbox = checkbox("", track_status, Message::TrackCheckboxPressed);
         row!(
-            text(format!(
-                "S{}E{}",
-                parse_season_episode_number(episode_information.season),
-                parse_season_episode_number(episode_information.number)
-            ),),
+            if let Some(episode_number) = episode_information.number {
+                text(format!(
+                    "S{}E{}",
+                    parse_season_episode_number(episode_information.season),
+                    parse_season_episode_number(episode_number)
+                ))
+            } else {
+                text("")
+            },
             text(&episode_information.name).size(17),
             horizontal_space(Length::Fill),
             tracking_checkbox.size(17),

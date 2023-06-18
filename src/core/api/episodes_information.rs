@@ -7,7 +7,7 @@ const EPISODE_INFORMATION_ADDRESS: &str =
 pub struct Episode {
     pub name: String,
     pub season: u32,
-    pub number: u32,
+    pub number: Option<u32>,
     pub runtime: Option<u32>,
     pub airdate: Option<String>,
     pub airtime: String, // can be empty
