@@ -6,6 +6,7 @@ use view::menu_view::Message as MenuMessage;
 use view::my_shows_view::Message as MyShowsMessage;
 use view::search_view::Message as SearchMessage;
 use view::series_view::Message as SeriesMessage;
+use view::settings_view::Message as SettingsMessage;
 use view::statistics_view::Message as StatisticsMessage;
 use view::watchlist_view::Message as WatchlistMessage;
 
@@ -22,6 +23,7 @@ pub enum Message {
     MyShowsAction(MyShowsMessage),
     StatisticsAction(StatisticsMessage),
     SeriesAction(SeriesMessage),
+    SettingsAction(SettingsMessage),
 }
 
 #[derive(Default)]
@@ -33,6 +35,7 @@ pub struct TroxideGui {
     watchlist_view: view::watchlist_view::Watchlist,
     my_shows_view: view::my_shows_view::MyShows,
     statistic_view: view::statistics_view::Statistics,
+    settings_view: view::settings_view::Settings,
     series_view: Option<view::series_view::Series>,
 }
 
@@ -63,6 +66,7 @@ impl Application for TroxideGui {
                     MenuMessage::Watchlist => self.view = view::View::Watchlist,
                     MenuMessage::MyShows => self.view = view::View::MyShows,
                     MenuMessage::Statistics => self.view = view::View::Statistics,
+                    MenuMessage::Settings => self.view = view::View::Settings,
                 };
                 Command::none()
             }
@@ -100,6 +104,7 @@ impl Application for TroxideGui {
                     .expect("Series View Should be loaded")
                     .update(message);
             }
+            Message::SettingsAction(_) => todo!(),
         }
     }
 
@@ -118,6 +123,7 @@ impl Application for TroxideGui {
                 .unwrap()
                 .view()
                 .map(Message::SeriesAction),
+            view::View::Settings => self.settings_view.view().map(Message::SettingsAction),
         };
 
         row!(menu_view, main_view).into()

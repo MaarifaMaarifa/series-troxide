@@ -9,6 +9,7 @@ enum MenuItem {
     Watchlist,
     MyShows,
     Statistics,
+    Settings,
 }
 
 #[derive(Debug, Clone)]
@@ -18,6 +19,7 @@ pub enum Message {
     Watchlist,
     MyShows,
     Statistics,
+    Settings,
 }
 
 #[derive(Default)]
@@ -33,6 +35,7 @@ impl Menu {
             Message::MyShows => self.menu_item_selected = MenuItem::MyShows,
             Message::Statistics => self.menu_item_selected = MenuItem::Statistics,
             Message::Search => self.menu_item_selected = MenuItem::Search,
+            Message::Settings => self.menu_item_selected = MenuItem::Settings,
         }
     }
 
@@ -45,6 +48,7 @@ impl Menu {
             mouse_area("Watchlist").on_press(Message::Watchlist),
             mouse_area("MyShows").on_press(Message::MyShows),
             mouse_area("Statistics").on_press(Message::Statistics),
+            mouse_area("Settings").on_press(Message::Settings),
         )
         .spacing(5)
         .padding(5)
