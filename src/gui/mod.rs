@@ -68,7 +68,8 @@ impl Application for TroxideGui {
             }
             Message::SearchAction(message) => {
                 if let SearchMessage::SeriesResultPressed(series_id) = message {
-                    let (series_view, command) = view::series_view::Series::new(series_id);
+                    let (series_view, command) =
+                        view::series_view::Series::from_series_id(series_id);
                     self.series_view = Some(series_view);
                     self.view = view::View::Series;
                     return command;
@@ -76,8 +77,9 @@ impl Application for TroxideGui {
                 self.search_view.update(message)
             }
             Message::DiscoverAction(message) => {
-                if let DiscoverMessage::SeriesSelected(series_id) = message {
-                    let (series_view, command) = view::series_view::Series::new(series_id);
+                if let DiscoverMessage::SeriesSelected(series_information) = message {
+                    let (series_view, command) =
+                        view::series_view::Series::from_series_information(*series_information);
                     self.series_view = Some(series_view);
                     self.view = view::View::Series;
                     return command;

@@ -30,7 +30,7 @@ pub enum Message {
         Box<EpisodePosterMessage>,
     ),
     SeriesPosterAction(/*series poster index*/ usize, Box<SeriesPosterMessage>),
-    SeriesSelected(/*series_id*/ u32),
+    SeriesSelected(/*series_id*/ Box<SeriesMainInformation>),
 }
 
 #[derive(Default)]
@@ -170,7 +170,7 @@ mod episode_poster {
     pub enum Message {
         ImageLoaded(Box<Option<Vec<u8>>>),
         SeriesInformationLoaded(Box<SeriesMainInformation>),
-        EpisodePosterPressed(/*series_id*/ u32),
+        EpisodePosterPressed(/*series_id*/ Box<SeriesMainInformation>),
     }
 
     pub struct EpisodePoster {
@@ -225,9 +225,9 @@ mod episode_poster {
                         );
                     }
                 }
-                Message::EpisodePosterPressed(series_id) => {
+                Message::EpisodePosterPressed(series_information) => {
                     return Command::perform(async {}, move |_| {
-                        DiscoverMessage::SeriesSelected(series_id)
+                        DiscoverMessage::SeriesSelected(series_information)
                     })
                 }
             }
@@ -249,7 +249,7 @@ mod episode_poster {
             // content.push(text(&self.episode.name)).into()
             if let Some(series_info) = &self.series_belonging {
                 mouse_area(content)
-                    .on_press(Message::EpisodePosterPressed(series_info.id))
+                    .on_press(Message::EpisodePosterPressed(Box::new(series_info.clone())))
                     .into()
             } else {
                 content.into()
@@ -270,7 +270,7 @@ mod series_updates_poster {
     #[derive(Clone, Debug)]
     pub enum Message {
         ImageLoaded(Option<Vec<u8>>),
-        SeriesPosterPressed(/*series_id*/ u32),
+        SeriesPosterPressed(/*series_id*/ Box<SeriesMainInformation>),
     }
 
     pub struct SeriesPoster {
@@ -311,9 +311,9 @@ mod series_updates_poster {
         pub fn update(&mut self, message: Message) -> Command<DiscoverMessage> {
             match message {
                 Message::ImageLoaded(image) => self.image = image,
-                Message::SeriesPosterPressed(series_id) => {
+                Message::SeriesPosterPressed(series_information) => {
                     return Command::perform(async {}, move |_| {
-                        DiscoverMessage::SeriesSelected(series_id)
+                        DiscoverMessage::SeriesSelected(series_information)
                     })
                 }
             }
@@ -332,7 +332,9 @@ mod series_updates_poster {
 
             // content.push(text(&self.episode.name)).into()
             mouse_area(content)
-                .on_press(Message::SeriesPosterPressed(self.series_information.id))
+                .on_press(Message::SeriesPosterPressed(Box::new(
+                    self.series_information.clone(),
+                )))
                 .into()
         }
     }
