@@ -13,6 +13,8 @@ use view::watchlist_view::Message as WatchlistMessage;
 use iced::widget::row;
 use iced::{Application, Command};
 
+use super::core::settings_config;
+
 #[allow(clippy::enum_variant_names)]
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -43,14 +45,27 @@ impl Application for TroxideGui {
     type Executor = iced::executor::Default;
     type Message = Message;
     type Theme = iced::Theme;
-    type Flags = ();
+    type Flags = settings_config::Config;
 
-    fn new(_flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
-        (Self::default(), Command::none())
+    fn new(flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
+        (
+            Self {
+                settings_view: view::settings_view::Settings::new(flags),
+                ..Self::default()
+            },
+            Command::none(),
+        )
     }
 
     fn title(&self) -> String {
         "Series Troxide".to_string()
+    }
+
+    fn theme(&self) -> iced::Theme {
+        match self.settings_view.get_config_settings().theme {
+            settings_config::Theme::Light => iced::Theme::Light,
+            settings_config::Theme::Dark => iced::Theme::Dark,
+        }
     }
 
     fn update(&mut self, message: Self::Message) -> iced::Command<Self::Message> {
@@ -104,7 +119,10 @@ impl Application for TroxideGui {
                     .expect("Series View Should be loaded")
                     .update(message);
             }
-            Message::SettingsAction(_) => todo!(),
+            Message::SettingsAction(message) => {
+                self.settings_view.update(message);
+                Command::none()
+            }
         }
     }
 
