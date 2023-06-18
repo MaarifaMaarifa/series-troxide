@@ -4,6 +4,7 @@ use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::api::{load_image, Image};
 use crate::gui::troxide_widget::{INFO_BODY, INFO_HEADER};
 use crate::gui::Message as GuiMessage;
+use iced::widget::scrollable::Properties;
 use iced::widget::{Column, Row};
 use iced::{
     alignment,
@@ -379,7 +380,8 @@ impl Series {
                     .spacing(5)
                 );
 
-                let content = scrollable(column!(main_body, seasons_widget));
+                let content = scrollable(column!(main_body, seasons_widget))
+                    .vertical_scroll(Properties::new().scroller_width(5).width(1));
                 column!(top_bar(self.series_information.as_ref().unwrap()), content).into()
             }
         }
