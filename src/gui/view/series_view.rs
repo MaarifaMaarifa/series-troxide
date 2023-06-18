@@ -4,7 +4,7 @@ use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::api::{load_image, Image};
 use crate::gui::troxide_widget::{INFO_BODY, INFO_HEADER};
 use crate::gui::Message as GuiMessage;
-use iced::widget::Column;
+use iced::widget::{Column, Row};
 use iced::{
     alignment,
     widget::{button, column, container, horizontal_space, image, row, scrollable, text},
@@ -213,16 +213,6 @@ pub fn series_page(
 ) -> container::Container<'_, Message, Renderer> {
     let mut content = column!();
 
-    let header = row!(
-        button("<-").on_press(Message::GoToSearchPage),
-        horizontal_space(Length::Fill),
-        text(&series_information.name).size(30),
-        horizontal_space(Length::Fill),
-        button("add to track list")
-    );
-
-    content = content.push(header);
-
     let mut main_info = row!().padding(5);
 
     // Putting the image to the main info
@@ -255,6 +245,16 @@ pub fn series_page(
     content = content.push(main_info);
 
     container(scrollable(content))
+}
+
+fn top_bar(series_info: &SeriesMainInformation) -> Row<'_, Message, Renderer> {
+    row!(
+        button("<-").on_press(Message::GoToSearchPage),
+        horizontal_space(Length::Fill),
+        text(&series_info.name).size(30),
+        horizontal_space(Length::Fill),
+        button("add to track list")
+    )
 }
 
 #[derive(Clone, Debug)]
@@ -379,7 +379,8 @@ impl Series {
                     .spacing(5)
                 );
 
-                scrollable(column!(main_body, seasons_widget)).into()
+                let content = scrollable(column!(main_body, seasons_widget));
+                column!(top_bar(self.series_information.as_ref().unwrap()), content).into()
             }
         }
     }
