@@ -1,3 +1,4 @@
+mod assets;
 mod troxide_widget;
 mod view;
 

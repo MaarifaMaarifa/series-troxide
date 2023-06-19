@@ -1,11 +1,15 @@
+use std::borrow::Cow;
+
 use crate::core::api::seasons_list::{get_seasons_list, Season as SeasonInfo};
 use crate::core::api::series_information::get_series_main_info_with_id;
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::api::{load_image, Image};
+use crate::gui::assets::icons::ARROW_LEFT;
 use crate::gui::troxide_widget::{INFO_BODY, INFO_HEADER};
 use crate::gui::Message as GuiMessage;
 use iced::widget::scrollable::Properties;
-use iced::widget::{Column, Row};
+use iced::widget::{mouse_area, svg, Column, Row};
+
 use iced::{
     alignment,
     widget::{button, column, container, horizontal_space, image, row, scrollable, text},
@@ -249,8 +253,12 @@ pub fn series_page(
 }
 
 fn top_bar(series_info: &SeriesMainInformation) -> Row<'_, Message, Renderer> {
+    let moo: Cow<'static, [u8]> = Cow::Borrowed(ARROW_LEFT);
+    let back_icon_handle = svg::Handle::from_memory(moo);
+    let back_icon = svg(back_icon_handle).width(Length::Shrink);
+
     row!(
-        button("<-").on_press(Message::GoToSearchPage),
+        button(back_icon).on_press(Message::GoToSearchPage),
         horizontal_space(Length::Fill),
         text(&series_info.name).size(30),
         horizontal_space(Length::Fill),
