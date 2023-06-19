@@ -11,7 +11,7 @@ use view::settings_view::Message as SettingsMessage;
 use view::statistics_view::Message as StatisticsMessage;
 use view::watchlist_view::Message as WatchlistMessage;
 
-use iced::widget::{row, vertical_rule};
+use iced::widget::row;
 use iced::{Application, Command};
 
 use super::core::settings_config;
@@ -145,6 +145,6 @@ impl Application for TroxideGui {
             view::View::Settings => self.settings_view.view().map(Message::SettingsAction),
         };
 
-        row!(menu_view, vertical_rule(10), main_view).into()
+        row!(menu_view, main_view).into()
     }
 }
