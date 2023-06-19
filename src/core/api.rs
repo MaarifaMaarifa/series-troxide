@@ -22,8 +22,8 @@ pub enum ApiError {
 struct BadResponse {
     name: String,
     message: String,
-    code: u32,
-    status: u32,
+    // code: u32,
+    // status: u32,
 }
 
 #[derive(Debug, Deserialize, Clone)]
