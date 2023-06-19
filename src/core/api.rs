@@ -14,6 +14,16 @@ pub enum ApiError {
     Network(reqwest::Error),
     #[error("tvmaze api error when deserializing json: unexpected '{0}'")]
     Deserialization(String, serde_json::Error),
+    #[error("errored json from tvmaze: name: '{0}', message: '{1}'")]
+    BadJson(String, String),
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct BadResponse {
+    name: String,
+    message: String,
+    code: u32,
+    status: u32,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -50,10 +60,23 @@ pub async fn load_image(image_url: String) -> Option<Vec<u8>> {
     }
 }
 
+/// T
+fn try_bad_json(json_string: &str) -> Option<(String, String)> {
+    if let Ok(bad_response) = serde_json::from_str::<BadResponse>(json_string) {
+        Some((bad_response.name, bad_response.message))
+    } else {
+        None
+    }
+}
+
 fn deserialize_json<'a, T: serde::Deserialize<'a>>(
     prettified_json: &'a str,
 ) -> Result<T, ApiError> {
     serde_json::from_str::<T>(prettified_json).map_err(|err| {
+        if let Some(data) = try_bad_json(prettified_json) {
+            return ApiError::BadJson(data.0, data.1);
+        }
+
         let line_number = err.line() - 1;
 
         let mut errored_line = String::new();
