@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use crate::core::api::seasons_list::{get_seasons_list, Season as SeasonInfo};
 use crate::core::api::series_information::get_series_main_info_with_id;
 use crate::core::api::series_information::SeriesMainInformation;

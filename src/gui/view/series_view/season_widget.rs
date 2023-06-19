@@ -1,5 +1,5 @@
-use iced::widget::{button, checkbox, column, progress_bar, row, text, Column};
-use iced::{Command, Element, Renderer};
+use iced::widget::{button, checkbox, column, progress_bar, row, svg, text, Column};
+use iced::{Command, Element, Length, Renderer};
 use tokio::task::JoinHandle;
 
 use self::episode_widget::Episode;
@@ -7,6 +7,8 @@ use self::episode_widget::Episode;
 use super::Message as SeriesMessage;
 use crate::core::api::episodes_information::{get_episode_information, Episode as EpisodeInfo};
 use crate::core::api::seasons_list::Season as SeasonInfo;
+use crate::gui::assets::get_static_cow_from_asset;
+use crate::gui::assets::icons::{ARROW_BAR_DOWN, ARROW_BAR_UP};
 use episode_widget::Message as EpisodeMessage;
 
 #[derive(Clone, Debug)]
@@ -113,7 +115,17 @@ impl Season {
             progress_bar(0.0..=0.0, 0.0).height(10).width(500)
         };
         let episodes_progress = text(format!("{}/{}", 0, self.season.episode_order.unwrap_or(0)));
-        let expand_button = button(">").on_press(Message::Expand);
+
+        let expand_button = if self.is_expanded {
+            let svg_handle = svg::Handle::from_memory(get_static_cow_from_asset(ARROW_BAR_UP));
+            let up_icon = svg(svg_handle).width(Length::Shrink);
+            button(up_icon).on_press(Message::Expand)
+        } else {
+            let svg_handle = svg::Handle::from_memory(get_static_cow_from_asset(ARROW_BAR_DOWN));
+            let down_icon = svg(svg_handle).width(Length::Shrink);
+            button(down_icon).on_press(Message::Expand)
+        };
+
         let content = row!(
             track_checkbox,
             season_name,
