@@ -1,3 +1,12 @@
+use std::borrow::Cow;
+
+/// Creates a Cow from static bytes array of assets
+///
+/// This is usefull when creating handles for SVG and IMAGE in iced
+pub fn get_static_cow_from_asset(static_asset: &'static [u8]) -> Cow<'static, [u8]> {
+    Cow::Borrowed(static_asset)
+}
+
 pub mod icons {
     pub static ARROW_BAR_UP: &[u8; 376] = include_bytes!("assets/icons/arrow-bar-up.svg");
     pub static ARROW_BAR_DOWN: &[u8; 375] = include_bytes!("assets/icons/arrow-bar-down.svg");
