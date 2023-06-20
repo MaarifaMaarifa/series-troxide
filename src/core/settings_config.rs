@@ -23,7 +23,7 @@ impl std::fmt::Display for Theme {
     }
 }
 
-#[derive(Clone, Default, Debug, Serialize, Deserialize)]
+#[derive(Clone, Default, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub struct Config {
     pub theme: Theme,
 }
