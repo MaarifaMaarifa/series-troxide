@@ -2,6 +2,7 @@ use std::io::ErrorKind;
 
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
+use tracing::{error, info, warn};
 
 #[derive(Clone, Default, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub enum Theme {
@@ -35,16 +36,23 @@ pub fn load_config() -> Config {
         let mut config_file = std::path::PathBuf::from(proj_dirs.config_dir());
         config_file.push(CONFIG_FILE_NAME);
 
+        info!("loading config file at: '{}'", config_file.display());
+
         let file_contents = match std::fs::read_to_string(&config_file) {
             Ok(file_contents) => file_contents,
             Err(err) => {
                 let default_config = Config::default();
                 if let ErrorKind::NotFound = err.kind() {
+                    warn!("could not find config file at: '{}'", config_file.display());
                     std::fs::write(
-                        config_file,
+                        &config_file,
                         toml::to_string_pretty(&default_config).unwrap(),
                     )
                     .expect(&format!("Could not write default config file: {}", err));
+                    info!(
+                        "created a new default config file at: '{}'",
+                        config_file.display()
+                    );
                 }
                 return default_config;
             }
@@ -53,12 +61,14 @@ pub fn load_config() -> Config {
         match toml::from_str(&file_contents) {
             Ok(config) => config,
             Err(err) => {
-                eprintln!("could not parse the config file: {}", err);
+                error!("could not parse the config file: {}", err);
+                warn!("loading with default settings");
                 return Config::default();
             }
         }
     } else {
-        eprintln!("could not obtain config directory path");
+        error!("could not obtain config directory path");
+        warn!("loading with default settings");
         Config::default()
     }
 }
@@ -74,6 +84,6 @@ pub fn save_config(settings_config: &Config) {
         )
         .expect(&format!("Could not write default config file"));
     } else {
-        eprintln!("could not obtain config directory path");
+        error!("could not obtain config directory path when saving the settings");
     }
 }
