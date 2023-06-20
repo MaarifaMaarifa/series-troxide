@@ -44,11 +44,12 @@ pub fn load_config() -> Config {
                 let default_config = Config::default();
                 if let ErrorKind::NotFound = err.kind() {
                     warn!("could not find config file at: '{}'", config_file.display());
-                    std::fs::write(
+                    if let Err(err) = std::fs::write(
                         &config_file,
                         toml::to_string_pretty(&default_config).unwrap(),
-                    )
-                    .expect(&format!("Could not write default config file: {}", err));
+                    ) {
+                        error!("Could not write default config file: {}", err);
+                    }
                     info!(
                         "created a new default config file at: '{}'",
                         config_file.display()
@@ -78,11 +79,16 @@ pub fn save_config(settings_config: &Config) {
         let mut config_file = std::path::PathBuf::from(proj_dirs.config_dir());
         config_file.push(CONFIG_FILE_NAME);
 
-        std::fs::write(
-            config_file,
+        if let Err(err) = std::fs::write(
+            &config_file,
             toml::to_string_pretty(&settings_config).unwrap(),
-        )
-        .expect(&format!("Could not write default config file"));
+        ) {
+            error!(
+                "Could not write default config file '{}': {}",
+                config_file.display(),
+                err
+            );
+        }
     } else {
         error!("could not obtain config directory path when saving the settings");
     }
