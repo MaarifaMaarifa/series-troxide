@@ -64,7 +64,7 @@ pub fn load_config() -> Config {
             Err(err) => {
                 error!("could not parse the config file: {}", err);
                 warn!("loading with default settings");
-                return Config::default();
+                Config::default()
             }
         }
     } else {
