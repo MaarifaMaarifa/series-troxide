@@ -38,7 +38,7 @@ impl Database {
 
     pub fn get_series(&self, series_id: u32) -> Option<Series> {
         let series_bytes = self.db.get(series_id.to_string()).unwrap()?;
-        bincode::deserialize(&series_bytes).unwrap()
+        Some(bincode::deserialize(&series_bytes).unwrap())
     }
 }
 
