@@ -2,6 +2,7 @@ use crate::core::api::seasons_list::{get_seasons_list, Season as SeasonInfo};
 use crate::core::api::series_information::get_series_main_info_with_id;
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::api::{load_image, Image};
+use crate::core::database;
 use crate::gui::assets::get_static_cow_from_asset;
 use crate::gui::assets::icons::ARROW_LEFT;
 use crate::gui::troxide_widget::{INFO_BODY, INFO_HEADER};
@@ -260,7 +261,7 @@ fn top_bar(series_info: &SeriesMainInformation) -> Row<'_, Message, Renderer> {
         horizontal_space(Length::Fill),
         text(&series_info.name).size(30),
         horizontal_space(Length::Fill),
-        button("add to track list")
+        button("add to track list").on_press(Message::TrackSeries)
     )
 }
 
@@ -271,6 +272,7 @@ pub enum Message {
     GoToSearchPage,
     SeasonsLoaded(Vec<SeasonInfo>),
     SeasonAction(usize, Box<SeasonMessage>),
+    TrackSeries,
 }
 
 enum LoadState {
@@ -357,6 +359,12 @@ impl Series {
                 return self.season_widgets[index]
                     .update(*message)
                     .map(GuiMessage::SeriesAction);
+            }
+            Message::TrackSeries => {
+                let series = database::Series::new(
+                    self.series_information.as_ref().unwrap().name.to_owned(),
+                );
+                database::DB.track_series(self.series_information.as_ref().unwrap().id, series);
             }
         }
         Command::none()
