@@ -4,7 +4,7 @@ use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::api::{load_image, Image};
 use crate::core::database;
 use crate::gui::assets::get_static_cow_from_asset;
-use crate::gui::assets::icons::ARROW_LEFT;
+use crate::gui::assets::icons::{ARROW_LEFT, CHECK_CIRCLE, CHECK_CIRCLE_FILL};
 use crate::gui::troxide_widget::{INFO_BODY, INFO_HEADER};
 use crate::gui::Message as GuiMessage;
 use iced::widget::scrollable::Properties;
@@ -256,12 +256,23 @@ fn top_bar(series_info: &SeriesMainInformation) -> Row<'_, Message, Renderer> {
     let back_icon_handle = svg::Handle::from_memory(get_static_cow_from_asset(ARROW_LEFT));
     let back_icon = svg(back_icon_handle).width(Length::Shrink);
 
+    let track_button = if let Some(_) = database::DB.get_series(series_info.id) {
+        let tracked_icon_handle =
+            svg::Handle::from_memory(get_static_cow_from_asset(CHECK_CIRCLE_FILL));
+        let icon = svg(tracked_icon_handle).width(Length::Shrink);
+        button(icon).on_press(Message::UntrackSeries)
+    } else {
+        let tracked_icon_handle = svg::Handle::from_memory(get_static_cow_from_asset(CHECK_CIRCLE));
+        let icon = svg(tracked_icon_handle).width(Length::Shrink);
+        button(icon).on_press(Message::TrackSeries)
+    };
+
     row!(
         button(back_icon).on_press(Message::GoToSearchPage),
         horizontal_space(Length::Fill),
         text(&series_info.name).size(30),
         horizontal_space(Length::Fill),
-        button("add to track list").on_press(Message::TrackSeries)
+        track_button,
     )
 }
 
@@ -273,6 +284,7 @@ pub enum Message {
     SeasonsLoaded(Vec<SeasonInfo>),
     SeasonAction(usize, Box<SeasonMessage>),
     TrackSeries,
+    UntrackSeries,
 }
 
 enum LoadState {
@@ -365,6 +377,9 @@ impl Series {
                     self.series_information.as_ref().unwrap().name.to_owned(),
                 );
                 database::DB.track_series(self.series_information.as_ref().unwrap().id, series);
+            }
+            Message::UntrackSeries => {
+                database::DB.untrack_series(self.series_information.as_ref().unwrap().id);
             }
         }
         Command::none()

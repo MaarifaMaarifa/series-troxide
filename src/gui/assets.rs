@@ -16,6 +16,8 @@ pub mod icons {
     pub static FILM: &[u8; 384] = include_bytes!("assets/icons/film.svg");
     pub static GRAPH_UP_ARROW: &[u8; 402] = include_bytes!("assets/icons/graph-up-arrow.svg");
     pub static SEARCH: &[u8; 331] = include_bytes!("assets/icons/search.svg");
+    pub static CHECK_CIRCLE: &[u8; 387] = include_bytes!("assets/icons/check-circle.svg");
+    pub static CHECK_CIRCLE_FILL: &[u8; 340] = include_bytes!("assets/icons/check-circle-fill.svg");
     pub static GEAR_WIDE_CONNECTED: &[u8; 1312] =
         include_bytes!("assets/icons/gear-wide-connected.svg");
 }
