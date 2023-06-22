@@ -36,6 +36,10 @@ impl Database {
             .unwrap();
     }
 
+    pub fn untrack_series(&self, series_id: u32) {
+        self.db.remove(series_id.to_string()).unwrap();
+    }
+
     pub fn get_series(&self, series_id: u32) -> Option<Series> {
         let series_bytes = self.db.get(series_id.to_string()).unwrap()?;
         Some(bincode::deserialize(&series_bytes).unwrap())
