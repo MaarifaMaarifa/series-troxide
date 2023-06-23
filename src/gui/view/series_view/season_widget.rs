@@ -235,7 +235,6 @@ mod episode_widget {
         episode_information: EpisodeInfo,
         series_id: u32,
         episode_image: Option<Vec<u8>>,
-        is_tracked: bool,
     }
 
     impl Episode {
@@ -249,7 +248,6 @@ mod episode_widget {
                 episode_information,
                 series_id,
                 episode_image: None,
-                is_tracked: false,
             };
 
             let command = if let Some(image) = episode_image {
