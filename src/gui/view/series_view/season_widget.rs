@@ -55,7 +55,7 @@ impl Season {
                                 series.remove_season(self.season.number);
                             }
                         } else {
-                            series.add_season(self.season.number, database::Season::new());
+                            series.add_season(self.season.number);
                             let season = series.get_season_mut(self.season.number).unwrap();
                             (1..=episode_order).for_each(|episode_number| {
                                 season.track_episode(episode_number);
@@ -280,10 +280,7 @@ mod episode_widget {
                                 season.track_episode(self.episode_information.number.unwrap())
                             }
                         } else {
-                            series.add_season(
-                                self.episode_information.season,
-                                database::Season::new(),
-                            );
+                            series.add_season(self.episode_information.season);
                             series
                                 .get_season_mut(self.episode_information.season)
                                 .unwrap()

@@ -66,8 +66,8 @@ impl Series {
         DB.track_series(self.id, self);
     }
 
-    pub fn add_season(&mut self, season_number: u32, season: Season) {
-        self.seasons.insert(season_number, season);
+    pub fn add_season(&mut self, season_number: u32) {
+        self.seasons.insert(season_number, Season::new());
         self.update();
     }
 
