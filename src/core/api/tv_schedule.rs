@@ -17,5 +17,8 @@ pub async fn get_episodes_with_date(date: Option<&str>) -> Result<Vec<Episode>, 
         .await
         .map_err(ApiError::Network)?;
 
-    deserialize_json(&prettified_json)
+    deserialize_json::<Vec<Episode>>(&prettified_json).map(|mut episodes| {
+        episodes.dedup_by_key(|episode| episode.links.show.href.clone());
+        episodes
+    })
 }
