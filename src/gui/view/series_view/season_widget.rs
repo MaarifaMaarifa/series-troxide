@@ -226,7 +226,7 @@ mod episode_widget {
     #[derive(Clone, Debug)]
     pub enum Message {
         ImageLoaded(Option<Vec<u8>>),
-        TrackCheckboxPressed(bool),
+        TrackCheckboxPressed,
     }
 
     #[derive(Clone)]
@@ -266,7 +266,19 @@ mod episode_widget {
         pub fn update(&mut self, message: Message) -> Command<SeasonMessage> {
             match message {
                 Message::ImageLoaded(image) => self.episode_image = image,
-                Message::TrackCheckboxPressed(val) => self.is_tracked = val,
+                Message::TrackCheckboxPressed => {
+                    database::DB.get_series(self.series_id).map(|mut series| {
+                        if let Some(season) = series.get_season_mut(self.episode_information.season)
+                        {
+                            if season.is_episode_watched(self.episode_information.number.unwrap()) {
+                                season.untrack_episode(self.episode_information.number.unwrap())
+                            } else {
+                                season.track_episode(self.episode_information.number.unwrap())
+                            }
+                        }
+                        series.update();
+                    });
+                }
             }
             Command::none()
         }
@@ -324,7 +336,7 @@ mod episode_widget {
             })
             .unwrap_or(false);
 
-        let tracking_checkbox = checkbox("", is_tracked, Message::TrackCheckboxPressed);
+        let tracking_checkbox = checkbox("", is_tracked, |_| Message::TrackCheckboxPressed);
         row!(
             if let Some(episode_number) = episode_information.number {
                 text(format!(
