@@ -46,14 +46,20 @@ impl Season {
                     if let Some(mut series) = database::DB.get_series(self.series_id) {
                         // Removing the season if it is already tracked or adding a new one with the all
                         // of episodes if it is not tracked
-                        if series.get_season(self.season.number).is_none() {
+                        if let Some(season) = series.get_season_mut(self.season.number) {
+                            if season.episodes_watched() as u32 != episode_order {
+                                (1..=episode_order).for_each(|episode_number| {
+                                    season.track_episode(episode_number);
+                                });
+                            } else {
+                                series.remove_season(self.season.number);
+                            }
+                        } else {
                             series.add_season(self.season.number, database::Season::new());
                             let season = series.get_season_mut(self.season.number).unwrap();
                             (1..=episode_order).for_each(|episode_number| {
                                 season.track_episode(episode_number);
                             });
-                        } else {
-                            series.remove_season(self.season.number);
                         }
 
                         series.update();
