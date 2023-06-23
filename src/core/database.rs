@@ -2,7 +2,7 @@ use directories::ProjectDirs;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use sled::Db;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use tracing::info;
 
 const DATABASE_FOLDER_NAME: &str = "series-troxide-db";
@@ -71,9 +71,9 @@ impl Series {
         self.update();
     }
 
-    pub fn add_episode(&mut self, season_number: u32, episode_number: u32, episode: Episode) {
+    pub fn add_episode(&mut self, season_number: u32, episode: Episode) {
         if let Some(season) = self.seasons.get_mut(&season_number) {
-            season.track_episode(episode_number, episode);
+            season.track_episode(episode);
         }
         self.update()
     }
@@ -89,65 +89,27 @@ impl Series {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Season {
-    episodes: HashMap<u32, Episode>,
+    episodes: HashSet<Episode>,
 }
 
 impl Season {
     pub fn new() -> Self {
         Self {
-            episodes: HashMap::new(),
+            episodes: HashSet::new(),
         }
     }
 
-    pub fn track_episode(&mut self, episode_number: u32, episode: Episode) {
-        self.episodes.insert(episode_number, episode);
+    pub fn track_episode(&mut self, episode: Episode) {
+        self.episodes.insert(episode);
     }
 
-    pub fn untrack_episode(&mut self, episode_number: u32) {
-        self.episodes.remove(&episode_number);
-    }
-
-    pub fn mark_watched(&mut self) {
-        self.episodes
-            .values_mut()
-            .for_each(|episode| episode.mark_watched())
-    }
-
-    pub fn mark_unwatched(&mut self) {
-        self.episodes
-            .values_mut()
-            .for_each(|episode| episode.mark_unwatched())
+    pub fn untrack_episode(&mut self, episode: Episode) {
+        self.episodes.remove(&episode);
     }
 
     pub fn episodes_watched(&self) -> usize {
-        self.episodes
-            .values()
-            .filter(|episode| episode.is_watched())
-            .count()
+        self.episodes.len()
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Episode {
-    is_watched: bool,
-}
-
-impl Episode {
-    pub fn new(is_watched: Option<bool>) -> Self {
-        Self {
-            is_watched: is_watched.unwrap_or(false),
-        }
-    }
-
-    pub fn is_watched(&self) -> bool {
-        self.is_watched
-    }
-
-    pub fn mark_watched(&mut self) {
-        self.is_watched = true
-    }
-
-    pub fn mark_unwatched(&mut self) {
-        self.is_watched = false
-    }
-}
+pub type Episode = u32;

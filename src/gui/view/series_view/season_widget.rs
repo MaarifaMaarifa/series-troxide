@@ -14,7 +14,7 @@ use episode_widget::Message as EpisodeMessage;
 
 #[derive(Clone, Debug)]
 pub enum Message {
-    CheckboxPressed(bool),
+    CheckboxPressed,
     Expand,
     EpisodesLoaded(Vec<EpisodeInfo>),
     EpisodeAction(usize, EpisodeMessage),
@@ -26,7 +26,6 @@ pub struct Season {
     series_id: u32,
     season: SeasonInfo,
     episodes: Vec<episode_widget::Episode>,
-    is_tracked: bool,
     is_expanded: bool,
 }
 
@@ -37,30 +36,21 @@ impl Season {
             series_id,
             season: season_info,
             episodes: vec![],
-            is_tracked: false,
             is_expanded: false,
         }
     }
     pub fn update(&mut self, message: Message) -> Command<SeriesMessage> {
         match message {
-            Message::CheckboxPressed(tracking_status) => {
+            Message::CheckboxPressed => {
                 if let Some(episode_order) = self.season.episode_order {
-                    self.is_tracked = tracking_status;
-
                     if let Some(mut series) = database::DB.get_series(self.series_id) {
-                        tracing::info!(self.series_id);
-                        tracing::info!("{:?}", series);
-
                         if series.get_season(self.season.number).is_none() {
-                            tracing::info!("did not find season, adding one");
                             series.add_season(self.season.number, database::Season::new());
                         }
 
                         if let Some(season) = series.get_season_mut(self.season.number) {
-                            tracing::info!("got a season");
                             (1..=episode_order).for_each(|episode_number| {
-                                let episode = database::Episode::new(Some(true));
-                                season.track_episode(episode_number, episode);
+                                season.track_episode(episode_number);
                             });
                         }
                         series.update();
@@ -123,11 +113,6 @@ impl Season {
     }
 
     pub fn view(&self) -> Element<'_, Message, Renderer> {
-        let track_checkbox = checkbox("", self.is_tracked, |tracking| {
-            Message::CheckboxPressed(tracking)
-        });
-        let season_name = text(format!("Season {}", self.season.number));
-
         let tracked_episodes = database::DB
             .get_series(self.series_id)
             .map(|series| {
@@ -138,6 +123,16 @@ impl Season {
                 }
             })
             .unwrap_or(0);
+
+        let track_checkbox = checkbox(
+            "",
+            self.season
+                .episode_order
+                .map(|order| order == tracked_episodes as u32)
+                .unwrap_or(false),
+            |_| Message::CheckboxPressed,
+        );
+        let season_name = text(format!("Season {}", self.season.number));
 
         let season_progress = if let Some(episodes_number) = self.season.episode_order {
             progress_bar(0.0..=episodes_number as f32, tracked_episodes as f32)
