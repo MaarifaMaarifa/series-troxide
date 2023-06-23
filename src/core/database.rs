@@ -71,6 +71,10 @@ impl Series {
         self.update();
     }
 
+    pub fn remove_season(&mut self, season_number: u32) {
+        self.seasons.remove(&season_number);
+    }
+
     pub fn add_episode(&mut self, season_number: u32, episode: Episode) {
         if let Some(season) = self.seasons.get_mut(&season_number) {
             season.track_episode(episode);
