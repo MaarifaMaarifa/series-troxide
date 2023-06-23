@@ -89,7 +89,7 @@ impl Season {
                 let epis: Vec<(Episode, Command<Message>)> = episode_infos
                     .into_iter()
                     .enumerate()
-                    .map(|(index, info)| episode_widget::Episode::new(index, info))
+                    .map(|(index, info)| episode_widget::Episode::new(index, self.series_id, info))
                     .collect();
 
                 let mut commands = Vec::with_capacity(epis.len());
@@ -214,7 +214,10 @@ async fn load_episode_infos(
 
 mod episode_widget {
     use super::Message as SeasonMessage;
-    use crate::core::api::{episodes_information::Episode as EpisodeInfo, load_image};
+    use crate::core::{
+        api::{episodes_information::Episode as EpisodeInfo, load_image},
+        database,
+    };
     use iced::{
         widget::{checkbox, column, horizontal_space, image, row, text, Row, Text},
         Command, Element, Length, Renderer,
@@ -230,6 +233,7 @@ mod episode_widget {
     pub struct Episode {
         // index: usize,
         episode_information: EpisodeInfo,
+        series_id: u32,
         episode_image: Option<Vec<u8>>,
         is_tracked: bool,
     }
@@ -237,11 +241,13 @@ mod episode_widget {
     impl Episode {
         pub fn new(
             index: usize,
+            series_id: u32,
             episode_information: EpisodeInfo,
         ) -> (Self, Command<SeasonMessage>) {
             let episode_image = episode_information.image.clone();
             let episode = Self {
                 episode_information,
+                series_id,
                 episode_image: None,
                 is_tracked: false,
             };
@@ -273,7 +279,7 @@ mod episode_widget {
                 content = content.push(image);
             };
             let info = column!(
-                heading_widget(&self.episode_information, self.is_tracked),
+                heading_widget(self.series_id, &self.episode_information),
                 airdate_widget(&self.episode_information),
                 airstamp_widget(&self.episode_information),
                 summary_widget(&self.episode_information)
@@ -304,10 +310,21 @@ mod episode_widget {
     }
 
     fn heading_widget(
+        series_id: u32,
         episode_information: &EpisodeInfo,
-        track_status: bool,
     ) -> Row<'static, Message, Renderer> {
-        let tracking_checkbox = checkbox("", track_status, Message::TrackCheckboxPressed);
+        let is_tracked = database::DB
+            .get_series(series_id)
+            .map(|series| {
+                if let Some(season) = series.get_season(episode_information.season) {
+                    season.is_episode_watched(episode_information.number.unwrap())
+                } else {
+                    false
+                }
+            })
+            .unwrap_or(false);
+
+        let tracking_checkbox = checkbox("", is_tracked, Message::TrackCheckboxPressed);
         row!(
             if let Some(episode_number) = episode_information.number {
                 text(format!(

@@ -111,6 +111,10 @@ impl Season {
         self.episodes.remove(&episode);
     }
 
+    pub fn is_episode_watched(&self, episode: Episode) -> bool {
+        self.episodes.contains(&episode)
+    }
+
     pub fn episodes_watched(&self) -> usize {
         self.episodes.len()
     }
