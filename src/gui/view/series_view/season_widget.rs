@@ -279,6 +279,15 @@ mod episode_widget {
                             } else {
                                 season.track_episode(self.episode_information.number.unwrap())
                             }
+                        } else {
+                            series.add_season(
+                                self.episode_information.season,
+                                database::Season::new(),
+                            );
+                            series
+                                .get_season_mut(self.episode_information.season)
+                                .unwrap()
+                                .track_episode(self.episode_information.number.unwrap())
                         }
                         series.update();
                     });
