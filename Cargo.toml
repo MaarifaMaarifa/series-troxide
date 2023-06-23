@@ -1,6 +1,7 @@
 [package]
 name = "series-troxide"
 authors = ["Maarifa Maarifa"]
+license = "GPL-3.0"
 description = "A Series Tracker"
 categories = ["series", "TV"]
 repository = "https://github.com/MaarifaMaarifa/series-troxide"
