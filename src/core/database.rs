@@ -135,4 +135,10 @@ impl Season {
     }
 }
 
+impl Default for Season {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub type Episode = u32;

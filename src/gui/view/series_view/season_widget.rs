@@ -271,7 +271,7 @@ mod episode_widget {
             match message {
                 Message::ImageLoaded(image) => self.episode_image = image,
                 Message::TrackCheckboxPressed => {
-                    database::DB.get_series(self.series_id).map(|mut series| {
+                    if let Some(mut series) = database::DB.get_series(self.series_id) {
                         if let Some(season) = series.get_season_mut(self.episode_information.season)
                         {
                             if season.is_episode_watched(self.episode_information.number.unwrap()) {
@@ -287,7 +287,7 @@ mod episode_widget {
                                 .track_episode(self.episode_information.number.unwrap())
                         }
                         series.update();
-                    });
+                    };
                 }
             }
             Command::none()

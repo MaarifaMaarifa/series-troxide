@@ -256,7 +256,7 @@ fn top_bar(series_info: &SeriesMainInformation) -> Row<'_, Message, Renderer> {
     let back_icon_handle = svg::Handle::from_memory(get_static_cow_from_asset(ARROW_LEFT));
     let back_icon = svg(back_icon_handle).width(Length::Shrink);
 
-    let track_button = if let Some(_) = database::DB.get_series(series_info.id) {
+    let track_button = if database::DB.get_series(series_info.id).is_some() {
         let tracked_icon_handle =
             svg::Handle::from_memory(get_static_cow_from_asset(CHECK_CIRCLE_FILL));
         let icon = svg(tracked_icon_handle).width(Length::Shrink);
