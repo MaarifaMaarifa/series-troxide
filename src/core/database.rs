@@ -44,6 +44,17 @@ impl Database {
         let series_bytes = self.db.get(series_id.to_string()).unwrap()?;
         Some(bincode::deserialize(&series_bytes).unwrap())
     }
+
+    pub fn get_series_collection(&self) -> Vec<Series> {
+        self.db
+            .iter()
+            .values()
+            .map(|series| {
+                let series = series.unwrap();
+                bincode::deserialize(&series).unwrap()
+            })
+            .collect()
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -60,6 +71,10 @@ impl Series {
             name,
             seasons: HashMap::new(),
         }
+    }
+
+    pub fn get_name(&self) -> &str {
+        &self.name
     }
 
     pub fn update(&self) {
