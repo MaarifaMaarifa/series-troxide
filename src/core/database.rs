@@ -30,9 +30,9 @@ impl Database {
         panic!("could not get the path to database");
     }
 
-    pub fn track_series(&self, series_id: u32, series: Series) {
+    pub fn track_series(&self, series_id: u32, series: &Series) {
         self.db
-            .insert(series_id.to_string(), bincode::serialize(&series).unwrap())
+            .insert(series_id.to_string(), bincode::serialize(series).unwrap())
             .unwrap();
     }
 
@@ -48,20 +48,42 @@ impl Database {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Series {
+    id: u32,
     name: String,
     seasons: HashMap<u32, Season>,
 }
 
 impl Series {
-    pub fn new(name: String) -> Self {
+    pub fn new(name: String, id: u32) -> Self {
         Self {
+            id,
             name,
             seasons: HashMap::new(),
         }
     }
 
+    pub fn update(&self) {
+        DB.track_series(self.id, self);
+    }
+
     pub fn add_season(&mut self, season_number: u32, season: Season) {
         self.seasons.insert(season_number, season);
+        self.update();
+    }
+
+    pub fn add_episode(&mut self, season_number: u32, episode_number: u32, episode: Episode) {
+        if let Some(season) = self.seasons.get_mut(&season_number) {
+            season.track_episode(episode_number, episode);
+        }
+        self.update()
+    }
+
+    pub fn get_season(&self, season_number: u32) -> Option<&Season> {
+        self.seasons.get(&season_number)
+    }
+
+    pub fn get_season_mut(&mut self, season_number: u32) -> Option<&mut Season> {
+        self.seasons.get_mut(&season_number)
     }
 }
 
@@ -108,16 +130,12 @@ impl Season {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Episode {
     is_watched: bool,
-    airstamp: String,
-    average_watchtime: u32,
 }
 
 impl Episode {
-    pub fn new(airstamp: String, average_watchtime: u32) -> Self {
+    pub fn new(is_watched: Option<bool>) -> Self {
         Self {
-            airstamp,
-            is_watched: false,
-            average_watchtime,
+            is_watched: is_watched.unwrap_or(false),
         }
     }
 

@@ -7,6 +7,7 @@ use self::episode_widget::Episode;
 use super::Message as SeriesMessage;
 use crate::core::api::episodes_information::{get_episode_information, Episode as EpisodeInfo};
 use crate::core::api::seasons_list::Season as SeasonInfo;
+use crate::core::database;
 use crate::gui::assets::get_static_cow_from_asset;
 use crate::gui::assets::icons::{ARROW_BAR_DOWN, ARROW_BAR_UP};
 use episode_widget::Message as EpisodeMessage;
@@ -43,8 +44,27 @@ impl Season {
     pub fn update(&mut self, message: Message) -> Command<SeriesMessage> {
         match message {
             Message::CheckboxPressed(tracking_status) => {
-                if self.season.episode_order.is_some() {
+                if let Some(episode_order) = self.season.episode_order {
                     self.is_tracked = tracking_status;
+
+                    if let Some(mut series) = database::DB.get_series(self.series_id) {
+                        tracing::info!(self.series_id);
+                        tracing::info!("{:?}", series);
+
+                        if series.get_season(self.season.number).is_none() {
+                            tracing::info!("did not find season, adding one");
+                            series.add_season(self.season.number, database::Season::new());
+                        }
+
+                        if let Some(season) = series.get_season_mut(self.season.number) {
+                            tracing::info!("got a season");
+                            (1..=episode_order).for_each(|episode_number| {
+                                let episode = database::Episode::new(Some(true));
+                                season.track_episode(episode_number, episode);
+                            });
+                        }
+                        series.update();
+                    };
                 }
             }
             Message::Expand => {
@@ -107,14 +127,30 @@ impl Season {
             Message::CheckboxPressed(tracking)
         });
         let season_name = text(format!("Season {}", self.season.number));
+
+        let tracked_episodes = database::DB
+            .get_series(self.series_id)
+            .map(|series| {
+                if let Some(season) = series.get_season(self.season.number) {
+                    season.episodes_watched()
+                } else {
+                    0
+                }
+            })
+            .unwrap_or(0);
+
         let season_progress = if let Some(episodes_number) = self.season.episode_order {
-            progress_bar(0.0..=episodes_number as f32, 0.0)
+            progress_bar(0.0..=episodes_number as f32, tracked_episodes as f32)
                 .height(10)
                 .width(500)
         } else {
             progress_bar(0.0..=0.0, 0.0).height(10).width(500)
         };
-        let episodes_progress = text(format!("{}/{}", 0, self.season.episode_order.unwrap_or(0)));
+        let episodes_progress = text(format!(
+            "{}/{}",
+            tracked_episodes,
+            self.season.episode_order.unwrap_or(0)
+        ));
 
         let expand_button = if self.is_expanded {
             let svg_handle = svg::Handle::from_memory(get_static_cow_from_asset(ARROW_BAR_UP));

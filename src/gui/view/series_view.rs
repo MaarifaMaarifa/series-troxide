@@ -375,8 +375,9 @@ impl Series {
             Message::TrackSeries => {
                 let series = database::Series::new(
                     self.series_information.as_ref().unwrap().name.to_owned(),
+                    self.series_id,
                 );
-                database::DB.track_series(self.series_information.as_ref().unwrap().id, series);
+                database::DB.track_series(self.series_information.as_ref().unwrap().id, &series);
             }
             Message::UntrackSeries => {
                 database::DB.untrack_series(self.series_information.as_ref().unwrap().id);
