@@ -124,7 +124,7 @@ impl Discover {
 }
 
 fn load_new_episodes(discover_view: &Discover) -> Element<'_, Message, Renderer> {
-    let title = text("New Episode Aired today").size(30);
+    let title = text("New Episodes Airing Today").size(25);
     let new_episode = Wrap::with_elements(
         discover_view
             .new_episodes
@@ -136,12 +136,14 @@ fn load_new_episodes(discover_view: &Discover) -> Element<'_, Message, Renderer>
                     .map(move |m| Message::EpisodePosterAction(index, Box::new(m)))
             })
             .collect(),
-    );
+    )
+    .spacing(5.0)
+    .padding(5.0);
     column!(title, new_episode).into()
 }
 
 fn load_series_updates(discover_view: &Discover) -> Element<'_, Message, Renderer> {
-    let title = text("Trending shows").size(30);
+    let title = text("Trending Shows").size(25);
 
     let trending_shows = Wrap::with_elements(
         discover_view
@@ -154,7 +156,9 @@ fn load_series_updates(discover_view: &Discover) -> Element<'_, Message, Rendere
                     .map(move |m| Message::SeriesPosterAction(index, Box::new(m)))
             })
             .collect(),
-    );
+    )
+    .spacing(5.0)
+    .padding(5.0);
     column!(title, trending_shows).into()
 }
 
@@ -247,7 +251,12 @@ mod episode_poster {
             };
 
             if let Some(series_info) = &self.series_belonging {
-                content = content.push(text(&series_info.name).size(15))
+                content = content.push(
+                    text(&series_info.name)
+                        .size(15)
+                        .width(100)
+                        .horizontal_alignment(iced::alignment::Horizontal::Center),
+                )
             }
 
             // content.push(text(&self.episode.name)).into()
@@ -266,8 +275,8 @@ mod series_updates_poster {
 
     use crate::core::api::load_image;
     use crate::core::api::series_information::SeriesMainInformation;
-    use iced::widget::{column, image, mouse_area, text};
-    use iced::{Command, Element, Renderer};
+    use iced::widget::{column, container, image, mouse_area, text};
+    use iced::{Alignment, Command, Element, Length, Renderer};
 
     use super::Message as DiscoverMessage;
 
@@ -332,7 +341,12 @@ mod series_updates_poster {
                 content = content.push(image);
             };
 
-            content = content.push(text(&self.series_information.name).size(15));
+            content = content.push(
+                text(&self.series_information.name)
+                    .size(15)
+                    .width(100)
+                    .horizontal_alignment(iced::alignment::Horizontal::Center),
+            );
 
             // content.push(text(&self.episode.name)).into()
             mouse_area(content)
