@@ -7,8 +7,7 @@ use episode_poster::Message as EpisodePosterMessage;
 use series_updates_poster::Message as SeriesPosterMessage;
 
 use iced::{
-    widget::scrollable::Properties,
-    widget::{column, row, scrollable, text, Row},
+    widget::{column, row, scrollable, text},
     Command, Element, Length, Renderer,
 };
 use iced_aw::wrap::Wrap;
@@ -50,12 +49,14 @@ impl Discover {
                 }
                 self.load_state = LoadState::Loading;
 
-                let series_updates_command =
-                    Command::perform(get_show_updates(UpdateTimestamp::Day, Some(10)), |series| {
+                let series_updates_command = Command::perform(
+                    get_show_updates(UpdateTimestamp::Day, Some(100)),
+                    |series| {
                         GuiMessage::DiscoverAction(Message::SeriesUpdatesLoaded(
                             series.expect("Failed to load series updates"),
                         ))
-                    });
+                    },
+                );
 
                 let new_episodes_command =
                     Command::perform(get_episodes_with_date(None), |episodes| {
@@ -275,8 +276,8 @@ mod series_updates_poster {
 
     use crate::core::api::load_image;
     use crate::core::api::series_information::SeriesMainInformation;
-    use iced::widget::{column, container, image, mouse_area, text};
-    use iced::{Alignment, Command, Element, Length, Renderer};
+    use iced::widget::{column, image, mouse_area, text};
+    use iced::{Command, Element, Renderer};
 
     use super::Message as DiscoverMessage;
 
