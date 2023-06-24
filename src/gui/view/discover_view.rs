@@ -242,7 +242,7 @@ mod episode_poster {
             let mut content = column!().padding(2).spacing(1);
             if let Some(image_bytes) = self.image.clone() {
                 let image_handle = image::Handle::from_memory(image_bytes);
-                let image = image(image_handle).height(120);
+                let image = image(image_handle).width(100);
                 content = content.push(image);
             };
 
@@ -328,7 +328,7 @@ mod series_updates_poster {
             let mut content = column!().padding(2).spacing(1);
             if let Some(image_bytes) = self.image.clone() {
                 let image_handle = image::Handle::from_memory(image_bytes);
-                let image = image(image_handle).height(120);
+                let image = image(image_handle).width(100);
                 content = content.push(image);
             };
 
