@@ -11,6 +11,7 @@ use iced::{
     widget::{column, row, scrollable, text, Row},
     Command, Element, Length, Renderer,
 };
+use iced_aw::wrap::Wrap;
 
 #[derive(Default, PartialEq)]
 enum LoadState {
@@ -110,7 +111,11 @@ impl Discover {
                 .align_items(iced::Alignment::Center)
                 .width(Length::Fill)
                 .into(),
-            LoadState::Loaded => column!(load_new_episodes(self), load_series_updates(self)).into(),
+            LoadState::Loaded => {
+                scrollable(column!(load_new_episodes(self), load_series_updates(self)).spacing(20))
+                    .width(Length::Fill)
+                    .into()
+            }
             LoadState::Waiting => unreachable!(
                 "the Waiting state should be changed when discover view is first viewed"
             ),
@@ -119,7 +124,8 @@ impl Discover {
 }
 
 fn load_new_episodes(discover_view: &Discover) -> Element<'_, Message, Renderer> {
-    scrollable(Row::with_children(
+    let title = text("New Episode Aired today").size(30);
+    let new_episode = Wrap::with_elements(
         discover_view
             .new_episodes
             .iter()
@@ -130,14 +136,14 @@ fn load_new_episodes(discover_view: &Discover) -> Element<'_, Message, Renderer>
                     .map(move |m| Message::EpisodePosterAction(index, Box::new(m)))
             })
             .collect(),
-    ))
-    .width(Length::Fill)
-    .horizontal_scroll(Properties::new().width(0).margin(0).scroller_width(0))
-    .into()
+    );
+    column!(title, new_episode).into()
 }
 
 fn load_series_updates(discover_view: &Discover) -> Element<'_, Message, Renderer> {
-    scrollable(Row::with_children(
+    let title = text("Trending shows").size(30);
+
+    let trending_shows = Wrap::with_elements(
         discover_view
             .series_updates
             .iter()
@@ -148,10 +154,8 @@ fn load_series_updates(discover_view: &Discover) -> Element<'_, Message, Rendere
                     .map(move |m| Message::SeriesPosterAction(index, Box::new(m)))
             })
             .collect(),
-    ))
-    .width(Length::Fill)
-    .horizontal_scroll(Properties::new().width(0).margin(0).scroller_width(0))
-    .into()
+    );
+    column!(title, trending_shows).into()
 }
 
 mod episode_poster {
