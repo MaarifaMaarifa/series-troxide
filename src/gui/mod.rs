@@ -104,6 +104,13 @@ impl Application for TroxideGui {
                     self.view = view::View::Series;
                     return command;
                 }
+                if let DiscoverMessage::SeriesResultSelected(series_id) = message {
+                    let (series_view, command) =
+                        view::series_view::Series::from_series_id(series_id);
+                    self.series_view = Some(series_view);
+                    self.view = view::View::Series;
+                    return command;
+                }
                 self.discover_view.update(message)
             }
             Message::WatchlistAction(_) => todo!(),
