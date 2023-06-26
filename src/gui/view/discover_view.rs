@@ -18,7 +18,6 @@ use iced_aw::{floating_element::Offset, wrap::Wrap};
 #[derive(Default, PartialEq)]
 enum LoadState {
     #[default]
-    Waiting,
     Loading,
     Loaded,
 }
@@ -50,15 +49,33 @@ pub struct Discover {
 }
 
 impl Discover {
+    pub fn new() -> (Self, Command<GuiMessage>) {
+        let series_updates_command = Command::perform(
+            get_show_updates(UpdateTimestamp::Day, Some(100)),
+            |series| {
+                GuiMessage::DiscoverAction(Message::SeriesUpdatesLoaded(
+                    series.expect("Failed to load series updates"),
+                ))
+            },
+        );
+
+        let new_episodes_command = Command::perform(get_episodes_with_date(None), |episodes| {
+            GuiMessage::DiscoverAction(Message::ScheduleLoaded(
+                episodes.expect("Failed to load episodes schedule"),
+            ))
+        });
+
+        (
+            Self::default(),
+            Command::batch([series_updates_command, new_episodes_command]),
+        )
+    }
     pub fn update(&mut self, message: Message) -> Command<GuiMessage> {
         if let searching::LoadState::Loaded = self.search_state.load_state {
             self.show_overlay = true;
         }
         match message {
             Message::LoadSchedule => {
-                if self.load_state != LoadState::Waiting {
-                    return Command::none();
-                }
                 self.load_state = LoadState::Loading;
 
                 let series_updates_command = Command::perform(
@@ -150,9 +167,6 @@ impl Discover {
             )
             .width(Length::Fill))
             .into(),
-            LoadState::Waiting => unreachable!(
-                "the Waiting state should be changed when discover view is first viewed"
-            ),
         };
 
         let offset_distance = Offset { x: -140.0, y: 0.0 };

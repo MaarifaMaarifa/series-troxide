@@ -5,7 +5,6 @@ mod view;
 use view::discover_view::Message as DiscoverMessage;
 use view::menu_view::Message as MenuMessage;
 use view::my_shows_view::Message as MyShowsMessage;
-use view::search_view::Message as SearchMessage;
 use view::series_view::Message as SeriesMessage;
 use view::settings_view::Message as SettingsMessage;
 use view::statistics_view::Message as StatisticsMessage;
@@ -20,7 +19,6 @@ use super::core::settings_config;
 #[derive(Debug, Clone)]
 pub enum Message {
     MenuAction(MenuMessage),
-    SearchAction(SearchMessage),
     DiscoverAction(DiscoverMessage),
     WatchlistAction(WatchlistMessage),
     MyShowsAction(MyShowsMessage),
@@ -33,7 +31,6 @@ pub enum Message {
 pub struct TroxideGui {
     view: view::View,
     menu_view: view::menu_view::Menu,
-    search_view: view::search_view::Search,
     discover_view: view::discover_view::Discover,
     watchlist_view: view::watchlist_view::Watchlist,
     my_shows_view: view::my_shows_view::MyShows,
@@ -49,12 +46,14 @@ impl Application for TroxideGui {
     type Flags = settings_config::Config;
 
     fn new(flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
+        let (discover_view, discover_command) = view::discover_view::Discover::new();
         (
             Self {
                 settings_view: view::settings_view::Settings::new(flags),
+                discover_view: discover_view,
                 ..Self::default()
             },
-            Command::none(),
+            discover_command,
         )
     }
 
@@ -74,27 +73,13 @@ impl Application for TroxideGui {
             Message::MenuAction(message) => {
                 self.menu_view.update(message.clone());
                 match message {
-                    MenuMessage::Search => self.view = view::View::Search,
-                    MenuMessage::Discover => {
-                        self.view = view::View::Discover;
-                        return self.discover_view.update(DiscoverMessage::LoadSchedule);
-                    }
+                    MenuMessage::Discover => self.view = view::View::Discover,
                     MenuMessage::Watchlist => self.view = view::View::Watchlist,
                     MenuMessage::MyShows => self.view = view::View::MyShows,
                     MenuMessage::Statistics => self.view = view::View::Statistics,
                     MenuMessage::Settings => self.view = view::View::Settings,
                 };
                 Command::none()
-            }
-            Message::SearchAction(message) => {
-                if let SearchMessage::SeriesResultPressed(series_id) = message {
-                    let (series_view, command) =
-                        view::series_view::Series::from_series_id(series_id);
-                    self.series_view = Some(series_view);
-                    self.view = view::View::Series;
-                    return command;
-                }
-                self.search_view.update(message)
             }
             Message::DiscoverAction(message) => {
                 if let DiscoverMessage::SeriesSelected(series_information) = message {
@@ -118,7 +103,7 @@ impl Application for TroxideGui {
             Message::StatisticsAction(_) => todo!(),
             Message::SeriesAction(message) => {
                 if let SeriesMessage::GoToSearchPage = message {
-                    self.view = view::View::Search;
+                    self.view = view::View::Discover;
                     return Command::none();
                 };
                 return self
@@ -138,7 +123,6 @@ impl Application for TroxideGui {
         let menu_view = self.menu_view.view().map(Message::MenuAction);
 
         let main_view = match self.view {
-            view::View::Search => self.search_view.view().map(Message::SearchAction),
             view::View::Discover => self.discover_view.view().map(Message::DiscoverAction),
             view::View::MyShows => self.my_shows_view.view().map(Message::MyShowsAction),
             view::View::Statistics => self.statistic_view.view().map(Message::StatisticsAction),

@@ -3,13 +3,12 @@ use iced::{Element, Length, Renderer};
 
 use crate::gui::assets::get_static_cow_from_asset;
 use crate::gui::assets::icons::{
-    BINOCULARS_FILL, CARD_CHECKLIST, FILM, GEAR_WIDE_CONNECTED, GRAPH_UP_ARROW, SEARCH,
+    BINOCULARS_FILL, CARD_CHECKLIST, FILM, GEAR_WIDE_CONNECTED, GRAPH_UP_ARROW,
 };
 
 #[derive(Default, Debug)]
 enum MenuItem {
     #[default]
-    Search,
     Discover,
     Watchlist,
     MyShows,
@@ -19,7 +18,6 @@ enum MenuItem {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    Search,
     Discover,
     Watchlist,
     MyShows,
@@ -39,7 +37,6 @@ impl Menu {
             Message::Watchlist => self.menu_item_selected = MenuItem::Watchlist,
             Message::MyShows => self.menu_item_selected = MenuItem::MyShows,
             Message::Statistics => self.menu_item_selected = MenuItem::Statistics,
-            Message::Search => self.menu_item_selected = MenuItem::Search,
             Message::Settings => self.menu_item_selected = MenuItem::Settings,
         }
     }
@@ -48,7 +45,6 @@ impl Menu {
         column!(
             text("Series Troxide").size(25),
             vertical_space(10),
-            mouse_area(search_widget()).on_press(Message::Search),
             mouse_area(discover_widget()).on_press(Message::Discover),
             mouse_area(watchlist_widget()).on_press(Message::Watchlist),
             mouse_area(my_shows_widget()).on_press(Message::MyShows),
@@ -59,12 +55,6 @@ impl Menu {
         .padding(5)
         .into()
     }
-}
-
-fn search_widget() -> Row<'static, Message, Renderer> {
-    let svg_handle = svg::Handle::from_memory(get_static_cow_from_asset(SEARCH));
-    let search_icon = svg(svg_handle).width(Length::Shrink);
-    row!(search_icon, " Search")
 }
 
 fn discover_widget() -> Row<'static, Message, Renderer> {
