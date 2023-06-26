@@ -55,6 +55,18 @@ impl Database {
             })
             .collect()
     }
+
+    pub fn get_series_id_collection(&self) -> Vec<String> {
+        self.db
+            .iter()
+            .keys()
+            .map(|series| {
+                let series = series.unwrap();
+                // bincode::deserialize(&series).unwrap()
+                String::from_utf8_lossy(&series).into_owned()
+            })
+            .collect()
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -1,3 +1,5 @@
+use tokio::task::JoinHandle;
+
 use super::*;
 
 // The series id goes after the last slash(append at the end of the string)
@@ -56,4 +58,18 @@ pub async fn get_series_main_info_with_id(
     series_id: u32,
 ) -> Result<SeriesMainInformation, ApiError> {
     get_series_main_info_with_url(format!("{}{}", SERIES_INFORMATION_ADDRESS, series_id)).await
+}
+
+pub async fn get_series_main_info_with_ids(series_ids: Vec<String>) -> Vec<SeriesMainInformation> {
+    let handles: Vec<_> = series_ids
+        .iter()
+        .map(|id| tokio::spawn(get_series_main_info_with_id(id.parse().unwrap())))
+        .collect();
+
+    let mut series_infos = Vec::with_capacity(handles.len());
+    for handle in handles {
+        let series_info = handle.await.unwrap().unwrap();
+        series_infos.push(series_info);
+    }
+    series_infos
 }
