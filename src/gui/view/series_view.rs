@@ -16,6 +16,7 @@ use iced::{
     Length, Renderer,
 };
 use iced::{Command, Element};
+use iced_aw::Spinner;
 use season_widget::Message as SeasonMessage;
 
 mod season_widget;
@@ -388,7 +389,12 @@ impl Series {
 
     pub fn view(&self) -> Element<Message, Renderer> {
         match self.load_state {
-            LoadState::Loading => text("Loading..").into(),
+            LoadState::Loading => container(Spinner::new())
+                .height(Length::Fill)
+                .width(Length::Fill)
+                .center_x()
+                .center_y()
+                .into(),
             LoadState::Loaded => {
                 let main_body = series_page(
                     self.series_information.as_ref().unwrap(),
