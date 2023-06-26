@@ -1,5 +1,6 @@
-use iced::widget::{button, checkbox, column, progress_bar, row, svg, text, Column};
+use iced::widget::{button, checkbox, column, container, progress_bar, row, svg, text, Column};
 use iced::{Command, Element, Length, Renderer};
+use iced_aw::Spinner;
 use tokio::task::JoinHandle;
 
 use self::episode_widget::Episode;
@@ -175,18 +176,22 @@ impl Season {
         );
 
         let mut content = column!(content);
-        if self.is_expanded && !self.episodes.is_empty() {
-            content = content.push(Column::with_children(
-                self.episodes
-                    .iter()
-                    .enumerate()
-                    .map(|(index, episode)| {
-                        episode
-                            .view()
-                            .map(move |m| Message::EpisodeAction(index, m))
-                    })
-                    .collect(),
-            ));
+        if self.is_expanded {
+            if self.episodes.is_empty() {
+                content = content.push(container(Spinner::new()))
+            } else {
+                content = content.push(Column::with_children(
+                    self.episodes
+                        .iter()
+                        .enumerate()
+                        .map(|(index, episode)| {
+                            episode
+                                .view()
+                                .map(move |m| Message::EpisodeAction(index, m))
+                        })
+                        .collect(),
+                ));
+            }
         }
 
         content.into()
