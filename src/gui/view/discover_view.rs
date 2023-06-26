@@ -8,11 +8,12 @@ use searching::Message as SearchMessage;
 use series_updates_poster::Message as SeriesPosterMessage;
 
 use iced::{
-    widget::{column, row, scrollable, text},
+    widget::{column, container, row, scrollable, text},
     Command, Element, Length, Renderer,
 };
 
 use iced_aw::floating_element;
+use iced_aw::Spinner;
 use iced_aw::{floating_element::Offset, wrap::Wrap};
 
 #[derive(Default, PartialEq)]
@@ -158,9 +159,11 @@ impl Discover {
 
     pub fn view(&self) -> Element<'_, Message, Renderer> {
         let underlay: Element<'_, Message, Renderer> = match self.load_state {
-            LoadState::Loading => row!(text("loading..."))
-                .align_items(iced::Alignment::Center)
+            LoadState::Loading => container(Spinner::new())
                 .width(Length::Fill)
+                .height(Length::Fill)
+                .center_x()
+                .center_y()
                 .into(),
             LoadState::Loaded => column!(scrollable(
                 column!(load_new_episodes(self), load_series_updates(self)).spacing(20)
