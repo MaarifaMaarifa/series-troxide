@@ -72,9 +72,12 @@ impl Discover {
         )
     }
     pub fn update(&mut self, message: Message) -> Command<GuiMessage> {
-        if let searching::LoadState::Loaded = self.search_state.load_state {
+        if let searching::LoadState::NotLoaded = self.search_state.load_state {
+            self.show_overlay = false;
+        } else {
             self.show_overlay = true;
         }
+
         match message {
             Message::LoadSchedule => {
                 self.load_state = LoadState::Loading;
@@ -433,6 +436,7 @@ mod searching {
         vertical_space, Column,
     };
     use iced::{Command, Element, Length, Renderer};
+    use iced_aw::Spinner;
     use tokio::task::JoinHandle;
 
     use super::Message as DiscoverMessage;
@@ -518,22 +522,26 @@ mod searching {
             .width(Length::Fill)
             .align_items(iced::Alignment::Center);
 
-            let menu_widgets = match self.load_state {
-                LoadState::Loaded => load(
+            let menu_widgets: Element<'_, Message, Renderer> = match self.load_state {
+                LoadState::Loaded => Column::with_children(load(
                     &self.series_search_result,
                     &self.series_search_results_images,
-                ),
-                _ => vec![],
+                ))
+                .padding(20)
+                .spacing(5)
+                .into(),
+                LoadState::Loading => container(Spinner::new())
+                    .height(Length::Fill)
+                    .width(Length::Fill)
+                    .center_x()
+                    .center_y()
+                    .into(),
+                LoadState::NotLoaded => container("").into(),
             };
 
-            let menu_widgets = container(
-                Column::with_children(menu_widgets)
-                    .width(Length::Fill)
-                    .padding(20)
-                    .spacing(5),
-            )
-            .style(theme::Container::Custom(Box::new(ContainerTheme)
-                as Box<dyn container::StyleSheet<Style = iced::theme::Theme>>));
+            let menu_widgets = container(menu_widgets)
+                .style(theme::Container::Custom(Box::new(ContainerTheme)
+                    as Box<dyn container::StyleSheet<Style = iced::theme::Theme>>));
 
             (search_bar.into(), menu_widgets.into())
         }
