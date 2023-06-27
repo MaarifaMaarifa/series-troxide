@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::core::api::series_information;
 use crate::core::{api::series_information::SeriesMainInformation, database};
 use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
@@ -27,23 +29,36 @@ enum LoadState {
 #[derive(Default)]
 pub struct MyShows {
     load_state: LoadState,
+    series_ids: Vec<String>,
     series: Vec<SeriesPoster>,
 }
 
 impl MyShows {
-    pub fn new() -> (Self, Command<Message>) {
-        let series_id = database::DB.get_series_id_collection();
-        let series_information = series_information::get_series_main_info_with_ids(series_id);
+    pub fn refresh(&mut self) -> Command<Message> {
+        let series_ids = database::DB.get_series_id_collection();
+        let fresh_series_ids: HashSet<String> = series_ids
+            .iter()
+            .cloned()
+            .collect();
 
-        (
-            Self {
-                load_state: LoadState::Loading,
-                series: vec![],
-            },
-            Command::perform(series_information, |series_infos| {
+        let current_series_ids: HashSet<String> =
+            self.series_ids.iter().cloned().collect();
+
+        // Preventing my_shows page from reloading when no series updates has occured in the database
+        if (self.series.is_empty() && !series_ids.is_empty())
+            || (fresh_series_ids != current_series_ids)
+        {
+            self.load_state = LoadState::Loading;
+            self.series_ids = series_ids.clone();
+
+            let series_information = series_information::get_series_main_info_with_ids(series_ids);
+
+            return Command::perform(series_information, |series_infos| {
                 Message::SeriesInformationsReceived(series_infos)
-            }),
-        )
+            });
+        } else {
+            Command::none()
+        }
     }
 
     pub fn update(&mut self, message: Message) -> Command<Message> {

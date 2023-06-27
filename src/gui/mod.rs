@@ -76,8 +76,7 @@ impl Application for TroxideGui {
                     MenuMessage::Discover => self.view = view::View::Discover,
                     MenuMessage::Watchlist => self.view = view::View::Watchlist,
                     MenuMessage::MyShows => {
-                        let (view, command) = view::my_shows_view::MyShows::new();
-                        self.my_shows_view = view;
+                        let command = self.my_shows_view.refresh();
                         self.view = view::View::MyShows;
                         return command.map(Message::MyShowsAction);
                     }
