@@ -101,9 +101,16 @@ impl Discover {
                     Message::EpisodePosterAction(message.get_id().unwrap_or(0), message)
                 })
             }
-            Message::EpisodePosterAction(index, message) => self.new_episodes[index]
-                .update(message)
-                .map(move |message| Message::EpisodePosterAction(index, message)),
+            Message::EpisodePosterAction(index, message) => {
+                if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
+                    return Command::perform(async {}, |_| {
+                        Message::SeriesSelected(series_information)
+                    });
+                }
+                self.new_episodes[index]
+                    .update(message)
+                    .map(move |message| Message::EpisodePosterAction(index, message))
+            }
             Message::SeriesUpdatesLoaded(series) => {
                 let mut series_infos = Vec::with_capacity(series.len());
                 let mut series_poster_commands = Vec::with_capacity(series.len());
@@ -119,9 +126,16 @@ impl Discover {
                     Message::SeriesPosterAction(message.get_id().unwrap_or(0), message)
                 })
             }
-            Message::SeriesPosterAction(index, message) => self.series_updates[index]
-                .update(message)
-                .map(move |message| Message::SeriesPosterAction(index, message)),
+            Message::SeriesPosterAction(index, message) => {
+                if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
+                    return Command::perform(async {}, |_| {
+                        Message::SeriesSelected(series_information)
+                    });
+                }
+                self.series_updates[index]
+                    .update(message)
+                    .map(move |message| Message::SeriesPosterAction(index, message))
+            }
             Message::SearchAction(message) => {
                 if let SearchMessage::SeriesResultPressed(series_id) = message {
                     return Command::perform(async {}, move |_| {
