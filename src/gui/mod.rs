@@ -79,7 +79,7 @@ impl Application for TroxideGui {
                         let (view, command) = view::my_shows_view::MyShows::new();
                         self.my_shows_view = view;
                         self.view = view::View::MyShows;
-                        return command;
+                        return command.map(Message::MyShowsAction);
                     }
                     MenuMessage::Statistics => self.view = view::View::Statistics,
                     MenuMessage::Settings => self.view = view::View::Settings,
@@ -104,7 +104,10 @@ impl Application for TroxideGui {
                 self.discover_view.update(message)
             }
             Message::WatchlistAction(_) => todo!(),
-            Message::MyShowsAction(message) => self.my_shows_view.update(message),
+            Message::MyShowsAction(message) => self
+                .my_shows_view
+                .update(message)
+                .map(Message::MyShowsAction),
             Message::StatisticsAction(_) => todo!(),
             Message::SeriesAction(message) => {
                 if let SeriesMessage::GoToSearchPage = message {
