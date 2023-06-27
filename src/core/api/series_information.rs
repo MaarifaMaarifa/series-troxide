@@ -1,5 +1,3 @@
-use tokio::task::JoinHandle;
-
 use super::*;
 
 // The series id goes after the last slash(append at the end of the string)

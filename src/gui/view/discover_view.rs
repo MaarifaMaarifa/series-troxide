@@ -60,13 +60,8 @@ impl Discover {
             Command::batch([series_updates_command, new_episodes_command]),
         )
     }
-    pub fn update(&mut self, message: Message) -> Command<Message> {
-        if let searching::LoadState::NotLoaded = self.search_state.load_state {
-            self.show_overlay = false;
-        } else {
-            self.show_overlay = true;
-        }
 
+    pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::LoadSchedule => {
                 self.load_state = LoadState::Loading;
@@ -103,6 +98,7 @@ impl Discover {
             }
             Message::EpisodePosterAction(index, message) => {
                 if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
+                    self.show_overlay = false;
                     return Command::perform(async {}, |_| {
                         Message::SeriesSelected(series_information)
                     });
@@ -128,6 +124,7 @@ impl Discover {
             }
             Message::SeriesPosterAction(index, message) => {
                 if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
+                    self.show_overlay = false;
                     return Command::perform(async {}, |_| {
                         Message::SeriesSelected(series_information)
                     });
@@ -138,6 +135,7 @@ impl Discover {
             }
             Message::SearchAction(message) => {
                 if let SearchMessage::SeriesResultPressed(series_id) = message {
+                    self.show_overlay = false;
                     return Command::perform(async {}, move |_| {
                         Message::SeriesResultSelected(series_id)
                     });
@@ -279,28 +277,43 @@ mod searching {
             match message {
                 Message::SearchTermChanged(term) => {
                     self.search_term = term;
-                    return Command::none();
+                    return if self.search_term.is_empty() {
+                        self.load_state = LoadState::NotLoaded;
+                        Command::perform(async {}, |_| DiscoverMessage::HideOverlay)
+                    } else {
+                        Command::none()
+                    };
                 }
                 Message::SearchTermSearched => {
                     self.load_state = LoadState::Loading;
 
                     let series_result = series_searching::search_series(self.search_term.clone());
 
-                    return Command::perform(series_result, |res| match res {
+                    let search_status_command = Command::perform(series_result, |res| match res {
                         Ok(res) => DiscoverMessage::SearchAction(Message::SearchSuccess(res)),
                         Err(err) => {
                             println!("{:?}", err);
                             DiscoverMessage::SearchAction(Message::SearchFail)
                         }
                     });
+
+                    let show_overlay_command =
+                        Command::perform(async {}, |_| DiscoverMessage::ShowOverlay);
+
+                    return Command::batch([search_status_command, show_overlay_command]);
                 }
                 Message::SearchSuccess(res) => {
                     self.load_state = LoadState::Loaded;
                     self.series_search_results_images.clear();
                     self.series_search_result = res.clone();
-                    return Command::perform(load_series_result_images(res), |images| {
-                        DiscoverMessage::SearchAction(Message::ImagesLoaded(images))
-                    });
+                    let image_command =
+                        Command::perform(load_series_result_images(res), |images| {
+                            DiscoverMessage::SearchAction(Message::ImagesLoaded(images))
+                        });
+                    let show_overlay_command =
+                        Command::perform(async {}, |_| DiscoverMessage::ShowOverlay);
+
+                    return Command::batch([image_command, show_overlay_command]);
                 }
                 Message::SearchFail => panic!("Series Search Failed"),
                 Message::ImagesLoaded(images) => self.series_search_results_images = images,
