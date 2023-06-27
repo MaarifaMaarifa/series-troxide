@@ -7,29 +7,33 @@ pub const INFO_BODY: u16 = 15;
 
 pub mod series_poster {
 
-    use crate::core::api::load_image;
+    use crate::core::api::episodes_information::Episode;
     use crate::core::api::series_information::SeriesMainInformation;
-    use iced::widget::{column, image, mouse_area, text};
+    use crate::core::api::{get_series_from_episode, load_image, Image};
+    use iced::widget::{column, container, image, mouse_area, text};
     use iced::{Command, Element, Renderer};
 
     #[derive(Clone, Debug)]
     pub enum Message {
         ImageLoaded(usize, Option<Vec<u8>>),
+        SeriesInfoReceived(usize, SeriesMainInformation),
         SeriesPosterPressed(Box<SeriesMainInformation>),
     }
 
     impl Message {
         pub fn get_id(&self) -> Option<usize> {
             if let Self::ImageLoaded(id, _) = self {
-                Some(id.to_owned())
-            } else {
-                None
+                return Some(id.to_owned());
             }
+            if let Self::SeriesInfoReceived(id, _) = self {
+                return Some(id.to_owned());
+            }
+            None
         }
     }
 
     pub struct SeriesPoster {
-        series_information: SeriesMainInformation,
+        series_information: Option<SeriesMainInformation>,
         image: Option<Vec<u8>>,
     }
 
@@ -41,20 +45,29 @@ pub mod series_poster {
             let image_url = series_information.image.clone();
 
             let poster = Self {
-                series_information,
+                series_information: Some(series_information),
                 image: None,
             };
 
-            let series_image_command = if let Some(image) = image_url {
-                Command::perform(
-                    async move { load_image(image.medium_image_url).await },
-                    move |image| Message::ImageLoaded(id, image),
-                )
-            } else {
-                Command::none()
-            };
+            let series_image_command = poster_image_command(id, image_url);
 
             (poster, series_image_command)
+        }
+
+        pub fn from_episode_info(id: usize, episode_info: Episode) -> (Self, Command<Message>) {
+            let poster = Self {
+                series_information: None,
+                image: None,
+            };
+
+            let command =
+                Command::perform(get_series_from_episode(episode_info), move |series_info| {
+                    Message::SeriesInfoReceived(
+                        id,
+                        series_info.expect("failed to get series information"),
+                    )
+                });
+            (poster, command)
         }
 
         pub fn update(&mut self, message: Message) -> Command<Message> {
@@ -62,6 +75,11 @@ pub mod series_poster {
                 Message::ImageLoaded(_, image) => self.image = image,
                 Message::SeriesPosterPressed(_) => {
                     unimplemented!("the series poster should not handle being pressed")
+                }
+                Message::SeriesInfoReceived(id, series_info) => {
+                    let image_url = series_info.image.clone();
+                    self.series_information = Some(series_info);
+                    return poster_image_command(id, image_url);
                 }
             }
             Command::none()
@@ -75,18 +93,31 @@ pub mod series_poster {
                 content = content.push(image);
             };
 
-            content = content.push(
-                text(&self.series_information.name)
-                    .size(15)
-                    .width(100)
-                    .horizontal_alignment(iced::alignment::Horizontal::Center),
-            );
+            if let Some(series_info) = &self.series_information {
+                content = content.push(
+                    text(&series_info.name)
+                        .size(15)
+                        .width(100)
+                        .horizontal_alignment(iced::alignment::Horizontal::Center),
+                );
 
-            mouse_area(content)
-                .on_press(Message::SeriesPosterPressed(Box::new(
-                    self.series_information.clone(),
-                )))
-                .into()
+                mouse_area(content)
+                    .on_press(Message::SeriesPosterPressed(Box::new(series_info.clone())))
+                    .into()
+            } else {
+                container("").into()
+            }
+        }
+    }
+
+    fn poster_image_command(id: usize, image: Option<Image>) -> Command<Message> {
+        if let Some(image) = image {
+            Command::perform(
+                async move { load_image(image.medium_image_url).await },
+                move |image| Message::ImageLoaded(id, image),
+            )
+        } else {
+            Command::none()
         }
     }
 }

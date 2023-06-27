@@ -115,3 +115,9 @@ async fn random_async_sleep() {
     let random_val = rand::random::<u64>() / 100_000_000_000_000_000;
     tokio::time::sleep(std::time::Duration::from_millis(random_val)).await;
 }
+
+pub async fn get_series_from_episode(
+    episode_info: episodes_information::Episode,
+) -> Result<series_information::SeriesMainInformation, ApiError> {
+    series_information::get_series_main_info_with_url(episode_info.links.show.href).await
+}
