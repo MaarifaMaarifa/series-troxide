@@ -106,10 +106,18 @@ impl Application for TroxideGui {
                     .map(Message::DiscoverAction)
             }
             Message::WatchlistAction(_) => todo!(),
-            Message::MyShowsAction(message) => self
-                .my_shows_view
-                .update(message)
-                .map(Message::MyShowsAction),
+            Message::MyShowsAction(message) => {
+                if let MyShowsMessage::SeriesSelected(series_information) = message {
+                    let (series_view, command) =
+                        view::series_view::Series::from_series_information(*series_information);
+                    self.series_view = Some(series_view);
+                    self.view = view::View::Series;
+                    return command;
+                }
+                self.my_shows_view
+                    .update(message)
+                    .map(Message::MyShowsAction)
+            }
             Message::StatisticsAction(_) => todo!(),
             Message::SeriesAction(message) => {
                 if let SeriesMessage::GoToSearchPage = message {

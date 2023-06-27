@@ -52,9 +52,12 @@ impl MyShows {
                 unimplemented!("My shows page should not handle selecting a series poster")
             }
             Message::SeriesPosterAction(index, message) => {
+                if let SeriesPosterMessage::SeriesPosterPressed(series_info) = message {
+                    return Command::perform(async {}, |_| Message::SeriesSelected(series_info));
+                }
                 return self.series[index]
                     .update(message)
-                    .map(move |message| Message::SeriesPosterAction(index, message))
+                    .map(move |message| Message::SeriesPosterAction(index, message));
             }
             Message::SeriesInformationsReceived(series_infos) => {
                 self.load_state = LoadState::Loaded;
