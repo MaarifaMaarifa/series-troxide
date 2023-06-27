@@ -51,14 +51,12 @@ pub struct Discover {
 
 impl Discover {
     pub fn new() -> (Self, Command<GuiMessage>) {
-        let series_updates_command = Command::perform(
-            get_show_updates(UpdateTimestamp::Day, Some(100)),
-            |series| {
+        let series_updates_command =
+            Command::perform(get_show_updates(UpdateTimestamp::Day, Some(50)), |series| {
                 GuiMessage::DiscoverAction(Message::SeriesUpdatesLoaded(
                     series.expect("Failed to load series updates"),
                 ))
-            },
-        );
+            });
 
         let new_episodes_command = Command::perform(get_episodes_with_date(None), |episodes| {
             GuiMessage::DiscoverAction(Message::ScheduleLoaded(
