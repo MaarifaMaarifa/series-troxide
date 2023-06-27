@@ -53,7 +53,7 @@ impl Application for TroxideGui {
                 discover_view: discover_view,
                 ..Self::default()
             },
-            discover_command,
+            discover_command.map(Message::DiscoverAction),
         )
     }
 
