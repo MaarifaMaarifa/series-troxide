@@ -50,7 +50,7 @@ impl Application for TroxideGui {
         (
             Self {
                 settings_view: view::settings_view::Settings::new(flags),
-                discover_view: discover_view,
+                discover_view,
                 ..Self::default()
             },
             discover_command.map(Message::DiscoverAction),
