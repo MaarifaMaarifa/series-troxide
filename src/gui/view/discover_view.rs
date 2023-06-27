@@ -2,13 +2,13 @@ use crate::core::api::episodes_information::Episode;
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::api::tv_schedule::get_episodes_with_date;
 use crate::core::api::updates::show_updates::*;
+use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
 use crate::gui::Message as GuiMessage;
 use episode_poster::Message as EpisodePosterMessage;
 use searching::Message as SearchMessage;
-use series_updates_poster::Message as SeriesPosterMessage;
 
 use iced::{
-    widget::{column, container, row, scrollable, text},
+    widget::{column, container, scrollable, text},
     Command, Element, Length, Renderer,
 };
 
@@ -32,7 +32,7 @@ pub enum Message {
         /*episode poster index*/ usize,
         Box<EpisodePosterMessage>,
     ),
-    SeriesPosterAction(/*series poster index*/ usize, Box<SeriesPosterMessage>),
+    SeriesPosterAction(/*series poster index*/ usize, SeriesPosterMessage),
     SearchAction(SearchMessage),
     SeriesSelected(/*series_id*/ Box<SeriesMainInformation>),
     SeriesResultSelected(/*series_id*/ u32),
@@ -46,7 +46,7 @@ pub struct Discover {
     show_overlay: bool,
     search_state: searching::Search,
     new_episodes: Vec<episode_poster::EpisodePoster>,
-    series_updates: Vec<series_updates_poster::SeriesPoster>,
+    series_updates: Vec<SeriesPoster>,
 }
 
 impl Discover {
@@ -69,7 +69,7 @@ impl Discover {
             Command::batch([series_updates_command, new_episodes_command]),
         )
     }
-    pub fn update(&mut self, message: Message) -> Command<GuiMessage> {
+    pub fn update(&mut self, message: Message) -> Command<Message> {
         if let searching::LoadState::NotLoaded = self.search_state.load_state {
             self.show_overlay = false;
         } else {
@@ -83,17 +83,13 @@ impl Discover {
                 let series_updates_command = Command::perform(
                     get_show_updates(UpdateTimestamp::Day, Some(100)),
                     |series| {
-                        GuiMessage::DiscoverAction(Message::SeriesUpdatesLoaded(
-                            series.expect("Failed to load series updates"),
-                        ))
+                        Message::SeriesUpdatesLoaded(series.expect("Failed to load series updates"))
                     },
                 );
 
                 let new_episodes_command =
                     Command::perform(get_episodes_with_date(None), |episodes| {
-                        GuiMessage::DiscoverAction(Message::ScheduleLoaded(
-                            episodes.expect("Failed to load episodes schedule"),
-                        ))
+                        Message::ScheduleLoaded(episodes.expect("Failed to load episodes schedule"))
                     });
 
                 Command::batch([series_updates_command, new_episodes_command])
@@ -110,36 +106,36 @@ impl Discover {
                 }
 
                 self.new_episodes = episode_posters;
-                Command::batch(commands).map(GuiMessage::DiscoverAction)
+                Command::batch(commands)
             }
-            Message::EpisodePosterAction(index, message) => self.new_episodes[index]
-                .update(*message)
-                .map(GuiMessage::DiscoverAction),
+            Message::EpisodePosterAction(index, message) => {
+                self.new_episodes[index].update(*message)
+            }
             Message::SeriesUpdatesLoaded(series) => {
                 let mut series_infos = Vec::with_capacity(series.len());
                 let mut series_poster_commands = Vec::with_capacity(series.len());
                 for (index, series_info) in series.into_iter().enumerate() {
                     let (series_poster, series_poster_command) =
-                        series_updates_poster::SeriesPoster::new(index, series_info);
+                        SeriesPoster::new(index, series_info);
                     series_infos.push(series_poster);
                     series_poster_commands.push(series_poster_command);
                 }
                 self.series_updates = series_infos;
 
-                Command::batch(series_poster_commands).map(GuiMessage::DiscoverAction)
+                Command::batch(series_poster_commands).map(|message| {
+                    Message::SeriesPosterAction(message.get_id().unwrap_or(0), message)
+                })
             }
             Message::SeriesPosterAction(index, message) => self.series_updates[index]
-                .update(*message)
-                .map(GuiMessage::DiscoverAction),
+                .update(message)
+                .map(move |message| Message::SeriesPosterAction(index, message)),
             Message::SearchAction(message) => {
                 if let SearchMessage::SeriesResultPressed(series_id) = message {
                     return Command::perform(async {}, move |_| {
-                        GuiMessage::DiscoverAction(Message::SeriesResultSelected(series_id))
+                        Message::SeriesResultSelected(series_id)
                     });
                 };
-                self.search_state
-                    .update(message)
-                    .map(GuiMessage::DiscoverAction)
+                self.search_state.update(message)
             }
             Message::ShowOverlay => {
                 self.show_overlay = true;
@@ -221,7 +217,7 @@ fn load_series_updates(discover_view: &Discover) -> Element<'_, Message, Rendere
             .map(|(index, poster)| {
                 poster
                     .view()
-                    .map(move |m| Message::SeriesPosterAction(index, Box::new(m)))
+                    .map(move |m| Message::SeriesPosterAction(index, m))
             })
             .collect(),
     )
@@ -335,93 +331,6 @@ mod episode_poster {
             } else {
                 content.into()
             }
-        }
-    }
-}
-
-mod series_updates_poster {
-
-    use crate::core::api::load_image;
-    use crate::core::api::series_information::SeriesMainInformation;
-    use iced::widget::{column, image, mouse_area, text};
-    use iced::{Command, Element, Renderer};
-
-    use super::Message as DiscoverMessage;
-
-    #[derive(Clone, Debug)]
-    pub enum Message {
-        ImageLoaded(Option<Vec<u8>>),
-        SeriesPosterPressed(/*series_id*/ Box<SeriesMainInformation>),
-    }
-
-    pub struct SeriesPoster {
-        //index: usize,
-        series_information: SeriesMainInformation,
-        image: Option<Vec<u8>>,
-    }
-
-    impl SeriesPoster {
-        pub fn new(
-            index: usize,
-            series_information: SeriesMainInformation,
-        ) -> (Self, Command<DiscoverMessage>) {
-            let image_url = series_information.image.clone();
-
-            let poster = Self {
-                series_information,
-                image: None,
-            };
-
-            let series_image_command = if let Some(image) = image_url {
-                Command::perform(
-                    async move { load_image(image.medium_image_url).await },
-                    move |image| {
-                        DiscoverMessage::SeriesPosterAction(
-                            index,
-                            Box::new(Message::ImageLoaded(image)),
-                        )
-                    },
-                )
-            } else {
-                Command::none()
-            };
-
-            (poster, series_image_command)
-        }
-
-        pub fn update(&mut self, message: Message) -> Command<DiscoverMessage> {
-            match message {
-                Message::ImageLoaded(image) => self.image = image,
-                Message::SeriesPosterPressed(series_information) => {
-                    return Command::perform(async {}, move |_| {
-                        DiscoverMessage::SeriesSelected(series_information)
-                    })
-                }
-            }
-            Command::none()
-        }
-
-        pub fn view(&self) -> Element<'_, Message, Renderer> {
-            let mut content = column!().padding(2).spacing(1);
-            if let Some(image_bytes) = self.image.clone() {
-                let image_handle = image::Handle::from_memory(image_bytes);
-                let image = image(image_handle).width(100);
-                content = content.push(image);
-            };
-
-            content = content.push(
-                text(&self.series_information.name)
-                    .size(15)
-                    .width(100)
-                    .horizontal_alignment(iced::alignment::Horizontal::Center),
-            );
-
-            // content.push(text(&self.episode.name)).into()
-            mouse_area(content)
-                .on_press(Message::SeriesPosterPressed(Box::new(
-                    self.series_information.clone(),
-                )))
-                .into()
         }
     }
 }

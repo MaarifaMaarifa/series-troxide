@@ -101,7 +101,9 @@ impl Application for TroxideGui {
                     self.view = view::View::Series;
                     return command;
                 }
-                self.discover_view.update(message)
+                self.discover_view
+                    .update(message)
+                    .map(Message::DiscoverAction)
             }
             Message::WatchlistAction(_) => todo!(),
             Message::MyShowsAction(message) => self
