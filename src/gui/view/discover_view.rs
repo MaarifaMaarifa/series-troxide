@@ -143,7 +143,11 @@ impl Discover {
                 .center_y()
                 .into(),
             LoadState::Loaded => column!(scrollable(
-                column!(load_new_episodes(self), load_series_updates(self)).spacing(20)
+                column!(
+                    series_posters_loader("Shows Airing Today", &self.new_episodes),
+                    series_posters_loader("Shows Updates", &self.series_updates),
+                )
+                .spacing(20)
             )
             .width(Length::Fill))
             .into(),
@@ -181,43 +185,26 @@ fn load_discover_schedule_command() -> Command<Message> {
     Command::batch([series_updates_command, new_episodes_command])
 }
 
-fn load_new_episodes(discover_view: &Discover) -> Element<'_, Message, Renderer> {
-    let title = text("New Episodes Airing Today").size(25);
-    let new_episode = Wrap::with_elements(
-        discover_view
-            .new_episodes
+/// wraps the given series posters and places a title above them
+fn series_posters_loader<'a>(
+    title: &str,
+    posters: &'a Vec<SeriesPoster>,
+) -> Element<'a, Message, Renderer> {
+    let title = text(title).size(25);
+
+    let wrapped_posters = Wrap::with_elements(
+        posters
             .iter()
-            .enumerate()
-            .map(|(index, poster)| {
-                poster
-                    .view()
-                    .map(move |m| Message::EpisodePosterAction(index, m))
+            .map(|poster| {
+                poster.view().map(|message| {
+                    Message::SeriesPosterAction(message.get_id().unwrap_or(0), message)
+                })
             })
             .collect(),
     )
     .spacing(5.0)
     .padding(5.0);
-    column!(title, new_episode).into()
-}
-
-fn load_series_updates(discover_view: &Discover) -> Element<'_, Message, Renderer> {
-    let title = text("Trending Shows").size(25);
-
-    let trending_shows = Wrap::with_elements(
-        discover_view
-            .series_updates
-            .iter()
-            .enumerate()
-            .map(|(index, poster)| {
-                poster
-                    .view()
-                    .map(move |m| Message::SeriesPosterAction(index, m))
-            })
-            .collect(),
-    )
-    .spacing(5.0)
-    .padding(5.0);
-    column!(title, trending_shows).into()
+    column!(title, wrapped_posters).into()
 }
 
 mod searching {
