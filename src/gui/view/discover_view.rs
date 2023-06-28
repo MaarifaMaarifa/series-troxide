@@ -46,39 +46,14 @@ pub struct Discover {
 
 impl Discover {
     pub fn new() -> (Self, Command<Message>) {
-        let series_updates_command =
-            Command::perform(get_show_updates(UpdateTimestamp::Day, Some(5)), |series| {
-                Message::SeriesUpdatesLoaded(series.expect("Failed to load series updates"))
-            });
-
-        let new_episodes_command = Command::perform(get_episodes_with_date(None), |episodes| {
-            Message::ScheduleLoaded(episodes.expect("Failed to load episodes schedule"))
-        });
-
-        (
-            Self::default(),
-            Command::batch([series_updates_command, new_episodes_command]),
-        )
+        (Self::default(), load_discover_schedule_command())
     }
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::LoadSchedule => {
                 self.load_state = LoadState::Loading;
-
-                let series_updates_command = Command::perform(
-                    get_show_updates(UpdateTimestamp::Day, Some(100)),
-                    |series| {
-                        Message::SeriesUpdatesLoaded(series.expect("Failed to load series updates"))
-                    },
-                );
-
-                let new_episodes_command =
-                    Command::perform(get_episodes_with_date(None), |episodes| {
-                        Message::ScheduleLoaded(episodes.expect("Failed to load episodes schedule"))
-                    });
-
-                Command::batch([series_updates_command, new_episodes_command])
+                load_discover_schedule_command()
             }
             Message::ScheduleLoaded(episodes) => {
                 self.load_state = LoadState::Loaded;
@@ -190,6 +165,20 @@ impl Discover {
         .spacing(2)
         .into()
     }
+}
+
+/// loads the shows updates and the scheduled episodes of the discover view
+fn load_discover_schedule_command() -> Command<Message> {
+    let series_updates_command =
+        Command::perform(get_show_updates(UpdateTimestamp::Day, Some(5)), |series| {
+            Message::SeriesUpdatesLoaded(series.expect("failed to load series updates"))
+        });
+
+    let new_episodes_command = Command::perform(get_episodes_with_date(None), |episodes| {
+        Message::ScheduleLoaded(episodes.expect("failed to load episodes schedule"))
+    });
+
+    Command::batch([series_updates_command, new_episodes_command])
 }
 
 fn load_new_episodes(discover_view: &Discover) -> Element<'_, Message, Renderer> {
