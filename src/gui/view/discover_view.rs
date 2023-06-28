@@ -1,6 +1,6 @@
 use crate::core::api::episodes_information::Episode;
 use crate::core::api::series_information::SeriesMainInformation;
-use crate::core::api::tv_schedule::get_episodes_with_date;
+use crate::core::api::tv_schedule::{get_episodes_with_country, get_episodes_with_date};
 use crate::core::api::updates::show_updates::*;
 use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
 use searching::Message as SearchMessage;
@@ -25,8 +25,10 @@ enum LoadState {
 pub enum Message {
     LoadSchedule,
     ScheduleLoaded(Vec<Episode>),
+    CountryScheduleLoaded(Vec<Episode>),
     SeriesUpdatesLoaded(Vec<SeriesMainInformation>),
     EpisodePosterAction(/*episode poster index*/ usize, SeriesPosterMessage),
+    CountryEpisodePosterAction(/*episode poster index*/ usize, SeriesPosterMessage),
     SeriesPosterAction(/*series poster index*/ usize, SeriesPosterMessage),
     SearchAction(SearchMessage),
     SeriesSelected(/*series_id*/ Box<SeriesMainInformation>),
@@ -41,6 +43,7 @@ pub struct Discover {
     show_overlay: bool,
     search_state: searching::Search,
     new_episodes: Vec<SeriesPoster>,
+    new_country_episodes: Vec<SeriesPoster>,
     series_updates: Vec<SeriesPoster>,
 }
 
@@ -131,6 +134,32 @@ impl Discover {
             Message::SeriesResultSelected(_) => {
                 unreachable!("Discover View should not handle Series View")
             }
+            Message::CountryScheduleLoaded(episodes) => {
+                self.load_state = LoadState::Loaded;
+
+                let mut episode_posters = Vec::with_capacity(episodes.len());
+                let mut commands = Vec::with_capacity(episodes.len());
+                for (index, episode) in episodes.into_iter().enumerate() {
+                    let (poster, command) = SeriesPoster::from_episode_info(index, episode);
+                    episode_posters.push(poster);
+                    commands.push(command);
+                }
+                self.new_country_episodes = episode_posters;
+                Command::batch(commands).map(|message| {
+                    Message::CountryEpisodePosterAction(message.get_id().unwrap_or(0), message)
+                })
+            }
+            Message::CountryEpisodePosterAction(index, message) => {
+                if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
+                    self.show_overlay = false;
+                    return Command::perform(async {}, |_| {
+                        Message::SeriesSelected(series_information)
+                    });
+                }
+                self.new_country_episodes[index]
+                    .update(message)
+                    .map(move |message| Message::CountryEpisodePosterAction(index, message))
+            }
         }
     }
 
@@ -145,6 +174,7 @@ impl Discover {
             LoadState::Loaded => column!(scrollable(
                 column!(
                     series_posters_loader("Shows Airing Today", &self.new_episodes),
+                    series_posters_loader("Shows Airing Today in US", &self.new_country_episodes),
                     series_posters_loader("Shows Updates", &self.series_updates),
                 )
                 .spacing(20)
@@ -182,7 +212,16 @@ fn load_discover_schedule_command() -> Command<Message> {
         Message::ScheduleLoaded(episodes.expect("failed to load episodes schedule"))
     });
 
-    Command::batch([series_updates_command, new_episodes_command])
+    let new_country_episodes_command =
+        Command::perform(get_episodes_with_country("US"), |episodes| {
+            Message::CountryScheduleLoaded(episodes.expect("failed to load episodes schedule"))
+        });
+
+    Command::batch([
+        series_updates_command,
+        new_episodes_command,
+        new_country_episodes_command,
+    ])
 }
 
 /// wraps the given series posters and places a title above them
