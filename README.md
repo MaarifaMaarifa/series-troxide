@@ -11,10 +11,15 @@ Series Troxide is in the very early stages of development. A lot of stuffs can a
 ## Installation
 Binaries will be provided when the program starts becoming usable. For now, you can test it out by compiling it from source assuming you have Cargo and Rustc set up on your machine. You can check the [guide](https://rustup.rs/) incase you're not setup.
 
+### Building the latest from the main branch.
 ```shell
 git clone https://github.com/MaarifaMaarifa/series-troxide
 cd series-troxide
 cargo install --path .
+```
+### Installing from crates.io
+```shell
+cargo install series-troxide
 ```
 
 ## Credit
