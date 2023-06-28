@@ -8,7 +8,7 @@ const SCHEDULE_ON_DATE_ADDRESS: &str = "https://api.tvmaze.com/schedule/web?date
 
 /// retrieves episodes aired on the current day at a particular country provided in ISO 3166-1
 // replace "COUNTRY" with an actual country ISO in ISO 3166-1 format
-const SCHEDULE_WITH_COUNTRY: &str = "https://api.tvmaze.com/schedule/web?country=COUNTRY";
+const SCHEDULE_WITH_COUNTRY: &str = "https://api.tvmaze.com/schedule?country=COUNTRY";
 
 /// Retrieves episodes aired on a specific date through the provided optional &str
 /// If None is supplied, it will default the the current day
