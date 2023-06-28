@@ -3,7 +3,8 @@ use std::collections::HashSet;
 use crate::core::api::series_information;
 use crate::core::{api::series_information::SeriesMainInformation, database};
 use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
-use iced::widget::container;
+use crate::gui::troxide_widget::{GREEN_THEME, RED_THEME};
+use iced::widget::{container, scrollable};
 use iced_aw::{Spinner, Wrap};
 
 use iced::Length;
@@ -11,6 +12,8 @@ use iced::{
     widget::{column, text},
     Command, Element, Renderer,
 };
+
+use super::series_view::SeriesStatus;
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -36,13 +39,9 @@ pub struct MyShows {
 impl MyShows {
     pub fn refresh(&mut self) -> Command<Message> {
         let series_ids = database::DB.get_series_id_collection();
-        let fresh_series_ids: HashSet<String> = series_ids
-            .iter()
-            .cloned()
-            .collect();
+        let fresh_series_ids: HashSet<String> = series_ids.iter().cloned().collect();
 
-        let current_series_ids: HashSet<String> =
-            self.series_ids.iter().cloned().collect();
+        let current_series_ids: HashSet<String> = self.series_ids.iter().cloned().collect();
 
         // Preventing my_shows page from reloading when no series updates has occured in the database
         if (self.series.is_empty() && !series_ids.is_empty())
@@ -95,8 +94,6 @@ impl MyShows {
     }
 
     pub fn view(&self) -> Element<Message, Renderer> {
-        let title = text("Tracked Shows").size(30);
-
         match self.load_state {
             LoadState::Loading => container(Spinner::new())
                 .width(Length::Fill)
@@ -104,22 +101,43 @@ impl MyShows {
                 .center_x()
                 .center_y()
                 .into(),
-            LoadState::Loaded => column!(
-                title,
-                Wrap::with_elements(
-                    self.series
-                        .iter()
-                        .enumerate()
-                        .map(|(index, poster)| poster
-                            .view()
-                            .map(move |message| { Message::SeriesPosterAction(index, message) }))
-                        .collect()
+            LoadState::Loaded => {
+                let running_shows =
+                    Wrap::with_elements(Self::filter_posters(&self.series, SeriesStatus::Running))
+                        .spacing(5.0)
+                        .padding(5.0);
+                let ended_shows =
+                    Wrap::with_elements(Self::filter_posters(&self.series, SeriesStatus::Ended))
+                        .spacing(5.0)
+                        .padding(5.0);
+
+                let content = column!(
+                    text("Running").size(20).style(GREEN_THEME),
+                    running_shows,
+                    text("Ended").size(20).style(RED_THEME),
+                    ended_shows
                 )
                 .spacing(5.0)
-                .padding(5.0)
-            )
-            .padding(5)
-            .into(),
+                .width(Length::Fill)
+                .padding(5.0);
+
+                scrollable(content).into()
+            }
         }
+    }
+
+    fn filter_posters(
+        posters: &Vec<SeriesPoster>,
+        status: SeriesStatus,
+    ) -> Vec<Element<'_, Message, Renderer>> {
+        posters
+            .iter()
+            .filter(|poster| poster.get_status().unwrap() == status)
+            .map(|poster| {
+                poster.view().map(|message| {
+                    Message::SeriesPosterAction(message.get_id().unwrap_or(0), message)
+                })
+            })
+            .collect()
     }
 }

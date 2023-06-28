@@ -5,11 +5,18 @@ pub const INFO_BODY: u16 = 15;
 
 // const INFO_BODY_HEIGHT: u16 = INFO_HEADER - (INFO_HEADER - INFO_BODY);
 
+const RED_COLOR: iced::Color = iced::Color::from_rgb(2.55, 0.0, 0.0);
+const GREEN_COLOR: iced::Color = iced::Color::from_rgb(0.0, 1.28, 0.0);
+
+pub const RED_THEME: iced::theme::Text = iced::theme::Text::Color(RED_COLOR);
+pub const GREEN_THEME: iced::theme::Text = iced::theme::Text::Color(GREEN_COLOR);
+
 pub mod series_poster {
 
     use crate::core::api::episodes_information::Episode;
     use crate::core::api::series_information::SeriesMainInformation;
     use crate::core::api::{get_series_from_episode, load_image, Image};
+    use crate::gui::view::series_view::SeriesStatus;
     use iced::widget::{column, container, image, mouse_area, text};
     use iced::{Command, Element, Renderer};
 
@@ -107,6 +114,12 @@ pub mod series_poster {
             } else {
                 container("").into()
             }
+        }
+
+        pub fn get_status(&self) -> Option<SeriesStatus> {
+            self.series_information
+                .as_ref()
+                .map(|series_info| SeriesStatus::new(&series_info))
         }
     }
 

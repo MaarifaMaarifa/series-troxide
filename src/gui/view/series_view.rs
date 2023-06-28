@@ -5,7 +5,7 @@ use crate::core::api::{load_image, Image};
 use crate::core::database;
 use crate::gui::assets::get_static_cow_from_asset;
 use crate::gui::assets::icons::{ARROW_LEFT, CHECK_CIRCLE, CHECK_CIRCLE_FILL};
-use crate::gui::troxide_widget::{INFO_BODY, INFO_HEADER};
+use crate::gui::troxide_widget::{GREEN_THEME, INFO_BODY, INFO_HEADER, RED_THEME};
 use crate::gui::Message as GuiMessage;
 use iced::widget::scrollable::Properties;
 use iced::widget::{svg, Column, Row};
@@ -21,7 +21,8 @@ use season_widget::Message as SeasonMessage;
 
 mod season_widget;
 
-enum SeriesStatus {
+#[derive(PartialEq)]
+pub enum SeriesStatus {
     Running,
     Ended,
     ToBeDetermined,
@@ -30,7 +31,7 @@ enum SeriesStatus {
 }
 
 impl SeriesStatus {
-    fn new(series_info: &SeriesMainInformation) -> Self {
+    pub fn new(series_info: &SeriesMainInformation) -> Self {
         match series_info.status.as_ref() {
             "Running" => Self::Running,
             "Ended" => Self::Ended,
@@ -40,12 +41,6 @@ impl SeriesStatus {
         }
     }
 }
-
-const RED_COLOR: iced::Color = iced::Color::from_rgb(2.55, 0.0, 0.0);
-const GREEN_COLOR: iced::Color = iced::Color::from_rgb(0.0, 1.28, 0.0);
-
-const RED_THEME: iced::theme::Text = iced::theme::Text::Color(RED_COLOR);
-const GREEN_THEME: iced::theme::Text = iced::theme::Text::Color(GREEN_COLOR);
 
 fn status_widget(series_info: &SeriesMainInformation) -> iced::widget::Row<'_, Message, Renderer> {
     let row = row!(text("Status: ").size(INFO_HEADER));
