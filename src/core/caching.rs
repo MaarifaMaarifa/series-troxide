@@ -8,7 +8,7 @@ use lazy_static::lazy_static;
 use tokio::fs;
 use tracing::info;
 
-const CACHE_DIRECTORY: &str = "series-troxide-data";
+const SERIES_CACHE_DIRECTORY: &str = "series-troxide-series-data";
 
 lazy_static! {
     pub static ref CACHER: Cacher = Cacher::init();
@@ -23,7 +23,7 @@ impl Cacher {
         info!("opening cache");
         if let Some(proj_dir) = ProjectDirs::from("", "", env!("CARGO_PKG_NAME")) {
             let mut cache_path = path::PathBuf::from(&proj_dir.data_dir());
-            cache_path.push(CACHE_DIRECTORY);
+            cache_path.push(SERIES_CACHE_DIRECTORY);
 
             return Self { cache_path };
         } else {
