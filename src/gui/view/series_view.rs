@@ -5,7 +5,6 @@ use crate::core::{caching, database};
 use crate::gui::assets::get_static_cow_from_asset;
 use crate::gui::assets::icons::{ARROW_LEFT, CHECK_CIRCLE, CHECK_CIRCLE_FILL};
 use crate::gui::troxide_widget::{GREEN_THEME, INFO_BODY, INFO_HEADER, RED_THEME};
-use crate::gui::Message as GuiMessage;
 
 use cast_widget::CastWidget;
 use cast_widget::Message as CastWidgetMessage;
@@ -300,7 +299,7 @@ pub struct Series {
 
 impl Series {
     /// Counstruct the series page by providing it with id
-    pub fn from_series_id(series_id: u32) -> (Self, Command<GuiMessage>) {
+    pub fn from_series_id(series_id: u32) -> (Self, Command<Message>) {
         let (cast_widget, cast_widget_command) = CastWidget::new(series_id);
         let series = Self {
             series_id,
@@ -314,9 +313,9 @@ impl Series {
         let series_command = Command::perform(
             caching::series_information::get_series_main_info_with_id(series_id),
             |info| {
-                GuiMessage::SeriesAction(Message::SeriesInfoObtained(Box::new(
+                Message::SeriesInfoObtained(Box::new(
                     info.expect("Failed to load series information"),
-                )))
+                ))
             },
         );
 
@@ -324,9 +323,7 @@ impl Series {
             series,
             Command::batch([
                 series_command,
-                cast_widget_command
-                    .map(Message::CastWidgetAction)
-                    .map(GuiMessage::SeriesAction),
+                cast_widget_command.map(Message::CastWidgetAction),
             ]),
         )
     }
@@ -334,7 +331,7 @@ impl Series {
     /// Counstruct the series page by providing it with SeriesMainInformation
     pub fn from_series_information(
         series_information: SeriesMainInformation,
-    ) -> (Self, Command<GuiMessage>) {
+    ) -> (Self, Command<Message>) {
         let series_id = series_information.id;
         let (cast_widget, cast_widget_command) = CastWidget::new(series_id);
         let series_image = series_information.image.clone();
@@ -349,15 +346,13 @@ impl Series {
 
         let commands = [
             Command::batch(get_image_and_seasons(series_image, series_id)),
-            cast_widget_command
-                .map(Message::CastWidgetAction)
-                .map(GuiMessage::SeriesAction),
+            cast_widget_command.map(Message::CastWidgetAction),
         ];
 
         (series, Command::batch(commands))
     }
 
-    pub fn update(&mut self, message: Message) -> Command<GuiMessage> {
+    pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::SeriesInfoObtained(info) => {
                 self.load_state = LoadState::Loaded;
@@ -370,9 +365,7 @@ impl Series {
                 self.series_image = image;
             }
             Message::GoToSearchPage => {
-                return Command::perform(async {}, |_| {
-                    GuiMessage::SeriesAction(Message::GoToSearchPage)
-                })
+                return Command::perform(async {}, |_| Message::GoToSearchPage)
             }
             Message::SeasonsLoaded(season_list) => {
                 self.season_widgets = season_list
@@ -384,9 +377,7 @@ impl Series {
                     .collect()
             }
             Message::SeasonAction(index, message) => {
-                return self.season_widgets[index]
-                    .update(*message)
-                    .map(GuiMessage::SeriesAction);
+                return self.season_widgets[index].update(*message);
             }
             Message::TrackSeries => {
                 let series = database::Series::new(
@@ -403,7 +394,6 @@ impl Series {
                     .cast_widget
                     .update(message)
                     .map(Message::CastWidgetAction)
-                    .map(GuiMessage::SeriesAction)
             }
         }
         Command::none()
@@ -455,19 +445,17 @@ impl Series {
 fn get_image_and_seasons(
     series_info_image: Option<Image>,
     series_id: u32,
-) -> [Command<GuiMessage>; 2] {
+) -> [Command<Message>; 2] {
     let image_command = if let Some(image_url) = series_info_image {
         Command::perform(caching::load_image(image_url.original_image_url), |image| {
-            GuiMessage::SeriesAction(Message::SeriesImageLoaded(image))
+            Message::SeriesImageLoaded(image)
         })
     } else {
         Command::none()
     };
 
     let seasons_list_command = Command::perform(get_seasons_list(series_id), |seasons_list| {
-        GuiMessage::SeriesAction(Message::SeasonsLoaded(
-            seasons_list.expect("Failed to load seasons"),
-        ))
+        Message::SeasonsLoaded(seasons_list.expect("Failed to load seasons"))
     });
 
     [image_command, seasons_list_command]

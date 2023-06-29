@@ -91,14 +91,14 @@ impl Application for TroxideGui {
                         view::series_view::Series::from_series_information(*series_information);
                     self.series_view = Some(series_view);
                     self.view = view::View::Series;
-                    return command;
+                    return command.map(Message::SeriesAction);
                 }
                 if let DiscoverMessage::SeriesResultSelected(series_id) = message {
                     let (series_view, command) =
                         view::series_view::Series::from_series_id(series_id);
                     self.series_view = Some(series_view);
                     self.view = view::View::Series;
-                    return command;
+                    return command.map(Message::SeriesAction);
                 }
                 self.discover_view
                     .update(message)
@@ -111,7 +111,7 @@ impl Application for TroxideGui {
                         view::series_view::Series::from_series_information(*series_information);
                     self.series_view = Some(series_view);
                     self.view = view::View::Series;
-                    return command;
+                    return command.map(Message::SeriesAction);
                 }
                 self.my_shows_view
                     .update(message)
@@ -127,7 +127,8 @@ impl Application for TroxideGui {
                     .series_view
                     .as_mut()
                     .expect("Series View Should be loaded")
-                    .update(message);
+                    .update(message)
+                    .map(Message::SeriesAction);
             }
             Message::SettingsAction(message) => {
                 self.settings_view.update(message);
