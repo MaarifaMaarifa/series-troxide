@@ -6,18 +6,19 @@ use crate::gui::assets::get_static_cow_from_asset;
 use crate::gui::assets::icons::{ARROW_LEFT, CHECK_CIRCLE, CHECK_CIRCLE_FILL};
 use crate::gui::troxide_widget::{GREEN_THEME, INFO_BODY, INFO_HEADER, RED_THEME};
 use crate::gui::Message as GuiMessage;
-use iced::widget::scrollable::Properties;
-use iced::widget::{svg, Column, Row};
 
-use iced::{
-    alignment,
-    widget::{button, column, container, horizontal_space, image, row, scrollable, text},
-    Length, Renderer,
-};
-use iced::{Command, Element};
-use iced_aw::Spinner;
+use cast_widget::CastWidget;
+use cast_widget::Message as CastWidgetMessage;
 use season_widget::Message as SeasonMessage;
 
+use iced::alignment;
+use iced::widget::scrollable::Properties;
+use iced::widget::{button, column, container, horizontal_space, image, row, scrollable, text};
+use iced::widget::{svg, vertical_space, Column, Row};
+use iced::{Command, Element, Length, Renderer};
+use iced_aw::Spinner;
+
+mod cast_widget;
 mod season_widget;
 
 #[derive(PartialEq)]
@@ -278,6 +279,7 @@ pub enum Message {
     GoToSearchPage,
     SeasonsLoaded(Vec<SeasonInfo>),
     SeasonAction(usize, Box<SeasonMessage>),
+    CastWidgetAction(CastWidgetMessage),
     TrackSeries,
     UntrackSeries,
 }
@@ -293,29 +295,39 @@ pub struct Series {
     series_information: Option<SeriesMainInformation>,
     series_image: Option<Vec<u8>>,
     season_widgets: Vec<season_widget::Season>,
+    cast_widget: CastWidget,
 }
 
 impl Series {
     /// Counstruct the series page by providing it with id
     pub fn from_series_id(series_id: u32) -> (Self, Command<GuiMessage>) {
+        let (cast_widget, cast_widget_command) = CastWidget::new(series_id);
         let series = Self {
             series_id,
             load_state: LoadState::Loading,
             series_information: None,
             series_image: None,
             season_widgets: vec![],
+            cast_widget,
         };
+
+        let series_command = Command::perform(
+            caching::series_information::get_series_main_info_with_id(series_id),
+            |info| {
+                GuiMessage::SeriesAction(Message::SeriesInfoObtained(Box::new(
+                    info.expect("Failed to load series information"),
+                )))
+            },
+        );
 
         (
             series,
-            Command::perform(
-                caching::series_information::get_series_main_info_with_id(series_id),
-                |info| {
-                    GuiMessage::SeriesAction(Message::SeriesInfoObtained(Box::new(
-                        info.expect("Failed to load series information"),
-                    )))
-                },
-            ),
+            Command::batch([
+                series_command,
+                cast_widget_command
+                    .map(Message::CastWidgetAction)
+                    .map(GuiMessage::SeriesAction),
+            ]),
         )
     }
 
@@ -324,6 +336,7 @@ impl Series {
         series_information: SeriesMainInformation,
     ) -> (Self, Command<GuiMessage>) {
         let series_id = series_information.id;
+        let (cast_widget, cast_widget_command) = CastWidget::new(series_id);
         let series_image = series_information.image.clone();
         let series = Self {
             series_id,
@@ -331,12 +344,17 @@ impl Series {
             series_information: Some(series_information),
             series_image: None,
             season_widgets: vec![],
+            cast_widget,
         };
 
-        (
-            series,
+        let commands = [
             Command::batch(get_image_and_seasons(series_image, series_id)),
-        )
+            cast_widget_command
+                .map(Message::CastWidgetAction)
+                .map(GuiMessage::SeriesAction),
+        ];
+
+        (series, Command::batch(commands))
     }
 
     pub fn update(&mut self, message: Message) -> Command<GuiMessage> {
@@ -380,6 +398,13 @@ impl Series {
             Message::UntrackSeries => {
                 database::DB.untrack_series(self.series_information.as_ref().unwrap().id);
             }
+            Message::CastWidgetAction(message) => {
+                return self
+                    .cast_widget
+                    .update(message)
+                    .map(Message::CastWidgetAction)
+                    .map(GuiMessage::SeriesAction)
+            }
         }
         Command::none()
     }
@@ -410,8 +435,12 @@ impl Series {
                             })
                             .collect(),
                     )
-                    .spacing(5)
-                );
+                    .spacing(5),
+                    vertical_space(10),
+                    text("Top Cast").size(25),
+                    self.cast_widget.view().map(Message::CastWidgetAction),
+                )
+                .padding(10);
 
                 let content = scrollable(column!(main_body, seasons_widget))
                     .vertical_scroll(Properties::new().scroller_width(5).width(1));
