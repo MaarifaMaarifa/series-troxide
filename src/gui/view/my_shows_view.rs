@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::core::api::series_information;
+use crate::core::caching;
 use crate::core::{api::series_information::SeriesMainInformation, database};
 use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
 use crate::gui::troxide_widget::{GREEN_THEME, RED_THEME};
@@ -50,7 +50,7 @@ impl MyShows {
             self.load_state = LoadState::Loading;
             self.series_ids = series_ids.clone();
 
-            let series_information = series_information::get_series_main_info_with_ids(series_ids);
+            let series_information = caching::get_series_main_info_with_ids(series_ids);
 
             return Command::perform(series_information, |series_infos| {
                 Message::SeriesInformationsReceived(series_infos)

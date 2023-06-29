@@ -1,6 +1,8 @@
 use serde::Deserialize;
 use thiserror::Error;
 
+use super::caching;
+
 pub mod episodes_information;
 pub mod seasons_list;
 pub mod series_information;
@@ -69,7 +71,7 @@ fn try_bad_json(json_string: &str) -> Option<(String, String)> {
     }
 }
 
-fn deserialize_json<'a, T: serde::Deserialize<'a>>(
+pub fn deserialize_json<'a, T: serde::Deserialize<'a>>(
     prettified_json: &'a str,
 ) -> Result<T, ApiError> {
     serde_json::from_str::<T>(prettified_json).map_err(|err| {
@@ -119,5 +121,5 @@ async fn random_async_sleep() {
 pub async fn get_series_from_episode(
     episode_info: episodes_information::Episode,
 ) -> Result<series_information::SeriesMainInformation, ApiError> {
-    series_information::get_series_main_info_with_url(episode_info.links.show.href).await
+    caching::get_series_main_info_with_url(episode_info.links.show.href).await
 }

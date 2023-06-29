@@ -42,32 +42,46 @@ pub struct Country {
     pub name: String,
 }
 
-// TODO: Creating a release profile that get's rid of all this boilerplate
+/// Structure carrying both series main information and it's string for caching
+pub struct SeriesInfoAndStr(SeriesMainInformation, String);
 
-pub async fn get_series_main_info_with_url(url: String) -> Result<SeriesMainInformation, ApiError> {
+impl SeriesInfoAndStr {
+    /// constructs a new SeriesInfoAndStr
+    pub fn new(series_main_information: SeriesMainInformation, json_string: String) -> Self {
+        Self(series_main_information, json_string)
+    }
+
+    /// Gets the underlying information (series main info information and json string information)
+    pub fn get_data(self) -> (SeriesMainInformation, String) {
+        (self.0, self.1)
+    }
+}
+
+pub async fn get_series_main_info_with_url(url: String) -> Result<SeriesInfoAndStr, ApiError> {
     let prettified_json = get_pretty_json_from_url(url)
         .await
         .map_err(ApiError::Network)?;
 
-    deserialize_json(&prettified_json)
+    Ok(SeriesInfoAndStr::new(
+        deserialize_json(&prettified_json)?,
+        prettified_json,
+    ))
 }
 
-pub async fn get_series_main_info_with_id(
-    series_id: u32,
-) -> Result<SeriesMainInformation, ApiError> {
+pub async fn get_series_main_info_with_id(series_id: u32) -> Result<SeriesInfoAndStr, ApiError> {
     get_series_main_info_with_url(format!("{}{}", SERIES_INFORMATION_ADDRESS, series_id)).await
 }
 
-pub async fn get_series_main_info_with_ids(series_ids: Vec<String>) -> Vec<SeriesMainInformation> {
-    let handles: Vec<_> = series_ids
-        .iter()
-        .map(|id| tokio::spawn(get_series_main_info_with_id(id.parse().unwrap())))
-        .collect();
+// async fn get_series_main_info_with_ids(series_ids: Vec<String>) -> Vec<SeriesInfoAndStr> {
+//     let handles: Vec<_> = series_ids
+//         .iter()
+//         .map(|id| tokio::spawn(get_series_main_info_with_id(id.parse().unwrap())))
+//         .collect();
 
-    let mut series_infos = Vec::with_capacity(handles.len());
-    for handle in handles {
-        let series_info = handle.await.unwrap().unwrap();
-        series_infos.push(series_info);
-    }
-    series_infos
-}
+//     let mut series_infos = Vec::with_capacity(handles.len());
+//     for handle in handles {
+//         let series_info = handle.await.unwrap().unwrap();
+//         series_infos.push(series_info);
+//     }
+//     series_infos
+// }

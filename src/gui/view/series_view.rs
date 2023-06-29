@@ -1,8 +1,7 @@
 use crate::core::api::seasons_list::{get_seasons_list, Season as SeasonInfo};
-use crate::core::api::series_information::get_series_main_info_with_id;
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::api::{load_image, Image};
-use crate::core::database;
+use crate::core::{caching, database};
 use crate::gui::assets::get_static_cow_from_asset;
 use crate::gui::assets::icons::{ARROW_LEFT, CHECK_CIRCLE, CHECK_CIRCLE_FILL};
 use crate::gui::troxide_widget::{GREEN_THEME, INFO_BODY, INFO_HEADER, RED_THEME};
@@ -309,7 +308,7 @@ impl Series {
 
         (
             series,
-            Command::perform(get_series_main_info_with_id(series_id), |info| {
+            Command::perform(caching::get_series_main_info_with_id(series_id), |info| {
                 GuiMessage::SeriesAction(Message::SeriesInfoObtained(Box::new(
                     info.expect("Failed to load series information"),
                 )))
