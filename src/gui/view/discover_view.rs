@@ -258,8 +258,8 @@ mod searching {
     use tokio::task::JoinHandle;
 
     use super::Message as DiscoverMessage;
-    use crate::core::api::load_image;
     use crate::core::api::series_searching;
+    use crate::core::caching;
 
     #[derive(Default)]
     pub enum LoadState {
@@ -454,7 +454,7 @@ mod searching {
             .map(|result| {
                 tokio::task::spawn(async {
                     if let Some(url) = result.show.image {
-                        load_image(url.medium_image_url).await
+                        caching::load_image(url.medium_image_url).await
                     } else {
                         None
                     }

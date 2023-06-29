@@ -1,6 +1,6 @@
 use crate::core::api::seasons_list::{get_seasons_list, Season as SeasonInfo};
 use crate::core::api::series_information::SeriesMainInformation;
-use crate::core::api::{load_image, Image};
+use crate::core::api::Image;
 use crate::core::{caching, database};
 use crate::gui::assets::get_static_cow_from_asset;
 use crate::gui::assets::icons::{ARROW_LEFT, CHECK_CIRCLE, CHECK_CIRCLE_FILL};
@@ -427,7 +427,7 @@ fn get_image_and_seasons(
     series_id: u32,
 ) -> [Command<GuiMessage>; 2] {
     let image_command = if let Some(image_url) = series_info_image {
-        Command::perform(load_image(image_url.original_image_url), |image| {
+        Command::perform(caching::load_image(image_url.original_image_url), |image| {
             GuiMessage::SeriesAction(Message::SeriesImageLoaded(image))
         })
     } else {

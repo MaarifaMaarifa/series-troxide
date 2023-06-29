@@ -225,10 +225,7 @@ async fn load_episode_infos(
 
 mod episode_widget {
     use super::Message as SeasonMessage;
-    use crate::core::{
-        api::{episodes_information::Episode as EpisodeInfo, load_image},
-        database,
-    };
+    use crate::core::{api::episodes_information::Episode as EpisodeInfo, caching, database};
     use iced::{
         widget::{checkbox, column, horizontal_space, image, row, text, Row, Text},
         Command, Element, Length, Renderer,
@@ -262,7 +259,7 @@ mod episode_widget {
             };
 
             let command = if let Some(image) = episode_image {
-                Command::perform(load_image(image.medium_image_url), move |image| {
+                Command::perform(caching::load_image(image.medium_image_url), move |image| {
                     SeasonMessage::EpisodeAction(index, Message::ImageLoaded(image))
                 })
             } else {

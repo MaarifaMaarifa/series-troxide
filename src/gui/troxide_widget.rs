@@ -15,7 +15,8 @@ pub mod series_poster {
 
     use crate::core::api::episodes_information::Episode;
     use crate::core::api::series_information::SeriesMainInformation;
-    use crate::core::api::{get_series_from_episode, load_image, Image};
+    use crate::core::api::{get_series_from_episode, Image};
+    use crate::core::caching;
     use crate::gui::view::series_view::SeriesStatus;
     use iced::widget::{column, container, image, mouse_area, text};
     use iced::{Command, Element, Renderer};
@@ -126,7 +127,7 @@ pub mod series_poster {
     fn poster_image_command(id: usize, image: Option<Image>) -> Command<Message> {
         if let Some(image) = image {
             Command::perform(
-                async move { load_image(image.medium_image_url).await },
+                async move { caching::load_image(image.medium_image_url).await },
                 move |image| Message::ImageLoaded(id, image),
             )
         } else {
