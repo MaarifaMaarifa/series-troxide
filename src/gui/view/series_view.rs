@@ -435,6 +435,7 @@ impl Series {
                             })
                             .collect(),
                     )
+                    .padding(5)
                     .spacing(5),
                     vertical_space(10),
                     text("Top Cast").size(25),
