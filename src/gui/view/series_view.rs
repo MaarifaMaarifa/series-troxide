@@ -308,11 +308,14 @@ impl Series {
 
         (
             series,
-            Command::perform(caching::get_series_main_info_with_id(series_id), |info| {
-                GuiMessage::SeriesAction(Message::SeriesInfoObtained(Box::new(
-                    info.expect("Failed to load series information"),
-                )))
-            }),
+            Command::perform(
+                caching::series_information::get_series_main_info_with_id(series_id),
+                |info| {
+                    GuiMessage::SeriesAction(Message::SeriesInfoObtained(Box::new(
+                        info.expect("Failed to load series information"),
+                    )))
+                },
+            ),
         )
     }
 

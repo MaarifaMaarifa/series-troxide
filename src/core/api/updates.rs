@@ -64,7 +64,11 @@ pub mod show_updates {
         let handles: Vec<JoinHandle<Result<SeriesMainInformation, ApiError>>> = series_ids
             .into_iter()
             .map(|series_id| series_id.parse::<u32>().expect("Can't parse series id"))
-            .map(|series_id| tokio::task::spawn(caching::get_series_main_info_with_id(series_id)))
+            .map(|series_id| {
+                tokio::task::spawn(caching::series_information::get_series_main_info_with_id(
+                    series_id,
+                ))
+            })
             .collect();
 
         let mut series_infos = Vec::with_capacity(handles.len());

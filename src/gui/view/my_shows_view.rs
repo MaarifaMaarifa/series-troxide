@@ -50,7 +50,8 @@ impl MyShows {
             self.load_state = LoadState::Loading;
             self.series_ids = series_ids.clone();
 
-            let series_information = caching::get_series_main_info_with_ids(series_ids);
+            let series_information =
+                caching::series_information::get_series_main_info_with_ids(series_ids);
 
             return Command::perform(series_information, |series_infos| {
                 Message::SeriesInformationsReceived(series_infos)
