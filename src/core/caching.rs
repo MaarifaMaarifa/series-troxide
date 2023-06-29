@@ -50,7 +50,15 @@ impl Cacher {
 /// Loads the image from the provided url
 pub async fn load_image(image_url: String) -> Option<Vec<u8>> {
     let mut image_path = CACHER.get_cache_path(CacheType::Images);
-    let image_hash = format!("{:x}", md5::compute(&image_url));
+
+    // Hashing the image url as a file name as the forward slashes in web urls
+    // mimic paths
+    use sha2::{Digest, Sha256};
+
+    let mut hasher = Sha256::new();
+    hasher.update(&image_url);
+    let image_hash = format!("{:x}", hasher.finalize());
+
     image_path.push(&image_hash);
 
     match fs::read(&image_path).await {
