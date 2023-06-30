@@ -67,6 +67,19 @@ impl Database {
             })
             .collect()
     }
+
+    /// get series ids and their corrensponding series structures
+    pub fn get_ids_and_series(&self) -> Vec<(String, Series)> {
+        self.db
+            .iter()
+            .map(|tup| {
+                let (series_id, series) = tup.unwrap();
+                let series_id = String::from_utf8_lossy(&series_id).into_owned();
+                let series = bincode::deserialize::<Series>(&series).unwrap();
+                (series_id, series)
+            })
+            .collect()
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -116,6 +129,14 @@ impl Series {
     pub fn get_season_mut(&mut self, season_number: u32) -> Option<&mut Season> {
         self.seasons.get_mut(&season_number)
     }
+
+    /// Returns total tracked episodes of the season
+    pub fn get_total_episodes_watched(&self) -> usize {
+        self.seasons
+            .values()
+            .map(|season| season.episodes_watched())
+            .sum()
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -142,6 +163,7 @@ impl Season {
         self.episodes.contains(&episode)
     }
 
+    /// Returns total tracked episodes of the season
     pub fn episodes_watched(&self) -> usize {
         self.episodes.len()
     }

@@ -215,6 +215,11 @@ pub mod episode_list {
                 .collect()
         }
 
+        /// Get the total number of all episodes in the Series
+        pub fn get_total_episodes(&self) -> usize {
+            self.episodes.len()
+        }
+
         /// Returns the number of all seasons available and their total episodes as a tuple (season_no, total_episodes)
         pub fn get_season_numbers_with_total_episode(&self) -> Vec<(u32, usize)> {
             let seasons: HashSet<u32> =

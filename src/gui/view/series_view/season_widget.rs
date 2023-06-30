@@ -304,7 +304,11 @@ mod episode_widget {
     }
 
     fn airstamp_widget(episode_information: &EpisodeInfo) -> Text<'static, Renderer> {
-        text(&episode_information.airstamp).size(15)
+        if let Some(airstamp) = &episode_information.airstamp {
+            text(airstamp).size(15)
+        } else {
+            text("").size(15)
+        }
     }
 
     fn heading_widget(

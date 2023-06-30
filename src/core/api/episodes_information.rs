@@ -13,7 +13,7 @@ pub struct Episode {
     pub runtime: Option<u32>,
     pub airdate: Option<String>,
     pub airtime: String, // can be empty
-    pub airstamp: String,
+    pub airstamp: Option<String>,
     pub rating: Rating,
     pub image: Option<Image>,
     pub summary: Option<String>,

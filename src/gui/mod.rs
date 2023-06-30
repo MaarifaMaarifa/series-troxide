@@ -2,6 +2,7 @@ mod assets;
 mod troxide_widget;
 mod view;
 
+use troxide_widget::series_poster::Message as SeriesPosterMessage;
 use view::discover_view::{DiscoverTab, Message as DiscoverMessage};
 use view::my_shows_view::{Message as MyShowsMessage, MyShowsTab};
 use view::series_view::Message as SeriesMessage;
@@ -121,13 +122,17 @@ impl Application for TroxideGui {
                 let tab_id = TabId::from(tab_id);
                 self.active_tab = tab_id.clone();
                 if let TabId::MyShows = tab_id {
-                    self.my_shows_tab.refresh().map(Message::MyShows)
-                } else {
-                    Command::none()
-                }
+                    return self.my_shows_tab.refresh().map(Message::MyShows);
+                };
+                if let TabId::Watchlist = tab_id {
+                    return self.watchlist_tab.refresh().map(Message::Watchlist);
+                };
+                Command::none()
             }
             Message::Discover(message) => self.discover_tab.update(message).map(Message::Discover),
-            Message::Watchlist(_) => todo!(),
+            Message::Watchlist(message) => {
+                self.watchlist_tab.update(message).map(Message::Watchlist)
+            }
             Message::MyShows(message) => self.my_shows_tab.update(message).map(Message::MyShows),
             Message::Statistics(_) => todo!(),
             Message::Settings(message) => {
@@ -213,6 +218,17 @@ fn handle_series_poster_selection(
         }
         TabId::MyShows => {
             if let Message::MyShows(MyShowsMessage::SeriesSelected(series_info)) = message {
+                return Some(view::series_view::Series::from_series_information(
+                    *series_info,
+                ));
+            }
+        }
+        TabId::Watchlist => {
+            if let Message::Watchlist(WatchlistMessage::SeriesPoster(
+                _,
+                SeriesPosterMessage::SeriesPosterPressed(series_info),
+            )) = message
+            {
                 return Some(view::series_view::Series::from_series_information(
                     *series_info,
                 ));

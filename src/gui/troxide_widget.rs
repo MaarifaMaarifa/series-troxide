@@ -16,9 +16,9 @@ pub mod series_poster {
     use crate::core::api::episodes_information::Episode;
     use crate::core::api::series_information::SeriesMainInformation;
     use crate::core::api::{get_series_from_episode, Image};
-    use crate::core::caching;
+    use crate::core::{caching, database};
     use crate::gui::view::series_view::SeriesStatus;
-    use iced::widget::{column, container, image, mouse_area, text};
+    use iced::widget::{column, container, image, mouse_area, progress_bar, row, text};
     use iced::{Command, Element, Renderer};
 
     #[derive(Clone, Debug)]
@@ -93,6 +93,7 @@ pub mod series_poster {
             Command::none()
         }
 
+        /// Views the series poster widget
         pub fn view(&self) -> Element<'_, Message, Renderer> {
             let mut content = column!().padding(2).spacing(1);
             if let Some(image_bytes) = self.image.clone() {
@@ -108,6 +109,44 @@ pub mod series_poster {
                         .width(100)
                         .horizontal_alignment(iced::alignment::Horizontal::Center),
                 );
+
+                mouse_area(content)
+                    .on_press(Message::SeriesPosterPressed(Box::new(series_info.clone())))
+                    .into()
+            } else {
+                container("").into()
+            }
+        }
+
+        /// View intended for the watchlist tab
+        pub fn watchlist_view(&self, total_episodes: f32) -> Element<'_, Message, Renderer> {
+            let mut content = row!().padding(2).spacing(1);
+            if let Some(image_bytes) = self.image.clone() {
+                let image_handle = image::Handle::from_memory(image_bytes);
+                let image = image(image_handle).width(100);
+                content = content.push(image);
+            };
+
+            let mut metadata = column!().padding(2).spacing(1);
+
+            if let Some(series_info) = &self.series_information {
+                metadata = metadata.push(text(&series_info.name));
+
+                let watched_episodes = database::DB
+                    .get_series(series_info.id)
+                    .unwrap()
+                    .get_total_episodes_watched() as f32;
+
+                let progress_bar = row!(
+                    progress_bar(0.0..=total_episodes, watched_episodes,)
+                        .height(10)
+                        .width(500),
+                    text(format!("{}/{}", watched_episodes, total_episodes))
+                )
+                .spacing(5);
+
+                metadata = metadata.push(progress_bar);
+                content = content.push(metadata);
 
                 mouse_area(content)
                     .on_press(Message::SeriesPosterPressed(Box::new(series_info.clone())))
