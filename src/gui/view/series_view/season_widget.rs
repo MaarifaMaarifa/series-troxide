@@ -43,52 +43,49 @@ impl Season {
     pub fn update(&mut self, message: Message) -> Command<SeriesMessage> {
         match message {
             Message::CheckboxPressed => {
-                if self.total_episodes != 0 {
-                    if let Some(mut series) = database::DB.get_series(self.series_id) {
-                        // Removing the season if it is already tracked or adding a new one with the all
-                        // of episodes if it is not tracked
-                        if let Some(season) = series.get_season_mut(self.season_number) {
-                            if season.episodes_watched() != self.total_episodes {
-                                (1..=self.total_episodes).for_each(|episode_number| {
-                                    season.track_episode(episode_number as u32);
-                                });
-                            } else {
-                                series.remove_season(self.season_number);
-                            }
-                        } else {
-                            series.add_season(self.season_number);
-                            let season = series.get_season_mut(self.season_number).unwrap();
+                if let Some(mut series) = database::DB.get_series(self.series_id) {
+                    // Removing the season if it is already tracked or adding a new one with the all
+                    // of episodes if it is not tracked
+                    if let Some(season) = series.get_season_mut(self.season_number) {
+                        if season.episodes_watched() != self.total_episodes {
                             (1..=self.total_episodes).for_each(|episode_number| {
                                 season.track_episode(episode_number as u32);
                             });
+                        } else {
+                            series.remove_season(self.season_number);
                         }
+                    } else {
+                        series.add_season(self.season_number);
+                        let season = series.get_season_mut(self.season_number).unwrap();
+                        (1..=self.total_episodes).for_each(|episode_number| {
+                            season.track_episode(episode_number as u32);
+                        });
+                    }
 
-                        series.update();
-                    };
-                }
+                    series.update();
+                };
             }
             Message::Expand => {
                 self.is_expanded = !self.is_expanded;
 
                 // preventing reloading episodes when already loaded
+                // when expanding and shrinking the season widget multiple times
                 if !self.episodes.is_empty() {
                     return Command::none();
                 }
 
-                if self.total_episodes != 0 {
-                    let series_id = self.series_id;
-                    let season_number = self.season_number;
-                    let series_index = self.index;
-                    return Command::perform(
-                        async move { load_episode_infos(series_id, season_number).await },
-                        move |episode_infos| {
-                            SeriesMessage::SeasonAction(
-                                series_index,
-                                Box::new(Message::EpisodesLoaded(episode_infos)),
-                            )
-                        },
-                    );
-                }
+                let series_id = self.series_id;
+                let season_number = self.season_number;
+                let series_index = self.index;
+                return Command::perform(
+                    async move { load_episode_infos(series_id, season_number).await },
+                    move |episode_infos| {
+                        SeriesMessage::SeasonAction(
+                            series_index,
+                            Box::new(Message::EpisodesLoaded(episode_infos)),
+                        )
+                    },
+                );
             }
             Message::EpisodesLoaded(episode_infos) => {
                 let epis: Vec<(Episode, Command<Message>)> = episode_infos
@@ -137,13 +134,11 @@ impl Season {
         });
         let season_name = text(format!("Season {}", self.season_number));
 
-        let season_progress = if self.total_episodes != 0 {
+        let season_progress =
             progress_bar(0.0..=self.total_episodes as f32, tracked_episodes as f32)
                 .height(10)
-                .width(500)
-        } else {
-            progress_bar(0.0..=0.0, 0.0).height(10).width(500)
-        };
+                .width(500);
+
         let episodes_progress = text(format!("{}/{}", tracked_episodes, self.total_episodes));
 
         let expand_button = if self.is_expanded {
