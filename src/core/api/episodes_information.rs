@@ -3,6 +3,8 @@ use super::*;
 const EPISODE_INFORMATION_ADDRESS: &str =
     "https://api.tvmaze.com/shows/SERIES-ID/episodebynumber?season=SEASON&number=EPISODE";
 
+const EPISODE_LIST_ADDRESS: &str = "https://api.tvmaze.com/shows/SERIES-ID/episodes";
+
 #[derive(Debug, Deserialize, Clone)]
 pub struct Episode {
     pub name: String,
@@ -43,4 +45,13 @@ pub async fn get_episode_information(
         .map_err(ApiError::Network)?;
 
     deserialize_json(&prettified_json)
+}
+
+pub async fn get_episode_list(series_id: u32) -> Result<(Vec<Episode>, String), ApiError> {
+    let url = EPISODE_LIST_ADDRESS.replace("SERIES-ID", &series_id.to_string());
+    let prettified_json = get_pretty_json_from_url(url)
+        .await
+        .map_err(ApiError::Network)?;
+
+    Ok((deserialize_json(&prettified_json)?, prettified_json))
 }

@@ -1,4 +1,3 @@
-use crate::core::api::seasons_list::{get_seasons_list, Season as SeasonInfo};
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::api::Image;
 use crate::core::{caching, database};
@@ -111,7 +110,7 @@ pub enum Message {
     SeriesInfoObtained(Box<SeriesMainInformation>),
     SeriesImageLoaded(Option<Vec<u8>>),
     GoBack,
-    SeasonsLoaded(Vec<SeasonInfo>),
+    SeasonsLoaded(Vec<(u32, usize)>),
     SeasonAction(usize, Box<SeasonMessage>),
     CastWidgetAction(CastWidgetMessage),
     TrackSeries,
@@ -205,7 +204,7 @@ impl Series {
                     .into_iter()
                     .enumerate()
                     .map(|(index, season)| {
-                        season_widget::Season::new(index, season, self.series_id)
+                        season_widget::Season::new(index, self.series_id, season.0, season.1)
                     })
                     .collect()
             }
@@ -287,9 +286,13 @@ fn get_image_and_seasons(
         Command::none()
     };
 
-    let seasons_list_command = Command::perform(get_seasons_list(series_id), |seasons_list| {
-        Message::SeasonsLoaded(seasons_list.expect("Failed to load seasons"))
-    });
+    let seasons_list_command = Command::perform(
+        caching::episode_list::EpisodeList::new(series_id),
+        |episode_list| {
+            let episode_list = episode_list.expect("failed to load seasons");
+            Message::SeasonsLoaded(episode_list.get_season_numbers_with_total_episode())
+        },
+    );
 
     [image_command, seasons_list_command]
 }

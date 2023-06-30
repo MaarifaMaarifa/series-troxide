@@ -1,14 +1,12 @@
 use iced::widget::{button, checkbox, column, container, progress_bar, row, svg, text, Column};
 use iced::{Command, Element, Length, Renderer};
 use iced_aw::Spinner;
-use tokio::task::JoinHandle;
 
 use self::episode_widget::Episode;
 
 use super::Message as SeriesMessage;
-use crate::core::api::episodes_information::{get_episode_information, Episode as EpisodeInfo};
-use crate::core::api::seasons_list::Season as SeasonInfo;
-use crate::core::database;
+use crate::core::api::episodes_information::Episode as EpisodeInfo;
+use crate::core::{caching, database};
 use crate::gui::assets::get_static_cow_from_asset;
 use crate::gui::assets::icons::{ARROW_BAR_DOWN, ARROW_BAR_UP};
 use episode_widget::Message as EpisodeMessage;
@@ -25,17 +23,19 @@ pub enum Message {
 pub struct Season {
     index: usize,
     series_id: u32,
-    season: SeasonInfo,
+    season_number: u32,
+    total_episodes: usize,
     episodes: Vec<episode_widget::Episode>,
     is_expanded: bool,
 }
 
 impl Season {
-    pub fn new(index: usize, season_info: SeasonInfo, series_id: u32) -> Self {
+    pub fn new(index: usize, series_id: u32, season_number: u32, total_episodes: usize) -> Self {
         Self {
             index,
             series_id,
-            season: season_info,
+            season_number,
+            total_episodes,
             episodes: vec![],
             is_expanded: false,
         }
@@ -43,23 +43,23 @@ impl Season {
     pub fn update(&mut self, message: Message) -> Command<SeriesMessage> {
         match message {
             Message::CheckboxPressed => {
-                if let Some(episode_order) = self.season.episode_order {
+                if self.total_episodes != 0 {
                     if let Some(mut series) = database::DB.get_series(self.series_id) {
                         // Removing the season if it is already tracked or adding a new one with the all
                         // of episodes if it is not tracked
-                        if let Some(season) = series.get_season_mut(self.season.number) {
-                            if season.episodes_watched() as u32 != episode_order {
-                                (1..=episode_order).for_each(|episode_number| {
-                                    season.track_episode(episode_number);
+                        if let Some(season) = series.get_season_mut(self.season_number) {
+                            if season.episodes_watched() != self.total_episodes {
+                                (1..=self.total_episodes).for_each(|episode_number| {
+                                    season.track_episode(episode_number as u32);
                                 });
                             } else {
-                                series.remove_season(self.season.number);
+                                series.remove_season(self.season_number);
                             }
                         } else {
-                            series.add_season(self.season.number);
-                            let season = series.get_season_mut(self.season.number).unwrap();
-                            (1..=episode_order).for_each(|episode_number| {
-                                season.track_episode(episode_number);
+                            series.add_season(self.season_number);
+                            let season = series.get_season_mut(self.season_number).unwrap();
+                            (1..=self.total_episodes).for_each(|episode_number| {
+                                season.track_episode(episode_number as u32);
                             });
                         }
 
@@ -75,14 +75,12 @@ impl Season {
                     return Command::none();
                 }
 
-                if let Some(total_episodes) = self.season.episode_order {
+                if self.total_episodes != 0 {
                     let series_id = self.series_id;
-                    let season_number = self.season.number;
+                    let season_number = self.season_number;
                     let series_index = self.index;
                     return Command::perform(
-                        async move {
-                            load_episode_infos(total_episodes, series_id, season_number).await
-                        },
+                        async move { load_episode_infos(series_id, season_number).await },
                         move |episode_infos| {
                             SeriesMessage::SeasonAction(
                                 series_index,
@@ -126,7 +124,7 @@ impl Season {
         let tracked_episodes = database::DB
             .get_series(self.series_id)
             .map(|series| {
-                if let Some(season) = series.get_season(self.season.number) {
+                if let Some(season) = series.get_season(self.season_number) {
                     season.episodes_watched()
                 } else {
                     0
@@ -134,28 +132,19 @@ impl Season {
             })
             .unwrap_or(0);
 
-        let track_checkbox = checkbox(
-            "",
-            self.season
-                .episode_order
-                .map(|order| order == tracked_episodes as u32)
-                .unwrap_or(false),
-            |_| Message::CheckboxPressed,
-        );
-        let season_name = text(format!("Season {}", self.season.number));
+        let track_checkbox = checkbox("", self.total_episodes == tracked_episodes, |_| {
+            Message::CheckboxPressed
+        });
+        let season_name = text(format!("Season {}", self.season_number));
 
-        let season_progress = if let Some(episodes_number) = self.season.episode_order {
-            progress_bar(0.0..=episodes_number as f32, tracked_episodes as f32)
+        let season_progress = if self.total_episodes != 0 {
+            progress_bar(0.0..=self.total_episodes as f32, tracked_episodes as f32)
                 .height(10)
                 .width(500)
         } else {
             progress_bar(0.0..=0.0, 0.0).height(10).width(500)
         };
-        let episodes_progress = text(format!(
-            "{}/{}",
-            tracked_episodes,
-            self.season.episode_order.unwrap_or(0)
-        ));
+        let episodes_progress = text(format!("{}/{}", tracked_episodes, self.total_episodes));
 
         let expand_button = if self.is_expanded {
             let svg_handle = svg::Handle::from_memory(get_static_cow_from_asset(ARROW_BAR_UP));
@@ -198,29 +187,19 @@ impl Season {
     }
 }
 
-async fn load_episode_infos(
-    total_episode: u32,
-    series_id: u32,
-    season_number: u32,
-) -> Vec<EpisodeInfo> {
-    let mut loaded_results = Vec::with_capacity(total_episode as usize);
-    let handles: Vec<JoinHandle<EpisodeInfo>> = (1..=total_episode)
-        .map(|episode_number| {
-            tokio::task::spawn(async move {
-                get_episode_information(series_id, season_number, episode_number)
-                    .await
-                    .expect("could not get all the episode information")
-            })
-        })
-        .collect();
+async fn load_episode_infos(series_id: u32, season_number: u32) -> Vec<EpisodeInfo> {
+    let episode_list = caching::episode_list::EpisodeList::new(series_id)
+        .await
+        .expect(&format!(
+            "failed to get episodes for season {}",
+            season_number
+        ));
 
-    for handle in handles {
-        let loaded_result = handle
-            .await
-            .expect("Failed to await all the episode infos handles");
-        loaded_results.push(loaded_result)
-    }
-    loaded_results
+    episode_list
+        .get_episodes(season_number)
+        .into_iter()
+        .cloned()
+        .collect()
 }
 
 mod episode_widget {

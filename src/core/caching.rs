@@ -159,3 +159,76 @@ pub mod series_information {
         series_infos
     }
 }
+
+pub mod episode_list {
+    use std::collections::HashSet;
+
+    use crate::core::{
+        api::{
+            deserialize_json,
+            episodes_information::{get_episode_list, Episode},
+            ApiError,
+        },
+        caching::{CacheType, CACHER},
+    };
+    use tokio::fs;
+    use tracing::info;
+
+    pub struct EpisodeList {
+        episodes: Vec<Episode>,
+    }
+
+    impl EpisodeList {
+        pub async fn new(series_id: u32) -> Result<Self, ApiError> {
+            let name = format!("{}", series_id);
+            let mut episode_list_path = CACHER.get_cache_path(CacheType::Series);
+            episode_list_path.push(&name); // creating the series folder path
+            let series_directory = episode_list_path.clone(); // creating a copy before we make it path to file
+            episode_list_path.push("episode-list"); // creating the episode list json filename path
+
+            let series_information_json = match fs::read_to_string(&episode_list_path).await {
+                Ok(info) => info,
+                Err(err) => {
+                    info!(
+                        "falling back online for 'episode list' for series id {}: {}",
+                        series_id, err
+                    );
+                    fs::DirBuilder::new()
+                        .recursive(true)
+                        .create(series_directory)
+                        .await
+                        .unwrap();
+                    let (episodes, json_string) = get_episode_list(series_id).await?;
+                    fs::write(episode_list_path, json_string).await.unwrap();
+                    return Ok(Self { episodes });
+                }
+            };
+
+            let episodes = deserialize_json::<Vec<Episode>>(&series_information_json)?;
+            Ok(Self { episodes })
+        }
+
+        pub fn get_episodes(&self, season: u32) -> Vec<&Episode> {
+            self.episodes
+                .iter()
+                .filter(|episode| episode.season == season)
+                .collect()
+        }
+
+        /// Returns the number of all seasons available and their total episodes as a tuple (season_no, total_episodes)
+        pub fn get_season_numbers_with_total_episode(&self) -> Vec<(u32, usize)> {
+            let seasons: HashSet<u32> =
+                self.episodes.iter().map(|episode| episode.season).collect();
+            let mut seasons: Vec<u32> = seasons.iter().copied().collect();
+            seasons.sort();
+
+            seasons
+                .into_iter()
+                .map(|season| {
+                    let total_episodes = self.get_episodes(season).into_iter().count();
+                    (season, total_episodes)
+                })
+                .collect()
+        }
+    }
+}
