@@ -2,41 +2,74 @@ mod assets;
 mod troxide_widget;
 mod view;
 
-use view::discover_view::Message as DiscoverMessage;
-use view::menu_view::Message as MenuMessage;
-use view::my_shows_view::Message as MyShowsMessage;
+use view::discover_view::{DiscoverTab, Message as DiscoverMessage};
+use view::my_shows_view::{Message as MyShowsMessage, MyShowsTab};
 use view::series_view::Message as SeriesMessage;
-use view::settings_view::Message as SettingsMessage;
-use view::statistics_view::Message as StatisticsMessage;
-use view::watchlist_view::Message as WatchlistMessage;
+use view::series_view::Series;
+use view::settings_view::{Message as SettingsMessage, SettingsTab};
+use view::statistics_view::{Message as StatisticsMessage, StatisticsTab};
+use view::watchlist_view::{Message as WatchlistMessage, WatchlistTab};
 
-use iced::widget::row;
-use iced::{Application, Command};
+use iced::widget::{container, text, Column};
+use iced::{Application, Command, Element, Length};
+use iced_aw::{TabLabel, Tabs};
 
 use super::core::settings_config;
 
-#[allow(clippy::enum_variant_names)]
 #[derive(Debug, Clone)]
-pub enum Message {
-    MenuAction(MenuMessage),
-    DiscoverAction(DiscoverMessage),
-    WatchlistAction(WatchlistMessage),
-    MyShowsAction(MyShowsMessage),
-    StatisticsAction(StatisticsMessage),
-    SeriesAction(SeriesMessage),
-    SettingsAction(SettingsMessage),
+enum TabId {
+    Discover,
+    Watchlist,
+    MyShows,
+    Statistics,
+    Settings,
 }
 
-#[derive(Default)]
+impl From<usize> for TabId {
+    fn from(value: usize) -> Self {
+        match value {
+            0 => Self::Discover,
+            1 => Self::Watchlist,
+            2 => Self::MyShows,
+            3 => Self::Statistics,
+            4 => Self::Settings,
+            _ => unreachable!("no more tabs"),
+        }
+    }
+}
+
+impl Into<usize> for TabId {
+    fn into(self) -> usize {
+        match self {
+            TabId::Discover => 0,
+            TabId::Watchlist => 1,
+            TabId::MyShows => 2,
+            TabId::Statistics => 3,
+            TabId::Settings => 4,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum Message {
+    TabSelected(usize),
+    Discover(DiscoverMessage),
+    Watchlist(WatchlistMessage),
+    MyShows(MyShowsMessage),
+    Statistics(StatisticsMessage),
+    Settings(SettingsMessage),
+    Series(SeriesMessage),
+}
+
 pub struct TroxideGui {
-    view: view::View,
-    menu_view: view::menu_view::Menu,
-    discover_view: view::discover_view::Discover,
-    watchlist_view: view::watchlist_view::Watchlist,
-    my_shows_view: view::my_shows_view::MyShows,
-    statistic_view: view::statistics_view::Statistics,
-    settings_view: view::settings_view::Settings,
-    series_view: Option<view::series_view::Series>,
+    active_tab: TabId,
+    series_view_active: bool,
+    discover_tab: DiscoverTab,
+    watchlist_tab: WatchlistTab,
+    my_shows_tab: MyShowsTab,
+    statistics_tab: StatisticsTab,
+    settings_tab: SettingsTab,
+    series_view: Option<Series>,
 }
 
 impl Application for TroxideGui {
@@ -46,14 +79,19 @@ impl Application for TroxideGui {
     type Flags = settings_config::Config;
 
     fn new(flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
-        let (discover_view, discover_command) = view::discover_view::Discover::new();
+        let (discover_tab, discover_command) = view::discover_view::DiscoverTab::new();
         (
             Self {
-                settings_view: view::settings_view::Settings::new(flags),
-                discover_view,
-                ..Self::default()
+                active_tab: TabId::Discover,
+                series_view_active: false,
+                discover_tab,
+                watchlist_tab: WatchlistTab::default(),
+                statistics_tab: StatisticsTab::default(),
+                my_shows_tab: MyShowsTab::default(),
+                settings_tab: view::settings_view::SettingsTab::new(flags),
+                series_view: None,
             },
-            discover_command.map(Message::DiscoverAction),
+            discover_command.map(Message::Discover),
         )
     }
 
@@ -62,98 +100,158 @@ impl Application for TroxideGui {
     }
 
     fn theme(&self) -> iced::Theme {
-        match self.settings_view.get_config_settings().theme {
+        match self.settings_tab.get_config_settings().theme {
             settings_config::Theme::Light => iced::Theme::Light,
             settings_config::Theme::Dark => iced::Theme::Dark,
         }
     }
 
-    fn update(&mut self, message: Self::Message) -> iced::Command<Self::Message> {
+    fn update(&mut self, message: Message) -> Command<Message> {
+        if let Some((series_view, series_command)) =
+            handle_series_poster_selection(&self.active_tab, message.clone())
+        {
+            self.series_view = Some(series_view);
+            self.series_view_active = true;
+            return series_command.map(Message::Series);
+        }
+
         match message {
-            Message::MenuAction(message) => {
-                self.menu_view.update(message.clone());
-                match message {
-                    MenuMessage::Discover => self.view = view::View::Discover,
-                    MenuMessage::Watchlist => self.view = view::View::Watchlist,
-                    MenuMessage::MyShows => {
-                        let command = self.my_shows_view.refresh();
-                        self.view = view::View::MyShows;
-                        return command.map(Message::MyShowsAction);
-                    }
-                    MenuMessage::Statistics => self.view = view::View::Statistics,
-                    MenuMessage::Settings => self.view = view::View::Settings,
-                };
+            Message::TabSelected(tab_id) => {
+                self.series_view_active = false;
+                let tab_id = TabId::from(tab_id);
+                self.active_tab = tab_id.clone();
+                if let TabId::MyShows = tab_id {
+                    self.my_shows_tab.refresh().map(Message::MyShows)
+                } else {
+                    Command::none()
+                }
+            }
+            Message::Discover(message) => self.discover_tab.update(message).map(Message::Discover),
+            Message::Watchlist(_) => todo!(),
+            Message::MyShows(message) => self.my_shows_tab.update(message).map(Message::MyShows),
+            Message::Statistics(_) => todo!(),
+            Message::Settings(message) => {
+                self.settings_tab.update(message);
                 Command::none()
             }
-            Message::DiscoverAction(message) => {
-                if let DiscoverMessage::SeriesSelected(series_information) = message {
-                    let (series_view, command) =
-                        view::series_view::Series::from_series_information(*series_information);
-                    self.series_view = Some(series_view);
-                    self.view = view::View::Series;
-                    return command.map(Message::SeriesAction);
-                }
-                if let DiscoverMessage::SeriesResultSelected(series_id) = message {
-                    let (series_view, command) =
-                        view::series_view::Series::from_series_id(series_id);
-                    self.series_view = Some(series_view);
-                    self.view = view::View::Series;
-                    return command.map(Message::SeriesAction);
-                }
-                self.discover_view
-                    .update(message)
-                    .map(Message::DiscoverAction)
-            }
-            Message::WatchlistAction(_) => todo!(),
-            Message::MyShowsAction(message) => {
-                if let MyShowsMessage::SeriesSelected(series_information) = message {
-                    let (series_view, command) =
-                        view::series_view::Series::from_series_information(*series_information);
-                    self.series_view = Some(series_view);
-                    self.view = view::View::Series;
-                    return command.map(Message::SeriesAction);
-                }
-                self.my_shows_view
-                    .update(message)
-                    .map(Message::MyShowsAction)
-            }
-            Message::StatisticsAction(_) => todo!(),
-            Message::SeriesAction(message) => {
-                if let SeriesMessage::GoToSearchPage = message {
-                    self.view = view::View::Discover;
-                    return Command::none();
+            Message::Series(message) => {
+                if let Some(command) =
+                    handle_back_message_from_series(&message, &mut self.series_view_active)
+                {
+                    return command;
                 };
-                return self
-                    .series_view
+                self.series_view
                     .as_mut()
-                    .expect("Series View Should be loaded")
+                    .expect("for series view to send a message it must exist")
                     .update(message)
-                    .map(Message::SeriesAction);
-            }
-            Message::SettingsAction(message) => {
-                self.settings_view.update(message);
-                Command::none()
+                    .map(Message::Series)
             }
         }
     }
 
-    fn view(&self) -> iced::Element<'_, Self::Message, iced::Renderer<Self::Theme>> {
-        let menu_view = self.menu_view.view().map(Message::MenuAction);
+    fn view(&self) -> iced::Element<'_, Message, iced::Renderer<Self::Theme>> {
+        let mut tabs: Vec<(TabLabel, Element<'_, Message, iced::Renderer>)> = vec![
+            (
+                self.discover_tab.tab_label(),
+                self.discover_tab.view().map(Message::Discover),
+            ),
+            (
+                self.watchlist_tab.tab_label(),
+                self.watchlist_tab.view().map(Message::Watchlist),
+            ),
+            (
+                self.my_shows_tab.tab_label(),
+                self.my_shows_tab.view().map(Message::MyShows),
+            ),
+            (
+                self.statistics_tab.tab_label(),
+                self.statistics_tab.view().map(Message::Statistics),
+            ),
+            (
+                self.settings_tab.tab_label(),
+                self.settings_tab.view().map(Message::Settings),
+            ),
+        ];
 
-        let main_view = match self.view {
-            view::View::Discover => self.discover_view.view().map(Message::DiscoverAction),
-            view::View::MyShows => self.my_shows_view.view().map(Message::MyShowsAction),
-            view::View::Statistics => self.statistic_view.view().map(Message::StatisticsAction),
-            view::View::Watchlist => self.watchlist_view.view().map(Message::WatchlistAction),
-            view::View::Series => self
+        let active_tab_index = self.active_tab.to_owned().into();
+
+        // Hijacking the current tab view when series view is active
+        if self.series_view_active {
+            let (_, current_view): &mut (TabLabel, Element<'_, Message, iced::Renderer>) =
+                &mut tabs[active_tab_index];
+            *current_view = self
                 .series_view
                 .as_ref()
                 .unwrap()
                 .view()
-                .map(Message::SeriesAction),
-            view::View::Settings => self.settings_view.view().map(Message::SettingsAction),
-        };
+                .map(Message::Series);
+        }
 
-        row!(menu_view, main_view).into()
+        Tabs::with_tabs(active_tab_index, tabs, Message::TabSelected).into()
     }
+}
+
+fn handle_series_poster_selection(
+    tab_id: &TabId,
+    message: Message,
+) -> Option<(Series, Command<SeriesMessage>)> {
+    match tab_id {
+        TabId::Discover => {
+            if let Message::Discover(message) = message {
+                match message {
+                    DiscoverMessage::SeriesSelected(series_info) => {
+                        return Some(view::series_view::Series::from_series_information(
+                            *series_info,
+                        ));
+                    }
+                    DiscoverMessage::SeriesResultSelected(series_id) => {
+                        return Some(view::series_view::Series::from_series_id(series_id));
+                    }
+                    _ => return None,
+                }
+            }
+        }
+        TabId::MyShows => {
+            if let Message::MyShows(MyShowsMessage::SeriesSelected(series_info)) = message {
+                return Some(view::series_view::Series::from_series_information(
+                    *series_info,
+                ));
+            }
+        }
+        _ => return None,
+    }
+    None
+}
+
+fn handle_back_message_from_series(
+    series_message: &SeriesMessage,
+    series_view_active: &mut bool,
+) -> Option<Command<Message>> {
+    if let SeriesMessage::GoBack = series_message {
+        *series_view_active = false;
+        return Some(Command::none());
+    }
+    None
+}
+
+trait Tab {
+    type Message;
+
+    fn title(&self) -> String;
+
+    fn tab_label(&self) -> TabLabel;
+
+    fn view(&self) -> Element<'_, Self::Message> {
+        let column = Column::new()
+            .spacing(20)
+            .push(text(self.title()).size(32))
+            .push(self.content());
+
+        container(column)
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
+    }
+
+    fn content(&self) -> Element<'_, Self::Message>;
 }

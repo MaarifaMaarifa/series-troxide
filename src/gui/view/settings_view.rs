@@ -2,6 +2,7 @@ use iced::widget::{button, column, horizontal_space, pick_list, row, text, verti
 use iced::{Element, Length, Renderer};
 
 use crate::core::settings_config::{save_config, Config, Theme, ALL_THEMES};
+use crate::gui::{Message as GuiMessage, Tab};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -10,12 +11,12 @@ pub enum Message {
 }
 
 #[derive(Default)]
-pub struct Settings {
+pub struct SettingsTab {
     settings_config: Config,
     unsaved_config: Option<Config>,
 }
 
-impl Settings {
+impl SettingsTab {
     pub fn new(settings_config: Config) -> Self {
         Self {
             settings_config,
@@ -76,5 +77,21 @@ impl Settings {
         let save_button_bar = row!(horizontal_space(Length::Fill), save_settings_button).padding(5);
 
         column!(settings, vertical_space(Length::Fill), save_button_bar).into()
+    }
+}
+
+impl Tab for SettingsTab {
+    type Message = GuiMessage;
+
+    fn title(&self) -> String {
+        "Settings".to_owned()
+    }
+
+    fn tab_label(&self) -> iced_aw::TabLabel {
+        iced_aw::TabLabel::Text("Settings icon".to_owned())
+    }
+
+    fn content(&self) -> Element<'_, Self::Message> {
+        self.view().map(GuiMessage::Settings)
     }
 }

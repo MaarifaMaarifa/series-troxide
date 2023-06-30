@@ -4,6 +4,7 @@ use crate::core::caching;
 use crate::core::{api::series_information::SeriesMainInformation, database};
 use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
 use crate::gui::troxide_widget::{GREEN_THEME, RED_THEME};
+use crate::gui::{Message as GuiMessage, Tab};
 use iced::widget::{container, scrollable};
 use iced_aw::{Spinner, Wrap};
 
@@ -30,13 +31,13 @@ enum LoadState {
 }
 
 #[derive(Default)]
-pub struct MyShows {
+pub struct MyShowsTab {
     load_state: LoadState,
     series_ids: Vec<String>,
     series: Vec<SeriesPoster>,
 }
 
-impl MyShows {
+impl MyShowsTab {
     pub fn refresh(&mut self) -> Command<Message> {
         let series_ids = database::DB.get_series_id_collection();
         let fresh_series_ids: HashSet<String> = series_ids.iter().cloned().collect();
@@ -140,5 +141,21 @@ impl MyShows {
                 })
             })
             .collect()
+    }
+}
+
+impl Tab for MyShowsTab {
+    type Message = GuiMessage;
+
+    fn title(&self) -> String {
+        "My Shows".to_owned()
+    }
+
+    fn tab_label(&self) -> iced_aw::TabLabel {
+        iced_aw::TabLabel::Text("My Shows icon".to_owned())
+    }
+
+    fn content(&self) -> Element<'_, Self::Message> {
+        self.view().map(GuiMessage::MyShows)
     }
 }

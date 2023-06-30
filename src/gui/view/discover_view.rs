@@ -3,6 +3,7 @@ use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::api::tv_schedule::{get_episodes_with_country, get_episodes_with_date};
 use crate::core::api::updates::show_updates::*;
 use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
+use crate::gui::{Message as GuiMessage, Tab};
 use searching::Message as SearchMessage;
 
 use iced::{
@@ -38,7 +39,7 @@ pub enum Message {
 }
 
 #[derive(Default)]
-pub struct Discover {
+pub struct DiscoverTab {
     load_state: LoadState,
     show_overlay: bool,
     search_state: searching::Search,
@@ -47,7 +48,7 @@ pub struct Discover {
     series_updates: Vec<SeriesPoster>,
 }
 
-impl Discover {
+impl DiscoverTab {
     pub fn new() -> (Self, Command<Message>) {
         (Self::default(), load_discover_schedule_command())
     }
@@ -198,6 +199,22 @@ impl Discover {
         ]
         .spacing(2)
         .into()
+    }
+}
+
+impl Tab for DiscoverTab {
+    type Message = GuiMessage;
+
+    fn title(&self) -> String {
+        "Discover".to_owned()
+    }
+
+    fn tab_label(&self) -> iced_aw::TabLabel {
+        iced_aw::TabLabel::Text("Discover icon".to_owned())
+    }
+
+    fn content(&self) -> Element<'_, Self::Message> {
+        self.view().map(GuiMessage::Discover)
     }
 }
 

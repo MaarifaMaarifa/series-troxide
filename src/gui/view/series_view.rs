@@ -98,7 +98,7 @@ fn top_bar(series_info: &SeriesMainInformation) -> Row<'_, Message, Renderer> {
     };
 
     row!(
-        button(back_icon).on_press(Message::GoToSearchPage),
+        button(back_icon).on_press(Message::GoBack),
         horizontal_space(Length::Fill),
         text(&series_info.name).size(30),
         horizontal_space(Length::Fill),
@@ -110,7 +110,7 @@ fn top_bar(series_info: &SeriesMainInformation) -> Row<'_, Message, Renderer> {
 pub enum Message {
     SeriesInfoObtained(Box<SeriesMainInformation>),
     SeriesImageLoaded(Option<Vec<u8>>),
-    GoToSearchPage,
+    GoBack,
     SeasonsLoaded(Vec<SeasonInfo>),
     SeasonAction(usize, Box<SeasonMessage>),
     CastWidgetAction(CastWidgetMessage),
@@ -199,9 +199,7 @@ impl Series {
             Message::SeriesImageLoaded(image) => {
                 self.series_image = image;
             }
-            Message::GoToSearchPage => {
-                return Command::perform(async {}, |_| Message::GoToSearchPage)
-            }
+            Message::GoBack => return Command::perform(async {}, |_| Message::GoBack),
             Message::SeasonsLoaded(season_list) => {
                 self.season_widgets = season_list
                     .into_iter()
