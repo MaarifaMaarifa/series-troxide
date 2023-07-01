@@ -44,8 +44,8 @@ impl SeriesStatus {
 pub fn series_page(
     series_information: &SeriesMainInformation,
     image_bytes: Option<Vec<u8>>,
-) -> container::Container<'_, Message, Renderer> {
-    let mut content = column!();
+) -> Column<'_, Message, Renderer> {
+    let content = column!();
 
     let mut main_info = row!().padding(5);
 
@@ -76,9 +76,7 @@ pub fn series_page(
 
     main_info = main_info.push(series_data);
 
-    content = content.push(main_info);
-
-    container(scrollable(content))
+    content.push(main_info).width(Length::Fill)
 }
 
 fn top_bar(series_info: &SeriesMainInformation) -> Row<'_, Message, Renderer> {
