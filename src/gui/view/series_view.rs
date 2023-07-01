@@ -107,6 +107,7 @@ fn top_bar(series_info: &SeriesMainInformation) -> Row<'_, Message, Renderer> {
 pub enum Message {
     SeriesInfoObtained(Box<SeriesMainInformation>),
     SeriesImageLoaded(Option<Vec<u8>>),
+    NextEpisodeReleaseTimeLoaded(Option<String>),
     GoBack,
     SeasonsLoaded(Vec<(u32, usize)>),
     SeasonAction(usize, Box<SeasonMessage>),
@@ -125,6 +126,7 @@ pub struct Series {
     load_state: LoadState,
     series_information: Option<SeriesMainInformation>,
     series_image: Option<Vec<u8>>,
+    next_episode_release_time: Option<String>,
     season_widgets: Vec<season_widget::Season>,
     cast_widget: CastWidget,
 }
@@ -137,6 +139,7 @@ impl Series {
             series_id,
             load_state: LoadState::Loading,
             series_information: None,
+            next_episode_release_time: None,
             series_image: None,
             season_widgets: vec![],
             cast_widget,
@@ -171,14 +174,21 @@ impl Series {
             series_id,
             load_state: LoadState::Loaded,
             series_information: Some(series_information),
+            next_episode_release_time: None,
             series_image: None,
             season_widgets: vec![],
             cast_widget,
         };
 
+        let next_episode_release_time_command = Command::perform(
+            get_next_episode_release_time(series_id),
+            Message::NextEpisodeReleaseTimeLoaded,
+        );
+
         let commands = [
             Command::batch(get_image_and_seasons(series_image, series_id)),
             cast_widget_command.map(Message::CastWidgetAction),
+            next_episode_release_time_command,
         ];
 
         (series, Command::batch(commands))
@@ -225,6 +235,9 @@ impl Series {
                     .update(message)
                     .map(Message::CastWidgetAction)
             }
+            Message::NextEpisodeReleaseTimeLoaded(release_time) => {
+                self.next_episode_release_time = release_time
+            }
         }
         Command::none()
     }
@@ -243,6 +256,7 @@ impl Series {
                     self.series_image.clone(),
                 );
                 let seasons_widget = column!(
+                    next_episode_release_time_widget(&self),
                     text("Seasons").size(25),
                     Column::with_children(
                         self.season_widgets
@@ -293,4 +307,12 @@ fn get_image_and_seasons(
     );
 
     [image_command, seasons_list_command]
+}
+
+async fn get_next_episode_release_time(series_id: u32) -> Option<String> {
+    caching::episode_list::EpisodeList::new(series_id)
+        .await
+        .unwrap()
+        .get_next_episode()
+        .map(|episode| caching::episode_list::get_release_remaining_time(episode))?
 }

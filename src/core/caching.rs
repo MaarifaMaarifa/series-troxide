@@ -171,6 +171,7 @@ pub mod episode_list {
         },
         caching::{CacheType, CACHER},
     };
+    use chrono::{DateTime, Local, Utc};
     use tokio::fs;
     use tracing::info;
 
@@ -234,6 +235,49 @@ pub mod episode_list {
                     (season, total_episodes)
                 })
                 .collect()
+        }
+
+        /// Returns the next episode from the current time
+        pub fn get_next_episode(&self) -> Option<&Episode> {
+            self.episodes.iter().find(|episode| {
+                if let Some(airstamp) = episode.airstamp.as_ref() {
+                    let airstamp = DateTime::parse_from_rfc3339(&airstamp)
+                        .unwrap()
+                        .with_timezone(&Local);
+                    let local_time = Utc::now().with_timezone(&Local);
+                    airstamp > local_time
+                } else {
+                    false
+                }
+            })
+        }
+    }
+
+    /// Returns the remaining time for an episode to be released
+    pub fn get_release_remaining_time(episode: &Episode) -> Option<String> {
+        let airstamp = DateTime::parse_from_rfc3339(episode.airstamp.as_ref()?)
+            .unwrap()
+            .with_timezone(&Local);
+        let local_time = Utc::now().with_timezone(&Local);
+
+        if airstamp > local_time {
+            let time_diff = airstamp - local_time;
+
+            if time_diff.num_weeks() != 0 {
+                return Some(format!("{} weeks", time_diff.num_weeks()));
+            }
+            if time_diff.num_days() != 0 {
+                return Some(format!("{} days", time_diff.num_days()));
+            }
+            if time_diff.num_hours() != 0 {
+                return Some(format!("{} hours", time_diff.num_hours()));
+            }
+            if time_diff.num_minutes() != 0 {
+                return Some(format!("{} minutes", time_diff.num_minutes()));
+            }
+            Some(String::from("Now"))
+        } else {
+            None
         }
     }
 }

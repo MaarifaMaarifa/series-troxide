@@ -1,4 +1,4 @@
-use super::SeriesStatus;
+use super::{Series, SeriesStatus};
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::gui::troxide_widget::{GREEN_THEME, INFO_BODY, INFO_HEADER, RED_THEME};
 
@@ -177,6 +177,19 @@ pub fn webchannel_widget(
                 .size(INFO_BODY)
                 .height(INFO_HEADER)
                 .vertical_alignment(alignment::Vertical::Bottom),
+        )
+    } else {
+        row!()
+    }
+}
+
+pub fn next_episode_release_time_widget(
+    series: &Series,
+) -> iced::widget::Row<'_, Message, Renderer> {
+    if let Some(release_time) = series.next_episode_release_time.as_ref() {
+        row!(
+            text("Next episode release: ").size(INFO_HEADER),
+            text(release_time).size(INFO_BODY)
         )
     } else {
         row!()
