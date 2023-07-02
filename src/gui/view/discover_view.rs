@@ -262,7 +262,7 @@ mod searching {
 
     use iced::theme;
     use iced::widget::{
-        column, container, horizontal_space, image, mouse_area, row, text, text_input,
+        column, container, horizontal_space, image, mouse_area, row, scrollable, text, text_input,
         vertical_space, Column,
     };
     use iced::{Command, Element, Length, Renderer};
@@ -388,7 +388,7 @@ mod searching {
                 .style(theme::Container::Custom(Box::new(ContainerTheme)
                     as Box<dyn container::StyleSheet<Style = iced::theme::Theme>>));
 
-            (search_bar.into(), menu_widgets.into())
+            (search_bar.into(), scrollable(menu_widgets).into())
         }
     }
 
