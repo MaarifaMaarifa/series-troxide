@@ -146,6 +146,27 @@ pub mod series_poster {
                 .spacing(5);
 
                 metadata = metadata.push(progress_bar);
+
+                let last_episode_watched = if let Some((season_num, last_watched_season)) =
+                    database::DB
+                        .get_series(series_info.id)
+                        .unwrap()
+                        .get_last_season()
+                {
+                    last_watched_season.get_last_episode();
+                    text(format!(
+                        "Last Watched Episode: S{}E{}",
+                        parse_season_episode_number(season_num),
+                        parse_season_episode_number(last_watched_season
+                            .get_last_episode()
+                            .expect("the season should have atleast one episode for it to be the last watched"))
+                    ))
+                } else {
+                    text("No Episode Watched")
+                };
+
+                metadata = metadata.push(last_episode_watched);
+
                 content = content.push(metadata);
 
                 mouse_area(content)
@@ -160,6 +181,14 @@ pub mod series_poster {
             self.series_information
                 .as_ref()
                 .map(|series_info| SeriesStatus::new(&series_info))
+        }
+    }
+
+    fn parse_season_episode_number(number: u32) -> String {
+        if number < 10_u32 {
+            format!("0{}", number)
+        } else {
+            number.to_string()
         }
     }
 

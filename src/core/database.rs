@@ -137,6 +137,17 @@ impl Series {
             .map(|season| season.episodes_watched())
             .sum()
     }
+
+    /// Return the last watched season together with it's number
+    ///
+    /// This obviously skip any unwatched season in between and just returns the highest
+    pub fn get_last_season(&self) -> Option<(u32, &Season)> {
+        self.seasons
+            .iter()
+            .filter(|(_, season)| season.episodes_watched() != 0)
+            .max_by(|x, y| x.0.cmp(y.0))
+            .map(|(season_number, season)| (*season_number, season))
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -166,6 +177,13 @@ impl Season {
     /// Returns total tracked episodes of the season
     pub fn episodes_watched(&self) -> usize {
         self.episodes.len()
+    }
+
+    /// Return the last watched episode
+    ///
+    /// This obviously skip any unwatched episode in between and just returns the highest
+    pub fn get_last_episode(&self) -> Option<Episode> {
+        self.episodes.iter().max().copied()
     }
 }
 
