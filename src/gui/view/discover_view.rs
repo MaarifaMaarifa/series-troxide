@@ -184,13 +184,10 @@ impl DiscoverTab {
             .into(),
         };
 
-        let offset_distance = Offset { x: -140.0, y: 0.0 };
-
         let content = floating_element::FloatingElement::new(underlay, || {
             self.search_state.view().1.map(Message::SearchAction)
         })
         .anchor(floating_element::Anchor::North)
-        .offset(offset_distance)
         .hide(!self.show_overlay);
 
         column![
