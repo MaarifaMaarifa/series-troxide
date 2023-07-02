@@ -6,14 +6,12 @@ use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, 
 use crate::gui::{Message as GuiMessage, Tab};
 use searching::Message as SearchMessage;
 
-use iced::{
-    widget::{column, container, scrollable, text},
-    Command, Element, Length, Renderer,
-};
+use iced::widget::{column, container, scrollable, text};
+use iced::{Command, Element, Length, Renderer};
 
 use iced_aw::floating_element;
+use iced_aw::wrap::Wrap;
 use iced_aw::Spinner;
-use iced_aw::{floating_element::Offset, wrap::Wrap};
 
 #[derive(Default, PartialEq)]
 enum LoadState {
