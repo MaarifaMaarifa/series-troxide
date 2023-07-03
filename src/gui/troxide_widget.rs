@@ -17,6 +17,7 @@ pub mod series_poster {
     use crate::core::api::series_information::SeriesMainInformation;
     use crate::core::api::{get_series_from_episode, Image};
     use crate::core::{caching, database};
+    use crate::gui::helpers::parse_season_episode_number;
     use crate::gui::view::series_view::SeriesStatus;
     use iced::widget::{column, container, image, mouse_area, progress_bar, row, text};
     use iced::{Command, Element, Renderer};
@@ -181,14 +182,6 @@ pub mod series_poster {
             self.series_information
                 .as_ref()
                 .map(|series_info| SeriesStatus::new(&series_info))
-        }
-    }
-
-    fn parse_season_episode_number(number: u32) -> String {
-        if number < 10_u32 {
-            format!("0{}", number)
-        } else {
-            number.to_string()
         }
     }
 

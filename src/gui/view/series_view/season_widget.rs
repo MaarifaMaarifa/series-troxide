@@ -199,7 +199,10 @@ async fn load_episode_infos(series_id: u32, season_number: u32) -> Vec<EpisodeIn
 
 mod episode_widget {
     use super::Message as SeasonMessage;
-    use crate::core::{api::episodes_information::Episode as EpisodeInfo, caching, database};
+    use crate::{
+        core::{api::episodes_information::Episode as EpisodeInfo, caching, database},
+        gui::helpers::parse_season_episode_number,
+    };
     use iced::{
         widget::{checkbox, column, horizontal_space, image, row, text, Row, Text},
         Command, Element, Length, Renderer,
@@ -342,13 +345,5 @@ mod episode_widget {
             tracking_checkbox.size(17),
         )
         .spacing(5)
-    }
-
-    fn parse_season_episode_number(number: u32) -> String {
-        if number < 10_u32 {
-            format!("0{}", number)
-        } else {
-            number.to_string()
-        }
     }
 }
