@@ -1,3 +1,4 @@
+use crate::core::api::episodes_information::Episode;
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::api::Image;
 use crate::core::{caching, database};
@@ -107,7 +108,7 @@ fn top_bar(series_info: &SeriesMainInformation) -> Row<'_, Message, Renderer> {
 pub enum Message {
     SeriesInfoObtained(Box<SeriesMainInformation>),
     SeriesImageLoaded(Option<Vec<u8>>),
-    NextEpisodeReleaseTimeLoaded(Option<String>),
+    NextEpisodeReleaseLoaded(Option<(Episode, String)>),
     GoBack,
     SeasonsLoaded(Vec<(u32, usize)>),
     SeasonAction(usize, Box<SeasonMessage>),
@@ -126,7 +127,7 @@ pub struct Series {
     load_state: LoadState,
     series_information: Option<SeriesMainInformation>,
     series_image: Option<Vec<u8>>,
-    next_episode_release_time: Option<String>,
+    next_episode_release_time: Option<(Episode, String)>,
     season_widgets: Vec<season_widget::Season>,
     cast_widget: CastWidget,
 }
@@ -182,7 +183,7 @@ impl Series {
 
         let next_episode_release_time_command = Command::perform(
             get_next_episode_release_time(series_id),
-            Message::NextEpisodeReleaseTimeLoaded,
+            Message::NextEpisodeReleaseLoaded,
         );
 
         let commands = [
@@ -235,7 +236,7 @@ impl Series {
                     .update(message)
                     .map(Message::CastWidgetAction)
             }
-            Message::NextEpisodeReleaseTimeLoaded(release_time) => {
+            Message::NextEpisodeReleaseLoaded(release_time) => {
                 self.next_episode_release_time = release_time
             }
         }
@@ -309,10 +310,10 @@ fn get_image_and_seasons(
     [image_command, seasons_list_command]
 }
 
-async fn get_next_episode_release_time(series_id: u32) -> Option<String> {
+async fn get_next_episode_release_time(series_id: u32) -> Option<(Episode, String)> {
     caching::episode_list::EpisodeList::new(series_id)
         .await
         .unwrap()
-        .get_next_episode()
-        .map(|episode| caching::episode_list::get_release_remaining_time(episode))?
+        .get_next_episode_and_time()
+        .map(|(episode, release_time)| (episode.clone(), release_time))
 }

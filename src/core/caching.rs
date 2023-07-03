@@ -251,6 +251,14 @@ pub mod episode_list {
                 }
             })
         }
+
+        /// Returns the next episode and it's release time
+        pub fn get_next_episode_and_time(&self) -> Option<(&Episode, String)> {
+            let next_episode = self.get_next_episode()?;
+
+            get_release_remaining_time(next_episode)
+                .map(|release_time| (next_episode, release_time))
+        }
     }
 
     /// Returns the remaining time for an episode to be released

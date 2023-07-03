@@ -1,5 +1,6 @@
 use super::{Series, SeriesStatus};
 use crate::core::api::series_information::SeriesMainInformation;
+use crate::gui::helpers::parse_season_episode_number;
 use crate::gui::troxide_widget::{GREEN_THEME, INFO_BODY, INFO_HEADER, RED_THEME};
 
 use iced::alignment;
@@ -183,15 +184,23 @@ pub fn webchannel_widget(
     }
 }
 
-pub fn next_episode_release_time_widget(
-    series: &Series,
-) -> iced::widget::Row<'_, Message, Renderer> {
-    if let Some(release_time) = series.next_episode_release_time.as_ref() {
-        row!(
-            text("Next episode release: ").size(INFO_HEADER),
-            text(release_time).size(INFO_BODY)
-        )
+pub fn next_episode_release_time_widget(series: &Series) -> iced::widget::Text<'_, Renderer> {
+    if let Some((episode, release_time)) = series.next_episode_release_time.as_ref() {
+        let season = episode.season;
+        let episode = episode.number.expect("Could not get episode number");
+
+        let next_episode = format!(
+            "S{}E{}",
+            parse_season_episode_number(season),
+            parse_season_episode_number(episode)
+        );
+
+        text(format!(
+            "Next episode: {} release in {}",
+            next_episode, release_time
+        ))
+        .size(INFO_HEADER)
     } else {
-        row!()
+        text("")
     }
 }
