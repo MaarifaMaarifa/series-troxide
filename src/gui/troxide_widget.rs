@@ -172,6 +172,48 @@ pub mod series_poster {
             }
         }
 
+        pub fn release_series_posters_view(
+            &self,
+            episode_and_release_time: &(Episode, String),
+        ) -> Element<'_, Message, Renderer> {
+            let mut content = row!().padding(2).spacing(1);
+            if let Some(image_bytes) = self.image.clone() {
+                let image_handle = image::Handle::from_memory(image_bytes);
+                let image = image(image_handle).width(100);
+                content = content.push(image);
+            };
+
+            let mut metadata = column!();
+            if let Some(series_info) = &self.series_information {
+                metadata = metadata.push(text(&series_info.name));
+
+                let season_number = episode_and_release_time.0.season;
+                let episode_number = episode_and_release_time
+                    .0
+                    .number
+                    .expect("an episode should have a valid number");
+
+                let episode_name = &episode_and_release_time.0.name;
+
+                metadata = metadata.push(text(format!(
+                    "{}: {}",
+                    season_episode_str_gen(season_number, episode_number),
+                    episode_name,
+                )));
+
+                metadata =
+                    metadata.push(text(format!("Release in: {}", &episode_and_release_time.1)));
+
+                content = content.push(metadata);
+
+                mouse_area(content)
+                    .on_press(Message::SeriesPosterPressed(Box::new(series_info.clone())))
+                    .into()
+            } else {
+                container("").into()
+            }
+        }
+
         pub fn get_status(&self) -> Option<SeriesStatus> {
             self.series_information
                 .as_ref()
