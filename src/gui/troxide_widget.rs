@@ -17,7 +17,7 @@ pub mod series_poster {
     use crate::core::api::series_information::SeriesMainInformation;
     use crate::core::api::{get_series_from_episode, Image};
     use crate::core::{caching, database};
-    use crate::gui::helpers::parse_season_episode_number;
+    use crate::gui::helpers::season_episode_str_gen;
     use crate::gui::view::series_view::SeriesStatus;
     use iced::widget::{column, container, image, mouse_area, progress_bar, row, text};
     use iced::{Command, Element, Renderer};
@@ -155,13 +155,7 @@ pub mod series_poster {
                         .get_last_season()
                 {
                     last_watched_season.get_last_episode();
-                    text(format!(
-                        "Last Watched Episode: S{}E{}",
-                        parse_season_episode_number(season_num),
-                        parse_season_episode_number(last_watched_season
-                            .get_last_episode()
-                            .expect("the season should have atleast one episode for it to be the last watched"))
-                    ))
+                    text(format!("{} {}","Last watched episode", season_episode_str_gen(season_num, last_watched_season.get_last_episode().expect("the season should have atleast one episode for it to be the last watched"))))
                 } else {
                     text("No Episode Watched")
                 };

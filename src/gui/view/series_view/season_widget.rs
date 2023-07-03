@@ -201,7 +201,7 @@ mod episode_widget {
     use super::Message as SeasonMessage;
     use crate::{
         core::{api::episodes_information::Episode as EpisodeInfo, caching, database},
-        gui::helpers::parse_season_episode_number,
+        gui::helpers::season_episode_str_gen,
     };
     use iced::{
         widget::{checkbox, column, horizontal_space, image, row, text, Row, Text},
@@ -332,10 +332,9 @@ mod episode_widget {
         let tracking_checkbox = checkbox("", is_tracked, |_| Message::TrackCheckboxPressed);
         row!(
             if let Some(episode_number) = episode_information.number {
-                text(format!(
-                    "S{}E{}",
-                    parse_season_episode_number(episode_information.season),
-                    parse_season_episode_number(episode_number)
+                text(season_episode_str_gen(
+                    episode_information.season,
+                    episode_number,
                 ))
             } else {
                 text("")

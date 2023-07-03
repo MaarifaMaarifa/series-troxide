@@ -1,6 +1,6 @@
 use super::{Series, SeriesStatus};
 use crate::core::api::series_information::SeriesMainInformation;
-use crate::gui::helpers::parse_season_episode_number;
+use crate::gui::helpers::season_episode_str_gen;
 use crate::gui::troxide_widget::{GREEN_THEME, INFO_BODY, INFO_HEADER, RED_THEME};
 
 use iced::alignment;
@@ -189,11 +189,7 @@ pub fn next_episode_release_time_widget(series: &Series) -> iced::widget::Text<'
         let season = episode.season;
         let episode = episode.number.expect("Could not get episode number");
 
-        let next_episode = format!(
-            "S{}E{}",
-            parse_season_episode_number(season),
-            parse_season_episode_number(episode)
-        );
+        let next_episode = season_episode_str_gen(season, episode);
 
         text(format!(
             "Next episode: {} release in {}",
