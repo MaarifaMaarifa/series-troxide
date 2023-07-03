@@ -169,36 +169,3 @@ impl Tab for WatchlistTab {
         self.view().map(GuiMessage::Watchlist)
     }
 }
-
-// pub mod watchlist_item {
-//     use iced::{Command, Element, Renderer};
-
-//     use crate::{
-//         core::api::series_information::SeriesMainInformation,
-//         gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster},
-//     };
-
-//     enum Message {
-//         SeriesPoster(SeriesPosterMessage),
-//     }
-
-//     struct WatchListItem {
-//         series_poster: SeriesPoster,
-//     }
-
-//     impl WatchListItem {
-//         fn new(id: usize, series_information: SeriesMainInformation) -> (Self, Command<Message>) {
-//             let (series_poster, series_poster_command) = SeriesPoster::new(id, series_information);
-//             let watchlist_item = Self { series_poster };
-//             todo!()
-//         }
-
-//         fn update(&mut self) -> Command<Message> {
-//             todo!()
-//         }
-
-//         fn view(&self) -> Element<'_, Message, Renderer> {
-//             todo!()
-//         }
-//     }
-// }
