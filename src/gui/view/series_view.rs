@@ -155,11 +155,17 @@ impl Series {
             },
         );
 
+        let next_episode_release_time_command = Command::perform(
+            get_next_episode_release_time(series_id),
+            Message::NextEpisodeReleaseLoaded,
+        );
+
         (
             series,
             Command::batch([
                 series_command,
                 cast_widget_command.map(Message::CastWidgetAction),
+                next_episode_release_time_command,
             ]),
         )
     }
