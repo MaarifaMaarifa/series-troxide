@@ -202,6 +202,10 @@ pub mod series_poster {
                     episode_name,
                 )));
 
+                metadata = metadata.push(text(
+                    episode_and_release_time.1.get_full_release_date_and_time(),
+                ));
+
                 metadata = metadata.push(text(format!(
                     "Release in: {}",
                     &episode_and_release_time

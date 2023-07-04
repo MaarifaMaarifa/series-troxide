@@ -171,7 +171,7 @@ pub mod episode_list {
         },
         caching::{CacheType, CACHER},
     };
-    use chrono::{DateTime, Local, Utc};
+    use chrono::{DateTime, Datelike, Local, Timelike, Utc};
     use tokio::fs;
     use tracing::info;
 
@@ -307,8 +307,30 @@ pub mod episode_list {
             }
         }
 
-        pub fn get_release_date(&self) -> Option<String> {
-            todo!()
+        /// Returns the remaining full date and time for an episode to be released
+        pub fn get_full_release_date_and_time(&self) -> String {
+            /// appends zero the minute digit if it's below 10 for better display
+            fn append_zero(num: u32) -> String {
+                if num < 10 {
+                    format!("0{num}")
+                } else {
+                    format!("{num}")
+                }
+            }
+
+            let (is_pm, hour) = self.release_time.hour12();
+            let pm_am = if is_pm { "p.m." } else { "a.m." };
+
+            let minute = append_zero(self.release_time.minute());
+
+            format!(
+                "{} {} {}:{} {}",
+                self.release_time.date_naive(),
+                self.release_time.weekday(),
+                hour,
+                minute,
+                pm_am
+            )
         }
     }
 
