@@ -192,7 +192,7 @@ pub fn next_episode_release_time_widget(series: &Series) -> iced::widget::Text<'
         let next_episode = season_episode_str_gen(season, episode);
 
         text(format!(
-            "Next episode: {} release in {}",
+            "{} in {}",
             next_episode,
             release_time.get_remaining_release_time().unwrap()
         ))
