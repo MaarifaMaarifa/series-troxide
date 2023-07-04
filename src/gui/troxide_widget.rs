@@ -16,6 +16,7 @@ pub mod series_poster {
     use crate::core::api::episodes_information::Episode;
     use crate::core::api::series_information::SeriesMainInformation;
     use crate::core::api::{get_series_from_episode, Image};
+    use crate::core::caching::episode_list::EpisodeReleaseTime;
     use crate::core::{caching, database};
     use crate::gui::helpers::season_episode_str_gen;
     use crate::gui::view::series_view::SeriesStatus;
@@ -174,7 +175,7 @@ pub mod series_poster {
 
         pub fn release_series_posters_view(
             &self,
-            episode_and_release_time: &(Episode, String),
+            episode_and_release_time: &(Episode, EpisodeReleaseTime),
         ) -> Element<'_, Message, Renderer> {
             let mut content = row!().padding(2).spacing(1);
             if let Some(image_bytes) = self.image.clone() {
@@ -201,8 +202,13 @@ pub mod series_poster {
                     episode_name,
                 )));
 
-                metadata =
-                    metadata.push(text(format!("Release in: {}", &episode_and_release_time.1)));
+                metadata = metadata.push(text(format!(
+                    "Release in: {}",
+                    &episode_and_release_time
+                        .1
+                        .get_remaining_release_time()
+                        .unwrap()
+                )));
 
                 content = content.push(metadata);
 

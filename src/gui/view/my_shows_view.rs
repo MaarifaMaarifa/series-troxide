@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use crate::core::api::episodes_information::Episode;
 use crate::core::caching;
+use crate::core::caching::episode_list::EpisodeReleaseTime;
 use crate::core::{api::series_information::SeriesMainInformation, database};
 use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
 use crate::gui::troxide_widget::{GREEN_THEME, RED_THEME};
@@ -22,7 +23,7 @@ pub enum Message {
     SeriesInformationsReceived(Vec<SeriesMainInformation>),
     SeriesSelected(Box<SeriesMainInformation>),
     SeriesPosterAction(usize, SeriesPosterMessage),
-    UpcomingReleaseSeriesReceived(Vec<(SeriesMainInformation, (Episode, String))>),
+    UpcomingReleaseSeriesReceived(Vec<(SeriesMainInformation, (Episode, EpisodeReleaseTime))>),
     UpcomingReleasePosterAction(usize, SeriesPosterMessage),
 }
 
@@ -37,7 +38,7 @@ enum LoadState {
 pub struct MyShowsTab {
     load_state: LoadState,
     series_ids: Vec<String>,
-    upcoming_releases: Vec<(SeriesPoster, (Episode, String))>,
+    upcoming_releases: Vec<(SeriesPoster, (Episode, EpisodeReleaseTime))>,
     series: Vec<SeriesPoster>,
 }
 
@@ -208,7 +209,7 @@ impl MyShowsTab {
 /// Returns series info and their associated release episode and time
 async fn get_series_release_time(
     series_informations: Vec<SeriesMainInformation>,
-) -> Vec<(SeriesMainInformation, (Episode, String))> {
+) -> Vec<(SeriesMainInformation, (Episode, EpisodeReleaseTime))> {
     let handles: Vec<_> = series_informations
         .iter()
         .map(|series_info| tokio::spawn(caching::episode_list::EpisodeList::new(series_info.id)))

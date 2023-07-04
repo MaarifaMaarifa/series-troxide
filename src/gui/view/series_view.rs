@@ -1,6 +1,7 @@
 use crate::core::api::episodes_information::Episode;
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::api::Image;
+use crate::core::caching::episode_list::EpisodeReleaseTime;
 use crate::core::{caching, database};
 use crate::gui::assets::get_static_cow_from_asset;
 use crate::gui::assets::icons::{ARROW_LEFT, CHECK_CIRCLE, CHECK_CIRCLE_FILL};
@@ -108,7 +109,7 @@ fn top_bar(series_info: &SeriesMainInformation) -> Row<'_, Message, Renderer> {
 pub enum Message {
     SeriesInfoObtained(Box<SeriesMainInformation>),
     SeriesImageLoaded(Option<Vec<u8>>),
-    NextEpisodeReleaseLoaded(Option<(Episode, String)>),
+    NextEpisodeReleaseLoaded(Option<(Episode, EpisodeReleaseTime)>),
     GoBack,
     SeasonsLoaded(Vec<(u32, usize)>),
     SeasonAction(usize, Box<SeasonMessage>),
@@ -127,7 +128,7 @@ pub struct Series {
     load_state: LoadState,
     series_information: Option<SeriesMainInformation>,
     series_image: Option<Vec<u8>>,
-    next_episode_release_time: Option<(Episode, String)>,
+    next_episode_release_time: Option<(Episode, EpisodeReleaseTime)>,
     season_widgets: Vec<season_widget::Season>,
     cast_widget: CastWidget,
 }
@@ -316,7 +317,7 @@ fn get_image_and_seasons(
     [image_command, seasons_list_command]
 }
 
-async fn get_next_episode_release_time(series_id: u32) -> Option<(Episode, String)> {
+async fn get_next_episode_release_time(series_id: u32) -> Option<(Episode, EpisodeReleaseTime)> {
     caching::episode_list::EpisodeList::new(series_id)
         .await
         .unwrap()

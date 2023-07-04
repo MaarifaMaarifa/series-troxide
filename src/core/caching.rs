@@ -253,11 +253,62 @@ pub mod episode_list {
         }
 
         /// Returns the next episode and it's release time
-        pub fn get_next_episode_and_time(&self) -> Option<(&Episode, String)> {
+        pub fn get_next_episode_and_time(&self) -> Option<(&Episode, EpisodeReleaseTime)> {
             let next_episode = self.get_next_episode()?;
+            let next_episode_airstamp = next_episode.airstamp.as_ref()?;
 
-            get_release_remaining_time(next_episode)
-                .map(|release_time| (next_episode, release_time))
+            let release_time = EpisodeReleaseTime::from_rfc3339_str(next_episode_airstamp);
+            Some((next_episode, release_time))
+        }
+    }
+
+    #[derive(Debug, Clone)]
+    pub struct EpisodeReleaseTime {
+        release_time: DateTime<Local>,
+    }
+
+    impl EpisodeReleaseTime {
+        pub fn new(release_time: DateTime<Utc>) -> Self {
+            Self {
+                release_time: release_time.with_timezone(&Local),
+            }
+        }
+
+        fn from_rfc3339_str(str: &str) -> Self {
+            Self {
+                release_time: DateTime::parse_from_rfc3339(str)
+                    .unwrap()
+                    .with_timezone(&Local),
+            }
+        }
+
+        /// Returns the remaining time for an episode to be released
+        pub fn get_remaining_release_time(&self) -> Option<String> {
+            let local_time = Utc::now().with_timezone(&Local);
+
+            if self.release_time > local_time {
+                let time_diff = self.release_time - local_time;
+
+                if time_diff.num_weeks() != 0 {
+                    return Some(format!("{} weeks", time_diff.num_weeks()));
+                }
+                if time_diff.num_days() != 0 {
+                    return Some(format!("{} days", time_diff.num_days()));
+                }
+                if time_diff.num_hours() != 0 {
+                    return Some(format!("{} hours", time_diff.num_hours()));
+                }
+                if time_diff.num_minutes() != 0 {
+                    return Some(format!("{} minutes", time_diff.num_minutes()));
+                }
+                Some(String::from("Now"))
+            } else {
+                None
+            }
+        }
+
+        pub fn get_release_date(&self) -> Option<String> {
+            todo!()
         }
     }
 

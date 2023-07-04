@@ -193,7 +193,8 @@ pub fn next_episode_release_time_widget(series: &Series) -> iced::widget::Text<'
 
         text(format!(
             "Next episode: {} release in {}",
-            next_episode, release_time
+            next_episode,
+            release_time.get_remaining_release_time().unwrap()
         ))
         .size(INFO_HEADER)
     } else {
