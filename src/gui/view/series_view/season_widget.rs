@@ -6,6 +6,8 @@ use self::episode_widget::Episode;
 
 use super::Message as SeriesMessage;
 use crate::core::api::episodes_information::Episode as EpisodeInfo;
+use crate::core::caching::episode_list::TotalEpisodes;
+use crate::core::database::AddResult;
 use crate::core::{caching, database};
 use crate::gui::assets::get_static_cow_from_asset;
 use crate::gui::assets::icons::{ARROW_BAR_DOWN, ARROW_BAR_UP};
@@ -14,7 +16,7 @@ use episode_widget::Message as EpisodeMessage;
 #[derive(Clone, Debug)]
 pub enum Message {
     CheckboxPressed,
-    TrackCommandComplete,
+    TrackCommandComplete(Option<AddResult>),
     Expand,
     EpisodesLoaded(Vec<EpisodeInfo>),
     EpisodeAction(usize, EpisodeMessage),
@@ -25,13 +27,18 @@ pub struct Season {
     index: usize,
     series_id: u32,
     season_number: u32,
-    total_episodes: usize,
+    total_episodes: TotalEpisodes,
     episodes: Vec<episode_widget::Episode>,
     is_expanded: bool,
 }
 
 impl Season {
-    pub fn new(index: usize, series_id: u32, season_number: u32, total_episodes: usize) -> Self {
+    pub fn new(
+        index: usize,
+        series_id: u32,
+        season_number: u32,
+        total_episodes: TotalEpisodes,
+    ) -> Self {
         Self {
             index,
             series_id,
@@ -46,46 +53,26 @@ impl Season {
             Message::CheckboxPressed => {
                 let series_id = self.series_id;
                 let season_number = self.season_number;
-                let total_episodes = self.total_episodes;
+                let total_episodes = self.total_episodes.get_all_episodes();
                 let index = self.index;
 
                 return Command::perform(
                     async move {
                         if let Some(mut series) = database::DB.get_series(series_id) {
-                            // Removing the season if it is already tracked or adding a new one with the all
-                            // of episodes if it is not tracked
-                            if let Some(season) = series.get_season_mut(season_number) {
-                                if season.episodes_watched() != total_episodes {
-                                    for episode_number in 1..=total_episodes {
-                                        season
-                                            .track_episode(
-                                                series_id,
-                                                season_number,
-                                                episode_number as u32,
-                                            )
-                                            .await;
-                                    }
-                                } else {
-                                    series.remove_season(season_number);
-                                }
-                            } else {
-                                series.add_season(season_number);
-                                let season = series.get_season_mut(season_number).unwrap();
-                                for episode_number in 1..=total_episodes {
-                                    season
-                                        .track_episode(
-                                            series_id,
-                                            season_number,
-                                            episode_number as u32,
-                                        )
-                                        .await;
-                                }
-                            }
-                            series.update();
+                            Some(
+                                series
+                                    .add_episodes(season_number, 1..=total_episodes as u32)
+                                    .await,
+                            )
+                        } else {
+                            None
                         }
                     },
-                    move |_| {
-                        SeriesMessage::SeasonAction(index, Box::new(Message::TrackCommandComplete))
+                    move |all_newly_added| {
+                        SeriesMessage::SeasonAction(
+                            index,
+                            Box::new(Message::TrackCommandComplete(all_newly_added)),
+                        )
                     },
                 );
             }
@@ -137,7 +124,14 @@ impl Season {
                     .update(message)
                     .map(move |m| SeriesMessage::SeasonAction(season_index, Box::new(m)));
             }
-            Message::TrackCommandComplete => {}
+            Message::TrackCommandComplete(add_result) => {
+                if let Some(AddResult::None) = add_result {
+                    if let Some(mut series) = database::DB.get_series(self.series_id) {
+                        series.remove_season(self.season_number);
+                        series.update()
+                    }
+                }
+            }
         }
         Command::none()
     }
@@ -154,17 +148,25 @@ impl Season {
             })
             .unwrap_or(0);
 
-        let track_checkbox = checkbox("", self.total_episodes == tracked_episodes, |_| {
-            Message::CheckboxPressed
-        });
+        let track_checkbox = checkbox(
+            "",
+            self.total_episodes.get_all_watchable_episodes() == tracked_episodes,
+            |_| Message::CheckboxPressed,
+        );
         let season_name = text(format!("Season {}", self.season_number));
 
-        let season_progress =
-            progress_bar(0.0..=self.total_episodes as f32, tracked_episodes as f32)
-                .height(10)
-                .width(500);
+        let season_progress = progress_bar(
+            0.0..=self.total_episodes.get_all_episodes() as f32,
+            tracked_episodes as f32,
+        )
+        .height(10)
+        .width(500);
 
-        let episodes_progress = text(format!("{}/{}", tracked_episodes, self.total_episodes));
+        let episodes_progress = text(format!(
+            "{}/{}",
+            tracked_episodes,
+            self.total_episodes.get_all_episodes()
+        ));
 
         let expand_button = if self.is_expanded {
             let svg_handle = svg::Handle::from_memory(get_static_cow_from_asset(ARROW_BAR_UP));

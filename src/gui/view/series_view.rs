@@ -1,7 +1,7 @@
 use crate::core::api::episodes_information::Episode;
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::api::Image;
-use crate::core::caching::episode_list::EpisodeReleaseTime;
+use crate::core::caching::episode_list::{EpisodeReleaseTime, TotalEpisodes};
 use crate::core::{caching, database};
 use crate::gui::assets::get_static_cow_from_asset;
 use crate::gui::assets::icons::{ARROW_LEFT, CHECK_CIRCLE, CHECK_CIRCLE_FILL};
@@ -111,7 +111,7 @@ pub enum Message {
     SeriesImageLoaded(Option<Vec<u8>>),
     NextEpisodeReleaseLoaded(Option<(Episode, EpisodeReleaseTime)>),
     GoBack,
-    SeasonsLoaded(Vec<(u32, usize)>),
+    SeasonsLoaded(Vec<(u32, TotalEpisodes)>),
     SeasonAction(usize, Box<SeasonMessage>),
     CastWidgetAction(CastWidgetMessage),
     TrackSeries,

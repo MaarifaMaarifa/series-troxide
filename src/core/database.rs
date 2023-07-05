@@ -2,7 +2,10 @@ use directories::ProjectDirs;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use sled::Db;
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    ops::RangeInclusive,
+};
 use tracing::info;
 
 use super::caching;
@@ -132,6 +135,24 @@ impl Series {
         is_newly_added
     }
 
+    pub async fn add_episodes(
+        &mut self,
+        season_number: u32,
+        episodes_range: RangeInclusive<u32>,
+    ) -> AddResult {
+        let add_result = loop {
+            if let Some(season) = self.seasons.get_mut(&season_number) {
+                break season
+                    .track_episodes(self.id, season_number, episodes_range)
+                    .await;
+            } else {
+                self.add_season(season_number);
+            }
+        };
+        self.update();
+        add_result
+    }
+
     /// removes an episode from the series
     pub fn remove_episode(&mut self, season_number: u32, episode_number: Episode) {
         if let Some(season) = self.seasons.get_mut(&season_number) {
@@ -203,6 +224,35 @@ impl Season {
         false
     }
 
+    /// adds a range of episode to be tracked
+    ///
+    /// if all episodes in the range were newly added, true is returned. if atleast one episode was not newly
+    /// added i.e. it existed already before adding, false is returned.
+    pub async fn track_episodes(
+        &mut self,
+        series_id: u32,
+        season_number: u32,
+        episodes_range: RangeInclusive<u32>,
+    ) -> AddResult {
+        let mut already_added_items = 0;
+        for episode_number in episodes_range.clone() {
+            if !self
+                .track_episode(series_id, season_number, episode_number)
+                .await
+            {
+                already_added_items += 1;
+            };
+        }
+
+        if already_added_items == 0 {
+            return AddResult::Full;
+        } else if already_added_items == episodes_range.count() {
+            return AddResult::None;
+        } else {
+            return AddResult::Partial;
+        }
+    }
+
     pub fn untrack_episode(&mut self, episode: Episode) {
         self.episodes.remove(&episode);
     }
@@ -231,3 +281,15 @@ impl Default for Season {
 }
 
 pub type Episode = u32;
+
+/// Indicates if adding episodes has been fully added(when none of the episodes were present before adding) or
+/// partial(when some were already present) and none when all the added apisode where already present
+#[derive(Debug, Clone)]
+pub enum AddResult {
+    /// When adding is successfully done for all items
+    Full,
+    /// When adding is successfully done for some items
+    Partial,
+    /// When adding did not happen
+    None,
+}

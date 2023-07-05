@@ -236,7 +236,7 @@ pub mod episode_list {
         }
 
         /// Returns the number of all seasons available and their total episodes as a tuple (season_no, total_episodes)
-        pub fn get_season_numbers_with_total_episode(&self) -> Vec<(u32, usize)> {
+        pub fn get_season_numbers_with_total_episode(&self) -> Vec<(u32, TotalEpisodes)> {
             let seasons: HashSet<u32> =
                 self.episodes.iter().map(|episode| episode.season).collect();
             let mut seasons: Vec<u32> = seasons.iter().copied().collect();
@@ -246,7 +246,15 @@ pub mod episode_list {
                 .into_iter()
                 .map(|season| {
                     let total_episodes = self.get_episodes(season).into_iter().count();
-                    (season, total_episodes)
+                    let total_watchable_episodes = self
+                        .get_episodes(season)
+                        .into_iter()
+                        .filter(|episode| Self::is_episode_watchable(episode) == Some(true))
+                        .count();
+                    (
+                        season,
+                        TotalEpisodes::new(total_episodes, total_watchable_episodes),
+                    )
                 })
                 .collect()
         }
@@ -315,6 +323,31 @@ pub mod episode_list {
 
             let release_time = EpisodeReleaseTime::from_rfc3339_str(next_episode_airstamp);
             Some((next_episode, release_time))
+        }
+    }
+
+    #[derive(Clone, Debug)]
+    pub struct TotalEpisodes {
+        all_episodes: usize,
+        all_watchable_episodes: usize,
+    }
+
+    impl TotalEpisodes {
+        fn new(all_episodes: usize, all_watchable_episodes: usize) -> Self {
+            Self {
+                all_episodes,
+                all_watchable_episodes,
+            }
+        }
+
+        /// Retrieves all the episodes
+        pub fn get_all_episodes(&self) -> usize {
+            self.all_episodes
+        }
+
+        /// Retrieves all the watchable episodes
+        pub fn get_all_watchable_episodes(&self) -> usize {
+            self.all_watchable_episodes
         }
     }
 
