@@ -134,10 +134,12 @@ pub mod series_poster {
             if let Some(series_info) = &self.series_information {
                 metadata = metadata.push(text(&series_info.name));
 
-                let watched_episodes = database::DB
-                    .get_series(series_info.id)
-                    .unwrap()
-                    .get_total_episodes_watched() as f32;
+                let watched_episodes = if let Some(series) = database::DB.get_series(series_info.id)
+                {
+                    series.get_total_episodes_watched() as f32
+                } else {
+                    0.0
+                };
 
                 let progress_bar = row!(
                     progress_bar(0.0..=total_episodes, watched_episodes,)
@@ -149,14 +151,15 @@ pub mod series_poster {
 
                 metadata = metadata.push(progress_bar);
 
-                let last_episode_watched = if let Some((season_num, last_watched_season)) =
-                    database::DB
-                        .get_series(series_info.id)
-                        .unwrap()
-                        .get_last_season()
+                let last_episode_watched = if let Some(series) =
+                    database::DB.get_series(series_info.id)
                 {
-                    last_watched_season.get_last_episode();
-                    text(format!("{} {}","Last watched episode", season_episode_str_gen(season_num, last_watched_season.get_last_episode().expect("the season should have atleast one episode for it to be the last watched"))))
+                    if let Some((season_num, last_watched_season)) = series.get_last_season() {
+                        last_watched_season.get_last_episode();
+                        text(format!("{} {}","Last watched episode", season_episode_str_gen(season_num, last_watched_season.get_last_episode().expect("the season should have atleast one episode for it to be the last watched"))))
+                    } else {
+                        text("No Episode Watched")
+                    }
                 } else {
                     text("No Episode Watched")
                 };
