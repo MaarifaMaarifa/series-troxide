@@ -150,7 +150,8 @@ impl Season {
 
         let track_checkbox = checkbox(
             "",
-            self.total_episodes.get_all_watchable_episodes() == tracked_episodes,
+            (self.total_episodes.get_all_watchable_episodes() == tracked_episodes)
+                && (tracked_episodes != 0),
             |_| Message::CheckboxPressed,
         );
         let season_name = text(format!("Season {}", self.season_number));
