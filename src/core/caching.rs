@@ -209,6 +209,12 @@ pub mod episode_list {
             Ok(Self { episodes })
         }
 
+        pub fn get_episode(&self, season_number: u32, episode_number: u32) -> Option<&Episode> {
+            self.episodes.iter().find(|episode| {
+                (episode.season == season_number) && (episode.number == Some(episode_number))
+            })
+        }
+
         pub fn get_episodes(&self, season: u32) -> Vec<&Episode> {
             self.episodes
                 .iter()
@@ -216,9 +222,17 @@ pub mod episode_list {
                 .collect()
         }
 
-        /// Get the total number of all episodes in the Series
-        pub fn get_total_episodes(&self) -> usize {
-            self.episodes.len()
+        // /// Get the total number of all episodes in the Series
+        // pub fn get_total_episodes(&self) -> usize {
+        //     self.episodes.len()
+        // }
+
+        /// Get the total number of all watchable episodes in the Series
+        pub fn get_total_watchable_episodes(&self) -> usize {
+            self.episodes
+                .iter()
+                .filter(|episode| Self::is_episode_watchable(episode) == Some(true))
+                .count()
         }
 
         /// Returns the number of all seasons available and their total episodes as a tuple (season_no, total_episodes)
@@ -237,6 +251,26 @@ pub mod episode_list {
                 .collect()
         }
 
+        /// Returns the number of all seasons available and their total episodes as a tuple (season_no, total_episodes)
+        pub fn get_season_numbers_with_total_watchable_episode(&self) -> Vec<(u32, usize)> {
+            let seasons: HashSet<u32> =
+                self.episodes.iter().map(|episode| episode.season).collect();
+            let mut seasons: Vec<u32> = seasons.iter().copied().collect();
+            seasons.sort();
+
+            seasons
+                .into_iter()
+                .map(|season| {
+                    let total_episodes = self
+                        .get_episodes(season)
+                        .into_iter()
+                        .filter(|episode| Self::is_episode_watchable(episode) == Some(true))
+                        .count();
+                    (season, total_episodes)
+                })
+                .collect()
+        }
+
         /// Tells if the episode is watchable or not based on the current time and the episode release time
         ///
         /// This method returns an optional bool as an episode my not have airstamp associated with it hence
@@ -247,6 +281,24 @@ pub mod episode_list {
                 .with_timezone(&Local);
             let local_time = Utc::now().with_timezone(&Local);
             Some(airstamp <= local_time)
+        }
+
+        /// Returns the previous episode from the current time
+        ///
+        /// This method is also useful when finding the maximum watchable episode
+        /// as you can not watch an episode that is released in the future.
+        pub fn get_previous_episode(&self) -> Option<&Episode> {
+            let mut episodes_iter = self.episodes.iter().peekable();
+            while let Some(episode) = episodes_iter.next() {
+                if let Some(peeked_episode) = episodes_iter.peek() {
+                    if !Self::is_episode_watchable(&peeked_episode)? {
+                        return Some(episode);
+                    }
+                } else {
+                    return Some(episode);
+                }
+            }
+            None
         }
 
         /// Returns the next episode from the current time

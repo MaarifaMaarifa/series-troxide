@@ -5,6 +5,8 @@ use sled::Db;
 use std::collections::{HashMap, HashSet};
 use tracing::info;
 
+use super::caching;
+
 const DATABASE_FOLDER_NAME: &str = "series-troxide-db";
 
 lazy_static! {
@@ -115,9 +117,25 @@ impl Series {
         self.seasons.remove(&season_number);
     }
 
-    pub fn add_episode(&mut self, season_number: u32, episode: Episode) {
+    /// adds an episode into the series
+    ///
+    /// returns a true if the episode is newly added into the series and vice versa is true
+    pub async fn add_episode(&mut self, season_number: u32, episode: Episode) -> bool {
+        let is_newly_added = loop {
+            if let Some(season) = self.seasons.get_mut(&season_number) {
+                break season.track_episode(self.id, season_number, episode).await;
+            } else {
+                self.add_season(season_number);
+            }
+        };
+        self.update();
+        is_newly_added
+    }
+
+    /// removes an episode from the series
+    pub fn remove_episode(&mut self, season_number: u32, episode_number: Episode) {
         if let Some(season) = self.seasons.get_mut(&season_number) {
-            season.track_episode(episode);
+            season.untrack_episode(episode_number)
         }
         self.update()
     }
@@ -162,8 +180,27 @@ impl Season {
         }
     }
 
-    pub fn track_episode(&mut self, episode: Episode) {
-        self.episodes.insert(episode);
+    /// adds the given episode to tracking
+    ///
+    /// tracks only when the supplied episode is watchable preventing allowing watched episodes that
+    /// are released into the future.
+    /// This method returns true if the episode was newly added and vice versa is true
+    pub async fn track_episode(
+        &mut self,
+        series_id: u32,
+        season_number: u32,
+        episode_number: Episode,
+    ) -> bool {
+        let episode_list = caching::episode_list::EpisodeList::new(series_id)
+            .await
+            .expect("failed to get episode list");
+
+        if let Some(episode) = episode_list.get_episode(season_number, episode_number) {
+            if caching::episode_list::EpisodeList::is_episode_watchable(episode) == Some(true) {
+                return self.episodes.insert(episode_number);
+            }
+        }
+        false
     }
 
     pub fn untrack_episode(&mut self, episode: Episode) {

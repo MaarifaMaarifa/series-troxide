@@ -94,7 +94,7 @@ impl WatchlistTab {
 /// checks of the given series has pending episodes to be watched in the database. That given series
 /// is provides through it's EpisodeList Structure.
 fn has_pending_episodes(database_series: &database::Series, episodes_list: &EpisodeList) -> bool {
-    episodes_list.get_total_episodes() != database_series.get_total_episodes_watched()
+    episodes_list.get_total_watchable_episodes() != database_series.get_total_episodes_watched()
 }
 
 /// Get the series ids of all the series that have pending episodes to be watched
@@ -138,7 +138,7 @@ async fn get_series_informations_and_watched_episodes() -> Vec<(SeriesMainInform
                 let total_episode = caching::episode_list::EpisodeList::new(id)
                     .await
                     .expect("failed to get series episode list")
-                    .get_total_episodes();
+                    .get_total_watchable_episodes();
                 (series_information_res, total_episode)
             })
         })

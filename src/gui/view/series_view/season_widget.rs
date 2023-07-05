@@ -14,6 +14,7 @@ use episode_widget::Message as EpisodeMessage;
 #[derive(Clone, Debug)]
 pub enum Message {
     CheckboxPressed,
+    TrackCommandComplete,
     Expand,
     EpisodesLoaded(Vec<EpisodeInfo>),
     EpisodeAction(usize, EpisodeMessage),
@@ -43,27 +44,50 @@ impl Season {
     pub fn update(&mut self, message: Message) -> Command<SeriesMessage> {
         match message {
             Message::CheckboxPressed => {
-                if let Some(mut series) = database::DB.get_series(self.series_id) {
-                    // Removing the season if it is already tracked or adding a new one with the all
-                    // of episodes if it is not tracked
-                    if let Some(season) = series.get_season_mut(self.season_number) {
-                        if season.episodes_watched() != self.total_episodes {
-                            (1..=self.total_episodes).for_each(|episode_number| {
-                                season.track_episode(episode_number as u32);
-                            });
-                        } else {
-                            series.remove_season(self.season_number);
-                        }
-                    } else {
-                        series.add_season(self.season_number);
-                        let season = series.get_season_mut(self.season_number).unwrap();
-                        (1..=self.total_episodes).for_each(|episode_number| {
-                            season.track_episode(episode_number as u32);
-                        });
-                    }
+                let series_id = self.series_id;
+                let season_number = self.season_number;
+                let total_episodes = self.total_episodes;
+                let index = self.index;
 
-                    series.update();
-                };
+                return Command::perform(
+                    async move {
+                        if let Some(mut series) = database::DB.get_series(series_id) {
+                            // Removing the season if it is already tracked or adding a new one with the all
+                            // of episodes if it is not tracked
+                            if let Some(season) = series.get_season_mut(season_number) {
+                                if season.episodes_watched() != total_episodes {
+                                    for episode_number in 1..=total_episodes {
+                                        season
+                                            .track_episode(
+                                                series_id,
+                                                season_number,
+                                                episode_number as u32,
+                                            )
+                                            .await;
+                                    }
+                                } else {
+                                    series.remove_season(season_number);
+                                }
+                            } else {
+                                series.add_season(season_number);
+                                let season = series.get_season_mut(season_number).unwrap();
+                                for episode_number in 1..=total_episodes {
+                                    season
+                                        .track_episode(
+                                            series_id,
+                                            season_number,
+                                            episode_number as u32,
+                                        )
+                                        .await;
+                                }
+                            }
+                            series.update();
+                        }
+                    },
+                    move |_| {
+                        SeriesMessage::SeasonAction(index, Box::new(Message::TrackCommandComplete))
+                    },
+                );
             }
             Message::Expand => {
                 self.is_expanded = !self.is_expanded;
@@ -113,6 +137,7 @@ impl Season {
                     .update(message)
                     .map(move |m| SeriesMessage::SeasonAction(season_index, Box::new(m)));
             }
+            Message::TrackCommandComplete => {}
         }
         Command::none()
     }
@@ -212,11 +237,12 @@ mod episode_widget {
     pub enum Message {
         ImageLoaded(Option<Vec<u8>>),
         TrackCheckboxPressed,
+        TrackCommandComplete(Option<bool>),
     }
 
     #[derive(Clone)]
     pub struct Episode {
-        // index: usize,
+        index: usize,
         episode_information: EpisodeInfo,
         series_id: u32,
         episode_image: Option<Vec<u8>>,
@@ -230,6 +256,7 @@ mod episode_widget {
         ) -> (Self, Command<SeasonMessage>) {
             let episode_image = episode_information.image.clone();
             let episode = Self {
+                index,
                 episode_information,
                 series_id,
                 episode_image: None,
@@ -250,23 +277,38 @@ mod episode_widget {
             match message {
                 Message::ImageLoaded(image) => self.episode_image = image,
                 Message::TrackCheckboxPressed => {
-                    if let Some(mut series) = database::DB.get_series(self.series_id) {
-                        if let Some(season) = series.get_season_mut(self.episode_information.season)
-                        {
-                            if season.is_episode_watched(self.episode_information.number.unwrap()) {
-                                season.untrack_episode(self.episode_information.number.unwrap())
+                    let season_number = self.episode_information.season;
+                    let episode_number = self.episode_information.number.unwrap();
+                    let series_id = self.series_id;
+                    let episode_index = self.index;
+
+                    return Command::perform(
+                        async move {
+                            if let Some(mut series) = database::DB.get_series(series_id) {
+                                Some(series.add_episode(season_number, episode_number).await)
                             } else {
-                                season.track_episode(self.episode_information.number.unwrap())
+                                None
                             }
-                        } else {
-                            series.add_season(self.episode_information.season);
-                            series
-                                .get_season_mut(self.episode_information.season)
-                                .unwrap()
-                                .track_episode(self.episode_information.number.unwrap())
+                        },
+                        move |is_newly_added| {
+                            SeasonMessage::EpisodeAction(
+                                episode_index,
+                                Message::TrackCommandComplete(is_newly_added),
+                            )
+                        },
+                    );
+                }
+                Message::TrackCommandComplete(is_newly_added) => {
+                    if let Some(is_newly_added) = is_newly_added {
+                        if !is_newly_added {
+                            if let Some(mut series) = database::DB.get_series(self.series_id) {
+                                series.remove_episode(
+                                    self.episode_information.season,
+                                    self.episode_information.number.unwrap(),
+                                );
+                            }
                         }
-                        series.update();
-                    };
+                    }
                 }
             }
             Command::none()
