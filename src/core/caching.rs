@@ -237,19 +237,23 @@ pub mod episode_list {
                 .collect()
         }
 
+        /// Tells if the episode is watchable or not based on the current time and the episode release time
+        ///
+        /// This method returns an optional bool as an episode my not have airstamp associated with it hence
+        /// the method can not infer that information.
+        pub fn is_episode_watchable(episode: &Episode) -> Option<bool> {
+            let airstamp = DateTime::parse_from_rfc3339(episode.airstamp.as_ref()?)
+                .unwrap()
+                .with_timezone(&Local);
+            let local_time = Utc::now().with_timezone(&Local);
+            Some(airstamp <= local_time)
+        }
+
         /// Returns the next episode from the current time
         pub fn get_next_episode(&self) -> Option<&Episode> {
-            self.episodes.iter().find(|episode| {
-                if let Some(airstamp) = episode.airstamp.as_ref() {
-                    let airstamp = DateTime::parse_from_rfc3339(&airstamp)
-                        .unwrap()
-                        .with_timezone(&Local);
-                    let local_time = Utc::now().with_timezone(&Local);
-                    airstamp > local_time
-                } else {
-                    false
-                }
-            })
+            self.episodes
+                .iter()
+                .find(|episode| Self::is_episode_watchable(episode) == Some(false))
         }
 
         /// Returns the next episode and it's release time
