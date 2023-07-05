@@ -1,4 +1,5 @@
 use super::*;
+use std::hash::{Hash, Hasher};
 
 // The series id goes after the last slash(append at the end of the string)
 const SERIES_INFORMATION_ADDRESS: &str = "https://api.tvmaze.com/shows/";
@@ -20,6 +21,20 @@ pub struct SeriesMainInformation {
     pub web_channel: Option<WebChannel>,
     pub summary: Option<String>,
     pub image: Option<Image>,
+}
+
+impl PartialEq for SeriesMainInformation {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
+impl Eq for SeriesMainInformation {}
+
+impl Hash for SeriesMainInformation {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
 }
 
 #[derive(Debug, Deserialize, Clone)]

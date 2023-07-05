@@ -42,6 +42,7 @@ pub mod series_poster {
         }
     }
 
+    #[derive(PartialEq, Eq, Hash)]
     pub struct SeriesPoster {
         series_information: Option<SeriesMainInformation>,
         image: Option<Vec<u8>>,

@@ -165,18 +165,30 @@ impl MyShowsTab {
 
                 let upcoming_series_releases = Column::with_children(upcoming_series_releases);
 
-                let running_shows =
-                    Wrap::with_elements(Self::filter_posters(&self.series, SeriesStatus::Running))
-                        .spacing(5.0)
-                        .padding(5.0);
-                let ended_shows =
-                    Wrap::with_elements(Self::filter_posters(&self.series, SeriesStatus::Ended))
-                        .spacing(5.0)
-                        .padding(5.0);
+                let upcoming_posters = self
+                    .upcoming_releases
+                    .iter()
+                    .map(|(poster, _)| poster)
+                    .collect();
+
+                let running_shows = Wrap::with_elements(Self::filter_posters(
+                    &self.series,
+                    &upcoming_posters,
+                    MyShowsFilter::WaitingRelease,
+                ))
+                .spacing(5.0)
+                .padding(5.0);
+                let ended_shows = Wrap::with_elements(Self::filter_posters(
+                    &self.series,
+                    &upcoming_posters,
+                    MyShowsFilter::Ended,
+                ))
+                .spacing(5.0)
+                .padding(5.0);
 
                 let content = column!(
                     upcoming_series_releases,
-                    text("Running").size(20).style(GREEN_THEME),
+                    text("Waiting For Release Date").size(20).style(GREEN_THEME),
                     running_shows,
                     text("Ended").size(20).style(RED_THEME),
                     ended_shows
@@ -190,18 +202,55 @@ impl MyShowsTab {
         }
     }
 
-    fn filter_posters(
-        posters: &Vec<SeriesPoster>,
-        status: SeriesStatus,
-    ) -> Vec<Element<'_, Message, Renderer>> {
+    fn filter_posters<'a>(
+        posters: &'a Vec<SeriesPoster>,
+        upcoming_series_posters: &Vec<&'a SeriesPoster>,
+        filter: MyShowsFilter,
+    ) -> Vec<Element<'a, Message, Renderer>> {
+        match filter {
+            MyShowsFilter::WaitingRelease => {
+                let all_posters: HashSet<&SeriesPoster> = posters.iter().collect();
+                let ended_posters: HashSet<&SeriesPoster> =
+                    Self::get_ended_posters(posters).into_iter().collect();
+                let upcoming_series_posters: HashSet<&SeriesPoster> = upcoming_series_posters
+                    .into_iter()
+                    .map(|poster| *poster)
+                    .collect();
+
+                let diff: HashSet<&SeriesPoster> = all_posters
+                    .difference(&ended_posters)
+                    .map(|poster| *poster)
+                    .collect();
+                /*
+                The expected series posters obtained from the final set difference operation will have
+                a valid message id that can be used in the posters field in the MyShows struct
+                */
+                diff.difference(&upcoming_series_posters)
+                    .map(|poster| {
+                        poster.view().map(|message| {
+                            Message::SeriesPosterAction(message.get_id().unwrap_or(0), message)
+                        })
+                    })
+                    .collect()
+            }
+            MyShowsFilter::Ended => {
+                let posters = Self::get_ended_posters(posters);
+                posters
+                    .iter()
+                    .map(|poster| {
+                        poster.view().map(|message| {
+                            Message::SeriesPosterAction(message.get_id().unwrap_or(0), message)
+                        })
+                    })
+                    .collect()
+            }
+        }
+    }
+
+    fn get_ended_posters(posters: &Vec<SeriesPoster>) -> Vec<&SeriesPoster> {
         posters
             .iter()
-            .filter(|poster| poster.get_status().unwrap() == status)
-            .map(|poster| {
-                poster.view().map(|message| {
-                    Message::SeriesPosterAction(message.get_id().unwrap_or(0), message)
-                })
-            })
+            .filter(|poster| poster.get_status().unwrap() == SeriesStatus::Ended)
             .collect()
     }
 }
@@ -256,4 +305,9 @@ impl Tab for MyShowsTab {
     fn content(&self) -> Element<'_, Self::Message> {
         self.view().map(GuiMessage::MyShows)
     }
+}
+
+enum MyShowsFilter {
+    WaitingRelease,
+    Ended,
 }
