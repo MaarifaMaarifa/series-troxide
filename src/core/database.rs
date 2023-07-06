@@ -8,7 +8,7 @@ use std::{
 };
 use tracing::info;
 
-use super::caching;
+use super::{api::series_information::SeriesMainInformation, caching};
 
 const DATABASE_FOLDER_NAME: &str = "series-troxide-db";
 
@@ -214,6 +214,22 @@ impl Series {
             .filter(|(_, season)| season.get_total_episodes() != 0)
             .max_by(|x, y| x.0.cmp(y.0))
             .map(|(season_number, season)| (*season_number, season))
+    }
+
+    /// Get the total time that has been spent watching the series
+    ///
+    /// This method returns SeriesMainInformation associated with the Series
+    /// together with it's total runtime
+    pub async fn get_total_average_runtime(&self) -> Option<(SeriesMainInformation, u32)> {
+        let series_info = caching::series_information::get_series_main_info_with_id(self.id)
+            .await
+            .unwrap();
+        let episode_average_watchtime = series_info.average_runtime?;
+
+        Some((
+            series_info,
+            self.get_total_episodes() as u32 * episode_average_watchtime,
+        ))
     }
 }
 

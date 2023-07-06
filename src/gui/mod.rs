@@ -128,6 +128,9 @@ impl Application for TroxideGui {
                 if let TabId::Watchlist = tab_id {
                     return self.watchlist_tab.refresh().map(Message::Watchlist);
                 };
+                if let TabId::Statistics = tab_id {
+                    return self.statistics_tab.refresh().map(Message::Statistics);
+                };
                 Command::none()
             }
             Message::Discover(message) => self.discover_tab.update(message).map(Message::Discover),
@@ -135,7 +138,10 @@ impl Application for TroxideGui {
                 self.watchlist_tab.update(message).map(Message::Watchlist)
             }
             Message::MyShows(message) => self.my_shows_tab.update(message).map(Message::MyShows),
-            Message::Statistics(_) => todo!(),
+            Message::Statistics(message) => {
+                self.statistics_tab.update(message);
+                Command::none()
+            }
             Message::Settings(message) => {
                 self.settings_tab.update(message);
                 Command::none()
