@@ -141,7 +141,7 @@ impl Season {
             .get_series(self.series_id)
             .map(|series| {
                 if let Some(season) = series.get_season(self.season_number) {
-                    season.episodes_watched()
+                    season.get_total_episodes()
                 } else {
                     0
                 }

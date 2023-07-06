@@ -137,7 +137,7 @@ pub mod series_poster {
 
                 let watched_episodes = if let Some(series) = database::DB.get_series(series_info.id)
                 {
-                    series.get_total_episodes_watched() as f32
+                    series.get_total_episodes() as f32
                 } else {
                     0.0
                 };

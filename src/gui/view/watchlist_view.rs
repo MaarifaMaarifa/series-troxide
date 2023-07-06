@@ -94,7 +94,7 @@ impl WatchlistTab {
 /// checks of the given series has pending episodes to be watched in the database. That given series
 /// is provides through it's EpisodeList Structure.
 fn has_pending_episodes(database_series: &database::Series, episodes_list: &EpisodeList) -> bool {
-    episodes_list.get_total_watchable_episodes() != database_series.get_total_episodes_watched()
+    episodes_list.get_total_watchable_episodes() != database_series.get_total_episodes()
 }
 
 /// Get the series ids of all the series that have pending episodes to be watched

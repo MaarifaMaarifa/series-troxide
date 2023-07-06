@@ -1,6 +1,9 @@
 use iced::{widget::container, Element, Length, Renderer};
 
 use crate::gui::{Message as GuiMessage, Tab};
+use mini_widgets::*;
+
+mod mini_widgets;
 
 #[derive(Clone, Debug)]
 pub enum Message {}
@@ -10,7 +13,8 @@ pub struct StatisticsTab;
 
 impl StatisticsTab {
     pub fn view(&self) -> Element<Message, Renderer> {
-        container("Statistics View")
+        let watch_count = watch_count();
+        container(watch_count)
             .width(Length::Fill)
             .height(Length::Fill)
             .into()

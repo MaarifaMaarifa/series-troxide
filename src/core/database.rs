@@ -85,6 +85,29 @@ impl Database {
             })
             .collect()
     }
+
+    /// Returns the total number of series being tracked
+    pub fn get_total_series(&self) -> usize {
+        self.db.len()
+    }
+
+    /// Get the total amount of seasons watched across all
+    /// series in the database
+    pub fn get_total_seasons(&self) -> usize {
+        self.get_series_collection()
+            .iter()
+            .map(|series| series.get_total_seasons())
+            .sum()
+    }
+
+    /// Get the total amount of episodes watched across all
+    /// series in the database
+    pub fn get_total_episodes(&self) -> usize {
+        self.get_series_collection()
+            .iter()
+            .map(|series| series.get_total_episodes())
+            .sum()
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -169,11 +192,16 @@ impl Series {
         self.seasons.get_mut(&season_number)
     }
 
+    /// Get the total amount of seasons tracked
+    pub fn get_total_seasons(&self) -> usize {
+        self.seasons.len()
+    }
+
     /// Returns total tracked episodes of the season
-    pub fn get_total_episodes_watched(&self) -> usize {
+    pub fn get_total_episodes(&self) -> usize {
         self.seasons
             .values()
-            .map(|season| season.episodes_watched())
+            .map(|season| season.get_total_episodes())
             .sum()
     }
 
@@ -183,7 +211,7 @@ impl Series {
     pub fn get_last_season(&self) -> Option<(u32, &Season)> {
         self.seasons
             .iter()
-            .filter(|(_, season)| season.episodes_watched() != 0)
+            .filter(|(_, season)| season.get_total_episodes() != 0)
             .max_by(|x, y| x.0.cmp(y.0))
             .map(|(season_number, season)| (*season_number, season))
     }
@@ -261,16 +289,16 @@ impl Season {
         self.episodes.contains(&episode)
     }
 
-    /// Returns total tracked episodes of the season
-    pub fn episodes_watched(&self) -> usize {
-        self.episodes.len()
-    }
-
     /// Return the last watched episode
     ///
     /// This obviously skip any unwatched episode in between and just returns the highest
     pub fn get_last_episode(&self) -> Option<Episode> {
         self.episodes.iter().max().copied()
+    }
+
+    /// Get the total amount of episodes in the season
+    pub fn get_total_episodes(&self) -> usize {
+        self.episodes.len()
     }
 }
 
