@@ -1,4 +1,4 @@
-use iced::widget::{column, container, horizontal_space, row, text};
+use iced::widget::{column, container, horizontal_space, row, text, Column};
 use iced::{Alignment, Element, Length, Renderer};
 
 use crate::core::api::series_information::SeriesMainInformation;
@@ -82,6 +82,57 @@ pub fn time_count(
     ]
     .align_items(Alignment::Center)
     .spacing(5);
+
+    container(content)
+        .width(Length::Fill)
+        .padding(10)
+        .center_x()
+        .center_y()
+        .into()
+}
+
+pub fn series_list(
+    series_infos_and_time: &Vec<(SeriesMainInformation, u32)>,
+) -> Element<'_, Message, Renderer> {
+    let mut series_infos_and_time: Vec<&(SeriesMainInformation, u32)> =
+        series_infos_and_time.into_iter().map(|x| x).collect();
+
+    series_infos_and_time.sort_by(|(_, average_minutes_a), (_, average_minutes_b)| {
+        average_minutes_b.cmp(average_minutes_a)
+    });
+
+    Column::with_children(
+        series_infos_and_time
+            .into_iter()
+            .map(|series_info_and_time| series_banner(series_info_and_time))
+            .collect(),
+    )
+    .into()
+}
+
+fn series_banner(
+    series_info_and_time: &(SeriesMainInformation, u32),
+) -> Element<'_, Message, Renderer> {
+    let series_id = series_info_and_time.0.id;
+    let series = database::DB.get_series(series_id).unwrap();
+
+    let series_name = &series_info_and_time.0.name;
+    let time_in_hours = series_info_and_time.1 / 60;
+    let seasons = series.get_total_seasons();
+    let episodes = series.get_total_episodes();
+
+    let metadata = row![
+        column![text(time_in_hours).size(35), text("Hours").size(15)]
+            .align_items(Alignment::Center),
+        column![text(seasons).size(35), text("Seasons").size(15)].align_items(Alignment::Center),
+        column![text(episodes).size(35), text("episodes").size(15)].align_items(Alignment::Center),
+    ]
+    .align_items(Alignment::Center)
+    .spacing(5);
+
+    let content = column![text(series_name), metadata]
+        .spacing(5)
+        .align_items(Alignment::Center);
 
     container(content)
         .width(Length::Fill)

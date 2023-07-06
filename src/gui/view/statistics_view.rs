@@ -1,4 +1,4 @@
-use iced::widget::{column, container};
+use iced::widget::{column, container, scrollable};
 use iced::{Command, Element, Length, Renderer};
 
 use crate::{
@@ -35,8 +35,12 @@ impl StatisticsTab {
         }
     }
     pub fn view(&self) -> Element<Message, Renderer> {
-        let content = column![watch_count(), time_count(&self.series_infos_and_time)];
-        container(content)
+        let content = column![
+            watch_count(),
+            time_count(&self.series_infos_and_time),
+            series_list(&self.series_infos_and_time)
+        ];
+        container(scrollable(content))
             .width(Length::Fill)
             .height(Length::Fill)
             .into()
