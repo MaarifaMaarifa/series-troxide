@@ -115,7 +115,12 @@ impl MyShowsTab {
                     .update(message)
                     .map(move |message| Message::SeriesPosterAction(index, message));
             }
-            Message::UpcomingReleaseSeriesReceived(upcoming_series) => {
+            Message::UpcomingReleaseSeriesReceived(mut upcoming_series) => {
+                // Sorting the upcoming series by release time
+                upcoming_series.sort_by(|(_, (_, release_time_a)), (_, (_, release_time_b))| {
+                    release_time_a.cmp(release_time_b)
+                });
+
                 let mut upcoming_series_posters = Vec::with_capacity(upcoming_series.len());
                 let mut upcoming_series_posters_commands =
                     Vec::with_capacity(upcoming_series.len());

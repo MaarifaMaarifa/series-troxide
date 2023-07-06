@@ -351,7 +351,7 @@ pub mod episode_list {
         }
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, PartialEq, PartialOrd, Ord, Eq)]
     pub struct EpisodeReleaseTime {
         release_time: DateTime<Local>,
     }
