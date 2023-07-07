@@ -33,7 +33,8 @@ const CONFIG_FILE_NAME: &str = "config.toml";
 
 pub fn load_config() -> Config {
     if let Some(proj_dirs) = ProjectDirs::from("", "", env!("CARGO_PKG_NAME")) {
-        let mut config_file = std::path::PathBuf::from(proj_dirs.config_dir());
+        let config_directory = std::path::PathBuf::from(proj_dirs.config_dir());
+        let mut config_file = config_directory.clone();
         config_file.push(CONFIG_FILE_NAME);
 
         info!("loading config file at: '{}'", config_file.display());
@@ -44,6 +45,10 @@ pub fn load_config() -> Config {
                 let default_config = Config::default();
                 if let ErrorKind::NotFound = err.kind() {
                     warn!("could not find config file at: '{}'", config_file.display());
+                    std::fs::DirBuilder::new()
+                        .recursive(true)
+                        .create(config_directory)
+                        .unwrap_or_else(|err| error!("could not create config directory: {err}"));
                     if let Err(err) = std::fs::write(
                         &config_file,
                         toml::to_string_pretty(&default_config).unwrap(),
