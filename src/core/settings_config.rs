@@ -49,12 +49,11 @@ pub fn load_config() -> Config {
                         .recursive(true)
                         .create(config_directory)
                         .unwrap_or_else(|err| error!("could not create config directory: {err}"));
-                    if let Err(err) = std::fs::write(
+                    std::fs::write(
                         &config_file,
                         toml::to_string_pretty(&default_config).unwrap(),
-                    ) {
-                        error!("Could not write default config file: {}", err);
-                    }
+                    )
+                    .unwrap_or_else(|err| error!("could not write default config file: {err}"));
                     info!(
                         "created a new default config file at: '{}'",
                         config_file.display()
