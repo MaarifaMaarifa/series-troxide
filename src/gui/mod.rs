@@ -139,8 +139,7 @@ impl Application for TroxideGui {
             }
             Message::MyShows(message) => self.my_shows_tab.update(message).map(Message::MyShows),
             Message::Statistics(message) => {
-                self.statistics_tab.update(message);
-                Command::none()
+                self.statistics_tab.update(message).map(Message::Statistics)
             }
             Message::Settings(message) => {
                 self.settings_tab.update(message);

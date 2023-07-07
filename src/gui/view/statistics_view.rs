@@ -1,10 +1,12 @@
-use iced::widget::{column, container, scrollable};
+use iced::widget::{column, container, scrollable, Column};
 use iced::{Command, Element, Length, Renderer};
 
 use crate::{
     core::{api::series_information::SeriesMainInformation, database},
     gui::{Message as GuiMessage, Tab},
 };
+use series_banner::{Message as SeriesBannerMessage, SeriesBanner};
+
 use mini_widgets::*;
 
 mod mini_widgets;
@@ -12,11 +14,13 @@ mod mini_widgets;
 #[derive(Clone, Debug)]
 pub enum Message {
     SeriesInfosAndTimeReceived(Vec<(SeriesMainInformation, u32)>),
+    SeriesBanner(usize, SeriesBannerMessage),
 }
 
 #[derive(Default)]
 pub struct StatisticsTab {
     series_infos_and_time: Vec<(SeriesMainInformation, u32)>,
+    series_banners: Vec<SeriesBanner>,
 }
 
 impl StatisticsTab {
@@ -27,18 +31,47 @@ impl StatisticsTab {
         )
     }
 
-    pub fn update(&mut self, message: Message) {
+    pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message::SeriesInfosAndTimeReceived(series_infos_and_time) => {
-                self.series_infos_and_time = series_infos_and_time
+            Message::SeriesInfosAndTimeReceived(mut series_infos_and_time) => {
+                self.series_infos_and_time = series_infos_and_time.clone();
+
+                series_infos_and_time.sort_by(|(_, average_minutes_a), (_, average_minutes_b)| {
+                    average_minutes_b.cmp(average_minutes_a)
+                });
+
+                let mut banners = Vec::with_capacity(series_infos_and_time.len());
+                let mut banners_commands = Vec::with_capacity(series_infos_and_time.len());
+                for (index, series_info_and_time) in series_infos_and_time.into_iter().enumerate() {
+                    let (banner, banner_command) = SeriesBanner::new(index, series_info_and_time);
+                    banners.push(banner);
+                    banners_commands.push(banner_command);
+                }
+                self.series_banners = banners;
+                Command::batch(banners_commands)
+                    .map(|message| Message::SeriesBanner(message.get_id(), message))
+            }
+            Message::SeriesBanner(index, message) => {
+                self.series_banners[index].update(message);
+                Command::none()
             }
         }
     }
     pub fn view(&self) -> Element<Message, Renderer> {
+        let series_list = Column::with_children(
+            self.series_banners
+                .iter()
+                .map(|banner| {
+                    banner
+                        .view()
+                        .map(|message| Message::SeriesBanner(message.get_id(), message))
+                })
+                .collect(),
+        );
         let content = column![
             watch_count(),
             time_count(&self.series_infos_and_time),
-            series_list(&self.series_infos_and_time)
+            series_list
         ];
         container(scrollable(content))
             .width(Length::Fill)

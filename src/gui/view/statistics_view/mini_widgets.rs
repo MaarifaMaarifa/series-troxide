@@ -1,4 +1,4 @@
-use iced::widget::{column, container, horizontal_space, row, text, Column};
+use iced::widget::{column, container, horizontal_space, row, text};
 use iced::{Alignment, Element, Length, Renderer};
 
 use crate::core::api::series_information::SeriesMainInformation;
@@ -91,53 +91,97 @@ pub fn time_count(
         .into()
 }
 
-pub fn series_list(
-    series_infos_and_time: &Vec<(SeriesMainInformation, u32)>,
-) -> Element<'_, Message, Renderer> {
-    let mut series_infos_and_time: Vec<&(SeriesMainInformation, u32)> =
-        series_infos_and_time.into_iter().map(|x| x).collect();
+pub mod series_banner {
+    use iced::widget::{column, container, row, text};
+    use iced::{Alignment, Command, Element, Length, Renderer};
 
-    series_infos_and_time.sort_by(|(_, average_minutes_a), (_, average_minutes_b)| {
-        average_minutes_b.cmp(average_minutes_a)
-    });
+    // use crate::core::caching;
+    use crate::core::{api::series_information::SeriesMainInformation, database};
 
-    Column::with_children(
-        series_infos_and_time
-            .into_iter()
-            .map(|series_info_and_time| series_banner(series_info_and_time))
-            .collect(),
-    )
-    .into()
-}
+    #[derive(Debug, Clone)]
+    pub enum Message {
+        BannerReceived(usize, Option<Vec<u8>>),
+    }
 
-fn series_banner(
-    series_info_and_time: &(SeriesMainInformation, u32),
-) -> Element<'_, Message, Renderer> {
-    let series_id = series_info_and_time.0.id;
-    let series = database::DB.get_series(series_id).unwrap();
+    impl Message {
+        pub fn get_id(&self) -> usize {
+            match self {
+                Message::BannerReceived(id, _) => *id,
+            }
+        }
+    }
 
-    let series_name = &series_info_and_time.0.name;
-    let time_in_hours = series_info_and_time.1 / 60;
-    let seasons = series.get_total_seasons();
-    let episodes = series.get_total_episodes();
+    pub struct SeriesBanner {
+        series_info_and_time: (SeriesMainInformation, u32),
+        banner: Option<Vec<u8>>,
+    }
 
-    let metadata = row![
-        column![text(time_in_hours).size(35), text("Hours").size(15)]
-            .align_items(Alignment::Center),
-        column![text(seasons).size(35), text("Seasons").size(15)].align_items(Alignment::Center),
-        column![text(episodes).size(35), text("episodes").size(15)].align_items(Alignment::Center),
-    ]
-    .align_items(Alignment::Center)
-    .spacing(5);
+    impl SeriesBanner {
+        pub fn new(
+            id: usize,
+            series_info_and_time: (SeriesMainInformation, u32),
+        ) -> (Self, Command<Message>) {
+            let series_id = series_info_and_time.0.id;
+            (
+                Self {
+                    series_info_and_time,
+                    banner: None,
+                },
+                // TODO: Request show banner
+                // for this to not cause problem when rendering, a better way of rendering
+                // the banners list hould be implemented as iced runs out of memory an panics
+                /*Command::perform(
+                    caching::show_images::get_recent_banner(series_id),
+                    move |message| Message::BannerReceived(id, message),
+                ),*/
+                Command::none(),
+            )
+        }
 
-    let content = column![text(series_name), metadata]
-        .spacing(5)
-        .align_items(Alignment::Center);
+        pub fn update(&mut self, message: Message) {
+            match message {
+                Message::BannerReceived(_, banner) => self.banner = banner,
+            }
+        }
 
-    container(content)
-        .width(Length::Fill)
-        .padding(10)
-        .center_x()
-        .center_y()
-        .into()
+        pub fn view(&self) -> Element<'_, Message, Renderer> {
+            let series_id = self.series_info_and_time.0.id;
+            let series = database::DB.get_series(series_id).unwrap();
+
+            let series_name = &self.series_info_and_time.0.name;
+            let time_in_hours = self.series_info_and_time.1 / 60;
+            let seasons = series.get_total_seasons();
+            let episodes = series.get_total_episodes();
+
+            let metadata = row![
+                column![text(time_in_hours).size(35), text("Hours").size(15)]
+                    .align_items(Alignment::Center),
+                column![text(seasons).size(35), text("Seasons").size(15)]
+                    .align_items(Alignment::Center),
+                column![text(episodes).size(35), text("episodes").size(15)]
+                    .align_items(Alignment::Center),
+            ]
+            .align_items(Alignment::Center)
+            .spacing(5);
+
+            // let banner: Element<'_, Message, Renderer> =
+            //     if let Some(image_bytes) = self.banner.clone() {
+            //         let image_handle = image::Handle::from_memory(image_bytes);
+            //         image(image_handle).height(100).into()
+            //     } else {
+            //         container("").into()
+            //     };
+
+            let content = column![/*banner,*/ text(series_name), metadata]
+                .spacing(5)
+                .align_items(Alignment::Center);
+
+            container(content)
+                .width(Length::Fill)
+                .padding(10)
+                .center_x()
+                .center_y()
+                .into()
+        }
+    }
 }
