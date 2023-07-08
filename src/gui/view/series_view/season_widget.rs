@@ -154,7 +154,7 @@ impl Season {
                 && (tracked_episodes != 0),
             |_| Message::CheckboxPressed,
         );
-        let season_name = text(format!("Season {}", self.season_number));
+        let season_name = text(format!("Season {}", self.season_number)).width(80);
 
         let season_progress = progress_bar(
             0.0..=self.total_episodes.get_all_episodes() as f32,
@@ -167,7 +167,8 @@ impl Season {
             "{}/{}",
             tracked_episodes,
             self.total_episodes.get_all_episodes()
-        ));
+        ))
+        .width(50);
 
         let expand_button = if self.is_expanded {
             let svg_handle = svg::Handle::from_memory(get_static_cow_from_asset(ARROW_BAR_UP));
@@ -179,13 +180,14 @@ impl Season {
             button(down_icon).on_press(Message::Expand)
         };
 
-        let content = row!(
+        let content = row![
             track_checkbox,
             season_name,
             season_progress,
             episodes_progress,
             expand_button,
-        );
+        ]
+        .spacing(5);
 
         let mut content = column!(content);
         if self.is_expanded {
