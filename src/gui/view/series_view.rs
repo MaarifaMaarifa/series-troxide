@@ -14,7 +14,7 @@ use season_widget::Message as SeasonMessage;
 use iced::widget::scrollable::Properties;
 use iced::widget::{button, column, container, horizontal_space, image, row, scrollable, text};
 use iced::widget::{svg, vertical_space, Column, Row};
-use iced::{Command, Element, Length, Renderer};
+use iced::{Alignment, Command, Element, Length, Renderer};
 use iced_aw::Spinner;
 
 mod cast_widget;
@@ -263,8 +263,8 @@ impl Series {
                     self.series_information.as_ref().unwrap(),
                     self.series_image.clone(),
                 );
-                let seasons_widget = column!(
-                    next_episode_release_time_widget(&self),
+
+                let seasons_widget = column![
                     text("Seasons").size(25),
                     Column::with_children(
                         self.season_widgets
@@ -278,11 +278,20 @@ impl Series {
                             .collect(),
                     )
                     .padding(5)
-                    .spacing(5),
+                    .spacing(5)
+                    .width(Length::Fill)
+                    .align_items(Alignment::Center)
+                ]
+                .width(Length::Fill)
+                .align_items(Alignment::Center);
+
+                let seasons_widget = column![
+                    next_episode_release_time_widget(&self),
+                    seasons_widget,
                     vertical_space(10),
                     text("Top Cast").size(25),
                     self.cast_widget.view().map(Message::CastWidgetAction),
-                )
+                ]
                 .padding(10);
 
                 let content = scrollable(column!(main_body, seasons_widget))
