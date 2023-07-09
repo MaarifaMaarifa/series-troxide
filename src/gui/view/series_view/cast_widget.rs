@@ -72,6 +72,7 @@ impl CastWidget {
                     .collect(),
             )
             .padding(5.0)
+            .line_spacing(5.0)
             .spacing(5.0)
             .into(),
         }
@@ -79,12 +80,15 @@ impl CastWidget {
 }
 mod cast_poster {
     use iced::{
-        alignment,
-        widget::{image, text, Column},
+        alignment, theme,
+        widget::{container, image, text, Column},
         Command, Element, Renderer,
     };
 
-    use crate::core::{api::show_cast::Cast, caching};
+    use crate::{
+        core::{api::show_cast::Cast, caching},
+        gui::styles,
+    };
 
     #[derive(Debug, Clone)]
     pub enum Message {
@@ -142,9 +146,18 @@ mod cast_poster {
             ))
             .horizontal_alignment(alignment::Horizontal::Center)
             .width(100)
+            .height(45)
             .size(15);
 
-            content.push(name).into()
+            let content = content.push(name);
+
+            container(content)
+                .style(theme::Container::Custom(Box::new(
+                    styles::container_styles::ContainerThemeSecond,
+                )
+                    as Box<dyn container::StyleSheet<Style = iced::Theme>>))
+                .padding(7)
+                .into()
         }
     }
 }
