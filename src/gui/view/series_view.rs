@@ -5,6 +5,7 @@ use crate::core::caching::episode_list::{EpisodeReleaseTime, TotalEpisodes};
 use crate::core::{caching, database};
 use crate::gui::assets::get_static_cow_from_asset;
 use crate::gui::assets::icons::{ARROW_LEFT, CHECK_CIRCLE, CHECK_CIRCLE_FILL};
+use crate::gui::styles;
 
 use cast_widget::CastWidget;
 use cast_widget::Message as CastWidgetMessage;
@@ -14,7 +15,7 @@ use season_widget::Message as SeasonMessage;
 use iced::widget::scrollable::Properties;
 use iced::widget::{button, column, container, horizontal_space, image, row, scrollable, text};
 use iced::widget::{svg, vertical_space, Column, Row};
-use iced::{Alignment, Command, Element, Length, Renderer};
+use iced::{theme, Alignment, Command, Element, Length, Renderer};
 use iced_aw::Spinner;
 
 mod cast_widget;
@@ -264,26 +265,37 @@ impl Series {
                     self.series_image.clone(),
                 );
 
-                let seasons_widget = column![
-                    text("Seasons").size(25),
-                    Column::with_children(
-                        self.season_widgets
-                            .iter()
-                            .enumerate()
-                            .map(|(index, widget)| {
-                                widget
-                                    .view()
-                                    .map(move |m| Message::SeasonAction(index, Box::new(m)))
-                            })
-                            .collect(),
+                let seasons_widget = container(
+                    container(
+                        column![
+                            text("Seasons").size(25),
+                            vertical_space(10),
+                            Column::with_children(
+                                self.season_widgets
+                                    .iter()
+                                    .enumerate()
+                                    .map(|(index, widget)| {
+                                        widget
+                                            .view()
+                                            .map(move |m| Message::SeasonAction(index, Box::new(m)))
+                                    })
+                                    .collect(),
+                            )
+                            .padding(5)
+                            .spacing(5)
+                            .align_items(Alignment::Center)
+                        ]
+                        .align_items(Alignment::Center),
                     )
-                    .padding(5)
-                    .spacing(5)
-                    .width(Length::Fill)
-                    .align_items(Alignment::Center)
-                ]
+                    .padding(10)
+                    .style(theme::Container::Custom(Box::new(
+                        styles::container_styles::ContainerThemeFirst,
+                    )
+                        as Box<dyn container::StyleSheet<Style = iced::Theme>>)),
+                )
                 .width(Length::Fill)
-                .align_items(Alignment::Center);
+                .center_x()
+                .center_y();
 
                 let seasons_widget = column![
                     next_episode_release_time_widget(&self),

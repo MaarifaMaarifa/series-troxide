@@ -1,6 +1,7 @@
 use iced::widget::{column, container, scrollable, Column};
-use iced::{Command, Element, Length, Renderer};
+use iced::{theme, Command, Element, Length, Renderer};
 
+use crate::gui::styles;
 use crate::{
     core::{api::series_information::SeriesMainInformation, database},
     gui::{Message as GuiMessage, Tab},
@@ -68,11 +69,20 @@ impl StatisticsTab {
                 })
                 .collect(),
         );
+
+        let series_list = container(series_list).style(theme::Container::Custom(Box::new(
+            styles::container_styles::ContainerThemeFirst,
+        )
+            as Box<dyn container::StyleSheet<Style = iced::Theme>>));
+
         let content = column![
             watch_count(),
             time_count(&self.series_infos_and_time),
             series_list
-        ];
+        ]
+        .spacing(10)
+        .padding(10);
+
         container(scrollable(content))
             .width(Length::Fill)
             .height(Length::Fill)

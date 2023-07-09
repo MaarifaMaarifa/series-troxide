@@ -6,7 +6,7 @@ use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, 
 use crate::gui::{Message as GuiMessage, Tab};
 use searching::Message as SearchMessage;
 
-use iced::widget::{column, container, scrollable, text};
+use iced::widget::{column, container, scrollable, text, vertical_space};
 use iced::{Command, Element, Length, Renderer};
 
 use iced_aw::floating_element;
@@ -193,6 +193,7 @@ impl DiscoverTab {
             content
         ]
         .spacing(2)
+        .padding(10)
         .into()
     }
 }
@@ -254,8 +255,13 @@ fn series_posters_loader<'a>(
             .collect(),
     )
     .spacing(5.0)
+    .line_spacing(5.0)
     .padding(5.0);
-    column!(title, wrapped_posters).into()
+
+    column!(title, vertical_space(10), wrapped_posters)
+        .width(Length::Fill)
+        .padding(10)
+        .into()
 }
 
 mod searching {
@@ -272,6 +278,7 @@ mod searching {
     use super::Message as DiscoverMessage;
     use crate::core::api::series_searching;
     use crate::core::caching;
+    use crate::gui::styles;
 
     #[derive(Default)]
     pub enum LoadState {
@@ -384,9 +391,10 @@ mod searching {
                 LoadState::NotLoaded => container("").into(),
             };
 
-            let menu_widgets = container(menu_widgets)
-                .style(theme::Container::Custom(Box::new(ContainerTheme)
-                    as Box<dyn container::StyleSheet<Style = iced::theme::Theme>>));
+            let menu_widgets = container(menu_widgets).style(theme::Container::Custom(Box::new(
+                styles::container_styles::ContainerThemeFirst,
+            )
+                as Box<dyn container::StyleSheet<Style = iced::Theme>>));
 
             (search_bar.into(), scrollable(menu_widgets).into())
         }
@@ -481,26 +489,5 @@ mod searching {
             loaded_results.push(loaded_result)
         }
         loaded_results
-    }
-
-    pub struct ContainerTheme;
-
-    impl iced::widget::container::StyleSheet for ContainerTheme {
-        type Style = iced::Theme;
-
-        fn appearance(
-            &self,
-            style: &<Self as container::StyleSheet>::Style,
-        ) -> container::Appearance {
-            let background_color = match style {
-                iced::Theme::Light => theme::palette::Palette::LIGHT.background,
-                iced::Theme::Dark => theme::palette::Palette::DARK.background,
-                iced::Theme::Custom(_) => todo!(),
-            };
-            container::Appearance {
-                background: background_color.into(),
-                ..Default::default()
-            }
-        }
     }
 }

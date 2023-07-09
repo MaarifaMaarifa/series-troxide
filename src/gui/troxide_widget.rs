@@ -19,9 +19,12 @@ pub mod series_poster {
     use crate::core::caching::episode_list::EpisodeReleaseTime;
     use crate::core::{caching, database};
     use crate::gui::helpers::season_episode_str_gen;
+    use crate::gui::styles;
     use crate::gui::view::series_view::SeriesStatus;
-    use iced::widget::{column, container, image, mouse_area, progress_bar, row, text};
-    use iced::{Command, Element, Renderer};
+    use iced::widget::{
+        column, container, horizontal_space, image, mouse_area, progress_bar, row, text,
+    };
+    use iced::{theme, Command, Element, Length, Renderer};
 
     #[derive(Clone, Debug)]
     pub enum Message {
@@ -110,8 +113,16 @@ pub mod series_poster {
                     text(&series_info.name)
                         .size(15)
                         .width(100)
+                        .height(30)
                         .horizontal_alignment(iced::alignment::Horizontal::Center),
                 );
+
+                let content = container(content)
+                    .padding(5)
+                    .style(theme::Container::Custom(Box::new(
+                        styles::container_styles::ContainerThemeSecond,
+                    )
+                        as Box<dyn container::StyleSheet<Style = iced::Theme>>));
 
                 mouse_area(content)
                     .on_press(Message::SeriesPosterPressed(Box::new(series_info.clone())))
@@ -210,15 +221,42 @@ pub mod series_poster {
                     episode_and_release_time.1.get_full_release_date_and_time(),
                 ));
 
-                metadata = metadata.push(text(format!(
-                    "Release in: {}",
-                    &episode_and_release_time
-                        .1
-                        .get_remaining_release_time()
-                        .unwrap()
-                )));
-
                 content = content.push(metadata);
+
+                content = content.push(horizontal_space(Length::Fill));
+                let release_time_widget = container(
+                    container(
+                        text(
+                            &episode_and_release_time
+                                .1
+                                .get_remaining_release_time()
+                                .unwrap(),
+                        )
+                        .horizontal_alignment(iced::alignment::Horizontal::Center),
+                    )
+                    .width(70)
+                    .height(70)
+                    .padding(5)
+                    .center_x()
+                    .center_y()
+                    .style(theme::Container::Custom(Box::new(
+                        styles::container_styles::ContainerThemeReleaseTime,
+                    )
+                        as Box<dyn container::StyleSheet<Style = iced::Theme>>)),
+                )
+                .center_x()
+                .center_y()
+                .height(140);
+
+                content = content.push(release_time_widget);
+
+                let content = container(content)
+                    .padding(5)
+                    .style(theme::Container::Custom(Box::new(
+                        styles::container_styles::ContainerThemeFirst,
+                    )
+                        as Box<dyn container::StyleSheet<Style = iced::Theme>>))
+                    .width(1000);
 
                 mouse_area(content)
                     .on_press(Message::SeriesPosterPressed(Box::new(series_info.clone())))

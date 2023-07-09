@@ -10,11 +10,11 @@ use crate::gui::{Message as GuiMessage, Tab};
 use iced::widget::{container, scrollable, Column};
 use iced_aw::{Spinner, Wrap};
 
-use iced::Length;
 use iced::{
     widget::{column, text},
     Command, Element, Renderer,
 };
+use iced::{Alignment, Length};
 
 use super::series_view::SeriesStatus;
 
@@ -168,7 +168,11 @@ impl MyShowsTab {
                     })
                     .collect();
 
-                let upcoming_series_releases = Column::with_children(upcoming_series_releases);
+                let upcoming_series_releases = Column::with_children(upcoming_series_releases)
+                    .spacing(5)
+                    .align_items(Alignment::Center)
+                    .width(Length::Fill)
+                    .padding(10);
 
                 let upcoming_posters = self
                     .upcoming_releases
@@ -182,13 +186,16 @@ impl MyShowsTab {
                     MyShowsFilter::WaitingRelease,
                 ))
                 .spacing(5.0)
+                .line_spacing(5.0)
                 .padding(5.0);
+
                 let ended_shows = Wrap::with_elements(Self::filter_posters(
                     &self.series,
                     &upcoming_posters,
                     MyShowsFilter::Ended,
                 ))
                 .spacing(5.0)
+                .line_spacing(5.0)
                 .padding(5.0);
 
                 let content = column!(

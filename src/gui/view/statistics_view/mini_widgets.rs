@@ -1,8 +1,9 @@
 use iced::widget::{column, container, horizontal_space, row, text};
-use iced::{Alignment, Element, Length, Renderer};
+use iced::{theme, Alignment, Element, Length, Renderer};
 
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::database;
+use crate::gui::styles;
 
 use super::Message;
 
@@ -43,6 +44,10 @@ pub fn watch_count() -> Element<'static, Message, Renderer> {
         .padding(10)
         .center_x()
         .center_y()
+        .style(theme::Container::Custom(
+            Box::new(styles::container_styles::ContainerThemeFirst)
+                as Box<dyn container::StyleSheet<Style = iced::Theme>>,
+        ))
         .into()
 }
 
@@ -88,6 +93,10 @@ pub fn time_count(
         .padding(10)
         .center_x()
         .center_y()
+        .style(theme::Container::Custom(
+            Box::new(styles::container_styles::ContainerThemeFirst)
+                as Box<dyn container::StyleSheet<Style = iced::Theme>>,
+        ))
         .into()
 }
 

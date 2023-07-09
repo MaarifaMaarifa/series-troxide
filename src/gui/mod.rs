@@ -1,5 +1,6 @@
 mod assets;
 mod helpers;
+mod styles;
 mod troxide_widget;
 mod view;
 
@@ -103,8 +104,14 @@ impl Application for TroxideGui {
 
     fn theme(&self) -> iced::Theme {
         match self.settings_tab.get_config_settings().theme {
-            settings_config::Theme::Light => iced::Theme::Light,
-            settings_config::Theme::Dark => iced::Theme::Dark,
+            settings_config::Theme::Light => {
+                let theme = styles::theme::TroxideTheme::Light;
+                iced::Theme::Custom(Box::new(theme.get_theme()))
+            }
+            settings_config::Theme::Dark => {
+                let theme = styles::theme::TroxideTheme::Dark;
+                iced::Theme::Custom(Box::new(theme.get_theme()))
+            }
         }
     }
 
