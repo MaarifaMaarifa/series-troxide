@@ -329,7 +329,6 @@ mod episode_widget {
             let info = column!(
                 heading_widget(self.series_id, &self.episode_information),
                 airdate_widget(&self.episode_information),
-                airstamp_widget(&self.episode_information),
                 summary_widget(&self.episode_information)
             )
             .padding(5);
@@ -350,14 +349,6 @@ mod episode_widget {
             text(airdate).size(15)
         } else {
             text("")
-        }
-    }
-
-    fn airstamp_widget(episode_information: &EpisodeInfo) -> Text<'static, Renderer> {
-        if let Some(airstamp) = &episode_information.airstamp {
-            text(airstamp).size(15)
-        } else {
-            text("").size(15)
         }
     }
 
