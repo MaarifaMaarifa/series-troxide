@@ -194,17 +194,20 @@ impl Season {
             if self.episodes.is_empty() {
                 content = content.push(container(Spinner::new()))
             } else {
-                content = content.push(Column::with_children(
-                    self.episodes
-                        .iter()
-                        .enumerate()
-                        .map(|(index, episode)| {
-                            episode
-                                .view()
-                                .map(move |m| Message::EpisodeAction(index, m))
-                        })
-                        .collect(),
-                ));
+                content = content.push(
+                    Column::with_children(
+                        self.episodes
+                            .iter()
+                            .enumerate()
+                            .map(|(index, episode)| {
+                                episode
+                                    .view()
+                                    .map(move |m| Message::EpisodeAction(index, m))
+                            })
+                            .collect(),
+                    )
+                    .spacing(3),
+                );
             }
         }
 
@@ -231,10 +234,11 @@ mod episode_widget {
     use super::Message as SeasonMessage;
     use crate::{
         core::{api::episodes_information::Episode as EpisodeInfo, caching, database},
-        gui::helpers::season_episode_str_gen,
+        gui::{helpers::season_episode_str_gen, styles},
     };
     use iced::{
-        widget::{checkbox, column, horizontal_space, image, row, text, Row, Text},
+        theme,
+        widget::{checkbox, column, container, horizontal_space, image, row, text, Row, Text},
         Command, Element, Length, Renderer,
     };
 
@@ -320,7 +324,7 @@ mod episode_widget {
         }
 
         pub fn view(&self) -> Element<'_, Message, Renderer> {
-            let mut content = row!();
+            let mut content = row!().padding(5).width(700);
             if let Some(image_bytes) = self.episode_image.clone() {
                 let image_handle = image::Handle::from_memory(image_bytes);
                 let image = image(image_handle).height(60);
@@ -332,7 +336,15 @@ mod episode_widget {
                 summary_widget(&self.episode_information)
             )
             .padding(5);
-            content.push(info).padding(5).width(600).into()
+
+            let content = content.push(info);
+
+            container(content)
+                .style(theme::Container::Custom(Box::new(
+                    styles::container_styles::ContainerThemeSecond,
+                )
+                    as Box<dyn container::StyleSheet<Style = iced::Theme>>))
+                .into()
         }
     }
 
