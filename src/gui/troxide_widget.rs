@@ -23,6 +23,7 @@ pub mod series_poster {
     use crate::gui::view::series_view::SeriesStatus;
     use iced::widget::{
         column, container, horizontal_space, image, mouse_area, progress_bar, row, text,
+        vertical_space,
     };
     use iced::{theme, Command, Element, Length, Renderer};
 
@@ -133,35 +134,24 @@ pub mod series_poster {
         }
 
         /// View intended for the watchlist tab
-        pub fn watchlist_view(&self, total_episodes: f32) -> Element<'_, Message, Renderer> {
-            let mut content = row!().padding(2).spacing(1);
+        pub fn watchlist_view(&self, total_episodes: usize) -> Element<'_, Message, Renderer> {
+            let mut content = row!().padding(2).spacing(5);
             if let Some(image_bytes) = self.image.clone() {
                 let image_handle = image::Handle::from_memory(image_bytes);
                 let image = image(image_handle).width(100);
                 content = content.push(image);
             };
 
-            let mut metadata = column!().padding(2).spacing(1);
+            let mut metadata = column!().padding(2).spacing(5);
 
             if let Some(series_info) = &self.series_information {
                 metadata = metadata.push(text(&series_info.name));
+                metadata = metadata.push(vertical_space(10));
 
-                let watched_episodes = if let Some(series) = database::DB.get_series(series_info.id)
-                {
-                    series.get_total_episodes() as f32
-                } else {
-                    0.0
-                };
-
-                let progress_bar = row!(
-                    progress_bar(0.0..=total_episodes, watched_episodes,)
-                        .height(10)
-                        .width(500),
-                    text(format!("{}/{}", watched_episodes, total_episodes))
-                )
-                .spacing(5);
-
-                metadata = metadata.push(progress_bar);
+                let watched_episodes = database::DB
+                    .get_series(series_info.id)
+                    .map(|series| series.get_total_episodes())
+                    .unwrap_or(0);
 
                 let last_episode_watched = if let Some(series) =
                     database::DB.get_series(series_info.id)
@@ -178,7 +168,32 @@ pub mod series_poster {
 
                 metadata = metadata.push(last_episode_watched);
 
+                let progress_bar = row!(
+                    progress_bar(0.0..=total_episodes as f32, watched_episodes as f32,)
+                        .height(10)
+                        .width(500),
+                    text(format!(
+                        "{}/{}",
+                        watched_episodes as f32, total_episodes as f32
+                    ))
+                )
+                .spacing(5);
+
+                metadata = metadata.push(progress_bar);
+
+                let episodes_left = total_episodes - watched_episodes;
+
+                metadata = metadata.push(text(format!("{} episodes left", episodes_left)));
+
                 content = content.push(metadata);
+
+                let content = container(content)
+                    .padding(5)
+                    .style(theme::Container::Custom(Box::new(
+                        styles::container_styles::ContainerThemeFirst,
+                    )
+                        as Box<dyn container::StyleSheet<Style = iced::Theme>>))
+                    .width(1000);
 
                 mouse_area(content)
                     .on_press(Message::SeriesPosterPressed(Box::new(series_info.clone())))

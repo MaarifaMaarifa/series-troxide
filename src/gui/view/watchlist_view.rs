@@ -71,11 +71,9 @@ impl WatchlistTab {
                     .series_posters
                     .iter()
                     .map(|(poster, total_episodes)| {
-                        poster
-                            .watchlist_view(*total_episodes as f32)
-                            .map(|message| {
-                                Message::SeriesPoster(message.get_id().unwrap_or(0), message)
-                            })
+                        poster.watchlist_view(*total_episodes).map(|message| {
+                            Message::SeriesPoster(message.get_id().unwrap_or(0), message)
+                        })
                     })
                     .collect();
 
@@ -83,6 +81,7 @@ impl WatchlistTab {
                     Column::with_children(watchlist_items)
                         .padding(5)
                         .spacing(5)
+                        .align_items(iced::Alignment::Center)
                         .width(Length::Fill),
                 )
                 .into()
