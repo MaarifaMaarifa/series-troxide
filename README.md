@@ -2,7 +2,7 @@
 
 A modern Series/Tv Shows Tracker written in Rust.
 
-![](screenshots/search-page.png)
+![](screenshots/discover-page.png)
 
 ## WARNING
 
