@@ -1,7 +1,7 @@
 use crate::core::api::episodes_information::Episode;
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::api::Image;
-use crate::core::caching::episode_list::{EpisodeReleaseTime, TotalEpisodes};
+use crate::core::caching::episode_list::EpisodeReleaseTime;
 use crate::core::{caching, database};
 use crate::gui::assets::get_static_cow_from_asset;
 use crate::gui::assets::icons::{ARROW_LEFT, CHECK_CIRCLE, CHECK_CIRCLE_FILL};
@@ -110,9 +110,8 @@ fn top_bar(series_info: &SeriesMainInformation) -> Row<'_, Message, Renderer> {
 pub enum Message {
     SeriesInfoObtained(Box<SeriesMainInformation>),
     SeriesImageLoaded(Option<Vec<u8>>),
-    NextEpisodeReleaseLoaded(Option<(Episode, EpisodeReleaseTime)>),
+    EpisodeListLoaded(caching::episode_list::EpisodeList),
     GoBack,
-    SeasonsLoaded(Vec<(u32, TotalEpisodes)>),
     SeasonAction(usize, Box<SeasonMessage>),
     CastWidgetAction(CastWidgetMessage),
     TrackSeries,
@@ -157,17 +156,11 @@ impl Series {
             },
         );
 
-        let next_episode_release_time_command = Command::perform(
-            get_next_episode_release_time(series_id),
-            Message::NextEpisodeReleaseLoaded,
-        );
-
         (
             series,
             Command::batch([
                 series_command,
                 cast_widget_command.map(Message::CastWidgetAction),
-                next_episode_release_time_command,
             ]),
         )
     }
@@ -189,15 +182,9 @@ impl Series {
             cast_widget,
         };
 
-        let next_episode_release_time_command = Command::perform(
-            get_next_episode_release_time(series_id),
-            Message::NextEpisodeReleaseLoaded,
-        );
-
         let commands = [
-            Command::batch(get_image_and_seasons(series_image, series_id)),
+            Command::batch(get_image_and_episode_list(series_image, series_id)),
             cast_widget_command.map(Message::CastWidgetAction),
-            next_episode_release_time_command,
         ];
 
         (series, Command::batch(commands))
@@ -210,21 +197,12 @@ impl Series {
                 let info_image = info.image.clone();
                 self.series_information = Some(*info);
 
-                return Command::batch(get_image_and_seasons(info_image, self.series_id));
+                return Command::batch(get_image_and_episode_list(info_image, self.series_id));
             }
             Message::SeriesImageLoaded(image) => {
                 self.series_image = image;
             }
             Message::GoBack => return Command::perform(async {}, |_| Message::GoBack),
-            Message::SeasonsLoaded(season_list) => {
-                self.season_widgets = season_list
-                    .into_iter()
-                    .enumerate()
-                    .map(|(index, season)| {
-                        season_widget::Season::new(index, self.series_id, season.0, season.1)
-                    })
-                    .collect()
-            }
             Message::SeasonAction(index, message) => {
                 return self.season_widgets[index].update(*message);
             }
@@ -244,8 +222,21 @@ impl Series {
                     .update(message)
                     .map(Message::CastWidgetAction)
             }
-            Message::NextEpisodeReleaseLoaded(release_time) => {
-                self.next_episode_release_time = release_time
+            Message::EpisodeListLoaded(episode_list) => {
+                let season_and_total_episodes =
+                    episode_list.get_season_numbers_with_total_episode();
+
+                self.season_widgets = season_and_total_episodes
+                    .into_iter()
+                    .enumerate()
+                    .map(|(index, season)| {
+                        season_widget::Season::new(index, self.series_id, season.0, season.1)
+                    })
+                    .collect();
+
+                self.next_episode_release_time = episode_list
+                    .get_next_episode_and_time()
+                    .map(|(episode, release_time)| (episode.clone(), release_time))
             }
         }
         Command::none()
@@ -315,7 +306,7 @@ impl Series {
 }
 
 /// Returns two commands that requests series' image and seasons list
-fn get_image_and_seasons(
+fn get_image_and_episode_list(
     series_info_image: Option<Image>,
     series_id: u32,
 ) -> [Command<Message>; 2] {
@@ -327,21 +318,15 @@ fn get_image_and_seasons(
         Command::none()
     };
 
-    let seasons_list_command = Command::perform(
-        caching::episode_list::EpisodeList::new(series_id),
-        |episode_list| {
-            let episode_list = episode_list.expect("failed to load seasons");
-            Message::SeasonsLoaded(episode_list.get_season_numbers_with_total_episode())
-        },
-    );
+    let episode_list_command =
+        Command::perform(get_episodes_list(series_id), Message::EpisodeListLoaded);
 
-    [image_command, seasons_list_command]
+    [image_command, episode_list_command]
 }
 
-async fn get_next_episode_release_time(series_id: u32) -> Option<(Episode, EpisodeReleaseTime)> {
+/// Returns the episodes_list of the current series
+async fn get_episodes_list(series_id: u32) -> caching::episode_list::EpisodeList {
     caching::episode_list::EpisodeList::new(series_id)
         .await
-        .unwrap()
-        .get_next_episode_and_time()
-        .map(|(episode, release_time)| (episode.clone(), release_time))
+        .expect("failed to get episodes list")
 }

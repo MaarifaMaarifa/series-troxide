@@ -242,6 +242,7 @@ pub mod episode_list {
     use tokio::fs;
     use tracing::info;
 
+    #[derive(Clone, Debug)]
     pub struct EpisodeList {
         episodes: Vec<Episode>,
     }
