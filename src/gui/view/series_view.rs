@@ -16,7 +16,7 @@ use iced::widget::scrollable::Properties;
 use iced::widget::{button, column, container, horizontal_space, image, row, scrollable, text};
 use iced::widget::{svg, vertical_space, Column, Row};
 use iced::{theme, Alignment, Command, Element, Length, Renderer};
-use iced_aw::Spinner;
+use iced_aw::{Grid, Spinner};
 
 mod cast_widget;
 mod mini_widgets;
@@ -50,7 +50,7 @@ pub fn series_page(
 ) -> Column<'_, Message, Renderer> {
     let content = column!();
 
-    let mut main_info = row!().padding(5);
+    let mut main_info = row!().padding(5).spacing(5);
 
     // Putting the image to the main info
     if let Some(image_bytes) = image_bytes {
@@ -59,23 +59,20 @@ pub fn series_page(
         main_info = main_info.push(image);
     }
 
-    // Getting genres
-    // Putting series information to the main info
-    let series_data = column!(
-        // text(format!("Status: {}", series_information.status)),
-        status_widget(series_information),
-        genres_widget(series_information),
-        language_widget(series_information),
-        average_runtime_widget(series_information),
-        rating_widget(series_information),
-        network_widget(series_information),
-        webchannel_widget(series_information),
-        premiered_widget(series_information),
-        ended_widget(series_information),
-        summary_widget(series_information),
-    )
-    .spacing(3)
-    .padding(5);
+    let mut series_data_grid = Grid::new().strategy(iced_aw::Strategy::Columns(2));
+
+    status_widget(&mut series_data_grid, series_information);
+    genres_widget(&mut series_data_grid, series_information);
+    language_widget(&mut series_data_grid, series_information);
+    average_runtime_widget(&mut series_data_grid, series_information);
+    rating_widget(&mut series_data_grid, series_information);
+    network_widget(&mut series_data_grid, series_information);
+    webchannel_widget(&mut series_data_grid, series_information);
+    premiered_widget(&mut series_data_grid, series_information);
+    ended_widget(&mut series_data_grid, series_information);
+    let summary = summary_widget(series_information);
+
+    let series_data = column![series_data_grid, vertical_space(10), summary,].spacing(5);
 
     main_info = main_info.push(series_data);
 

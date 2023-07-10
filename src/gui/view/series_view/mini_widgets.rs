@@ -1,18 +1,20 @@
 use super::{Series, SeriesStatus};
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::gui::helpers::season_episode_str_gen;
-use crate::gui::troxide_widget::{GREEN_THEME, INFO_BODY, INFO_HEADER, RED_THEME};
+use crate::gui::troxide_widget::{GREEN_THEME, INFO_HEADER, RED_THEME};
 
-use iced::alignment;
-use iced::widget::{row, text};
+use iced::widget::{column, text};
 use iced::Renderer;
+use iced_aw::Grid;
 
 use super::Message;
 
 pub fn status_widget(
+    series_data_grid: &mut Grid<'_, Message, Renderer>,
     series_info: &SeriesMainInformation,
-) -> iced::widget::Row<'_, Message, Renderer> {
-    let row = row!(text("Status: ").size(INFO_HEADER));
+) {
+    let title_text = text("Status");
+    series_data_grid.insert(title_text);
 
     let status_text = match SeriesStatus::new(series_info) {
         SeriesStatus::Running => text("Running").style(GREEN_THEME),
@@ -20,36 +22,31 @@ pub fn status_widget(
         SeriesStatus::ToBeDetermined => text("To Be Determined"),
         SeriesStatus::InDevelopment => text("In Development"),
         SeriesStatus::Other => text(&series_info.status),
-    }
-    .vertical_alignment(alignment::Vertical::Bottom)
-    .size(INFO_BODY)
-    .height(INFO_HEADER);
-
-    row.push(status_text)
+    };
+    series_data_grid.insert(status_text);
 }
 
 pub fn average_runtime_widget(
+    series_data_grid: &mut Grid<'_, Message, Renderer>,
     series_info: &SeriesMainInformation,
-) -> iced::widget::Row<'_, Message, Renderer> {
-    let row = row!(text("Average runtime: ").size(INFO_HEADER));
+) {
+    // since the the title part of this widget is the longest, we gonna add some space
+    // infront of it to make the separation of column nicer
+    series_data_grid.insert(text("Average runtime    "));
     let body_widget = if let Some(average_runtime) = series_info.average_runtime {
         text(format!("{} mins", average_runtime))
     } else {
         text("unavailable")
     };
-    row.push(
-        body_widget
-            .size(INFO_BODY)
-            .height(INFO_HEADER)
-            .vertical_alignment(alignment::Vertical::Bottom),
-    )
+    series_data_grid.insert(body_widget)
 }
 
 pub fn genres_widget(
+    series_data_grid: &mut Grid<'_, Message, Renderer>,
     series_info: &SeriesMainInformation,
-) -> iced::widget::Row<'_, Message, Renderer> {
+) {
     if !series_info.genres.is_empty() {
-        let row = row!(text("Genres: ").size(INFO_HEADER));
+        series_data_grid.insert(text("Genres"));
         let mut genres = String::new();
 
         let mut series_result_iter = series_info.genres.iter().peekable();
@@ -59,128 +56,102 @@ pub fn genres_widget(
                 genres.push_str(", ");
             }
         }
-        row.push(text(genres).size(INFO_BODY))
-    } else {
-        row!()
+        series_data_grid.insert(text(genres));
     }
 }
 
 pub fn language_widget(
+    series_data_grid: &mut Grid<'_, Message, Renderer>,
     series_info: &SeriesMainInformation,
-) -> iced::widget::Row<'_, Message, Renderer> {
-    let row = row!(
-        text("Language: ").size(INFO_HEADER),
-        if let Some(language) = &series_info.language {
-            text(language)
-        } else {
-            text("unavailable")
-        }
-        .size(INFO_BODY)
-        .height(INFO_HEADER)
-        .vertical_alignment(alignment::Vertical::Bottom)
-    );
-    row
+) {
+    series_data_grid.insert(text("Language"));
+    series_data_grid.insert(if let Some(language) = &series_info.language {
+        text(language)
+    } else {
+        text("unavailable")
+    });
 }
 
 pub fn premiered_widget(
+    series_data_grid: &mut Grid<'_, Message, Renderer>,
     series_info: &SeriesMainInformation,
-) -> iced::widget::Row<'_, Message, Renderer> {
-    let row = row!(text("Premiered: ").size(INFO_HEADER));
+) {
+    series_data_grid.insert(text("Premiered"));
     let body_text = if let Some(premier) = &series_info.premiered {
         text(premier)
     } else {
         text("unavailable")
     };
 
-    row.push(
-        body_text
-            .size(INFO_BODY)
-            .height(INFO_HEADER)
-            .vertical_alignment(alignment::Vertical::Bottom),
-    )
+    series_data_grid.insert(body_text)
 }
 
 pub fn ended_widget(
+    series_data_grid: &mut Grid<'_, Message, Renderer>,
     series_info: &SeriesMainInformation,
-) -> iced::widget::Row<'_, Message, Renderer> {
-    // Creating the widget only when the series has ended
+) {
+    // Pushing the widget to the grid only when the series has ended
     match SeriesStatus::new(series_info) {
         SeriesStatus::Ended => {}
-        _ => return row!(),
+        _ => return,
     }
 
-    let row = row!(text("Ended: ").size(INFO_HEADER));
+    series_data_grid.insert(text("Ended"));
     let body_text = if let Some(ended) = &series_info.ended {
         text(ended)
     } else {
         text("unavailable")
     };
 
-    row.push(
-        body_text
-            .size(INFO_BODY)
-            .height(INFO_HEADER)
-            .vertical_alignment(alignment::Vertical::Bottom),
-    )
+    series_data_grid.insert(body_text)
 }
 
-pub fn summary_widget(series_info: &SeriesMainInformation) -> iced::widget::Text<'_, Renderer> {
+pub fn summary_widget(series_info: &SeriesMainInformation) -> iced::Element<'_, Message, Renderer> {
     if let Some(summary) = &series_info.summary {
-        text(summary).size(15)
+        column![text("Summary"), text(summary).size(15),]
+            .spacing(5)
+            .into()
     } else {
-        text("")
+        text("").into()
     }
 }
 
 pub fn rating_widget(
+    series_data_grid: &mut Grid<'_, Message, Renderer>,
     series_info: &SeriesMainInformation,
-) -> iced::widget::Row<'_, Message, Renderer> {
-    let row = row!(text("Average rating: ").size(INFO_HEADER));
+) {
+    series_data_grid.insert(text("Average rating"));
     let body_wiget = if let Some(average_rating) = series_info.rating.average {
         text(average_rating.to_string())
     } else {
         text("unavailable")
     };
 
-    row.push(
-        body_wiget
-            .size(INFO_BODY)
-            .height(INFO_HEADER)
-            .vertical_alignment(alignment::Vertical::Bottom),
-    )
+    series_data_grid.insert(body_wiget)
 }
 
 pub fn network_widget(
+    series_data_grid: &mut Grid<'_, Message, Renderer>,
     series_info: &SeriesMainInformation,
-) -> iced::widget::Row<'_, Message, Renderer> {
+) {
     if let Some(network) = &series_info.network {
         // TODO: Add a clickable link
-        row!(
-            text("Network:  ").size(INFO_HEADER),
-            text(format!("{} ({})", &network.name, &network.country.name))
-                .size(INFO_BODY)
-                .height(INFO_HEADER)
-                .vertical_alignment(alignment::Vertical::Bottom),
-        )
-    } else {
-        row!()
+        series_data_grid.insert(text("Network"));
+        series_data_grid.insert(text(format!(
+            "{} ({})",
+            &network.name, &network.country.name
+        )))
     }
 }
 
 pub fn webchannel_widget(
+    series_data_grid: &mut Grid<'_, Message, Renderer>,
     series_info: &SeriesMainInformation,
-) -> iced::widget::Row<'_, Message, Renderer> {
+) {
     if let Some(webchannel) = &series_info.web_channel {
         // TODO: Add a clickable link
-        row!(
-            text("Webchannel: ").size(INFO_HEADER),
-            text(&webchannel.name)
-                .size(INFO_BODY)
-                .height(INFO_HEADER)
-                .vertical_alignment(alignment::Vertical::Bottom),
-        )
-    } else {
-        row!()
+        series_data_grid.insert(text("Webchannel"));
+        series_data_grid.insert(text(&webchannel.name))
     }
 }
 
