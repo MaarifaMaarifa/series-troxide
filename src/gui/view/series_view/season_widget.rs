@@ -250,7 +250,10 @@ mod episode_widget {
     };
     use iced::{
         theme,
-        widget::{checkbox, column, container, horizontal_space, image, row, text, Row, Text},
+        widget::{
+            checkbox, column, container, horizontal_space, image, row, text, vertical_space, Row,
+            Text,
+        },
         Command, Element, Length, Renderer,
     };
 
@@ -351,6 +354,7 @@ mod episode_widget {
             let info = column!(
                 heading_widget(self.series_id, &self.episode_information),
                 airdate_widget(&self.episode_information),
+                vertical_space(5),
                 summary_widget(&self.episode_information)
             )
             .padding(5);
@@ -377,7 +381,7 @@ mod episode_widget {
 
     fn airdate_widget(episode_information: &EpisodeInfo) -> Text<'static, Renderer> {
         if let Some(airdate) = &episode_information.airdate {
-            text(airdate).size(15)
+            text(format!("Air date: {}", airdate)).size(15)
         } else {
             text("")
         }
