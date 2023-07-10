@@ -16,7 +16,7 @@ use episode_widget::Message as EpisodeMessage;
 #[derive(Clone, Debug)]
 pub enum Message {
     CheckboxPressed,
-    TrackCommandComplete(Option<AddResult>),
+    TrackCommandComplete(AddResult),
     Expand,
     EpisodesLoaded(Vec<EpisodeInfo>),
     EpisodeAction(usize, EpisodeMessage),
@@ -26,6 +26,7 @@ pub enum Message {
 pub struct Season {
     index: usize,
     series_id: u32,
+    series_name: String,
     season_number: u32,
     total_episodes: TotalEpisodes,
     episodes: Vec<episode_widget::Episode>,
@@ -36,12 +37,14 @@ impl Season {
     pub fn new(
         index: usize,
         series_id: u32,
+        series_name: String,
         season_number: u32,
         total_episodes: TotalEpisodes,
     ) -> Self {
         Self {
             index,
             series_id,
+            series_name,
             season_number,
             total_episodes,
             episodes: vec![],
@@ -52,20 +55,22 @@ impl Season {
         match message {
             Message::CheckboxPressed => {
                 let series_id = self.series_id;
+                let series_name = self.series_name.clone();
                 let season_number = self.season_number;
                 let total_episodes = self.total_episodes.get_all_episodes();
                 let index = self.index;
 
                 return Command::perform(
                     async move {
-                        if let Some(mut series) = database::DB.get_series(series_id) {
-                            Some(
-                                series
+                        loop {
+                            if let Some(mut series) = database::DB.get_series(series_id) {
+                                break series
                                     .add_episodes(season_number, 1..=total_episodes as u32)
-                                    .await,
-                            )
-                        } else {
-                            None
+                                    .await;
+                            } else {
+                                let series = database::Series::new(series_name.clone(), series_id);
+                                database::DB.add_series(series_id, &series);
+                            }
                         }
                     },
                     move |all_newly_added| {
@@ -102,7 +107,14 @@ impl Season {
                 let epis: Vec<(Episode, Command<Message>)> = episode_infos
                     .into_iter()
                     .enumerate()
-                    .map(|(index, info)| episode_widget::Episode::new(index, self.series_id, info))
+                    .map(|(index, info)| {
+                        episode_widget::Episode::new(
+                            index,
+                            self.series_id,
+                            self.series_name.clone(),
+                            info,
+                        )
+                    })
                     .collect();
 
                 let mut commands = Vec::with_capacity(epis.len());
@@ -125,7 +137,7 @@ impl Season {
                     .map(move |m| SeriesMessage::SeasonAction(season_index, Box::new(m)));
             }
             Message::TrackCommandComplete(add_result) => {
-                if let Some(AddResult::None) = add_result {
+                if let AddResult::None = add_result {
                     if let Some(mut series) = database::DB.get_series(self.series_id) {
                         series.remove_season(self.season_number);
                         series.update()
@@ -246,12 +258,13 @@ mod episode_widget {
     pub enum Message {
         ImageLoaded(Option<Vec<u8>>),
         TrackCheckboxPressed,
-        TrackCommandComplete(Option<bool>),
+        TrackCommandComplete(bool),
     }
 
     #[derive(Clone)]
     pub struct Episode {
         index: usize,
+        series_name: String,
         episode_information: EpisodeInfo,
         series_id: u32,
         episode_image: Option<Vec<u8>>,
@@ -261,11 +274,13 @@ mod episode_widget {
         pub fn new(
             index: usize,
             series_id: u32,
+            series_name: String,
             episode_information: EpisodeInfo,
         ) -> (Self, Command<SeasonMessage>) {
             let episode_image = episode_information.image.clone();
             let episode = Self {
                 index,
+                series_name,
                 episode_information,
                 series_id,
                 episode_image: None,
@@ -289,14 +304,19 @@ mod episode_widget {
                     let season_number = self.episode_information.season;
                     let episode_number = self.episode_information.number.unwrap();
                     let series_id = self.series_id;
+                    let series_name = self.series_name.clone();
                     let episode_index = self.index;
 
                     return Command::perform(
                         async move {
-                            if let Some(mut series) = database::DB.get_series(series_id) {
-                                Some(series.add_episode(season_number, episode_number).await)
-                            } else {
-                                None
+                            loop {
+                                if let Some(mut series) = database::DB.get_series(series_id) {
+                                    break series.add_episode(season_number, episode_number).await;
+                                } else {
+                                    let series =
+                                        database::Series::new(series_name.clone(), series_id);
+                                    database::DB.add_series(series_id, &series);
+                                }
                             }
                         },
                         move |is_newly_added| {
@@ -308,14 +328,12 @@ mod episode_widget {
                     );
                 }
                 Message::TrackCommandComplete(is_newly_added) => {
-                    if let Some(is_newly_added) = is_newly_added {
-                        if !is_newly_added {
-                            if let Some(mut series) = database::DB.get_series(self.series_id) {
-                                series.remove_episode(
-                                    self.episode_information.season,
-                                    self.episode_information.number.unwrap(),
-                                );
-                            }
+                    if !is_newly_added {
+                        if let Some(mut series) = database::DB.get_series(self.series_id) {
+                            series.remove_episode(
+                                self.episode_information.season,
+                                self.episode_information.number.unwrap(),
+                            );
                         }
                     }
                 }

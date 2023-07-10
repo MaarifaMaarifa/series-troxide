@@ -86,7 +86,11 @@ fn top_bar(series_info: &SeriesMainInformation) -> Row<'_, Message, Renderer> {
     let back_icon_handle = svg::Handle::from_memory(get_static_cow_from_asset(ARROW_LEFT));
     let back_icon = svg(back_icon_handle).width(Length::Shrink);
 
-    let track_button = if database::DB.get_series(series_info.id).is_some() {
+    let track_button = if database::DB
+        .get_series(series_info.id)
+        .map(|series| series.is_tracked())
+        .unwrap_or(false)
+    {
         let tracked_icon_handle =
             svg::Handle::from_memory(get_static_cow_from_asset(CHECK_CIRCLE_FILL));
         let icon = svg(tracked_icon_handle).width(Length::Shrink);
@@ -207,14 +211,25 @@ impl Series {
                 return self.season_widgets[index].update(*message);
             }
             Message::TrackSeries => {
-                let series = database::Series::new(
-                    self.series_information.as_ref().unwrap().name.to_owned(),
-                    self.series_id,
-                );
-                database::DB.track_series(self.series_information.as_ref().unwrap().id, &series);
+                let series_id = self.series_information.as_ref().unwrap().id;
+
+                if let Some(mut series) = database::DB.get_series(series_id) {
+                    series.mark_tracked();
+                } else {
+                    let mut series = database::Series::new(
+                        self.series_information.as_ref().unwrap().name.to_owned(),
+                        self.series_id,
+                    );
+                    series.mark_tracked();
+                    database::DB.add_series(self.series_information.as_ref().unwrap().id, &series);
+                }
             }
             Message::UntrackSeries => {
-                database::DB.untrack_series(self.series_information.as_ref().unwrap().id);
+                let series_id = self.series_information.as_ref().unwrap().id;
+                if let Some(mut series) = database::DB.get_series(series_id) {
+                    series.mark_untracked();
+                }
+                // database::DB.untrack_series(self.series_information.as_ref().unwrap().id);
             }
             Message::CastWidgetAction(message) => {
                 return self
@@ -230,7 +245,13 @@ impl Series {
                     .into_iter()
                     .enumerate()
                     .map(|(index, season)| {
-                        season_widget::Season::new(index, self.series_id, season.0, season.1)
+                        season_widget::Season::new(
+                            index,
+                            self.series_id,
+                            self.series_information.as_ref().unwrap().clone().name,
+                            season.0,
+                            season.1,
+                        )
                     })
                     .collect();
 

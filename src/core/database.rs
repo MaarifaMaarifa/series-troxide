@@ -35,13 +35,21 @@ impl Database {
         panic!("could not get the path to database");
     }
 
-    pub fn track_series(&self, series_id: u32, series: &Series) {
+    /// Adds the given series to the database.
+    ///
+    /// # Note
+    /// This will overwrite any previous series with the same id.
+    pub fn add_series(&self, series_id: u32, series: &Series) {
         self.db
             .insert(series_id.to_string(), bincode::serialize(series).unwrap())
             .unwrap();
     }
 
-    pub fn untrack_series(&self, series_id: u32) {
+    /// Removes a series in the database.
+    ///
+    /// # Note
+    /// Does nothing when the series does not exist
+    pub fn remove_series(&self, series_id: u32) {
         self.db.remove(series_id.to_string()).unwrap();
     }
 
@@ -114,14 +122,21 @@ impl Database {
 pub struct Series {
     id: u32,
     name: String,
+    is_tracked: bool,
     seasons: HashMap<u32, Season>,
 }
 
 impl Series {
+    /// Creates a new Series object
+    ///
+    /// # Note
+    /// The series is initialized as Untracked, to mark the series as tracked
+    /// self.mark_tracked() should be explicitly called.
     pub fn new(name: String, id: u32) -> Self {
         Self {
             id,
             name,
+            is_tracked: false,
             seasons: HashMap::new(),
         }
     }
@@ -130,8 +145,37 @@ impl Series {
         &self.name
     }
 
+    /// Whether a series is being tracked or not
+    ///
+    /// Return True when is marked as tracked otherwise false
+    pub fn is_tracked(&self) -> bool {
+        self.is_tracked
+    }
+
+    /// Marks the series as being tracked
+    ///
+    /// Updates the database automatically by implicitly calling self.update()
+    pub fn mark_tracked(&mut self) {
+        self.is_tracked = true;
+        self.update();
+    }
+
+    /// Marks the series as not being tracked
+    ///
+    /// Updates the database automatically by implicitly calling self.update()
+    pub fn mark_untracked(&mut self) {
+        self.is_tracked = false;
+        self.update();
+    }
+
+    /// Updates the database with the current Series
+    ///    
+    /// This method should be called whenever a modification has been
+    /// performed to the series. This is because Series object once created,
+    /// has no connection to the database anymore and has to be rewritten to
+    /// the database for the changes to be saved.
     pub fn update(&self) {
-        DB.track_series(self.id, self);
+        DB.add_series(self.id, self);
     }
 
     pub fn add_season(&mut self, season_number: u32) {
