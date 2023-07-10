@@ -212,7 +212,7 @@ pub mod series_poster {
             &self,
             episode_and_release_time: &(Episode, EpisodeReleaseTime),
         ) -> Element<'_, Message, Renderer> {
-            let mut content = row!().padding(2).spacing(1);
+            let mut content = row!().padding(2).spacing(7);
             if let Some(image_bytes) = self.image.clone() {
                 let image_handle = image::Handle::from_memory(image_bytes);
                 let image = image(image_handle).width(100);
