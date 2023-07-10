@@ -119,6 +119,7 @@ async fn get_pending_series_ids() -> Vec<u32> {
 
     ids.iter()
         .zip(episodes_lists.iter())
+        .filter(|((_, series), _)| series.is_tracked())
         .filter(|((_, series), episode_list)| has_pending_episodes(series, episode_list))
         .map(|((id, _), _)| id.parse::<u32>().expect("could not parse series id"))
         .collect()

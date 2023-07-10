@@ -156,6 +156,17 @@ impl MyShowsTab {
                     .upcoming_releases
                     .iter()
                     .enumerate()
+                    .filter(|(_, (poster, _))| {
+                        poster
+                            .get_series_information()
+                            .map(|series_info| {
+                                database::DB
+                                    .get_series(series_info.id)
+                                    .map(|series| series.is_tracked())
+                                    .unwrap_or(false)
+                            })
+                            .unwrap_or(false)
+                    })
                     .map(|(index, (series_poster, _))| {
                         series_poster
                             .release_series_posters_view(&self.upcoming_releases[index].1)
@@ -198,12 +209,23 @@ impl MyShowsTab {
                 .line_spacing(5.0)
                 .padding(5.0);
 
+                let untracked_shows = Wrap::with_elements(Self::filter_posters(
+                    &self.series,
+                    &upcoming_posters,
+                    MyShowsFilter::Untracked,
+                ))
+                .spacing(5.0)
+                .line_spacing(5.0)
+                .padding(5.0);
+
                 let content = column!(
                     upcoming_series_releases,
                     text("Waiting For Release Date").size(20).style(GREEN_THEME),
                     running_shows,
                     text("Ended").size(20).style(RED_THEME),
-                    ended_shows
+                    ended_shows,
+                    text("Untracked").size(20),
+                    untracked_shows
                 )
                 .spacing(5.0)
                 .width(Length::Fill)
@@ -233,6 +255,15 @@ impl MyShowsTab {
                     .difference(&ended_posters)
                     .map(|poster| *poster)
                     .collect();
+
+                let untracked_posters: HashSet<_> =
+                    Self::get_untracked_posters(posters).into_iter().collect();
+
+                let diff: HashSet<_> = diff
+                    .difference(&untracked_posters)
+                    .into_iter()
+                    .map(|poster| *poster)
+                    .collect();
                 /*
                 The expected series posters obtained from the final set difference operation will have
                 a valid message id that can be used in the posters field in the MyShows struct
@@ -246,7 +277,26 @@ impl MyShowsTab {
                     .collect()
             }
             MyShowsFilter::Ended => {
-                let posters = Self::get_ended_posters(posters);
+                let ended_posters: HashSet<_> =
+                    Self::get_ended_posters(posters).into_iter().collect();
+                let untracked_posters: HashSet<_> =
+                    Self::get_untracked_posters(posters).into_iter().collect();
+                let ended_posters: Vec<_> = ended_posters
+                    .difference(&untracked_posters)
+                    .into_iter()
+                    .collect();
+
+                ended_posters
+                    .iter()
+                    .map(|poster| {
+                        poster.view().map(|message| {
+                            Message::SeriesPosterAction(message.get_id().unwrap_or(0), message)
+                        })
+                    })
+                    .collect()
+            }
+            MyShowsFilter::Untracked => {
+                let posters = Self::get_untracked_posters(posters);
                 posters
                     .iter()
                     .map(|poster| {
@@ -263,6 +313,23 @@ impl MyShowsTab {
         posters
             .iter()
             .filter(|poster| poster.get_status().unwrap() == SeriesStatus::Ended)
+            .collect()
+    }
+
+    fn get_untracked_posters(posters: &Vec<SeriesPoster>) -> Vec<&SeriesPoster> {
+        posters
+            .iter()
+            .filter(|poster| {
+                poster
+                    .get_series_information()
+                    .map(|series_info| {
+                        database::DB
+                            .get_series(series_info.id)
+                            .map(|series| !series.is_tracked())
+                            .unwrap_or(true)
+                    })
+                    .unwrap_or(true)
+            })
             .collect()
     }
 }
@@ -321,5 +388,6 @@ impl Tab for MyShowsTab {
 
 enum MyShowsFilter {
     WaitingRelease,
+    Untracked,
     Ended,
 }

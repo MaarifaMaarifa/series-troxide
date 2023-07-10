@@ -85,6 +85,11 @@ pub mod series_poster {
             (poster, command)
         }
 
+        /// Returns the underlying series information that the poster holds if it exists
+        pub fn get_series_information(&self) -> Option<&SeriesMainInformation> {
+            self.series_information.as_ref()
+        }
+
         pub fn update(&mut self, message: Message) -> Command<Message> {
             match message {
                 Message::ImageLoaded(_, image) => self.image = image,
