@@ -368,6 +368,7 @@ mod episode_widget {
 
     fn summary_widget(episode_information: &EpisodeInfo) -> Text<'static, Renderer> {
         if let Some(summary) = &episode_information.summary {
+            let summary = html2text::from_read(summary.as_bytes(), 1000);
             text(summary).size(15)
         } else {
             text("")
