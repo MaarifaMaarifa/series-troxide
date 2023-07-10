@@ -163,7 +163,7 @@ pub mod series_poster {
                 {
                     if let Some((season_num, last_watched_season)) = series.get_last_season() {
                         last_watched_season.get_last_episode();
-                        text(format!("{} {}","Last watched episode", season_episode_str_gen(season_num, last_watched_season.get_last_episode().expect("the season should have atleast one episode for it to be the last watched"))))
+                        text(format!("{} {}","Last watched", season_episode_str_gen(season_num, last_watched_season.get_last_episode().expect("the season should have atleast one episode for it to be the last watched"))))
                     } else {
                         text("No Episode Watched")
                     }
