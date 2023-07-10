@@ -219,7 +219,7 @@ pub mod series_poster {
                 content = content.push(image);
             };
 
-            let mut metadata = column!();
+            let mut metadata = column!().spacing(5);
             if let Some(series_info) = &self.series_information {
                 metadata = metadata.push(text(&series_info.name));
                 // Some separation between series name and the rest of content
