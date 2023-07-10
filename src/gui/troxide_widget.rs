@@ -222,6 +222,8 @@ pub mod series_poster {
             let mut metadata = column!();
             if let Some(series_info) = &self.series_information {
                 metadata = metadata.push(text(&series_info.name));
+                // Some separation between series name and the rest of content
+                metadata = metadata.push(vertical_space(10));
 
                 let season_number = episode_and_release_time.0.season;
                 let episode_number = episode_and_release_time
