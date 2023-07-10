@@ -50,7 +50,7 @@ pub fn series_page(
 ) -> Column<'_, Message, Renderer> {
     let content = column!();
 
-    let mut main_info = row!().padding(5).spacing(5);
+    let mut main_info = row!().padding(5).spacing(10);
 
     // Putting the image to the main info
     if let Some(image_bytes) = image_bytes {
