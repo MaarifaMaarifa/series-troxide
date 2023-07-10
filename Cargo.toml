@@ -11,7 +11,9 @@ edition = "2021"
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 iced = { version = "0.9.0", features = ["image", "svg", "tokio"] }
-iced_aw = { version = "0.5.2", features = ["spinner"] }
+iced_aw = { git = "https://github.com/iced-rs/iced_aw", rev = "c5186eb0c2bd108d8f2364342279b679a672549c", features = [
+  "spinner",
+] }
 anyhow = "1"
 thiserror = "1"
 reqwest = { version = "0.11", features = ["json"] }

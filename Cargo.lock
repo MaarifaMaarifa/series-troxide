@@ -1511,8 +1511,7 @@ dependencies = [
 [[package]]
 name = "iced_aw"
 version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0068dfea60d5767a8e15d691c425c550a8e9e06b8d9cea559a26a3ccb4b6d77"
+source = "git+https://github.com/iced-rs/iced_aw?rev=c5186eb0c2bd108d8f2364342279b679a672549c#c5186eb0c2bd108d8f2364342279b679a672549c"
 dependencies = [
  "chrono",
  "iced_graphics",
