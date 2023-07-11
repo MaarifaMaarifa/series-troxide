@@ -1,5 +1,5 @@
 use iced::widget::{column, container, scrollable, Column};
-use iced::{theme, Command, Element, Length, Renderer};
+use iced::{Command, Element, Length, Renderer};
 
 use crate::gui::styles;
 use crate::{

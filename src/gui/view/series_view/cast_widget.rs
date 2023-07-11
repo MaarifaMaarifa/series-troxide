@@ -80,7 +80,7 @@ impl CastWidget {
 }
 mod cast_poster {
     use iced::{
-        alignment, theme,
+        alignment,
         widget::{container, image, text, Column},
         Command, Element, Renderer,
     };

@@ -1,5 +1,5 @@
 use iced::widget::{column, container, horizontal_space, row, text};
-use iced::{theme, Alignment, Element, Length, Renderer};
+use iced::{Alignment, Element, Length, Renderer};
 
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::database;

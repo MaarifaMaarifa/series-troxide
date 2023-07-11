@@ -258,7 +258,6 @@ mod episode_widget {
         gui::{helpers::season_episode_str_gen, styles},
     };
     use iced::{
-        theme,
         widget::{
             checkbox, column, container, horizontal_space, image, row, text, vertical_space, Row,
             Text,

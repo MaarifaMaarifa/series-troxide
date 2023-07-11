@@ -25,7 +25,7 @@ pub mod series_poster {
         column, container, horizontal_space, image, mouse_area, progress_bar, row, text,
         vertical_space,
     };
-    use iced::{theme, Command, Element, Length, Renderer};
+    use iced::{Command, Element, Length, Renderer};
 
     #[derive(Clone, Debug)]
     pub enum Message {

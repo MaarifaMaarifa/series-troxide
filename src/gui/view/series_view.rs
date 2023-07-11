@@ -15,7 +15,7 @@ use season_widget::Message as SeasonMessage;
 use iced::widget::scrollable::Properties;
 use iced::widget::{button, column, container, horizontal_space, image, row, scrollable, text};
 use iced::widget::{svg, vertical_space, Column, Row};
-use iced::{theme, Alignment, Command, Element, Length, Renderer};
+use iced::{Alignment, Command, Element, Length, Renderer};
 use iced_aw::{Grid, Spinner};
 
 mod cast_widget;

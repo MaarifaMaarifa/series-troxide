@@ -265,8 +265,6 @@ fn series_posters_loader<'a>(
 }
 
 mod searching {
-
-    use iced::theme;
     use iced::widget::{
         column, container, horizontal_space, image, mouse_area, row, scrollable, text, text_input,
         vertical_space, Column,
