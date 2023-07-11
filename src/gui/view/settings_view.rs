@@ -88,7 +88,7 @@ impl Tab for SettingsTab {
     }
 
     fn tab_label(&self) -> iced_aw::TabLabel {
-        iced_aw::TabLabel::Text("Settings icon".to_owned())
+        iced_aw::TabLabel::Text(self.title())
     }
 
     fn content(&self) -> Element<'_, Self::Message> {

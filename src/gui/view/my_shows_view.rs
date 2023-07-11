@@ -378,7 +378,7 @@ impl Tab for MyShowsTab {
     }
 
     fn tab_label(&self) -> iced_aw::TabLabel {
-        iced_aw::TabLabel::Text("My Shows icon".to_owned())
+        iced_aw::TabLabel::Text(self.title())
     }
 
     fn content(&self) -> Element<'_, Self::Message> {

@@ -120,7 +120,7 @@ impl Tab for StatisticsTab {
     }
 
     fn tab_label(&self) -> iced_aw::TabLabel {
-        iced_aw::TabLabel::Text("Statistics icon".to_owned())
+        iced_aw::TabLabel::Text(self.title())
     }
 
     fn content(&self) -> Element<'_, Self::Message> {

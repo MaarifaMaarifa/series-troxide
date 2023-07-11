@@ -206,7 +206,7 @@ impl Tab for DiscoverTab {
     }
 
     fn tab_label(&self) -> iced_aw::TabLabel {
-        iced_aw::TabLabel::Text("Discover icon".to_owned())
+        iced_aw::TabLabel::Text(self.title())
     }
 
     fn content(&self) -> Element<'_, Self::Message> {

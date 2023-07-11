@@ -162,7 +162,7 @@ impl Tab for WatchlistTab {
     }
 
     fn tab_label(&self) -> iced_aw::TabLabel {
-        iced_aw::TabLabel::Text("Watchlist icon".to_owned())
+        iced_aw::TabLabel::Text(self.title())
     }
 
     fn content(&self) -> Element<'_, Self::Message> {
