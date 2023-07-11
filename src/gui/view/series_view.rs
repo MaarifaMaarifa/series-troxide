@@ -81,7 +81,9 @@ pub fn series_page(
 
 fn top_bar(series_info: &SeriesMainInformation) -> Row<'_, Message, Renderer> {
     let back_icon_handle = svg::Handle::from_memory(get_static_cow_from_asset(ARROW_LEFT));
-    let back_icon = svg(back_icon_handle).width(Length::Shrink);
+    let back_icon = svg(back_icon_handle)
+        .width(Length::Shrink)
+        .style(styles::svg_styles::colored_svg_theme());
 
     let track_button = if database::DB
         .get_series(series_info.id)
@@ -90,16 +92,26 @@ fn top_bar(series_info: &SeriesMainInformation) -> Row<'_, Message, Renderer> {
     {
         let tracked_icon_handle =
             svg::Handle::from_memory(get_static_cow_from_asset(CHECK_CIRCLE_FILL));
-        let icon = svg(tracked_icon_handle).width(Length::Shrink);
-        button(icon).on_press(Message::UntrackSeries)
+        let icon = svg(tracked_icon_handle)
+            .width(Length::Shrink)
+            .style(styles::svg_styles::colored_svg_theme());
+        button(icon)
+            .on_press(Message::UntrackSeries)
+            .style(styles::button_styles::transparent_button_theme())
     } else {
         let tracked_icon_handle = svg::Handle::from_memory(get_static_cow_from_asset(CHECK_CIRCLE));
-        let icon = svg(tracked_icon_handle).width(Length::Shrink);
-        button(icon).on_press(Message::TrackSeries)
+        let icon = svg(tracked_icon_handle)
+            .width(Length::Shrink)
+            .style(styles::svg_styles::colored_svg_theme());
+        button(icon)
+            .on_press(Message::TrackSeries)
+            .style(styles::button_styles::transparent_button_theme())
     };
 
     row!(
-        button(back_icon).on_press(Message::GoBack),
+        button(back_icon)
+            .on_press(Message::GoBack)
+            .style(styles::button_styles::transparent_button_theme()),
         horizontal_space(Length::Fill),
         text(&series_info.name).size(30),
         horizontal_space(Length::Fill),

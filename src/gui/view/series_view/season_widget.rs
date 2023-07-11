@@ -11,6 +11,7 @@ use crate::core::database::AddResult;
 use crate::core::{caching, database};
 use crate::gui::assets::get_static_cow_from_asset;
 use crate::gui::assets::icons::{ARROW_BAR_DOWN, ARROW_BAR_UP};
+use crate::gui::styles;
 use episode_widget::Message as EpisodeMessage;
 
 #[derive(Clone, Debug)]
@@ -184,12 +185,20 @@ impl Season {
 
         let expand_button = if self.is_expanded {
             let svg_handle = svg::Handle::from_memory(get_static_cow_from_asset(ARROW_BAR_UP));
-            let up_icon = svg(svg_handle).width(Length::Shrink);
-            button(up_icon).on_press(Message::Expand)
+            let up_icon = svg(svg_handle)
+                .width(Length::Shrink)
+                .style(styles::svg_styles::colored_svg_theme());
+            button(up_icon)
+                .on_press(Message::Expand)
+                .style(styles::button_styles::transparent_button_theme())
         } else {
             let svg_handle = svg::Handle::from_memory(get_static_cow_from_asset(ARROW_BAR_DOWN));
-            let down_icon = svg(svg_handle).width(Length::Shrink);
-            button(down_icon).on_press(Message::Expand)
+            let down_icon = svg(svg_handle)
+                .width(Length::Shrink)
+                .style(styles::svg_styles::colored_svg_theme());
+            button(down_icon)
+                .on_press(Message::Expand)
+                .style(styles::button_styles::transparent_button_theme())
         };
 
         let content = row![
