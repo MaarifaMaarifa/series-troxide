@@ -153,11 +153,10 @@ impl Season {
         let tracked_episodes = database::DB
             .get_series(self.series_id)
             .map(|series| {
-                if let Some(season) = series.get_season(self.season_number) {
-                    season.get_total_episodes()
-                } else {
-                    0
-                }
+                series
+                    .get_season(self.season_number)
+                    .map(|season| season.get_total_episodes())
+                    .unwrap_or(0)
             })
             .unwrap_or(0);
 
