@@ -1,4 +1,4 @@
-mod assets;
+pub mod assets;
 mod helpers;
 mod styles;
 mod troxide_widget;

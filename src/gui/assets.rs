@@ -21,3 +21,9 @@ pub mod icons {
     pub static GEAR_WIDE_CONNECTED: &[u8; 1312] =
         include_bytes!("assets/icons/gear-wide-connected.svg");
 }
+
+pub mod fonts {
+
+    pub static NOTOSANS_REGULAR_STATIC: &[u8; 556216] =
+        include_bytes!("../../assets/fonts/NotoSans-Regular.ttf");
+}
