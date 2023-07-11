@@ -125,10 +125,7 @@ pub mod series_poster {
 
                 let content = container(content)
                     .padding(5)
-                    .style(theme::Container::Custom(Box::new(
-                        styles::container_styles::ContainerThemeSecond,
-                    )
-                        as Box<dyn container::StyleSheet<Style = iced::Theme>>));
+                    .style(styles::container_styles::second_class_container_theme());
 
                 mouse_area(content)
                     .on_press(Message::SeriesPosterPressed(Box::new(series_info.clone())))
@@ -194,10 +191,7 @@ pub mod series_poster {
 
                 let content = container(content)
                     .padding(5)
-                    .style(theme::Container::Custom(Box::new(
-                        styles::container_styles::ContainerThemeFirst,
-                    )
-                        as Box<dyn container::StyleSheet<Style = iced::Theme>>))
+                    .style(styles::container_styles::first_class_container_theme())
                     .width(1000);
 
                 mouse_area(content)
@@ -261,10 +255,7 @@ pub mod series_poster {
                     .padding(5)
                     .center_x()
                     .center_y()
-                    .style(theme::Container::Custom(Box::new(
-                        styles::container_styles::ContainerThemeReleaseTime,
-                    )
-                        as Box<dyn container::StyleSheet<Style = iced::Theme>>)),
+                    .style(styles::container_styles::release_time_container_theme()),
                 )
                 .center_x()
                 .center_y()
@@ -274,10 +265,7 @@ pub mod series_poster {
 
                 let content = container(content)
                     .padding(5)
-                    .style(theme::Container::Custom(Box::new(
-                        styles::container_styles::ContainerThemeFirst,
-                    )
-                        as Box<dyn container::StyleSheet<Style = iced::Theme>>))
+                    .style(styles::container_styles::first_class_container_theme())
                     .width(1000);
 
                 mouse_area(content)

@@ -152,10 +152,7 @@ mod cast_poster {
             let content = content.push(name);
 
             container(content)
-                .style(theme::Container::Custom(Box::new(
-                    styles::container_styles::ContainerThemeSecond,
-                )
-                    as Box<dyn container::StyleSheet<Style = iced::Theme>>))
+                .style(styles::container_styles::second_class_container_theme())
                 .padding(7)
                 .into()
         }

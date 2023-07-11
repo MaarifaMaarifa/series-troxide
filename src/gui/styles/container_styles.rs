@@ -1,7 +1,26 @@
 use super::theme::TroxideTheme;
+use iced::theme::Container;
 use iced::widget::container::{Appearance, StyleSheet};
 use iced::Background;
 use iced::{color, Color};
+
+/// A custom theme for container respecting Light and Dark TroxideTheme
+pub fn first_class_container_theme() -> Container {
+    Container::Custom(Box::new(ContainerThemeFirst) as Box<dyn StyleSheet<Style = iced::Theme>>)
+}
+
+/// A custom theme for container respecting Light and Dark TroxideTheme
+pub fn second_class_container_theme() -> Container {
+    Container::Custom(Box::new(ContainerThemeSecond) as Box<dyn StyleSheet<Style = iced::Theme>>)
+}
+
+/// A custom theme for container respecting Light and Dark TroxideTheme
+/// designed specifically for the release time container in my_shows page
+pub fn release_time_container_theme() -> Container {
+    Container::Custom(
+        Box::new(ContainerThemeReleaseTime) as Box<dyn StyleSheet<Style = iced::Theme>>
+    )
+}
 
 pub struct ContainerThemeFirst;
 

@@ -309,10 +309,7 @@ impl Series {
                         .align_items(Alignment::Center),
                     )
                     .padding(10)
-                    .style(theme::Container::Custom(Box::new(
-                        styles::container_styles::ContainerThemeFirst,
-                    )
-                        as Box<dyn container::StyleSheet<Style = iced::Theme>>)),
+                    .style(styles::container_styles::first_class_container_theme()),
                 )
                 .width(Length::Fill)
                 .center_x()

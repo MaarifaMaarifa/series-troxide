@@ -391,10 +391,8 @@ mod searching {
                 LoadState::NotLoaded => container("").into(),
             };
 
-            let menu_widgets = container(menu_widgets).style(theme::Container::Custom(Box::new(
-                styles::container_styles::ContainerThemeFirst,
-            )
-                as Box<dyn container::StyleSheet<Style = iced::Theme>>));
+            let menu_widgets = container(menu_widgets)
+                .style(styles::container_styles::first_class_container_theme());
 
             (search_bar.into(), scrollable(menu_widgets).into())
         }

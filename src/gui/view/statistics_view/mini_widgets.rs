@@ -44,10 +44,7 @@ pub fn watch_count() -> Element<'static, Message, Renderer> {
         .padding(10)
         .center_x()
         .center_y()
-        .style(theme::Container::Custom(
-            Box::new(styles::container_styles::ContainerThemeFirst)
-                as Box<dyn container::StyleSheet<Style = iced::Theme>>,
-        ))
+        .style(styles::container_styles::first_class_container_theme())
         .into()
 }
 
@@ -93,10 +90,7 @@ pub fn time_count(
         .padding(10)
         .center_x()
         .center_y()
-        .style(theme::Container::Custom(
-            Box::new(styles::container_styles::ContainerThemeFirst)
-                as Box<dyn container::StyleSheet<Style = iced::Theme>>,
-        ))
+        .style(styles::container_styles::first_class_container_theme())
         .into()
 }
 

@@ -70,10 +70,8 @@ impl StatisticsTab {
                 .collect(),
         );
 
-        let series_list = container(series_list).style(theme::Container::Custom(Box::new(
-            styles::container_styles::ContainerThemeFirst,
-        )
-            as Box<dyn container::StyleSheet<Style = iced::Theme>>));
+        let series_list =
+            container(series_list).style(styles::container_styles::first_class_container_theme());
 
         let content = column![
             watch_count(),

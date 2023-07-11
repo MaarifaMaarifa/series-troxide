@@ -371,10 +371,7 @@ mod episode_widget {
             let content = content.push(info);
 
             container(content)
-                .style(theme::Container::Custom(Box::new(
-                    styles::container_styles::ContainerThemeSecond,
-                )
-                    as Box<dyn container::StyleSheet<Style = iced::Theme>>))
+                .style(styles::container_styles::second_class_container_theme())
                 .into()
         }
     }
