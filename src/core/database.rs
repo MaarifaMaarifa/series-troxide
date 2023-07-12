@@ -189,14 +189,13 @@ impl Series {
     ///
     /// returns a true if the episode is newly added into the series and vice versa is true
     pub async fn add_episode(&mut self, season_number: u32, episode: Episode) -> bool {
-        let is_newly_added = loop {
+        loop {
             if let Some(season) = self.seasons.get_mut(&season_number) {
                 break season.track_episode(self.id, season_number, episode).await;
             } else {
                 self.add_season(season_number);
             }
-        };
-        is_newly_added
+        }
     }
 
     pub async fn add_episodes(
@@ -204,7 +203,7 @@ impl Series {
         season_number: u32,
         episodes_range: RangeInclusive<u32>,
     ) -> AddResult {
-        let add_result = loop {
+        loop {
             if let Some(season) = self.seasons.get_mut(&season_number) {
                 break season
                     .track_episodes(self.id, season_number, episodes_range)
@@ -212,8 +211,7 @@ impl Series {
             } else {
                 self.add_season(season_number);
             }
-        };
-        add_result
+        }
     }
 
     /// removes an episode from the series
