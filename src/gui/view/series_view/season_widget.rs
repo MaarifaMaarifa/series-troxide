@@ -141,7 +141,6 @@ impl Season {
                 if let AddResult::None = add_result {
                     if let Some(mut series) = database::DB.get_series(self.series_id) {
                         series.remove_season(self.season_number);
-                        series.update()
                     }
                 }
             }

@@ -153,34 +153,32 @@ impl Series {
     }
 
     /// Marks the series as being tracked
-    ///
-    /// Updates the database automatically by implicitly calling self.update()
     pub fn mark_tracked(&mut self) {
         self.is_tracked = true;
-        self.update();
     }
 
     /// Marks the series as not being tracked
-    ///
-    /// Updates the database automatically by implicitly calling self.update()
     pub fn mark_untracked(&mut self) {
         self.is_tracked = false;
-        self.update();
     }
 
     /// Updates the database with the current Series
     ///    
-    /// This method should be called whenever a modification has been
-    /// performed to the series. This is because Series object once created,
+    /// This method exists  because Series object once created,
     /// has no connection to the database anymore and has to be rewritten to
     /// the database for the changes to be saved.
+    ///
+    /// # Note
+    /// This method is automatically called when Series object goes out of scope
+    /// as self.update() is called in it's drop implementation, hence no need of
+    /// calling it unless if you want imediate update i.e. there is some code that
+    /// would take time to run before the object is dropped.
     pub fn update(&self) {
         DB.add_series(self.id, self);
     }
 
     pub fn add_season(&mut self, season_number: u32) {
         self.seasons.insert(season_number, Season::new());
-        self.update();
     }
 
     pub fn remove_season(&mut self, season_number: u32) {
@@ -198,7 +196,6 @@ impl Series {
                 self.add_season(season_number);
             }
         };
-        self.update();
         is_newly_added
     }
 
@@ -216,7 +213,6 @@ impl Series {
                 self.add_season(season_number);
             }
         };
-        self.update();
         add_result
     }
 
@@ -225,7 +221,6 @@ impl Series {
         if let Some(season) = self.seasons.get_mut(&season_number) {
             season.untrack_episode(episode_number)
         }
-        self.update()
     }
 
     pub fn get_season(&self, season_number: u32) -> Option<&Season> {
@@ -274,6 +269,12 @@ impl Series {
             series_info,
             self.get_total_episodes() as u32 * episode_average_watchtime,
         ))
+    }
+}
+
+impl Drop for Series {
+    fn drop(&mut self) {
+        self.update()
     }
 }
 
