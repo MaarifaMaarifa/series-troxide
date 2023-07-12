@@ -1,3 +1,4 @@
+use std::io::{self, ErrorKind};
 use std::path;
 
 use crate::core::api::{self, deserialize_json};
@@ -7,18 +8,25 @@ use directories::ProjectDirs;
 use lazy_static::lazy_static;
 use tokio::fs;
 use tokio::io::AsyncWriteExt;
-use tracing::info;
+use tracing::{error, info};
 
 const SERIES_CACHE_DIRECTORY: &str = "series-troxide-series-data";
 const IMAGES_CACHE_DIRECTORY: &str = "series-troxide-images-data";
+const EPISODE_LIST_FILENAME: &str = "episode-list";
+const SERIES_MAIN_INFORMATION_FILENAME: &str = "main-info";
 
 lazy_static! {
     pub static ref CACHER: Cacher = Cacher::init();
 }
 
-pub enum CacheType {
+pub enum CacheFolderType {
     Series,
     Images,
+}
+
+pub enum CacheFilePath {
+    SeriesMainInformation(u32),
+    SeriesEpisodeList(u32),
 }
 
 pub struct Cacher {
@@ -37,19 +45,43 @@ impl Cacher {
         }
     }
 
-    pub fn get_cache_path(&self, cache_type: CacheType) -> path::PathBuf {
+    pub fn get_cache_folder_path(&self, cache_type: CacheFolderType) -> path::PathBuf {
         let mut cache_path = self.cache_path.clone();
         match cache_type {
-            CacheType::Series => cache_path.push(SERIES_CACHE_DIRECTORY),
-            CacheType::Images => cache_path.push(IMAGES_CACHE_DIRECTORY),
+            CacheFolderType::Series => cache_path.push(SERIES_CACHE_DIRECTORY),
+            CacheFolderType::Images => cache_path.push(IMAGES_CACHE_DIRECTORY),
         }
         cache_path
+    }
+
+    /// This method is used to retrieve cache files for individual files in the series cache directory
+    /// i.e episode-list, main-info
+    pub fn get_cache_file_path(&self, cache_file_type: CacheFilePath) -> path::PathBuf {
+        match cache_file_type {
+            CacheFilePath::SeriesMainInformation(series_id) => {
+                let mut cache_folder = self.get_series_cache_folder_path(series_id);
+                cache_folder.push(SERIES_MAIN_INFORMATION_FILENAME);
+                cache_folder
+            }
+            CacheFilePath::SeriesEpisodeList(series_id) => {
+                let mut cache_folder = self.get_series_cache_folder_path(series_id);
+                cache_folder.push(EPISODE_LIST_FILENAME);
+                cache_folder
+            }
+        }
+    }
+
+    /// This method is used to retrieve the series folder path that is a parent to individual cache files
+    pub fn get_series_cache_folder_path(&self, series_id: u32) -> path::PathBuf {
+        let mut cache_folder = self.get_cache_folder_path(CacheFolderType::Series);
+        cache_folder.push(format!("{series_id}"));
+        cache_folder
     }
 }
 
 /// Loads the image from the provided url
 pub async fn load_image(image_url: String) -> Option<Vec<u8>> {
-    let mut image_path = CACHER.get_cache_path(CacheType::Images);
+    let mut image_path = CACHER.get_cache_folder_path(CacheFolderType::Images);
 
     // Hashing the image url as a file name as the forward slashes in web urls
     // mimic paths
@@ -64,7 +96,7 @@ pub async fn load_image(image_url: String) -> Option<Vec<u8>> {
     match fs::read(&image_path).await {
         Ok(image_bytes) => return Some(image_bytes),
         Err(err) => {
-            let images_directory = CACHER.get_cache_path(CacheType::Images);
+            let images_directory = CACHER.get_cache_folder_path(CacheFolderType::Images);
             if !images_directory.exists() {
                 info!("creating images cache directory as none exists");
                 fs::DirBuilder::new()
@@ -93,9 +125,45 @@ pub async fn load_image(image_url: String) -> Option<Vec<u8>> {
     };
 }
 
+pub async fn read_cache(cache_filepath: impl AsRef<path::Path>) -> io::Result<String> {
+    fs::read_to_string(cache_filepath).await
+}
+
+pub async fn write_cache(cache_data: &str, cache_filepath: &path::Path) {
+    loop {
+        if let Err(err) = fs::write(cache_filepath, cache_data).await {
+            if err.kind() == ErrorKind::NotFound {
+                let mut cache_folder = path::PathBuf::from(cache_filepath);
+                cache_folder.pop();
+                match fs::create_dir_all(&cache_folder).await {
+                    Err(err) => {
+                        error!(
+                            "failed to create cache directory '{}': {}",
+                            cache_folder.display(),
+                            err
+                        );
+                        break;
+                    }
+                    Ok(_) => continue,
+                };
+            } else {
+                error!(
+                    "failed to write cache '{}': {}",
+                    cache_filepath.display(),
+                    err
+                );
+                break;
+            }
+        }
+        break;
+    }
+}
+
 pub mod series_information {
     use super::api::series_information;
     use super::*;
+
+    use std::io::ErrorKind;
 
     pub async fn get_series_main_info_with_url(
         url: String,
@@ -113,33 +181,22 @@ pub mod series_information {
     pub async fn get_series_main_info_with_id(
         series_id: u32,
     ) -> Result<SeriesMainInformation, ApiError> {
-        let name = format!("{}", series_id);
-        let mut series_main_info_path = CACHER.get_cache_path(CacheType::Series);
-        series_main_info_path.push(&name); // creating the series folder path
-        let series_directory = series_main_info_path.clone(); // creating a copy before we make it path to file
-        series_main_info_path.push(&name); // creating the series information json filename path
+        let series_information_path =
+            CACHER.get_cache_file_path(CacheFilePath::SeriesMainInformation(series_id));
 
-        let series_information_json = match fs::read_to_string(&series_main_info_path).await {
-            Ok(info) => info,
+        let series_information_json = match read_cache(&series_information_path).await {
+            Ok(json_string) => json_string,
             Err(err) => {
-                info!(
-                    "falling back online for 'series information' with id {}: {}",
-                    series_id, err
-                );
-                fs::DirBuilder::new()
-                    .recursive(true)
-                    .create(series_directory)
-                    .await
-                    .unwrap();
-                let (series_information, json_string) =
-                    series_information::get_series_main_info_with_id(series_id)
-                        .await?
-                        .get_data();
-                fs::write(series_main_info_path, json_string).await.unwrap();
-                return Ok(series_information);
+                info!("falling back online for 'series information' for series id: {series_id}");
+                let json_string =
+                    series_information::get_series_main_info_with_id(series_id).await?;
+
+                if err.kind() == ErrorKind::NotFound {
+                    write_cache(&json_string, &series_information_path).await;
+                }
+                json_string
             }
         };
-
         deserialize_json(&series_information_json)
     }
 
@@ -167,14 +224,14 @@ pub mod show_images {
             show_images::{get_show_images as get_show_images_api, Image, ImageType},
             ApiError,
         },
-        caching::{load_image, CacheType, CACHER},
+        caching::{load_image, CacheFolderType, CACHER},
     };
     use tokio::fs;
     use tracing::info;
 
     pub async fn get_show_images(series_id: u32) -> Result<Vec<Image>, ApiError> {
         let name = format!("{}", series_id);
-        let mut series_images_list_path = CACHER.get_cache_path(CacheType::Series);
+        let mut series_images_list_path = CACHER.get_cache_folder_path(CacheFolderType::Series);
         series_images_list_path.push(&name); // creating the series folder path
         let series_directory = series_images_list_path.clone(); // creating a copy before we make it path to file
         series_images_list_path.push("series-images-list"); // creating the episode list json filename path
@@ -228,7 +285,7 @@ pub mod show_images {
 }
 
 pub mod episode_list {
-    use std::collections::HashSet;
+    use std::{collections::HashSet, io::ErrorKind};
 
     use crate::core::{
         api::{
@@ -236,11 +293,12 @@ pub mod episode_list {
             episodes_information::{get_episode_list, Episode},
             ApiError,
         },
-        caching::{CacheType, CACHER},
+        caching::CACHER,
     };
     use chrono::{DateTime, Datelike, Local, Timelike, Utc};
-    use tokio::fs;
     use tracing::info;
+
+    use super::{read_cache, write_cache, CacheFilePath};
 
     #[derive(Clone, Debug)]
     pub struct EpisodeList {
@@ -249,31 +307,23 @@ pub mod episode_list {
 
     impl EpisodeList {
         pub async fn new(series_id: u32) -> Result<Self, ApiError> {
-            let name = format!("{}", series_id);
-            let mut episode_list_path = CACHER.get_cache_path(CacheType::Series);
-            episode_list_path.push(&name); // creating the series folder path
-            let series_directory = episode_list_path.clone(); // creating a copy before we make it path to file
-            episode_list_path.push("episode-list"); // creating the episode list json filename path
+            let episodes_list_path =
+                CACHER.get_cache_file_path(CacheFilePath::SeriesEpisodeList(series_id));
 
-            let series_information_json = match fs::read_to_string(&episode_list_path).await {
-                Ok(info) => info,
+            let json_string = match read_cache(&episodes_list_path).await {
+                Ok(json_string) => json_string,
                 Err(err) => {
-                    info!(
-                        "falling back online for 'episode list' for series id {}: {}",
-                        series_id, err
-                    );
-                    fs::DirBuilder::new()
-                        .recursive(true)
-                        .create(series_directory)
-                        .await
-                        .unwrap();
+                    info!("falling back online for 'episode_list' for series id: {series_id}");
                     let (episodes, json_string) = get_episode_list(series_id).await?;
-                    fs::write(episode_list_path, json_string).await.unwrap();
+
+                    if err.kind() == ErrorKind::NotFound {
+                        write_cache(&json_string, &episodes_list_path).await;
+                    }
                     return Ok(Self { episodes });
                 }
             };
 
-            let episodes = deserialize_json::<Vec<Episode>>(&series_information_json)?;
+            let episodes = deserialize_json::<Vec<Episode>>(&json_string)?;
             Ok(Self { episodes })
         }
 

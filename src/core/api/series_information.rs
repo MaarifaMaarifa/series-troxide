@@ -57,33 +57,13 @@ pub struct Country {
     pub name: String,
 }
 
-/// Structure carrying both series main information and it's string for caching
-pub struct SeriesInfoAndStr(SeriesMainInformation, String);
-
-impl SeriesInfoAndStr {
-    /// constructs a new SeriesInfoAndStr
-    pub fn new(series_main_information: SeriesMainInformation, json_string: String) -> Self {
-        Self(series_main_information, json_string)
-    }
-
-    /// Gets the underlying information (series main info information and json string information)
-    pub fn get_data(self) -> (SeriesMainInformation, String) {
-        (self.0, self.1)
-    }
-}
-
-pub async fn get_series_main_info_with_url(url: String) -> Result<SeriesInfoAndStr, ApiError> {
-    let prettified_json = get_pretty_json_from_url(url)
+pub async fn get_series_main_info_with_url(url: String) -> Result<String, ApiError> {
+    get_pretty_json_from_url(url)
         .await
-        .map_err(ApiError::Network)?;
-
-    Ok(SeriesInfoAndStr::new(
-        deserialize_json(&prettified_json)?,
-        prettified_json,
-    ))
+        .map_err(ApiError::Network)
 }
 
-pub async fn get_series_main_info_with_id(series_id: u32) -> Result<SeriesInfoAndStr, ApiError> {
+pub async fn get_series_main_info_with_id(series_id: u32) -> Result<String, ApiError> {
     get_series_main_info_with_url(format!("{}{}", SERIES_INFORMATION_ADDRESS, series_id)).await
 }
 
