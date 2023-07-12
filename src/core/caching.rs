@@ -93,8 +93,6 @@ impl Cacher {
 
 /// Loads the image from the provided url
 pub async fn load_image(image_url: String) -> Option<Vec<u8>> {
-    let mut image_path = CACHER.get_cache_folder_path(CacheFolderType::Images);
-
     // Hashing the image url as a file name as the forward slashes in web urls
     // mimic paths
     use sha2::{Digest, Sha256};
@@ -103,36 +101,23 @@ pub async fn load_image(image_url: String) -> Option<Vec<u8>> {
     hasher.update(&image_url);
     let image_hash = format!("{:x}", hasher.finalize());
 
+    let mut image_path = CACHER.get_cache_folder_path(CacheFolderType::Images);
     image_path.push(&image_hash);
 
     match fs::read(&image_path).await {
         Ok(image_bytes) => return Some(image_bytes),
         Err(err) => {
-            let images_directory = CACHER.get_cache_folder_path(CacheFolderType::Images);
-            if !images_directory.exists() {
-                info!("creating images cache directory as none exists");
-                fs::DirBuilder::new()
-                    .recursive(true)
-                    .create(images_directory)
-                    .await
-                    .unwrap();
-            };
-            info!(
-                "falling back online for image with link {}: {}",
-                image_url, err
-            );
-            return if let Some(image_bytes) = api::lload_image(image_url).await {
-                let mut image_file = fs::OpenOptions::new()
-                    .create(true)
-                    .write(true)
-                    .open(image_path)
-                    .await
-                    .unwrap();
-                image_file.write(&image_bytes).await.unwrap();
-                Some(image_bytes)
+            if err.kind() == ErrorKind::NotFound {
+                info!("falling back online for image with link {}", image_url);
+                return if let Some(image_bytes) = api::lload_image(image_url).await {
+                    write_cache(&image_bytes, &image_path).await;
+                    Some(image_bytes)
+                } else {
+                    None
+                };
             } else {
-                None
-            };
+                return None;
+            }
         }
     };
 }
@@ -141,9 +126,9 @@ pub async fn read_cache(cache_filepath: impl AsRef<path::Path>) -> io::Result<St
     fs::read_to_string(cache_filepath).await
 }
 
-pub async fn write_cache(cache_data: &str, cache_filepath: &path::Path) {
+pub async fn write_cache(cache_data: impl AsRef<[u8]>, cache_filepath: &path::Path) {
     loop {
-        if let Err(err) = fs::write(cache_filepath, cache_data).await {
+        if let Err(err) = fs::write(cache_filepath, &cache_data).await {
             if err.kind() == ErrorKind::NotFound {
                 let mut cache_folder = path::PathBuf::from(cache_filepath);
                 cache_folder.pop();
