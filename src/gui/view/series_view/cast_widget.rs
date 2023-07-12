@@ -1,10 +1,8 @@
-use cast_poster::Message as CastMessage;
+use cast_poster::{CastPoster, Message as CastMessage};
 use iced::{Command, Element, Renderer};
 use iced_aw::{Spinner, Wrap};
 
-use crate::core::api::show_cast::{get_show_cast, Cast};
-
-use self::cast_poster::CastPoster;
+use crate::core::{api::show_cast::Cast, caching};
 
 #[derive(Clone, Debug)]
 pub enum Message {
@@ -29,7 +27,7 @@ impl CastWidget {
             cast: vec![],
         };
 
-        let cast_command = Command::perform(get_show_cast(series_id), |cast| {
+        let cast_command = Command::perform(caching::show_cast::get_show_cast(series_id), |cast| {
             Message::CastReceived(cast.expect("Failed to get show cast"))
         });
 

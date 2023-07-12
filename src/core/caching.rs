@@ -12,12 +12,14 @@ use tracing::{error, info};
 
 pub mod episode_list;
 pub mod series_information;
+pub mod show_cast;
 pub mod show_images;
 
 const SERIES_CACHE_DIRECTORY: &str = "series-troxide-series-data";
 const IMAGES_CACHE_DIRECTORY: &str = "series-troxide-images-data";
 const EPISODE_LIST_FILENAME: &str = "episode-list";
 const SERIES_MAIN_INFORMATION_FILENAME: &str = "main-info";
+const SERIES_CAST_FILENAME: &str = "show-cast";
 
 lazy_static! {
     pub static ref CACHER: Cacher = Cacher::init();
@@ -31,6 +33,7 @@ pub enum CacheFolderType {
 pub enum CacheFilePath {
     SeriesMainInformation(u32),
     SeriesEpisodeList(u32),
+    SeriesShowCast(u32),
 }
 
 pub struct Cacher {
@@ -70,6 +73,11 @@ impl Cacher {
             CacheFilePath::SeriesEpisodeList(series_id) => {
                 let mut cache_folder = self.get_series_cache_folder_path(series_id);
                 cache_folder.push(EPISODE_LIST_FILENAME);
+                cache_folder
+            }
+            CacheFilePath::SeriesShowCast(series_id) => {
+                let mut cache_folder = self.get_series_cache_folder_path(series_id);
+                cache_folder.push(SERIES_CAST_FILENAME);
                 cache_folder
             }
         }
