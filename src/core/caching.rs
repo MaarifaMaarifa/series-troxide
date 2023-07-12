@@ -7,7 +7,6 @@ use super::api::{series_information::SeriesMainInformation, ApiError};
 use directories::ProjectDirs;
 use lazy_static::lazy_static;
 use tokio::fs;
-use tokio::io::AsyncWriteExt;
 use tracing::{error, info};
 
 pub mod episode_list;
