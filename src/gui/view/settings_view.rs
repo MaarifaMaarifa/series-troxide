@@ -2,7 +2,8 @@ use iced::widget::{button, column, horizontal_space, pick_list, row, text, verti
 use iced::{Element, Length, Renderer};
 
 use crate::core::settings_config::{save_config, Config, Theme, ALL_THEMES};
-use crate::gui::{Message as GuiMessage, Tab};
+use crate::gui::assets::icons::GEAR_WIDE_CONNECTED;
+use crate::gui::{troxide_widget, Message as GuiMessage, Tab};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -87,8 +88,8 @@ impl Tab for SettingsTab {
         "Settings".to_owned()
     }
 
-    fn tab_label(&self) -> iced_aw::TabLabel {
-        iced_aw::TabLabel::Text(self.title())
+    fn tab_label(&self) -> troxide_widget::tabs::TabLabel {
+        troxide_widget::tabs::TabLabel::new(self.title(), GEAR_WIDE_CONNECTED)
     }
 
     fn content(&self) -> Element<'_, Self::Message> {

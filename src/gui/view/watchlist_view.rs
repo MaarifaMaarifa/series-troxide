@@ -4,6 +4,8 @@ use iced_aw::Spinner;
 
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::caching::episode_list::EpisodeList;
+use crate::gui::assets::icons::CARD_CHECKLIST;
+use crate::gui::troxide_widget;
 use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
 use crate::{
     core::{caching, database},
@@ -161,8 +163,8 @@ impl Tab for WatchlistTab {
         "Watchlist".to_owned()
     }
 
-    fn tab_label(&self) -> iced_aw::TabLabel {
-        iced_aw::TabLabel::Text(self.title())
+    fn tab_label(&self) -> troxide_widget::tabs::TabLabel {
+        troxide_widget::tabs::TabLabel::new(self.title(), CARD_CHECKLIST)
     }
 
     fn content(&self) -> Element<'_, Self::Message> {

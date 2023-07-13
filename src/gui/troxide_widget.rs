@@ -294,3 +294,97 @@ pub mod series_poster {
         }
     }
 }
+
+pub mod tabs {
+    use iced::widget::{column, container, horizontal_space, mouse_area, row, svg, text, Row};
+    use iced::{Element, Length, Renderer};
+
+    use crate::gui::assets::get_static_cow_from_asset;
+    use crate::gui::styles;
+
+    pub struct TabLabel {
+        pub text: String,
+        pub icon: &'static [u8],
+    }
+
+    impl TabLabel {
+        pub fn new(text: String, icon: &'static [u8]) -> Self {
+            Self { text, icon }
+        }
+    }
+
+    pub struct Tabs<'a, Message> {
+        active_tab: usize,
+        on_select: Box<dyn Fn(usize) -> Message>,
+        tabs: Vec<(TabLabel, Element<'a, Message, Renderer>)>,
+    }
+
+    impl<'a, Message> Tabs<'a, Message>
+    where
+        Message: Clone + 'a,
+    {
+        pub fn with_tabs<F>(
+            tabs: Vec<(TabLabel, Element<'a, Message, Renderer>)>,
+            on_select: F,
+        ) -> Self
+        where
+            F: 'static + Fn(usize) -> Message,
+        {
+            Self {
+                active_tab: usize::default(),
+                on_select: Box::new(on_select),
+                tabs,
+            }
+        }
+
+        pub fn set_active_tab(mut self, tab_id: usize) -> Self {
+            self.active_tab = tab_id;
+            self
+        }
+
+        fn tab_view(&self) -> iced::Element<'a, Message, Renderer> {
+            let tab_views = self
+                .tabs
+                .iter()
+                .enumerate()
+                .map(|(index, (tab_label, _))| {
+                    let svg_handle =
+                        svg::Handle::from_memory(get_static_cow_from_asset(tab_label.icon));
+                    let icon = svg(svg_handle)
+                        .width(Length::Shrink)
+                        .style(styles::svg_styles::colored_svg_theme());
+                    let text_label = text(&tab_label.text);
+                    let mut tab = container(
+                        mouse_area(row![icon, text_label].spacing(5))
+                            .on_press((self.on_select)(index)),
+                    )
+                    .padding(5);
+
+                    // Highlighting the tab if is active
+                    if index == self.active_tab {
+                        tab =
+                            tab.style(styles::container_styles::second_class_container_tab_theme())
+                    };
+                    tab.into()
+                })
+                .collect();
+
+            let tab_views = Row::with_children(tab_views).spacing(10);
+
+            container(row![
+                horizontal_space(Length::Fill),
+                tab_views,
+                horizontal_space(Length::Fill)
+            ])
+            .style(styles::container_styles::first_class_container_tab_theme())
+            .into()
+        }
+
+        pub fn view(mut self) -> Element<'a, Message, Renderer> {
+            let tab_view = self.tab_view();
+            let active_tab = self.active_tab;
+            let main_view = self.tabs.swap_remove(active_tab).1;
+            column![tab_view, main_view].into()
+        }
+    }
+}

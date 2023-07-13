@@ -2,8 +2,9 @@ use crate::core::api::episodes_information::Episode;
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::api::tv_schedule::{get_episodes_with_country, get_episodes_with_date};
 use crate::core::api::updates::show_updates::*;
+use crate::gui::assets::icons::BINOCULARS_FILL;
 use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
-use crate::gui::{Message as GuiMessage, Tab};
+use crate::gui::{troxide_widget, Message as GuiMessage, Tab};
 use searching::Message as SearchMessage;
 
 use iced::widget::{column, container, scrollable, text, vertical_space};
@@ -205,8 +206,8 @@ impl Tab for DiscoverTab {
         "Discover".to_owned()
     }
 
-    fn tab_label(&self) -> iced_aw::TabLabel {
-        iced_aw::TabLabel::Text(self.title())
+    fn tab_label(&self) -> troxide_widget::tabs::TabLabel {
+        troxide_widget::tabs::TabLabel::new(self.title(), BINOCULARS_FILL)
     }
 
     fn content(&self) -> Element<'_, Self::Message> {

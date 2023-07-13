@@ -22,6 +22,16 @@ pub fn release_time_container_theme() -> Container {
     )
 }
 
+/// A custom theme for container respecting Light and Dark TroxideTheme designed for the tabs
+pub fn first_class_container_tab_theme() -> Container {
+    Container::Custom(Box::new(ContainerTabThemeFirst) as Box<dyn StyleSheet<Style = iced::Theme>>)
+}
+
+/// A custom theme for container respecting Light and Dark TroxideTheme designed for the tabs
+pub fn second_class_container_tab_theme() -> Container {
+    Container::Custom(Box::new(ContainerTabThemeSecond) as Box<dyn StyleSheet<Style = iced::Theme>>)
+}
+
 pub struct ContainerThemeFirst;
 
 impl StyleSheet for ContainerThemeFirst {
@@ -60,6 +70,64 @@ impl StyleSheet for ContainerThemeSecond {
         let mut appearance = Appearance {
             border_width: 1.0,
             border_radius: 10.0,
+            ..Appearance::default()
+        };
+
+        match style {
+            iced::Theme::Custom(custom) => {
+                if **custom == TroxideTheme::get_theme(&TroxideTheme::Light) {
+                    appearance.background = Some(Background::Color(color!(0xbbbbbb)));
+                    appearance.border_color = color!(0xbbbbbb);
+                    appearance
+                } else {
+                    appearance.background = Some(Background::Color(color!(0x282828)));
+                    appearance.border_color = Color::BLACK;
+                    appearance
+                }
+            }
+            _ => unreachable!("built-in iced themes are not in use"),
+        }
+    }
+}
+
+pub struct ContainerTabThemeFirst;
+
+impl StyleSheet for ContainerTabThemeFirst {
+    type Style = iced::Theme;
+
+    fn appearance(&self, style: &Self::Style) -> Appearance {
+        let mut appearance = Appearance {
+            // border_width: 1.0,
+            // border_radius: 10.0,
+            ..Appearance::default()
+        };
+
+        match style {
+            iced::Theme::Custom(custom) => {
+                if **custom == TroxideTheme::get_theme(&TroxideTheme::Light) {
+                    appearance.background = Some(Background::Color(color!(0xcccccc)));
+                    appearance.border_color = color!(0xbbbbbb);
+                    appearance
+                } else {
+                    appearance.background = Some(Background::Color(color!(0x1c1c1c)));
+                    appearance.border_color = Color::BLACK;
+                    appearance
+                }
+            }
+            _ => unreachable!("built-in iced themes are not in use"),
+        }
+    }
+}
+
+pub struct ContainerTabThemeSecond;
+
+impl StyleSheet for ContainerTabThemeSecond {
+    type Style = iced::Theme;
+
+    fn appearance(&self, style: &Self::Style) -> Appearance {
+        let mut appearance = Appearance {
+            // border_width: 1.0,
+            // border_radius: 10.0,
             ..Appearance::default()
         };
 

@@ -1,7 +1,8 @@
 use iced::widget::{column, container, scrollable, Column};
 use iced::{Command, Element, Length, Renderer};
 
-use crate::gui::styles;
+use crate::gui::assets::icons::GRAPH_UP_ARROW;
+use crate::gui::{styles, troxide_widget};
 use crate::{
     core::{api::series_information::SeriesMainInformation, database},
     gui::{Message as GuiMessage, Tab},
@@ -117,8 +118,8 @@ impl Tab for StatisticsTab {
         "Statistics".to_owned()
     }
 
-    fn tab_label(&self) -> iced_aw::TabLabel {
-        iced_aw::TabLabel::Text(self.title())
+    fn tab_label(&self) -> troxide_widget::tabs::TabLabel {
+        troxide_widget::tabs::TabLabel::new(self.title(), GRAPH_UP_ARROW)
     }
 
     fn content(&self) -> Element<'_, Self::Message> {

@@ -15,7 +15,6 @@ use view::watchlist_view::{Message as WatchlistMessage, WatchlistTab};
 
 use iced::widget::{container, text, Column};
 use iced::{Application, Command, Element, Length};
-use iced_aw::{TabBarStyles, TabLabel, Tabs};
 
 use super::core::settings_config;
 
@@ -55,7 +54,7 @@ impl Into<usize> for TabId {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    TabSelected(TabId),
+    TabSelected(usize),
     Discover(DiscoverMessage),
     Watchlist(WatchlistMessage),
     MyShows(MyShowsMessage),
@@ -127,6 +126,7 @@ impl Application for TroxideGui {
         match message {
             Message::TabSelected(tab_id) => {
                 self.series_view_active = false;
+                let tab_id: TabId = tab_id.into();
                 self.active_tab = tab_id.clone();
 
                 if let TabId::MyShows = tab_id {
@@ -168,29 +168,27 @@ impl Application for TroxideGui {
     }
 
     fn view(&self) -> iced::Element<'_, Message, iced::Renderer<Self::Theme>> {
-        let mut tabs: Vec<(TabId, TabLabel, Element<'_, Message, iced::Renderer>)> = vec![
+        let mut tabs: Vec<(
+            troxide_widget::tabs::TabLabel,
+            Element<'_, Message, iced::Renderer>,
+        )> = vec![
             (
-                TabId::Discover,
                 self.discover_tab.tab_label(),
                 self.discover_tab.view().map(Message::Discover),
             ),
             (
-                TabId::Watchlist,
                 self.watchlist_tab.tab_label(),
                 self.watchlist_tab.view().map(Message::Watchlist),
             ),
             (
-                TabId::MyShows,
                 self.my_shows_tab.tab_label(),
                 self.my_shows_tab.view().map(Message::MyShows),
             ),
             (
-                TabId::Statistics,
                 self.statistics_tab.tab_label(),
                 self.statistics_tab.view().map(Message::Statistics),
             ),
             (
-                TabId::Settings,
                 self.settings_tab.tab_label(),
                 self.settings_tab.view().map(Message::Settings),
             ),
@@ -200,8 +198,10 @@ impl Application for TroxideGui {
 
         // Hijacking the current tab view when series view is active
         if self.series_view_active {
-            let (_, _, current_view): &mut (TabId, TabLabel, Element<'_, Message, iced::Renderer>) =
-                &mut tabs[active_tab_index];
+            let (_, current_view): &mut (
+                troxide_widget::tabs::TabLabel,
+                Element<'_, Message, iced::Renderer>,
+            ) = &mut tabs[active_tab_index];
             *current_view = self
                 .series_view
                 .as_ref()
@@ -210,15 +210,9 @@ impl Application for TroxideGui {
                 .map(Message::Series);
         }
 
-        let tab_bar_theme = match self.settings_tab.get_config_settings().theme {
-            settings_config::Theme::Light => TabBarStyles::Default,
-            settings_config::Theme::Dark => TabBarStyles::Dark,
-        };
-
-        Tabs::with_tabs(tabs, Message::TabSelected)
-            .set_active_tab(&self.active_tab)
-            .tab_bar_style(tab_bar_theme)
-            .into()
+        troxide_widget::tabs::Tabs::with_tabs(tabs, Message::TabSelected)
+            .set_active_tab(active_tab_index)
+            .view()
     }
 }
 
@@ -281,7 +275,7 @@ trait Tab {
 
     fn title(&self) -> String;
 
-    fn tab_label(&self) -> TabLabel;
+    fn tab_label(&self) -> troxide_widget::tabs::TabLabel;
 
     fn view(&self) -> Element<'_, Self::Message> {
         let column = Column::new()
