@@ -7,7 +7,7 @@ categories = ["series", "TV"]
 keywords = ["series-tracker", "tv-shows", "tv-series"]
 repository = "https://github.com/MaarifaMaarifa/series-troxide"
 readme = "README.md"
-version = "0.0.2"
+version = "0.1.0"
 edition = "2021"
 
 [dependencies]
