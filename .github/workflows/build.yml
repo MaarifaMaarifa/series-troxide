@@ -1,95 +1,52 @@
+name: CI
 
-name: Build
 on:
   push:
-    branches:
-      - main
+    tags:
+      - '*'
+
 jobs:
-  series-troxide_linux:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: hecrj/setup-rust-action@v1
-    - name: Install cargo-deb
-      run: cargo install cargo-deb
-    - uses: actions/checkout@master
-    - name: Install dependencies
-      run: |
-        export DEBIAN_FRONTED=noninteractive
-        sudo apt-get -qq update
-        sudo apt-get install -y libxkbcommon-dev
-    - name: Build series-troxide binary
-      run: cargo build --verbose --profile release-opt --package series-troxide
-    - name: Archive series-troxide binary
-      uses: actions/upload-artifact@v1
-      with:
-        name: series-troxide-x86_64-unknown-linux-gnu
-        path: target/release-opt/series-troxide
-    - name: Pack series-troxide .deb package
-      run: cargo deb --no-build --profile release-opt --package series-troxide
-    - name: Rename series-troxide .deb package
-      run: mv target/debian/*.deb target/debian/iced_series-troxide-x86_64-debian-linux-gnu.deb
-    - name: Archive series-troxide .deb package
-      uses: actions/upload-artifact@v1
-      with:
-        name: series-troxide-x86_64-debian-linux-gnu
-        path: target/debian/iced_series-troxide-x86_64-debian-linux-gnu.deb
+  build:
+    runs-on: ${{ matrix.os }}
 
-  series-troxide_windows:
-    runs-on: windows-latest
-    steps:
-    - uses: hecrj/setup-rust-action@v1
-    - uses: actions/checkout@master
-    - name: Enable static CRT linkage
-      run: |
-        mkdir .cargo
-        echo '[target.x86_64-pc-windows-msvc]' >> .cargo/config
-        echo 'rustflags = ["-Ctarget-feature=+crt-static"]' >> .cargo/config
-    - name: Run the application without starting the shell
-      run: |
-        sed -i '1 i\#![windows_subsystem = \"windows\"]' examples/series-troxide/src/main.rs
-    - name: Build series-troxide binary
-      run: cargo build --verbose --profile release-opt --package series-troxide
-    - name: Archive series-troxide binary
-      uses: actions/upload-artifact@v1
-      with:
-        name: series-troxide-x86_64-pc-windows-msvc
-        path: target/release-opt/series-troxide.exe
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        rust: [stable]
 
-  series-troxide_macos:
-    runs-on: macos-latest
     steps:
-    - uses: hecrj/setup-rust-action@v1
-    - uses: actions/checkout@master
-    - name: Build series-troxide binary
-      env:
-        MACOSX_DEPLOYMENT_TARGET: 10.14
-      run: cargo build --verbose --profile release-opt --package series-troxide
-    - name: Open binary via double-click
-      run: chmod +x target/release-opt/series-troxide
-    - name: Archive series-troxide binary
-      uses: actions/upload-artifact@v1
-      with:
-        name: series-troxide-x86_64-apple-darwin
-        path: target/release-opt/series-troxide
+      - name: Set up Rust
+        uses: actions/setup-rust@v1
+        with:
+          rust-version: ${{ matrix.rust }}
 
-  series-troxide_raspberry:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: hecrj/setup-rust-action@v1
-    - uses: actions/checkout@master
-    - name: Install cross
-      run: cargo install cross
-    - name: Build series-troxide binary for Raspberry Pi 3/4 (64 bits)
-      run: cross build --verbose --profile release-opt --package series-troxide --target aarch64-unknown-linux-gnu
-    - name: Archive series-troxide binary
-      uses: actions/upload-artifact@v1
-      with:
-        name: series-troxide-aarch64-unknown-linux-gnu
-        path: target/aarch64-unknown-linux-gnu/release-opt/series-troxide
-    - name: Build series-troxide binary for Raspberry Pi 2/3/4 (32 bits)
-      run: cross build --verbose --profile release-opt --package series-troxide --target armv7-unknown-linux-gnueabihf
-    - name: Archive series-troxide binary
-      uses: actions/upload-artifact@v1
-      with:
-        name: series-troxide-armv7-unknown-linux-gnueabihf
-        path: target/armv7-unknown-linux-gnueabihf/release-opt/series-troxide
+      - name: Build
+        run: cargo build --release
+
+      - name: Copy artifacts
+        run: |
+          mkdir -p release
+          cp target/release/series-troxide "release/series-troxide-${{ matrix.os }}"
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            Automatic release by CI
+          draft: false
+          prerelease: false
+
+      - name: Upload Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: release/*
+          asset_name: ${{ env.OS }}-artifacts.zip
+          asset_content_type: application/zip
