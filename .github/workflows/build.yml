@@ -1,4 +1,4 @@
-name: CI
+name: build
 
 on:
   push:
@@ -7,37 +7,30 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        rust: [stable]
+    runs-on: ubuntu-latest
 
     steps:
       - name: Set up Rust
-        uses: actions/setup-rust@v1
+        uses: actions/setup-rust@v2
         with:
-          rust-version: ${{ matrix.rust }}
+          rust-version: stable
 
-      - name: Build
-        run: cargo build --release
+      - name: Check out code
+        uses: actions/checkout@v2
 
-      - name: Copy artifacts
-        run: |
-          mkdir -p release
-          cp target/release/series-troxide "release/series-troxide-${{ matrix.os }}"
+      - name: Build for Linux
+        run: cargo build --release --target x86_64-unknown-linux-gnu
+        env:
+          ARTIFACT_NAME: series-troxide
 
       - name: Create Release
-        id: create_release
+        id: create_release_linux
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
-          body: |
-            Automatic release by CI
           draft: false
           prerelease: false
 
@@ -46,7 +39,83 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: release/*
-          asset_name: ${{ env.OS }}-artifacts.zip
-          asset_content_type: application/zip
+          upload_url: ${{ steps.create_release_linux.outputs.upload_url }}
+          asset_path: target/release/series-troxide
+          asset_name: ${{ env.ARTIFACT_NAME }}
+          asset_content_type: application/octet-stream
+
+  build_macos:
+    runs-on: macos-latest
+
+    steps:
+      - name: Set up Rust
+        uses: actions/setup-rust@v2
+        with:
+          rust-version: stable
+
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Build for macOS
+        run: cargo build --release --target x86_64-apple-darwin
+        env:
+          ARTIFACT_NAME: series-troxide
+
+      - name: Create Release
+        id: create_release_macos
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release_macos.outputs.upload_url }}
+          asset_path: target/release/series-troxide
+          asset_name: ${{ env.ARTIFACT_NAME }}
+          asset_content_type: application/octet-stream
+
+  build_windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Set up Rust
+        uses: actions/setup-rust@v2
+        with:
+          rust-version: stable-msvc
+
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Build for Windows
+        run: cargo build --release --target x86_64-pc-windows-msvc
+        env:
+          ARTIFACT_NAME: series-troxide.exe
+
+      - name: Create Release
+        id: create_release_windows
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release_windows.outputs.upload_url }}
+          asset_path: target/release/series-troxide.exe
+          asset_name: ${{ env.ARTIFACT_NAME }}
+          asset_content_type: application/octet-stream
