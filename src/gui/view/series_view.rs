@@ -59,18 +59,50 @@ pub fn series_page(
         main_info = main_info.push(image);
     }
 
-    let mut series_data_grid = Grid::new().strategy(iced_aw::Strategy::Columns(2));
+    let mut series_data_grid = Grid::with_columns(2);
 
-    status_widget(&mut series_data_grid, series_information);
-    genres_widget(&mut series_data_grid, series_information);
-    language_widget(&mut series_data_grid, series_information);
-    average_runtime_widget(&mut series_data_grid, series_information);
-    rating_widget(&mut series_data_grid, series_information);
-    network_widget(&mut series_data_grid, series_information);
-    webchannel_widget(&mut series_data_grid, series_information);
-    premiered_widget(&mut series_data_grid, series_information);
-    ended_widget(&mut series_data_grid, series_information);
+    let status_widget = status_widget(series_information);
+    let genres_widget = genres_widget(series_information);
+    let language_widget = language_widget(series_information);
+    let average_runtime_widget = average_runtime_widget(series_information);
+    let rating_widget = rating_widget(series_information);
+    let network_widget = network_widget(series_information);
+    let webchannel_widget = webchannel_widget(series_information);
+    let premiered_widget = premiered_widget(series_information);
+    let ended_widget = ended_widget(series_information);
     let summary = summary_widget(series_information);
+
+    series_data_grid.insert(status_widget.0);
+    series_data_grid.insert(status_widget.1);
+
+    if let Some(genres_widget) = genres_widget {
+        series_data_grid.insert(genres_widget.0);
+        series_data_grid.insert(genres_widget.1);
+    };
+    series_data_grid.insert(language_widget.0);
+    series_data_grid.insert(language_widget.1);
+    series_data_grid.insert(average_runtime_widget.0);
+    series_data_grid.insert(average_runtime_widget.1);
+    series_data_grid.insert(rating_widget.0);
+    series_data_grid.insert(rating_widget.1);
+
+    if let Some(network_widget) = network_widget {
+        series_data_grid.insert(network_widget.0);
+        series_data_grid.insert(network_widget.1);
+    };
+
+    if let Some(webchannel_widget) = webchannel_widget {
+        series_data_grid.insert(webchannel_widget.0);
+        series_data_grid.insert(webchannel_widget.1);
+    };
+
+    series_data_grid.insert(premiered_widget.0);
+    series_data_grid.insert(premiered_widget.1);
+
+    if let Some(ended_widget) = ended_widget {
+        series_data_grid.insert(ended_widget.0);
+        series_data_grid.insert(ended_widget.1);
+    };
 
     let series_data = column![series_data_grid, vertical_space(10), summary,].spacing(5);
 

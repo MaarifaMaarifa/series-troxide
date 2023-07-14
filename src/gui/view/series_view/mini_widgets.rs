@@ -4,17 +4,17 @@ use crate::gui::helpers::season_episode_str_gen;
 use crate::gui::troxide_widget::{GREEN_THEME, INFO_HEADER, RED_THEME};
 
 use iced::widget::{column, text};
-use iced::Renderer;
-use iced_aw::Grid;
+use iced::{Element, Renderer};
 
 use super::Message;
 
 pub fn status_widget(
-    series_data_grid: &mut Grid<'_, Message, Renderer>,
     series_info: &SeriesMainInformation,
+) -> (
+    Element<'_, Message, Renderer>,
+    Element<'_, Message, Renderer>,
 ) {
     let title_text = text("Status");
-    series_data_grid.insert(title_text);
 
     let status_text = match SeriesStatus::new(series_info) {
         SeriesStatus::Running => text("Running").style(GREEN_THEME),
@@ -23,30 +23,34 @@ pub fn status_widget(
         SeriesStatus::InDevelopment => text("In Development"),
         SeriesStatus::Other => text(&series_info.status),
     };
-    series_data_grid.insert(status_text);
+    (title_text.into(), status_text.into())
 }
 
 pub fn average_runtime_widget(
-    series_data_grid: &mut Grid<'_, Message, Renderer>,
     series_info: &SeriesMainInformation,
+) -> (
+    Element<'_, Message, Renderer>,
+    Element<'_, Message, Renderer>,
 ) {
     // since the the title part of this widget is the longest, we gonna add some space
     // infront of it to make the separation of column nicer
-    series_data_grid.insert(text("Average runtime    "));
+    let title_text = text("Average runtime    ");
     let body_widget = if let Some(average_runtime) = series_info.average_runtime {
         text(format!("{} mins", average_runtime))
     } else {
         text("unavailable")
     };
-    series_data_grid.insert(body_widget)
+    (title_text.into(), body_widget.into())
 }
 
 pub fn genres_widget(
-    series_data_grid: &mut Grid<'_, Message, Renderer>,
     series_info: &SeriesMainInformation,
-) {
+) -> Option<(
+    Element<'_, Message, Renderer>,
+    Element<'_, Message, Renderer>,
+)> {
     if !series_info.genres.is_empty() {
-        series_data_grid.insert(text("Genres"));
+        let title_text = text("Genres");
         let mut genres = String::new();
 
         let mut series_result_iter = series_info.genres.iter().peekable();
@@ -56,54 +60,66 @@ pub fn genres_widget(
                 genres.push_str(", ");
             }
         }
-        series_data_grid.insert(text(genres));
+        let genres = text(genres);
+
+        Some((title_text.into(), genres.into()))
+    } else {
+        None
     }
 }
 
 pub fn language_widget(
-    series_data_grid: &mut Grid<'_, Message, Renderer>,
     series_info: &SeriesMainInformation,
+) -> (
+    Element<'_, Message, Renderer>,
+    Element<'_, Message, Renderer>,
 ) {
-    series_data_grid.insert(text("Language"));
-    series_data_grid.insert(if let Some(language) = &series_info.language {
+    let title_text = text("Language");
+    let language = if let Some(language) = &series_info.language {
         text(language)
     } else {
         text("unavailable")
-    });
+    };
+
+    (title_text.into(), language.into())
 }
 
 pub fn premiered_widget(
-    series_data_grid: &mut Grid<'_, Message, Renderer>,
     series_info: &SeriesMainInformation,
+) -> (
+    Element<'_, Message, Renderer>,
+    Element<'_, Message, Renderer>,
 ) {
-    series_data_grid.insert(text("Premiered"));
+    let title_text = text("Premiered");
     let body_text = if let Some(premier) = &series_info.premiered {
         text(premier)
     } else {
         text("unavailable")
     };
 
-    series_data_grid.insert(body_text)
+    (title_text.into(), body_text.into())
 }
 
 pub fn ended_widget(
-    series_data_grid: &mut Grid<'_, Message, Renderer>,
     series_info: &SeriesMainInformation,
-) {
+) -> Option<(
+    Element<'_, Message, Renderer>,
+    Element<'_, Message, Renderer>,
+)> {
     // Pushing the widget to the grid only when the series has ended
     match SeriesStatus::new(series_info) {
         SeriesStatus::Ended => {}
-        _ => return,
+        _ => return None,
     }
 
-    series_data_grid.insert(text("Ended"));
+    let title_text = text("Ended");
     let body_text = if let Some(ended) = &series_info.ended {
         text(ended)
     } else {
         text("unavailable")
     };
 
-    series_data_grid.insert(body_text)
+    Some((title_text.into(), body_text.into()))
 }
 
 pub fn summary_widget(series_info: &SeriesMainInformation) -> iced::Element<'_, Message, Renderer> {
@@ -118,42 +134,46 @@ pub fn summary_widget(series_info: &SeriesMainInformation) -> iced::Element<'_, 
 }
 
 pub fn rating_widget(
-    series_data_grid: &mut Grid<'_, Message, Renderer>,
     series_info: &SeriesMainInformation,
+) -> (
+    Element<'_, Message, Renderer>,
+    Element<'_, Message, Renderer>,
 ) {
-    series_data_grid.insert(text("Average rating"));
-    let body_wiget = if let Some(average_rating) = series_info.rating.average {
+    let title_text = text("Average rating");
+    let body_text = if let Some(average_rating) = series_info.rating.average {
         text(average_rating.to_string())
     } else {
         text("unavailable")
     };
 
-    series_data_grid.insert(body_wiget)
+    (title_text.into(), body_text.into())
 }
 
 pub fn network_widget(
-    series_data_grid: &mut Grid<'_, Message, Renderer>,
     series_info: &SeriesMainInformation,
-) {
-    if let Some(network) = &series_info.network {
+) -> Option<(
+    Element<'_, Message, Renderer>,
+    Element<'_, Message, Renderer>,
+)> {
+    series_info.network.as_ref().map(|network| {
         // TODO: Add a clickable link
-        series_data_grid.insert(text("Network"));
-        series_data_grid.insert(text(format!(
-            "{} ({})",
-            &network.name, &network.country.name
-        )))
-    }
+        (
+            text("Network").into(),
+            text(format!("{} ({})", &network.name, &network.country.name)).into(),
+        )
+    })
 }
 
 pub fn webchannel_widget(
-    series_data_grid: &mut Grid<'_, Message, Renderer>,
     series_info: &SeriesMainInformation,
-) {
-    if let Some(webchannel) = &series_info.web_channel {
+) -> Option<(
+    Element<'_, Message, Renderer>,
+    Element<'_, Message, Renderer>,
+)> {
+    series_info.web_channel.as_ref().map(|webchannel| {
         // TODO: Add a clickable link
-        series_data_grid.insert(text("Webchannel"));
-        series_data_grid.insert(text(&webchannel.name))
-    }
+        (text("Webchannel").into(), text(&webchannel.name).into())
+    })
 }
 
 pub fn next_episode_release_time_widget(series: &Series) -> iced::widget::Text<'_, Renderer> {
