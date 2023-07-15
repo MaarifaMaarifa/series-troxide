@@ -19,6 +19,6 @@ jobs:
     - name: Run tests
       run: cargo test --verbose
     - name: Run linter 
-      run: cargo clippy -- -Dwarnings
+      run: cargo clippy -- -Dwarnings --no-deps
     - name: Run format 
       run: cargo fmt --check
