@@ -67,12 +67,12 @@ impl SettingsTab {
 
         let save_settings_button = if let Some(unsaved_settings) = &self.unsaved_config {
             if *unsaved_settings != self.settings_config {
-                button("Save Setting").on_press(Message::SaveSettings)
+                button("Save Settings").on_press(Message::SaveSettings)
             } else {
-                button("Save Setting")
+                button("Save Settings")
             }
         } else {
-            button("Save Setting")
+            button("Save Settings")
         };
 
         let save_button_bar = row!(horizontal_space(Length::Fill), save_settings_button).padding(5);
