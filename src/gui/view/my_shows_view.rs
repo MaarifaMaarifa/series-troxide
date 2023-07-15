@@ -350,7 +350,7 @@ async fn get_series_release_time(
         .filter(|(_, episode_list)| episode_list.get_next_episode_and_time().is_some())
         .map(|(series_info, episode_list)| {
             (
-                series_info.clone(),
+                series_info,
                 episode_list
                     .get_next_episode_and_time()
                     .map(|(episode, release_time)| (episode.clone(), release_time))
