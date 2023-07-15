@@ -332,11 +332,11 @@ impl Season {
         }
 
         if already_added_items == 0 {
-            return AddResult::Full;
+            AddResult::Full
         } else if already_added_items == episodes_range.count() {
-            return AddResult::None;
+            AddResult::None
         } else {
-            return AddResult::Partial;
+            AddResult::Partial
         }
     }
 

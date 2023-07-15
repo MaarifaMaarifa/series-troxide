@@ -40,9 +40,9 @@ impl From<usize> for TabId {
     }
 }
 
-impl Into<usize> for TabId {
-    fn into(self) -> usize {
-        match self {
+impl From<TabId> for usize {
+    fn from(val: TabId) -> Self {
+        match val {
             TabId::Discover => 0,
             TabId::Watchlist => 1,
             TabId::MyShows => 2,
@@ -244,14 +244,12 @@ fn handle_series_poster_selection(
             }
         }
         TabId::Watchlist => {
-            if let Message::Watchlist(WatchlistMessage::SeriesPoster(
-                _,
-                SeriesPosterMessage::SeriesPosterPressed(series_info),
-            )) = message
-            {
-                return Some(view::series_view::Series::from_series_information(
-                    *series_info,
-                ));
+            if let Message::Watchlist(WatchlistMessage::SeriesPoster(_, message)) = message {
+                if let SeriesPosterMessage::SeriesPosterPressed(series_info) = *message {
+                    return Some(view::series_view::Series::from_series_information(
+                        *series_info,
+                    ));
+                }
             }
         }
         _ => return None,

@@ -75,7 +75,7 @@ impl EpisodeList {
         seasons
             .into_iter()
             .map(|season| {
-                let total_episodes = self.get_episodes(season).into_iter().count();
+                let total_episodes = self.get_episodes(season).len();
                 let total_watchable_episodes = self
                     .get_episodes(season)
                     .into_iter()
@@ -128,7 +128,7 @@ impl EpisodeList {
         let mut episodes_iter = self.episodes.iter().peekable();
         while let Some(episode) = episodes_iter.next() {
             if let Some(peeked_episode) = episodes_iter.peek() {
-                if !Self::is_episode_watchable(&peeked_episode)? {
+                if !Self::is_episode_watchable(peeked_episode)? {
                     return Some(episode);
                 }
             } else {

@@ -44,8 +44,7 @@ impl Cacher {
         info!("opening cache");
         if let Some(proj_dir) = ProjectDirs::from("", "", env!("CARGO_PKG_NAME")) {
             let cache_path = path::PathBuf::from(&proj_dir.data_dir());
-
-            return Self { cache_path };
+            Self { cache_path }
         } else {
             panic!("could not get the cache path");
         }
@@ -104,21 +103,21 @@ pub async fn load_image(image_url: String) -> Option<Vec<u8>> {
     image_path.push(&image_hash);
 
     match fs::read(&image_path).await {
-        Ok(image_bytes) => return Some(image_bytes),
+        Ok(image_bytes) => Some(image_bytes),
         Err(err) => {
             if err.kind() == ErrorKind::NotFound {
                 info!("falling back online for image with link {}", image_url);
-                return if let Some(image_bytes) = api::lload_image(image_url).await {
+                if let Some(image_bytes) = api::lload_image(image_url).await {
                     write_cache(&image_bytes, &image_path).await;
                     Some(image_bytes)
                 } else {
                     None
-                };
+                }
             } else {
-                return None;
+                None
             }
         }
-    };
+    }
 }
 
 pub async fn read_cache(cache_filepath: impl AsRef<path::Path>) -> io::Result<String> {

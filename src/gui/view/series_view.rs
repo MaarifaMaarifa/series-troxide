@@ -348,7 +348,7 @@ impl Series {
                 .center_y();
 
                 let seasons_widget = column![
-                    next_episode_release_time_widget(&self),
+                    next_episode_release_time_widget(self),
                     seasons_widget,
                     vertical_space(10),
                     text("Top Cast").size(25),

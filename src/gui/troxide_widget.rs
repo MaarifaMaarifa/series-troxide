@@ -30,7 +30,7 @@ pub mod series_poster {
     #[derive(Clone, Debug)]
     pub enum Message {
         ImageLoaded(usize, Option<Vec<u8>>),
-        SeriesInfoReceived(usize, SeriesMainInformation),
+        SeriesInfoReceived(usize, Box<SeriesMainInformation>),
         SeriesPosterPressed(Box<SeriesMainInformation>),
     }
 
@@ -79,7 +79,7 @@ pub mod series_poster {
                 Command::perform(get_series_from_episode(episode_info), move |series_info| {
                     Message::SeriesInfoReceived(
                         id,
-                        series_info.expect("failed to get series information"),
+                        Box::new(series_info.expect("failed to get series information")),
                     )
                 });
             (poster, command)
@@ -98,7 +98,7 @@ pub mod series_poster {
                 }
                 Message::SeriesInfoReceived(id, series_info) => {
                     let image_url = series_info.image.clone();
-                    self.series_information = Some(series_info);
+                    self.series_information = Some(*series_info);
                     return poster_image_command(id, image_url);
                 }
             }
@@ -277,9 +277,7 @@ pub mod series_poster {
         }
 
         pub fn get_status(&self) -> Option<SeriesStatus> {
-            self.series_information
-                .as_ref()
-                .map(|series_info| SeriesStatus::new(&series_info))
+            self.series_information.as_ref().map(SeriesStatus::new)
         }
     }
 

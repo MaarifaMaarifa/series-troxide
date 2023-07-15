@@ -60,9 +60,9 @@ impl MyShowsTab {
             let series_information =
                 caching::series_information::get_series_main_info_with_ids(series_ids);
 
-            return Command::perform(series_information, |series_infos| {
+            Command::perform(series_information, |series_infos| {
                 Message::SeriesInformationsReceived(series_infos)
-            });
+            })
         } else {
             Command::none()
         }
@@ -77,9 +77,9 @@ impl MyShowsTab {
                 if let SeriesPosterMessage::SeriesPosterPressed(series_info) = message {
                     return Command::perform(async {}, |_| Message::SeriesSelected(series_info));
                 }
-                return self.series[index]
+                self.series[index]
                     .update(message)
-                    .map(move |message| Message::SeriesPosterAction(index, message));
+                    .map(move |message| Message::SeriesPosterAction(index, message))
             }
             Message::SeriesInformationsReceived(series_infos) => {
                 self.load_state = LoadState::Loaded;
@@ -111,10 +111,10 @@ impl MyShowsTab {
                 if let SeriesPosterMessage::SeriesPosterPressed(series_info) = message {
                     return Command::perform(async {}, |_| Message::SeriesSelected(series_info));
                 }
-                return self.upcoming_releases[index]
+                self.upcoming_releases[index]
                     .0
                     .update(message)
-                    .map(move |message| Message::SeriesPosterAction(index, message));
+                    .map(move |message| Message::SeriesPosterAction(index, message))
             }
             Message::UpcomingReleaseSeriesReceived(mut upcoming_series) => {
                 // Sorting the upcoming series by release time
@@ -186,7 +186,7 @@ impl MyShowsTab {
                     .width(Length::Fill)
                     .padding(10);
 
-                let upcoming_posters = self
+                let upcoming_posters: Vec<&SeriesPoster> = self
                     .upcoming_releases
                     .iter()
                     .map(|(poster, _)| poster)
@@ -238,8 +238,8 @@ impl MyShowsTab {
     }
 
     fn filter_posters<'a>(
-        posters: &'a Vec<SeriesPoster>,
-        upcoming_series_posters: &Vec<&'a SeriesPoster>,
+        posters: &'a [SeriesPoster],
+        upcoming_series_posters: &[&'a SeriesPoster],
         filter: MyShowsFilter,
     ) -> Vec<Element<'a, Message, Renderer>> {
         match filter {
@@ -247,24 +247,16 @@ impl MyShowsTab {
                 let all_posters: HashSet<&SeriesPoster> = posters.iter().collect();
                 let ended_posters: HashSet<&SeriesPoster> =
                     Self::get_ended_posters(posters).into_iter().collect();
-                let upcoming_series_posters: HashSet<&SeriesPoster> = upcoming_series_posters
-                    .into_iter()
-                    .map(|poster| *poster)
-                    .collect();
+                let upcoming_series_posters: HashSet<&SeriesPoster> =
+                    upcoming_series_posters.iter().copied().collect();
 
-                let diff: HashSet<&SeriesPoster> = all_posters
-                    .difference(&ended_posters)
-                    .map(|poster| *poster)
-                    .collect();
+                let diff: HashSet<&SeriesPoster> =
+                    all_posters.difference(&ended_posters).copied().collect();
 
                 let untracked_posters: HashSet<_> =
                     Self::get_untracked_posters(posters).into_iter().collect();
 
-                let diff: HashSet<_> = diff
-                    .difference(&untracked_posters)
-                    .into_iter()
-                    .map(|poster| *poster)
-                    .collect();
+                let diff: HashSet<_> = diff.difference(&untracked_posters).copied().collect();
                 /*
                 The expected series posters obtained from the final set difference operation will have
                 a valid message id that can be used in the posters field in the MyShows struct
@@ -282,10 +274,7 @@ impl MyShowsTab {
                     Self::get_ended_posters(posters).into_iter().collect();
                 let untracked_posters: HashSet<_> =
                     Self::get_untracked_posters(posters).into_iter().collect();
-                let ended_posters: Vec<_> = ended_posters
-                    .difference(&untracked_posters)
-                    .into_iter()
-                    .collect();
+                let ended_posters: Vec<_> = ended_posters.difference(&untracked_posters).collect();
 
                 ended_posters
                     .iter()
@@ -310,14 +299,14 @@ impl MyShowsTab {
         }
     }
 
-    fn get_ended_posters(posters: &Vec<SeriesPoster>) -> Vec<&SeriesPoster> {
+    fn get_ended_posters(posters: &[SeriesPoster]) -> Vec<&SeriesPoster> {
         posters
             .iter()
             .filter(|poster| poster.get_status().unwrap() == SeriesStatus::Ended)
             .collect()
     }
 
-    fn get_untracked_posters(posters: &Vec<SeriesPoster>) -> Vec<&SeriesPoster> {
+    fn get_untracked_posters(posters: &[SeriesPoster]) -> Vec<&SeriesPoster> {
         posters
             .iter()
             .filter(|poster| {

@@ -49,10 +49,10 @@ pub fn watch_count() -> Element<'static, Message, Renderer> {
 }
 
 pub fn time_count(
-    series_infos_and_time: &Vec<(SeriesMainInformation, u32)>,
+    series_infos_and_time: &[(SeriesMainInformation, u32)],
 ) -> Element<'_, Message, Renderer> {
     let total_average_minutes: u32 = series_infos_and_time
-        .into_iter()
+        .iter()
         .map(|(_, average_runtime)| average_runtime)
         .sum();
 

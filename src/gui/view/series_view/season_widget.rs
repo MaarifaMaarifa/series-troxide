@@ -237,10 +237,7 @@ impl Season {
 async fn load_episode_infos(series_id: u32, season_number: u32) -> Vec<EpisodeInfo> {
     let episode_list = caching::episode_list::EpisodeList::new(series_id)
         .await
-        .expect(&format!(
-            "failed to get episodes for season {}",
-            season_number
-        ));
+        .unwrap_or_else(|_| panic!("failed to get episodes for season {}", season_number));
 
     episode_list
         .get_episodes(season_number)

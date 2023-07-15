@@ -242,7 +242,7 @@ fn load_discover_schedule_command() -> Command<Message> {
 /// wraps the given series posters and places a title above them
 fn series_posters_loader<'a>(
     title: &str,
-    posters: &'a Vec<SeriesPoster>,
+    posters: &'a [SeriesPoster],
 ) -> Element<'a, Message, Renderer> {
     let title = text(title).size(25);
 

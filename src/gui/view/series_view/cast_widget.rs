@@ -46,8 +46,8 @@ impl CastWidget {
                     posters_commands.push(poster_command);
                 }
                 self.cast = cast_posters;
-                return Command::batch(posters_commands)
-                    .map(|message| Message::CastAction(message.get_id(), message));
+                Command::batch(posters_commands)
+                    .map(|message| Message::CastAction(message.get_id(), message))
             }
             Message::CastAction(index, message) => {
                 self.cast[index].update(message);

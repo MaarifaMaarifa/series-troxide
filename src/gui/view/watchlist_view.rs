@@ -15,7 +15,7 @@ use crate::{
 #[derive(Debug, Clone)]
 pub enum Message {
     SeriesInformationLoaded(Vec<(SeriesMainInformation, usize)>),
-    SeriesPoster(usize, SeriesPosterMessage),
+    SeriesPoster(usize, Box<SeriesPosterMessage>),
 }
 
 #[derive(Default)]
@@ -51,13 +51,16 @@ impl WatchlistTab {
                     commands.push(command);
                 }
                 self.series_posters = posters;
-                return Command::batch(commands)
-                    .map(|message| Message::SeriesPoster(message.get_id().unwrap_or(0), message));
+                Command::batch(commands).map(|message| {
+                    Message::SeriesPoster(message.get_id().unwrap_or(0), Box::new(message))
+                })
             }
             Message::SeriesPoster(index, message) => self.series_posters[index]
                 .0
-                .update(message)
-                .map(|message| Message::SeriesPoster(message.get_id().unwrap_or(0), message)),
+                .update(*message)
+                .map(|message| {
+                    Message::SeriesPoster(message.get_id().unwrap_or(0), Box::new(message))
+                }),
         }
     }
     pub fn view(&self) -> Element<Message, Renderer> {
@@ -74,7 +77,7 @@ impl WatchlistTab {
                     .iter()
                     .map(|(poster, total_episodes)| {
                         poster.watchlist_view(*total_episodes).map(|message| {
-                            Message::SeriesPoster(message.get_id().unwrap_or(0), message)
+                            Message::SeriesPoster(message.get_id().unwrap_or(0), Box::new(message))
                         })
                     })
                     .collect();
