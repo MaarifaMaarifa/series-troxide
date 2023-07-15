@@ -252,6 +252,7 @@ mod episode_widget {
         core::{api::episodes_information::Episode as EpisodeInfo, caching, database},
         gui::{helpers::season_episode_str_gen, styles},
     };
+    use bytes::Bytes;
     use iced::{
         widget::{
             checkbox, column, container, horizontal_space, image, row, text, vertical_space, Row,
@@ -262,7 +263,7 @@ mod episode_widget {
 
     #[derive(Clone, Debug)]
     pub enum Message {
-        ImageLoaded(Option<Vec<u8>>),
+        ImageLoaded(Option<Bytes>),
         TrackCheckboxPressed,
         TrackCommandComplete(bool),
     }
@@ -273,7 +274,7 @@ mod episode_widget {
         series_name: String,
         episode_information: EpisodeInfo,
         series_id: u32,
-        episode_image: Option<Vec<u8>>,
+        episode_image: Option<Bytes>,
     }
 
     impl Episode {

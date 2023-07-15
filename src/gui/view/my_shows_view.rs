@@ -237,6 +237,7 @@ impl MyShowsTab {
         }
     }
 
+    #[allow(clippy::mutable_key_type)] // bytes::Bytes creates a false positive for this warning
     fn filter_posters<'a>(
         posters: &'a [SeriesPoster],
         upcoming_series_posters: &[&'a SeriesPoster],

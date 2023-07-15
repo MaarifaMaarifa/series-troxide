@@ -267,6 +267,7 @@ fn series_posters_loader<'a>(
 }
 
 mod searching {
+    use bytes::Bytes;
     use iced::widget::{
         column, container, horizontal_space, image, mouse_area, row, scrollable, text, text_input,
         vertical_space, Column,
@@ -294,7 +295,7 @@ mod searching {
         SearchTermSearched,
         SearchSuccess(Vec<series_searching::SeriesSearchResult>),
         SearchFail,
-        ImagesLoaded(Vec<Option<Vec<u8>>>),
+        ImagesLoaded(Vec<Option<Bytes>>),
         SeriesResultPressed(/*series id*/ u32),
     }
 
@@ -302,7 +303,7 @@ mod searching {
     pub struct Search {
         search_term: String,
         series_search_result: Vec<series_searching::SeriesSearchResult>,
-        series_search_results_images: Vec<Option<Vec<u8>>>,
+        series_search_results_images: Vec<Option<Bytes>>,
         pub load_state: LoadState,
     }
 
@@ -400,7 +401,7 @@ mod searching {
 
     fn load<'a>(
         series_result: &'a [series_searching::SeriesSearchResult],
-        series_images: &Vec<Option<Vec<u8>>>,
+        series_images: &[Option<Bytes>],
     ) -> Vec<Element<'a, Message, Renderer>> {
         let mut results = Vec::new();
 
@@ -419,7 +420,7 @@ mod searching {
 
     pub fn series_result_widget(
         series_result: &series_searching::SeriesSearchResult,
-        image_bytes: Option<Vec<u8>>,
+        image_bytes: Option<Bytes>,
     ) -> iced::Element<'_, Message, Renderer> {
         let mut row = row!();
 
@@ -465,9 +466,9 @@ mod searching {
 
     async fn load_series_result_images(
         series_results: Vec<series_searching::SeriesSearchResult>,
-    ) -> Vec<Option<Vec<u8>>> {
+    ) -> Vec<Option<Bytes>> {
         let mut loaded_results = Vec::with_capacity(series_results.len());
-        let handles: Vec<JoinHandle<Option<Vec<u8>>>> = series_results
+        let handles: Vec<JoinHandle<Option<Bytes>>> = series_results
             .into_iter()
             .map(|result| {
                 tokio::task::spawn(async {

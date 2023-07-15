@@ -1,3 +1,4 @@
+use bytes::Bytes;
 use serde::Deserialize;
 use thiserror::Error;
 
@@ -44,12 +45,11 @@ pub struct Image {
 }
 
 /// Loads the image from the provided url
-pub async fn lload_image(image_url: String) -> Option<Vec<u8>> {
+pub async fn lload_image(image_url: String) -> Option<Bytes> {
     loop {
         match reqwest::get(&image_url).await {
             Ok(response) => {
                 if let Ok(bytes) = response.bytes().await {
-                    let bytes: Vec<u8> = bytes.into();
                     break Some(bytes);
                 }
             }

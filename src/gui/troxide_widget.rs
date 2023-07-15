@@ -21,6 +21,8 @@ pub mod series_poster {
     use crate::gui::helpers::season_episode_str_gen;
     use crate::gui::styles;
     use crate::gui::view::series_view::SeriesStatus;
+
+    use bytes::Bytes;
     use iced::widget::{
         column, container, horizontal_space, image, mouse_area, progress_bar, row, text,
         vertical_space,
@@ -29,7 +31,7 @@ pub mod series_poster {
 
     #[derive(Clone, Debug)]
     pub enum Message {
-        ImageLoaded(usize, Option<Vec<u8>>),
+        ImageLoaded(usize, Option<Bytes>),
         SeriesInfoReceived(usize, Box<SeriesMainInformation>),
         SeriesPosterPressed(Box<SeriesMainInformation>),
     }
@@ -49,7 +51,7 @@ pub mod series_poster {
     #[derive(PartialEq, Eq, Hash)]
     pub struct SeriesPoster {
         series_information: Option<SeriesMainInformation>,
-        image: Option<Vec<u8>>,
+        image: Option<Bytes>,
     }
 
     impl SeriesPoster {

@@ -40,7 +40,7 @@ pub async fn get_show_images(series_id: u32) -> Result<Vec<Image>, ApiError> {
 }
 
 /// Loads the most recent image banner from the provided series id
-pub async fn get_recent_banner(series_id: u32) -> Option<Vec<u8>> {
+pub async fn get_recent_banner(series_id: u32) -> Option<bytes::Bytes> {
     let images = get_show_images(series_id).await.ok()?;
     let recent_banner = images
         .into_iter()

@@ -77,6 +77,7 @@ impl CastWidget {
     }
 }
 mod cast_poster {
+    use bytes::Bytes;
     use iced::{
         alignment,
         widget::{container, image, text, Column},
@@ -90,7 +91,7 @@ mod cast_poster {
 
     #[derive(Debug, Clone)]
     pub enum Message {
-        ImageReceived(usize, Option<Vec<u8>>),
+        ImageReceived(usize, Option<Bytes>),
     }
 
     impl Message {
@@ -103,7 +104,7 @@ mod cast_poster {
 
     pub struct CastPoster {
         cast: Cast,
-        image: Option<Vec<u8>>,
+        image: Option<Bytes>,
     }
 
     impl CastPoster {

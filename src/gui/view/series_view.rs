@@ -7,6 +7,7 @@ use crate::gui::assets::get_static_cow_from_asset;
 use crate::gui::assets::icons::{ARROW_LEFT, CHECK_CIRCLE, CHECK_CIRCLE_FILL};
 use crate::gui::styles;
 
+use bytes::Bytes;
 use cast_widget::CastWidget;
 use cast_widget::Message as CastWidgetMessage;
 use mini_widgets::*;
@@ -46,7 +47,7 @@ impl SeriesStatus {
 /// Generates the Series Page
 pub fn series_page(
     series_information: &SeriesMainInformation,
-    image_bytes: Option<Vec<u8>>,
+    image_bytes: Option<Bytes>,
 ) -> Column<'_, Message, Renderer> {
     let content = column!();
 
@@ -154,7 +155,7 @@ fn top_bar(series_info: &SeriesMainInformation) -> Row<'_, Message, Renderer> {
 #[derive(Clone, Debug)]
 pub enum Message {
     SeriesInfoObtained(Box<SeriesMainInformation>),
-    SeriesImageLoaded(Option<Vec<u8>>),
+    SeriesImageLoaded(Option<Bytes>),
     EpisodeListLoaded(caching::episode_list::EpisodeList),
     GoBack,
     SeasonAction(usize, Box<SeasonMessage>),
@@ -172,7 +173,7 @@ pub struct Series {
     series_id: u32,
     load_state: LoadState,
     series_information: Option<SeriesMainInformation>,
-    series_image: Option<Vec<u8>>,
+    series_image: Option<Bytes>,
     next_episode_release_time: Option<(Episode, EpisodeReleaseTime)>,
     season_widgets: Vec<season_widget::Season>,
     cast_widget: CastWidget,

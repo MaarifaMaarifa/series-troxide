@@ -1,3 +1,4 @@
+use bytes::Bytes;
 use std::io::{self, ErrorKind};
 use std::path;
 
@@ -90,7 +91,7 @@ impl Cacher {
 }
 
 /// Loads the image from the provided url
-pub async fn load_image(image_url: String) -> Option<Vec<u8>> {
+pub async fn load_image(image_url: String) -> Option<Bytes> {
     // Hashing the image url as a file name as the forward slashes in web urls
     // mimic paths
     use sha2::{Digest, Sha256};
@@ -103,7 +104,7 @@ pub async fn load_image(image_url: String) -> Option<Vec<u8>> {
     image_path.push(&image_hash);
 
     match fs::read(&image_path).await {
-        Ok(image_bytes) => Some(image_bytes),
+        Ok(image_bytes) => Some(Bytes::from(image_bytes)),
         Err(err) => {
             if err.kind() == ErrorKind::NotFound {
                 info!("falling back online for image with link {}", image_url);
