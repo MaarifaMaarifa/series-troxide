@@ -23,7 +23,7 @@ enum LoadState {
 
 #[derive(Clone, Debug)]
 pub enum Message {
-    LoadSchedule,
+    //LoadSchedule, TODO: implement a refresh button in the discover view
     ScheduleLoaded(Vec<Episode>),
     CountryScheduleLoaded(Vec<Episode>),
     SeriesUpdatesLoaded(Vec<SeriesMainInformation>),
@@ -31,7 +31,7 @@ pub enum Message {
     CountryEpisodePosterAction(/*episode poster index*/ usize, SeriesPosterMessage),
     SeriesPosterAction(/*series poster index*/ usize, SeriesPosterMessage),
     SearchAction(SearchMessage),
-    SeriesSelected(/*series_id*/ Box<SeriesMainInformation>),
+    SeriesSelected(Box<SeriesMainInformation>),
     SeriesResultSelected(/*series_id*/ u32),
     ShowOverlay,
     HideOverlay,
@@ -54,10 +54,11 @@ impl DiscoverTab {
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message::LoadSchedule => {
-                self.load_state = LoadState::Loading;
-                load_discover_schedule_command()
-            }
+            // TODO: implement a refresh button in the discover view
+            // Message::LoadSchedule => {
+            //     self.load_state = LoadState::Loading;
+            //     load_discover_schedule_command()
+            // }
             Message::ScheduleLoaded(episodes) => {
                 self.load_state = LoadState::Loaded;
 

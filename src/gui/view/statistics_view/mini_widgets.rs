@@ -103,6 +103,7 @@ pub mod series_banner {
 
     #[derive(Debug, Clone)]
     pub enum Message {
+        #[allow(dead_code)]
         BannerReceived(usize, Option<Vec<u8>>),
     }
 
@@ -121,10 +122,10 @@ pub mod series_banner {
 
     impl SeriesBanner {
         pub fn new(
-            id: usize,
+            _id: usize,
             series_info_and_time: (SeriesMainInformation, u32),
         ) -> (Self, Command<Message>) {
-            let series_id = series_info_and_time.0.id;
+            let _series_id = series_info_and_time.0.id;
             (
                 Self {
                     series_info_and_time,
