@@ -17,6 +17,7 @@ pub mod icons {
     pub static GEAR_WIDE_CONNECTED: &[u8; 1312] =
         include_bytes!("../../assets/icons/gear-wide-connected.svg");
 
+    pub static CLOCK_FILL: &[u8; 267] = include_bytes!("../../assets/icons/clock-fill.svg");
     pub static ARROW_BAR_UP: &[u8; 376] = include_bytes!("../../assets/icons/arrow-bar-up.svg");
     pub static ARROW_BAR_DOWN: &[u8; 375] = include_bytes!("../../assets/icons/arrow-bar-down.svg");
     pub static ARROW_LEFT: &[u8; 311] = include_bytes!("../../assets/icons/arrow-left.svg");

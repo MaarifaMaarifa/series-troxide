@@ -45,19 +45,31 @@ impl SeriesStatus {
 }
 
 /// Generates the Series Page
-pub fn series_page(
-    series_information: &SeriesMainInformation,
+pub fn series_page<'a>(
+    series_information: &'a SeriesMainInformation,
     image_bytes: Option<Bytes>,
-) -> Column<'_, Message, Renderer> {
+    next_episode_release_time: Option<&'a (Episode, EpisodeReleaseTime)>,
+) -> Column<'a, Message, Renderer> {
     let content = column!();
 
     let mut main_info = row!().padding(5).spacing(10);
 
     // Putting the image to the main info
+    let next_episode_widget = next_episode_release_time_widget(next_episode_release_time);
+
     if let Some(image_bytes) = image_bytes {
         let image_handle = image::Handle::from_memory(image_bytes);
-        let image = image(image_handle).height(250);
-        main_info = main_info.push(image);
+        let image = image(image_handle).width(180);
+
+        main_info = main_info.push(
+            column![image, next_episode_widget]
+                .align_items(Alignment::Center)
+                .spacing(10)
+                .width(180),
+        );
+    } else {
+        // TODO: A Default image should be placed when the series image is missing
+        main_info = main_info.push(next_episode_widget);
     }
 
     let mut series_data_grid = Grid::with_columns(2);
@@ -317,6 +329,7 @@ impl Series {
                 let main_body = series_page(
                     self.series_information.as_ref().unwrap(),
                     self.series_image.clone(),
+                    self.next_episode_release_time.as_ref(),
                 );
 
                 let seasons_widget = container(
@@ -349,7 +362,6 @@ impl Series {
                 .center_y();
 
                 let seasons_widget = column![
-                    next_episode_release_time_widget(self),
                     seasons_widget,
                     vertical_space(10),
                     text("Top Cast").size(25),
