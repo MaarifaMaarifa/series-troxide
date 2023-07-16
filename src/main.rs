@@ -1,9 +1,18 @@
+use clap::Parser;
+
 pub mod core;
 mod gui;
 
 use iced::{Application, Settings};
 
 fn main() -> anyhow::Result<()> {
+    let cli_command = core::cli::cli_data::Cli::parse().command;
+
+    if let Some(command) = cli_command {
+        core::cli::handle_cli::handle_cli(command);
+        std::process::exit(0);
+    }
+
     let subscriber = tracing_subscriber::FmtSubscriber::new();
     tracing::subscriber::set_global_default(subscriber)?;
 
