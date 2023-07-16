@@ -8,7 +8,7 @@ use crate::gui::helpers::season_episode_str_gen;
 use crate::gui::styles;
 use crate::gui::troxide_widget::{GREEN_THEME, INFO_HEADER, RED_THEME};
 
-use iced::widget::{column, container, row, svg, text};
+use iced::widget::{column, container, row, svg, text, Space};
 use iced::{Element, Length, Renderer};
 
 use super::Message;
@@ -184,30 +184,28 @@ pub fn webchannel_widget(
 pub fn next_episode_release_time_widget(
     next_episode_release_time: Option<&(Episode, EpisodeReleaseTime)>,
 ) -> Element<'_, Message, Renderer> {
-    let content: Element<'_, Message, Renderer> =
-        if let Some((episode, release_time)) = next_episode_release_time {
-            let season = episode.season;
-            let episode = episode.number.expect("Could not get episode number");
+    if let Some((episode, release_time)) = next_episode_release_time {
+        let season = episode.season;
+        let episode = episode.number.expect("Could not get episode number");
 
-            let next_episode = season_episode_str_gen(season, episode);
-            let clock_icon_handle = svg::Handle::from_memory(get_static_cow_from_asset(CLOCK_FILL));
-            let clock_icon = svg(clock_icon_handle)
-                .width(Length::Shrink)
-                .style(styles::svg_styles::colored_svg_theme());
+        let next_episode = season_episode_str_gen(season, episode);
+        let clock_icon_handle = svg::Handle::from_memory(get_static_cow_from_asset(CLOCK_FILL));
+        let clock_icon = svg(clock_icon_handle)
+            .width(Length::Shrink)
+            .style(styles::svg_styles::colored_svg_theme());
 
-            let text = text(format!(
-                "{} in {}",
-                next_episode,
-                release_time.get_remaining_release_time().unwrap()
-            ))
-            .size(INFO_HEADER);
-            row![clock_icon, text].spacing(5).into()
-        } else {
-            text("").into()
-        };
+        let text = text(format!(
+            "{} in {}",
+            next_episode,
+            release_time.get_remaining_release_time().unwrap()
+        ))
+        .size(INFO_HEADER);
 
-    container(content)
-        .style(styles::container_styles::second_class_container_tab_theme())
-        .padding(5)
-        .into()
+        container(row![clock_icon, text].spacing(5))
+            .style(styles::container_styles::second_class_container_tab_theme())
+            .padding(5)
+            .into()
+    } else {
+        Space::new(0, 0).into()
+    }
 }
