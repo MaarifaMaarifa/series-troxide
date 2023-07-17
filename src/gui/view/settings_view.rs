@@ -186,10 +186,10 @@ mod database_transfer {
 
     pub fn import() {
         let backend = dialog::backends::Zenity::new();
-        let chosen_path = FileSelection::new("Choose file for to import")
-            .title("Choose file for to import")
+        let chosen_path = FileSelection::new("Choose file to import")
+            .title("Choose file to import")
             .path(get_home_directory())
-            .title("Save export data")
+            .title("Import data")
             .mode(dialog::FileSelectionMode::Save)
             .show_with(backend)
             .unwrap();
