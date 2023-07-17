@@ -17,9 +17,9 @@ Series Troxide is in the very early stages of development. A lot of stuffs can a
 - **Series watch progress tracking**. See what season and episode you left off and how many are left.
 - **Series Statistics**. See how many series, seasons and episodes you have watched and how much time you've spent watching them with their sorted list.
 - **Light and Dark themes**. Use **Series Troxide** at any time of the day.
+- **Database export and import**. Carry your series tracking data anywhere.
 - **Caching**. Due to the rate limit of the API, caching makes **Series Troxide** fast when opening previously opened items and be able to perform crazy things like getting the statistics of all watched series. You may notice some stuffs won't get updated though because expiration system for caching has not been implemented yet, but you can just clear the cache manually for now.
 - **Notifications for upcoming episodes**. _in progress_.
-- **Database export and import**. _in progress_.
 
 ## Installation
 
