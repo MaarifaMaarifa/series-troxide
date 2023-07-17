@@ -34,6 +34,7 @@ sha2 = "0.10.7"
 chrono = "0.4.26"
 html2text = "0.6.0"
 bytes = "1.4.0"
+dialog = "0.3.0"
 
 [profile.release]
 lto = true

@@ -425,6 +425,7 @@ pub mod database_transfer {
 
     use super::DB;
 
+    use std::ffi::OsStr;
     use std::fs;
     use std::path;
 
@@ -446,7 +447,7 @@ pub mod database_transfer {
     /// This overwrites any file of the same name if it exists
     pub fn write_database_to_path(
         database_write_path: &path::Path,
-        database_name: Option<&str>,
+        database_name: Option<&OsStr>,
     ) -> anyhow::Result<()> {
         let raw_data = DB.export()?;
 

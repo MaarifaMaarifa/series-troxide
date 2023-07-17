@@ -10,6 +10,8 @@ use crate::gui::{styles, troxide_widget, Message as GuiMessage, Tab};
 #[derive(Debug, Clone)]
 pub enum Message {
     ThemeSelected(Theme),
+    ImportDatabasePressed,
+    ExportDatabasePressed,
     SaveSettings,
 }
 
@@ -51,6 +53,8 @@ impl SettingsTab {
                     save_config(&self.settings_config);
                 }
             }
+            Message::ImportDatabasePressed => database_transfer::import(),
+            Message::ExportDatabasePressed => database_transfer::export(),
         }
     }
     pub fn view(&self) -> Element<Message, Renderer> {
@@ -110,7 +114,7 @@ impl SettingsTab {
             row![
                 "Import your series tracking data into Series Troxide",
                 horizontal_space(Length::Fill),
-                button("Import")
+                button("Import").on_press(Message::ImportDatabasePressed)
             ]
         ];
 
@@ -119,7 +123,7 @@ impl SettingsTab {
             row![
                 "Export your series tracking data from Series Troxide",
                 horizontal_space(Length::Fill),
-                button("Export")
+                button("Export").on_press(Message::ExportDatabasePressed)
             ]
         ];
 
@@ -151,5 +155,52 @@ impl Tab for SettingsTab {
 
     fn content(&self) -> Element<'_, Self::Message> {
         self.view().map(GuiMessage::Settings)
+    }
+}
+
+mod database_transfer {
+    use std::path;
+
+    use dialog::{DialogBox, FileSelection};
+    use directories::UserDirs;
+
+    use crate::core::database::database_transfer;
+
+    pub fn export() {
+        let backend = dialog::backends::Zenity::new();
+        let chosen_path = FileSelection::new("Choose filename for the export")
+            .title("Choose filename for the export")
+            .path(get_home_directory())
+            .title("Save export data")
+            .mode(dialog::FileSelectionMode::Save)
+            .show_with(backend)
+            .unwrap();
+
+        if let Some(chosen_path) = chosen_path {
+            let mut save_path = path::PathBuf::from(chosen_path);
+            let file_name = save_path.file_name().map(std::ffi::OsString::from);
+            save_path.pop();
+            database_transfer::write_database_to_path(&save_path, file_name.as_deref()).unwrap();
+        }
+    }
+
+    pub fn import() {
+        let backend = dialog::backends::Zenity::new();
+        let chosen_path = FileSelection::new("Choose file for to import")
+            .title("Choose file for to import")
+            .path(get_home_directory())
+            .title("Save export data")
+            .mode(dialog::FileSelectionMode::Save)
+            .show_with(backend)
+            .unwrap();
+
+        if let Some(chosen_path) = chosen_path {
+            database_transfer::read_database_from_path(path::Path::new(&chosen_path)).unwrap()
+        }
+    }
+
+    pub fn get_home_directory() -> path::PathBuf {
+        let user_dirs = UserDirs::new().unwrap();
+        user_dirs.home_dir().to_path_buf()
     }
 }

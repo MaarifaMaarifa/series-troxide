@@ -21,7 +21,7 @@ pub mod handle_cli {
             } => {
                 database::database_transfer::write_database_to_path(
                     &path_to_data,
-                    export_name.as_deref(),
+                    export_name.as_deref().map(std::ffi::OsStr::new),
                 )?;
                 println!("data exported successfully");
                 Ok(())
