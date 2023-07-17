@@ -16,6 +16,10 @@ lazy_static! {
     pub static ref DB: Database = Database::init();
 }
 
+/// This is a `Vec` containing keys corresponding to their values in the database
+/// in their bytes form usefull for importing and exporting database data
+type KeysValuesVec = Vec<(Vec<u8>, Vec<u8>)>;
+
 pub struct Database {
     db: Db,
 }
@@ -115,6 +119,41 @@ impl Database {
             .iter()
             .map(|series| series.get_total_episodes())
             .sum()
+    }
+
+    /// Returns the bytes of the all database
+    ///
+    /// # Errors
+    ///
+    /// Export fails when reading from the database fails i.e io problems or when data fails to be
+    /// serialize (super unlikely).
+    pub fn export(&self) -> anyhow::Result<Vec<u8>> {
+        let kv: Result<KeysValuesVec, sled::Error> = self
+            .db
+            .iter()
+            .map(|kv| kv.map(|(key, value)| (key.to_vec(), value.to_vec())))
+            .collect();
+        Ok(bincode::serialize(&kv?)?)
+    }
+
+    /// Reads the bytes and adds them to the database
+    ///
+    /// # Note
+    ///
+    /// For already existing series, this will replace their data with the new one.
+    ///
+    /// # Errors
+    ///
+    /// Import fails when the bytes are invalid, when bytes insertion to the database fails
+    /// i.e io problems, and when database fails to flush.
+    pub fn import(&self, data: &[u8]) -> anyhow::Result<()> {
+        let data: KeysValuesVec = bincode::deserialize(data)?;
+
+        data.into_iter()
+            .try_for_each(|(key, value)| self.db.insert(key, value).map(|_| ()))?;
+
+        self.db.flush()?;
+        Ok(())
     }
 }
 
@@ -379,4 +418,92 @@ pub enum AddResult {
     Partial,
     /// When adding did not happen
     None,
+}
+
+pub mod database_transfer {
+    //! Implementations of importing and exporting series tracking data
+
+    use super::DB;
+
+    use std::fs;
+    use std::path;
+
+    const MAGIC: &[u8; 14] = b"series-troxide";
+    const DEFAULT_DATABASE_EXPORT_NAME: &str = "series-troxide-export";
+
+    /// Reads series tracking data from the provided path
+    pub fn read_database_from_path(database_read_path: &path::Path) -> anyhow::Result<()> {
+        DB.import(&remove_magic_from_read_data(fs::read(database_read_path)?)?)?;
+        Ok(())
+    }
+
+    /// Writes series tracking data from the provided directory path
+    ///
+    /// Takes in an optional name to be used as a name for the exported data. Otherwise
+    /// it defaults to series-troxide-export
+    ///
+    /// # Note
+    /// This overwrites any file of the same name if it exists
+    pub fn write_database_to_path(
+        database_write_path: &path::Path,
+        database_name: Option<&str>,
+    ) -> anyhow::Result<()> {
+        let raw_data = DB.export()?;
+
+        let mut database_write_path = path::PathBuf::from(database_write_path);
+
+        if let Some(name) = database_name {
+            database_write_path.push(name);
+        } else {
+            database_write_path.push(DEFAULT_DATABASE_EXPORT_NAME);
+        }
+
+        fs::write(database_write_path, add_magic_into_raw_data(raw_data))?;
+        Ok(())
+    }
+
+    // /// Reads data from the path, checks magic if it's series troxide's and returns data
+    // /// that follow after the magic
+    fn remove_magic_from_read_data(data: Vec<u8>) -> anyhow::Result<Vec<u8>> {
+        let magic = &data[..MAGIC.len()];
+
+        if magic == MAGIC {
+            Ok(data[MAGIC.len()..].into())
+        } else {
+            anyhow::bail!("invalid file")
+        }
+    }
+
+    /// Adds magic bytes into raw data
+    fn add_magic_into_raw_data(mut raw_data: Vec<u8>) -> Vec<u8> {
+        let mut magicfied_data: Vec<u8> = MAGIC.to_vec(); // Initialize data with magic
+        magicfied_data.append(&mut raw_data);
+        magicfied_data
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn remove_magic_from_read_data_test() {
+            let mut raw_data = vec![1, 2, 3];
+            let mut data: Vec<u8> = MAGIC.to_vec(); // Initialize data with magic
+            data.append(&mut raw_data);
+
+            // Checking if we get out actual data
+            assert_eq!(vec![1, 2, 3], remove_magic_from_read_data(data).unwrap())
+        }
+
+        #[test]
+        fn add_magic_into_raw_data_test() {
+            let mut raw_data = vec![1, 2, 3];
+            let magicfied_data = add_magic_into_raw_data(raw_data.clone());
+
+            let mut data: Vec<u8> = MAGIC.to_vec(); // Initialize data with magic
+            data.append(&mut raw_data);
+
+            assert_eq!(magicfied_data, data);
+        }
+    }
 }

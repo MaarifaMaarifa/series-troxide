@@ -9,7 +9,7 @@ fn main() -> anyhow::Result<()> {
     let cli_command = core::cli::cli_data::Cli::parse().command;
 
     if let Some(command) = cli_command {
-        core::cli::handle_cli::handle_cli(command);
+        core::cli::handle_cli::handle_cli(command)?;
         std::process::exit(0);
     }
 
