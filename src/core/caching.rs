@@ -10,6 +10,7 @@ use lazy_static::lazy_static;
 use tokio::fs;
 use tracing::{error, info};
 
+pub mod cache_cleaning;
 pub mod episode_list;
 pub mod series_information;
 pub mod show_cast;

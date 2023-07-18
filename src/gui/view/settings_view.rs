@@ -1,8 +1,9 @@
 use iced::widget::{
     button, column, container, horizontal_space, pick_list, row, text, vertical_space,
 };
-use iced::{Alignment, Element, Length, Renderer};
+use iced::{Alignment, Command, Element, Length, Renderer};
 
+use crate::core::caching::cache_cleaning;
 use crate::core::settings_config::{save_config, Config, Theme, ALL_THEMES};
 use crate::gui::assets::icons::GEAR_WIDE_CONNECTED;
 use crate::gui::{styles, troxide_widget, Message as GuiMessage, Tab};
@@ -12,6 +13,12 @@ pub enum Message {
     ThemeSelected(Theme),
     ImportDatabasePressed,
     ExportDatabasePressed,
+    CleanEndedCache,
+    CleanWaitingReleaseCache,
+    CleanAiredCache,
+    CleanEndedCacheComplete(bool),
+    CleanWaitingReleaseCacheComplete(bool),
+    CleanAiredCacheComplete(bool),
     SaveSettings,
 }
 
@@ -36,7 +43,7 @@ impl SettingsTab {
             &self.settings_config
         }
     }
-    pub fn update(&mut self, message: Message) {
+    pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::ThemeSelected(theme) => {
                 if let Some(config) = &mut self.unsaved_config {
@@ -55,12 +62,36 @@ impl SettingsTab {
             }
             Message::ImportDatabasePressed => database_transfer::import(),
             Message::ExportDatabasePressed => database_transfer::export(),
+            Message::CleanEndedCache => {
+                return Command::perform(cache_cleaning::clean_ended_series_cache(), |res| {
+                    Message::CleanEndedCacheComplete(res.is_ok())
+                })
+            }
+            Message::CleanWaitingReleaseCache => {
+                return Command::perform(
+                    cache_cleaning::clean_running_cache(
+                        cache_cleaning::RunningStatus::WaitingRelease,
+                    ),
+                    |res| Message::CleanWaitingReleaseCacheComplete(res.is_ok()),
+                )
+            }
+            Message::CleanAiredCache => {
+                return Command::perform(
+                    cache_cleaning::clean_running_cache(cache_cleaning::RunningStatus::Aired),
+                    |res| Message::CleanAiredCacheComplete(res.is_ok()),
+                )
+            }
+            Message::CleanEndedCacheComplete(succeded) => println!("{succeded}"),
+            Message::CleanWaitingReleaseCacheComplete(succeded) => println!("{succeded}"),
+            Message::CleanAiredCacheComplete(succeded) => println!("{succeded}"),
         }
+        Command::none()
     }
     pub fn view(&self) -> Element<Message, Renderer> {
         let settings_body = column![
             self.appearance_settings_view(),
             self.database_settings_view(),
+            self.cache_cleaning_view(),
         ]
         .spacing(5)
         .padding(5);
@@ -131,6 +162,47 @@ impl SettingsTab {
             text("Series Troxide Data").size(25),
             import_widget,
             export_widget,
+        ]
+        .padding(5)
+        .spacing(5);
+
+        container(content)
+            .style(styles::container_styles::first_class_container_theme())
+            .width(1000)
+            .into()
+    }
+
+    fn cache_cleaning_view(&self) -> Element<Message, Renderer> {
+        let clean_ended_cache_widget = column![
+            text("Ended Cache Cleaning").size(22),
+            row![
+                "clean cache for the series that have ended",
+                horizontal_space(Length::Fill),
+                button("clean").on_press(Message::CleanEndedCache)
+            ]
+        ];
+        let clean_aired_cache_widget = column![
+            text("Aired Cache Cleaning").size(22),
+            row![
+                "clean cache for the series that are currently being aired",
+                horizontal_space(Length::Fill),
+                button("clean").on_press(Message::CleanAiredCache)
+            ]
+        ];
+        let clean_waiting_release_cache_widget = column![
+            text("Waiting Release Cache Cleaning").size(22),
+            row![
+                "clean cache for the series waiting for their release date",
+                horizontal_space(Length::Fill),
+                button("clean").on_press(Message::CleanWaitingReleaseCache)
+            ]
+        ];
+
+        let content = column![
+            text("Series Troxide Cache").size(25),
+            clean_aired_cache_widget,
+            clean_waiting_release_cache_widget,
+            clean_ended_cache_widget,
         ]
         .padding(5)
         .spacing(5);

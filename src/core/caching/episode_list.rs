@@ -40,6 +40,12 @@ impl EpisodeList {
         Ok(Self { episodes })
     }
 
+    /// Constructs `EpisodeList` from it's cache file contents directly
+    pub fn with_cache(cache_str: &str) -> Result<Self, ApiError> {
+        let episodes = deserialize_json::<Vec<Episode>>(cache_str)?;
+        Ok(Self { episodes })
+    }
+
     pub fn get_episode(&self, season_number: u32, episode_number: u32) -> Option<&Episode> {
         self.episodes.iter().find(|episode| {
             (episode.season == season_number) && (episode.number == Some(episode_number))

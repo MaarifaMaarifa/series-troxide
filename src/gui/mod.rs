@@ -148,10 +148,7 @@ impl Application for TroxideGui {
             Message::Statistics(message) => {
                 self.statistics_tab.update(message).map(Message::Statistics)
             }
-            Message::Settings(message) => {
-                self.settings_tab.update(message);
-                Command::none()
-            }
+            Message::Settings(message) => self.settings_tab.update(message).map(Message::Settings),
             Message::Series(message) => {
                 if let Some(command) =
                     handle_back_message_from_series(&message, &mut self.series_view_active)
