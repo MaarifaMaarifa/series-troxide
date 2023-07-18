@@ -159,40 +159,28 @@ impl Tab for SettingsTab {
 }
 
 mod database_transfer {
+    use directories::UserDirs;
     use std::path;
 
-    use dialog::{DialogBox, FileSelection};
-    use directories::UserDirs;
-
     use crate::core::database::database_transfer;
+    use rfd::FileDialog;
 
     pub fn export() {
-        let backend = dialog::backends::Zenity::new();
-        let chosen_path = FileSelection::new("Choose filename for the export")
-            .title("Choose filename for the export")
-            .path(get_home_directory())
-            .title("Save export data")
-            .mode(dialog::FileSelectionMode::Save)
-            .show_with(backend)
-            .unwrap();
+        let chosen_path = FileDialog::new()
+            .set_directory(get_home_directory())
+            .save_file();
 
-        if let Some(chosen_path) = chosen_path {
-            let mut save_path = path::PathBuf::from(chosen_path);
-            let file_name = save_path.file_name().map(std::ffi::OsString::from);
-            save_path.pop();
-            database_transfer::write_database_to_path(&save_path, file_name.as_deref()).unwrap();
+        if let Some(mut chosen_path) = chosen_path {
+            let file_name = chosen_path.file_name().map(std::ffi::OsString::from);
+            chosen_path.pop();
+            database_transfer::write_database_to_path(&chosen_path, file_name.as_deref()).unwrap();
         }
     }
 
     pub fn import() {
-        let backend = dialog::backends::Zenity::new();
-        let chosen_path = FileSelection::new("Choose file to import")
-            .title("Choose file to import")
-            .path(get_home_directory())
-            .title("Import data")
-            .mode(dialog::FileSelectionMode::Save)
-            .show_with(backend)
-            .unwrap();
+        let chosen_path = FileDialog::new()
+            .set_directory(get_home_directory())
+            .pick_file();
 
         if let Some(chosen_path) = chosen_path {
             database_transfer::read_database_from_path(path::Path::new(&chosen_path)).unwrap()
