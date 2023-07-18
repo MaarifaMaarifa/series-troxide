@@ -18,6 +18,8 @@ jobs:
       run: rustup update
     - name: Installing ATK build dependency
       run: sudo apt install librust-atk-dev
+    - name: Installing GDK build dependency
+      run: sudo apt install librust-gdk-dev
     - name: Build
       run: cargo build --verbose
     - name: Run tests
