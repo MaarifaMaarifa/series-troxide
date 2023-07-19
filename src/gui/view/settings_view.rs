@@ -62,7 +62,12 @@ impl SettingsTab {
             Message::Caching(message) => {
                 return self.caching_settings.update(message).map(Message::Caching)
             }
-            Message::Database(message) => self.database_settings.update(message),
+            Message::Database(message) => {
+                return self
+                    .database_settings
+                    .update(message)
+                    .map(Message::Database)
+            }
         }
         Command::none()
     }
@@ -139,9 +144,15 @@ impl Tab for SettingsTab {
     }
 }
 
+/// A function that sleeps for 3 seconds designed to provide timeout
+/// for status texts in widgets like the database and caching widget.
+async fn status_timeout() {
+    tokio::time::sleep(std::time::Duration::from_secs(3)).await
+}
+
 mod database_widget {
     use iced::widget::{button, column, container, horizontal_space, row, text, Text};
-    use iced::{Element, Length, Renderer};
+    use iced::{Command, Element, Length, Renderer};
 
     use crate::gui::styles;
 
@@ -149,6 +160,8 @@ mod database_widget {
     pub enum Message {
         ImportDatabasePressed,
         ExportDatabasePressed,
+        ImportTimeoutComplete,
+        ExportTimeoutComplete,
     }
 
     #[derive(Default)]
@@ -158,13 +171,24 @@ mod database_widget {
     }
 
     impl Database {
-        pub fn update(&mut self, message: Message) {
+        pub fn update(&mut self, message: Message) -> Command<Message> {
             match message {
                 Message::ImportDatabasePressed => {
-                    self.import_status = Some(database_transfer::import())
+                    self.import_status = Some(database_transfer::import());
+
+                    Command::perform(super::status_timeout(), |_| Message::ImportTimeoutComplete)
                 }
                 Message::ExportDatabasePressed => {
-                    self.export_status = Some(database_transfer::export())
+                    self.export_status = Some(database_transfer::export());
+                    Command::perform(super::status_timeout(), |_| Message::ExportTimeoutComplete)
+                }
+                Message::ImportTimeoutComplete => {
+                    self.import_status = None;
+                    Command::none()
+                }
+                Message::ExportTimeoutComplete => {
+                    self.export_status = None;
+                    Command::none()
                 }
             }
         }
