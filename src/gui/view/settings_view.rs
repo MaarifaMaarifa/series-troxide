@@ -93,7 +93,11 @@ impl SettingsTab {
     }
 
     fn appearance_settings_view(&self) -> Element<Message, Renderer> {
-        let content = column![text("Appearance").size(25)].padding(5).spacing(5);
+        let content = column![text("Appearance")
+            .size(25)
+            .style(styles::text_styles::purple_text_theme())]
+        .padding(5)
+        .spacing(5);
 
         let theme_text = text("Theme");
         let theme_picklist = pick_list(
@@ -178,7 +182,9 @@ mod database_widget {
             ];
 
             let content = column![
-                text("Series Troxide Data").size(25),
+                text("Series Troxide Data")
+                    .size(25)
+                    .style(styles::text_styles::purple_text_theme()),
                 import_widget,
                 export_widget,
             ]
@@ -308,7 +314,9 @@ mod caching_widget {
 
         pub fn view(&self) -> Element<'_, Message, Renderer> {
             let content = column![
-                text("Series Troxide Cache").size(25),
+                text("Series Troxide Cache")
+                    .size(25)
+                    .style(styles::text_styles::purple_text_theme()),
                 self.clean_aired_cache_widget(),
                 self.clean_waiting_release_cache_widget(),
                 self.clean_ended_cache_widget(),
