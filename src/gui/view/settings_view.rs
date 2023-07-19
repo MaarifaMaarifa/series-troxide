@@ -302,6 +302,10 @@ mod caching_widget {
         CleanEndedCacheComplete(Option<String>),
         CleanWaitingReleaseCacheComplete(Option<String>),
         CleanAiredCacheComplete(Option<String>),
+        // timeouts for removing the status text
+        CleanEndedCacheTimeoutComplete,
+        CleanWaitingReleaseCacheTimeoutComplete,
+        CleanAiredCacheTimeoutComplete,
     }
 
     #[derive(Default)]
@@ -351,13 +355,31 @@ mod caching_widget {
                     );
                 }
                 Message::CleanEndedCacheComplete(error_text) => {
-                    self.ended_series_cache_cleaning = CleaningStatus::Done(error_text)
+                    self.ended_series_cache_cleaning = CleaningStatus::Done(error_text);
+                    return Command::perform(super::status_timeout(), |_| {
+                        Message::CleanEndedCacheTimeoutComplete
+                    });
                 }
                 Message::CleanWaitingReleaseCacheComplete(error_text) => {
-                    self.waiting_release_series_cache_cleaning = CleaningStatus::Done(error_text)
+                    self.waiting_release_series_cache_cleaning = CleaningStatus::Done(error_text);
+                    return Command::perform(super::status_timeout(), |_| {
+                        Message::CleanWaitingReleaseCacheTimeoutComplete
+                    });
                 }
                 Message::CleanAiredCacheComplete(error_text) => {
-                    self.aired_series_cache_cleaning = CleaningStatus::Done(error_text)
+                    self.aired_series_cache_cleaning = CleaningStatus::Done(error_text);
+                    return Command::perform(super::status_timeout(), |_| {
+                        Message::CleanAiredCacheTimeoutComplete
+                    });
+                }
+                Message::CleanEndedCacheTimeoutComplete => {
+                    self.ended_series_cache_cleaning = CleaningStatus::Idle
+                }
+                Message::CleanWaitingReleaseCacheTimeoutComplete => {
+                    self.waiting_release_series_cache_cleaning = CleaningStatus::Idle
+                }
+                Message::CleanAiredCacheTimeoutComplete => {
+                    self.aired_series_cache_cleaning = CleaningStatus::Idle
                 }
             }
             Command::none()
