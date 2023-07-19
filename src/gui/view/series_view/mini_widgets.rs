@@ -6,7 +6,7 @@ use crate::gui::assets::get_static_cow_from_asset;
 use crate::gui::assets::icons::CLOCK_FILL;
 use crate::gui::helpers::season_episode_str_gen;
 use crate::gui::styles;
-use crate::gui::troxide_widget::{GREEN_THEME, INFO_HEADER, RED_THEME};
+use crate::gui::troxide_widget::INFO_HEADER;
 
 use iced::widget::{column, container, row, svg, text, Space};
 use iced::{Element, Length, Renderer};
@@ -22,8 +22,8 @@ pub fn status_widget(
     let title_text = text("Status");
 
     let status_text = match SeriesStatus::new(series_info) {
-        SeriesStatus::Running => text("Running").style(GREEN_THEME),
-        SeriesStatus::Ended => text("Ended").style(RED_THEME),
+        SeriesStatus::Running => text("Running").style(styles::text_styles::green_text_theme()),
+        SeriesStatus::Ended => text("Ended").style(styles::text_styles::red_text_theme()),
         SeriesStatus::ToBeDetermined => text("To Be Determined"),
         SeriesStatus::InDevelopment => text("In Development"),
         SeriesStatus::Other => text(&series_info.status),

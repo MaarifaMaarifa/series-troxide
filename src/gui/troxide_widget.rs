@@ -5,12 +5,6 @@ pub const INFO_HEADER: u16 = 18;
 
 // const INFO_BODY_HEIGHT: u16 = INFO_HEADER - (INFO_HEADER - INFO_BODY);
 
-const RED_COLOR: iced::Color = iced::Color::from_rgb(2.55, 0.0, 0.0);
-const GREEN_COLOR: iced::Color = iced::Color::from_rgb(0.0, 1.28, 0.0);
-
-pub const RED_THEME: iced::theme::Text = iced::theme::Text::Color(RED_COLOR);
-pub const GREEN_THEME: iced::theme::Text = iced::theme::Text::Color(GREEN_COLOR);
-
 pub mod series_poster {
 
     use crate::core::api::episodes_information::Episode;

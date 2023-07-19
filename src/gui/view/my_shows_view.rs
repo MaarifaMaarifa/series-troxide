@@ -6,7 +6,7 @@ use crate::core::caching::episode_list::EpisodeReleaseTime;
 use crate::core::{api::series_information::SeriesMainInformation, database};
 use crate::gui::assets::icons::FILM;
 use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
-use crate::gui::troxide_widget::{self, GREEN_THEME, RED_THEME};
+use crate::gui::{styles, troxide_widget};
 use crate::gui::{Message as GuiMessage, Tab};
 use iced::widget::{container, scrollable, Column};
 use iced_aw::{Spinner, Wrap};
@@ -221,9 +221,13 @@ impl MyShowsTab {
 
                 let content = column!(
                     upcoming_series_releases,
-                    text("Waiting For Release Date").size(20).style(GREEN_THEME),
+                    text("Waiting For Release Date")
+                        .size(20)
+                        .style(styles::text_styles::green_text_theme()),
                     running_shows,
-                    text("Ended").size(20).style(RED_THEME),
+                    text("Ended")
+                        .size(20)
+                        .style(styles::text_styles::red_text_theme()),
                     ended_shows,
                     text("Untracked").size(20),
                     untracked_shows
