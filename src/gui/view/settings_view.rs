@@ -162,7 +162,7 @@ mod database_widget {
             let import_widget = column![
                 text("Import Data").size(22),
                 row![
-                    "Import your series tracking data into Series Troxide",
+                    text("Import your series tracking data into Series Troxide").size(15),
                     horizontal_space(Length::Fill),
                     button("Import").on_press(Message::ImportDatabasePressed)
                 ]
@@ -171,7 +171,7 @@ mod database_widget {
             let export_widget = column![
                 text("Export Data").size(22),
                 row![
-                    "Export your series tracking data from Series Troxide",
+                    text("Export your series tracking data from Series Troxide").size(15),
                     horizontal_space(Length::Fill),
                     button("Export").on_press(Message::ExportDatabasePressed)
                 ]
@@ -328,7 +328,7 @@ mod caching_widget {
             column![
                 text("Ended Cache Cleaning").size(22),
                 row![
-                    "clean cache for the series that have ended",
+                    text("clean cache for the series that have ended").size(15),
                     horizontal_space(Length::Fill),
                     text(status_text),
                     button,
@@ -345,7 +345,7 @@ mod caching_widget {
             column![
                 text("Aired Cache Cleaning").size(22),
                 row![
-                    "clean cache for the series that are currently being aired",
+                    text("clean cache for the series that are currently being aired").size(15),
                     horizontal_space(Length::Fill),
                     text(status_text),
                     button,
@@ -364,7 +364,7 @@ mod caching_widget {
             column![
                 text("Waiting Release Cache Cleaning").size(22),
                 row![
-                    "clean cache for the series waiting for their release date",
+                    text("clean cache for the series waiting for their release date").size(15),
                     horizontal_space(Length::Fill),
                     text(status_text),
                     button,
