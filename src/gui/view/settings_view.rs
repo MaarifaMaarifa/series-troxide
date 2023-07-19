@@ -263,7 +263,7 @@ mod database_widget {
 }
 
 mod caching_widget {
-    use iced::widget::{button, column, container, horizontal_space, row, text, Button};
+    use iced::widget::{button, column, container, horizontal_space, row, text, Button, Text};
     use iced::{Command, Element, Length, Renderer};
 
     use crate::core::caching::cache_cleaning;
@@ -365,10 +365,10 @@ mod caching_widget {
                 row![
                     text("clean cache for the series that have ended").size(15),
                     horizontal_space(Length::Fill),
-                    text(status_text),
+                    status_text,
                     button,
                 ]
-                .spacing(3)
+                .spacing(5)
             ]
             .into()
         }
@@ -382,10 +382,10 @@ mod caching_widget {
                 row![
                     text("clean cache for the series that are currently being aired").size(15),
                     horizontal_space(Length::Fill),
-                    text(status_text),
+                    status_text,
                     button,
                 ]
-                .spacing(3)
+                .spacing(5)
             ]
             .into()
         }
@@ -401,10 +401,10 @@ mod caching_widget {
                 row![
                     text("clean cache for the series waiting for their release date").size(15),
                     horizontal_space(Length::Fill),
-                    text(status_text),
+                    status_text,
                     button,
                 ]
-                .spacing(3)
+                .spacing(5)
             ]
             .into()
         }
@@ -414,20 +414,20 @@ mod caching_widget {
     fn status_and_button_gen(
         cleaning_status: &CleaningStatus,
         button_message: Message,
-    ) -> (&str, Button<Message, Renderer>) {
+    ) -> (Text, Button<Message, Renderer>) {
         let mut button = button("clean");
         let status_text = match cleaning_status {
             CleaningStatus::Idle => {
                 button = button.on_press(button_message);
-                ""
+                text("")
             }
-            CleaningStatus::Running => "Running",
+            CleaningStatus::Running => text("Running"),
             CleaningStatus::Done(error_message) => {
                 button = button.on_press(button_message);
                 if let Some(error_message) = error_message {
-                    error_message.as_str()
+                    text(error_message.as_str()).style(styles::text_styles::red_text_theme())
                 } else {
-                    "Done"
+                    text("Done!").style(styles::text_styles::green_text_theme())
                 }
             }
         };
