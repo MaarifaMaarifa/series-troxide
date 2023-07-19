@@ -7,14 +7,14 @@ use crate::core::settings_config::{save_config, Config, Theme, ALL_THEMES};
 use crate::gui::assets::icons::GEAR_WIDE_CONNECTED;
 use crate::gui::{styles, troxide_widget, Message as GuiMessage, Tab};
 use caching_widget::{Caching, Message as CachingMessage};
+use database_widget::{Database, Message as DatabaseMessage};
 
 #[derive(Debug, Clone)]
 pub enum Message {
     ThemeSelected(Theme),
-    ImportDatabasePressed,
-    ExportDatabasePressed,
     SaveSettings,
     Caching(CachingMessage),
+    Database(DatabaseMessage),
 }
 
 #[derive(Default)]
@@ -22,6 +22,7 @@ pub struct SettingsTab {
     settings_config: Config,
     unsaved_config: Option<Config>,
     caching_settings: Caching,
+    database_settings: Database,
 }
 
 impl SettingsTab {
@@ -30,6 +31,7 @@ impl SettingsTab {
             settings_config,
             unsaved_config: None,
             caching_settings: Caching::default(),
+            database_settings: Database,
         }
     }
 
@@ -57,18 +59,17 @@ impl SettingsTab {
                     save_config(&self.settings_config);
                 }
             }
-            Message::ImportDatabasePressed => database_transfer::import(),
-            Message::ExportDatabasePressed => database_transfer::export(),
             Message::Caching(message) => {
                 return self.caching_settings.update(message).map(Message::Caching)
             }
+            Message::Database(message) => self.database_settings.update(message),
         }
         Command::none()
     }
     pub fn view(&self) -> Element<Message, Renderer> {
         let settings_body = column![
             self.appearance_settings_view(),
-            self.database_settings_view(),
+            self.database_settings.view().map(Message::Database),
             self.caching_settings.view().map(Message::Caching),
         ]
         .spacing(5)
@@ -116,39 +117,6 @@ impl SettingsTab {
             .width(1000)
             .into()
     }
-
-    fn database_settings_view(&self) -> Element<Message, Renderer> {
-        let import_widget = column![
-            text("Import Data").size(22),
-            row![
-                "Import your series tracking data into Series Troxide",
-                horizontal_space(Length::Fill),
-                button("Import").on_press(Message::ImportDatabasePressed)
-            ]
-        ];
-
-        let export_widget = column![
-            text("Export Data").size(22),
-            row![
-                "Export your series tracking data from Series Troxide",
-                horizontal_space(Length::Fill),
-                button("Export").on_press(Message::ExportDatabasePressed)
-            ]
-        ];
-
-        let content = column![
-            text("Series Troxide Data").size(25),
-            import_widget,
-            export_widget,
-        ]
-        .padding(5)
-        .spacing(5);
-
-        container(content)
-            .style(styles::container_styles::first_class_container_theme())
-            .width(1000)
-            .into()
-    }
 }
 
 impl Tab for SettingsTab {
@@ -167,38 +135,97 @@ impl Tab for SettingsTab {
     }
 }
 
-mod database_transfer {
-    use directories::UserDirs;
-    use std::path;
+mod database_widget {
+    use iced::widget::{button, column, container, horizontal_space, row, text};
+    use iced::{Element, Length, Renderer};
 
-    use crate::core::database::database_transfer;
-    use rfd::FileDialog;
+    use crate::gui::styles;
 
-    pub fn export() {
-        let chosen_path = FileDialog::new()
-            .set_directory(get_home_directory())
-            .save_file();
+    #[derive(Debug, Clone)]
+    pub enum Message {
+        ImportDatabasePressed,
+        ExportDatabasePressed,
+    }
 
-        if let Some(mut chosen_path) = chosen_path {
-            let file_name = chosen_path.file_name().map(std::ffi::OsString::from);
-            chosen_path.pop();
-            database_transfer::write_database_to_path(&chosen_path, file_name.as_deref()).unwrap();
+    #[derive(Default)]
+    pub struct Database;
+
+    impl Database {
+        pub fn update(&mut self, message: Message) {
+            match message {
+                Message::ImportDatabasePressed => database_transfer::import(),
+                Message::ExportDatabasePressed => database_transfer::export(),
+            }
+        }
+
+        pub fn view(&self) -> Element<'_, Message, Renderer> {
+            let import_widget = column![
+                text("Import Data").size(22),
+                row![
+                    "Import your series tracking data into Series Troxide",
+                    horizontal_space(Length::Fill),
+                    button("Import").on_press(Message::ImportDatabasePressed)
+                ]
+            ];
+
+            let export_widget = column![
+                text("Export Data").size(22),
+                row![
+                    "Export your series tracking data from Series Troxide",
+                    horizontal_space(Length::Fill),
+                    button("Export").on_press(Message::ExportDatabasePressed)
+                ]
+            ];
+
+            let content = column![
+                text("Series Troxide Data").size(25),
+                import_widget,
+                export_widget,
+            ]
+            .padding(5)
+            .spacing(5);
+
+            container(content)
+                .style(styles::container_styles::first_class_container_theme())
+                .width(1000)
+                .into()
         }
     }
 
-    pub fn import() {
-        let chosen_path = FileDialog::new()
-            .set_directory(get_home_directory())
-            .pick_file();
+    mod database_transfer {
+        use directories::UserDirs;
+        use std::path;
 
-        if let Some(chosen_path) = chosen_path {
-            database_transfer::read_database_from_path(path::Path::new(&chosen_path)).unwrap()
+        use crate::core::database::database_transfer;
+        use rfd::FileDialog;
+
+        pub fn export() {
+            let chosen_path = FileDialog::new()
+                .set_directory(get_home_directory())
+                .save_file();
+
+            if let Some(mut chosen_path) = chosen_path {
+                let file_name = chosen_path.file_name().map(std::ffi::OsString::from);
+                chosen_path.pop();
+                database_transfer::write_database_to_path(&chosen_path, file_name.as_deref())
+                    .unwrap();
+            }
         }
-    }
 
-    pub fn get_home_directory() -> path::PathBuf {
-        let user_dirs = UserDirs::new().unwrap();
-        user_dirs.home_dir().to_path_buf()
+        pub fn import() {
+            let chosen_path = FileDialog::new()
+                .set_directory(get_home_directory())
+                .pick_file();
+
+            if let Some(chosen_path) = chosen_path {
+                database_transfer::read_database_from_path(path::Path::new(&chosen_path)).unwrap()
+            }
+        }
+
+        pub fn get_home_directory() -> path::PathBuf {
+            let user_dirs = UserDirs::new().unwrap();
+            user_dirs.home_dir().to_path_buf()
+        }
     }
 }
 
