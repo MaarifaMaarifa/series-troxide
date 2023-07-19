@@ -29,7 +29,7 @@ impl SettingsTab {
         Self {
             settings_config,
             unsaved_config: None,
-            caching_settings: Caching,
+            caching_settings: Caching::default(),
         }
     }
 
@@ -203,7 +203,7 @@ mod database_transfer {
 }
 
 mod caching_widget {
-    use iced::widget::{button, column, container, horizontal_space, row, text};
+    use iced::widget::{button, column, container, horizontal_space, row, text, Button};
     use iced::{Command, Element, Length, Renderer};
 
     use crate::core::caching::cache_cleaning;
@@ -215,74 +215,76 @@ mod caching_widget {
         CleanEndedCache,
         CleanWaitingReleaseCache,
         CleanAiredCache,
-        CleanEndedCacheComplete(bool),
-        CleanWaitingReleaseCacheComplete(bool),
-        CleanAiredCacheComplete(bool),
+        CleanEndedCacheComplete(Option<String>),
+        CleanWaitingReleaseCacheComplete(Option<String>),
+        CleanAiredCacheComplete(Option<String>),
     }
 
     #[derive(Default)]
-    pub struct Caching;
+    enum CleaningStatus {
+        #[default]
+        Idle,
+        Running,
+        Done(Option<String>),
+    }
+
+    #[derive(Default)]
+    pub struct Caching {
+        ended_series_cache_cleaning: CleaningStatus,
+        aired_series_cache_cleaning: CleaningStatus,
+        waiting_release_series_cache_cleaning: CleaningStatus,
+    }
 
     impl Caching {
         pub fn update(&mut self, message: Message) -> Command<Message> {
             match message {
                 Message::CleanEndedCache => {
+                    self.ended_series_cache_cleaning = CleaningStatus::Running;
                     return Command::perform(cache_cleaning::clean_ended_series_cache(), |res| {
-                        Message::CleanEndedCacheComplete(res.is_ok())
-                    })
+                        Message::CleanEndedCacheComplete(res.err().map(|err| err.to_string()))
+                    });
                 }
                 Message::CleanWaitingReleaseCache => {
+                    self.waiting_release_series_cache_cleaning = CleaningStatus::Running;
                     return Command::perform(
                         cache_cleaning::clean_running_cache(
                             cache_cleaning::RunningStatus::WaitingRelease,
                         ),
-                        |res| Message::CleanWaitingReleaseCacheComplete(res.is_ok()),
-                    )
+                        |res| {
+                            Message::CleanWaitingReleaseCacheComplete(
+                                res.err().map(|err| err.to_string()),
+                            )
+                        },
+                    );
                 }
                 Message::CleanAiredCache => {
+                    self.aired_series_cache_cleaning = CleaningStatus::Running;
                     return Command::perform(
                         cache_cleaning::clean_running_cache(cache_cleaning::RunningStatus::Aired),
-                        |res| Message::CleanAiredCacheComplete(res.is_ok()),
-                    )
+                        |res| {
+                            Message::CleanAiredCacheComplete(res.err().map(|err| err.to_string()))
+                        },
+                    );
                 }
-                Message::CleanEndedCacheComplete(succeded) => println!("{succeded}"),
-                Message::CleanWaitingReleaseCacheComplete(succeded) => println!("{succeded}"),
-                Message::CleanAiredCacheComplete(succeded) => println!("{succeded}"),
+                Message::CleanEndedCacheComplete(error_text) => {
+                    self.ended_series_cache_cleaning = CleaningStatus::Done(error_text)
+                }
+                Message::CleanWaitingReleaseCacheComplete(error_text) => {
+                    self.waiting_release_series_cache_cleaning = CleaningStatus::Done(error_text)
+                }
+                Message::CleanAiredCacheComplete(error_text) => {
+                    self.aired_series_cache_cleaning = CleaningStatus::Done(error_text)
+                }
             }
             Command::none()
         }
 
         pub fn view(&self) -> Element<'_, Message, Renderer> {
-            let clean_ended_cache_widget = column![
-                text("Ended Cache Cleaning").size(22),
-                row![
-                    "clean cache for the series that have ended",
-                    horizontal_space(Length::Fill),
-                    button("clean").on_press(Message::CleanEndedCache)
-                ]
-            ];
-            let clean_aired_cache_widget = column![
-                text("Aired Cache Cleaning").size(22),
-                row![
-                    "clean cache for the series that are currently being aired",
-                    horizontal_space(Length::Fill),
-                    button("clean").on_press(Message::CleanAiredCache)
-                ]
-            ];
-            let clean_waiting_release_cache_widget = column![
-                text("Waiting Release Cache Cleaning").size(22),
-                row![
-                    "clean cache for the series waiting for their release date",
-                    horizontal_space(Length::Fill),
-                    button("clean").on_press(Message::CleanWaitingReleaseCache)
-                ]
-            ];
-
             let content = column![
                 text("Series Troxide Cache").size(25),
-                clean_aired_cache_widget,
-                clean_waiting_release_cache_widget,
-                clean_ended_cache_widget,
+                self.clean_aired_cache_widget(),
+                self.clean_waiting_release_cache_widget(),
+                self.clean_ended_cache_widget(),
             ]
             .padding(5)
             .spacing(5);
@@ -292,5 +294,82 @@ mod caching_widget {
                 .width(1000)
                 .into()
         }
+
+        fn clean_ended_cache_widget(&self) -> Element<'_, Message, Renderer> {
+            let (status_text, button) =
+                status_and_button_gen(&self.ended_series_cache_cleaning, Message::CleanEndedCache);
+            column![
+                text("Ended Cache Cleaning").size(22),
+                row![
+                    "clean cache for the series that have ended",
+                    horizontal_space(Length::Fill),
+                    text(status_text),
+                    button,
+                ]
+                .spacing(3)
+            ]
+            .into()
+        }
+
+        fn clean_aired_cache_widget(&self) -> Element<'_, Message, Renderer> {
+            let (status_text, button) =
+                status_and_button_gen(&self.aired_series_cache_cleaning, Message::CleanAiredCache);
+
+            column![
+                text("Aired Cache Cleaning").size(22),
+                row![
+                    "clean cache for the series that are currently being aired",
+                    horizontal_space(Length::Fill),
+                    text(status_text),
+                    button,
+                ]
+                .spacing(3)
+            ]
+            .into()
+        }
+
+        fn clean_waiting_release_cache_widget(&self) -> Element<'_, Message, Renderer> {
+            let (status_text, button) = status_and_button_gen(
+                &self.waiting_release_series_cache_cleaning,
+                Message::CleanWaitingReleaseCache,
+            );
+
+            column![
+                text("Waiting Release Cache Cleaning").size(22),
+                row![
+                    "clean cache for the series waiting for their release date",
+                    horizontal_space(Length::Fill),
+                    text(status_text),
+                    button,
+                ]
+                .spacing(3)
+            ]
+            .into()
+        }
+    }
+
+    /// Generates the status text and the button for each type of cleaning
+    fn status_and_button_gen(
+        cleaning_status: &CleaningStatus,
+        button_message: Message,
+    ) -> (&str, Button<Message, Renderer>) {
+        let mut button = button("clean");
+        let status_text = match cleaning_status {
+            CleaningStatus::Idle => {
+                button = button.on_press(button_message);
+                ""
+            }
+            CleaningStatus::Running => "Running",
+            CleaningStatus::Done(error_message) => {
+                button = button.on_press(button_message);
+                if let Some(error_message) = error_message {
+                    error_message.as_str()
+                } else {
+                    "Done"
+                }
+            }
+        };
+
+        (status_text, button)
     }
 }
