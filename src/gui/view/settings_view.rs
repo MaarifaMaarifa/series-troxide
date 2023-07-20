@@ -48,10 +48,10 @@ impl SettingsTab {
         match message {
             Message::ThemeSelected(theme) => {
                 if let Some(config) = &mut self.unsaved_config {
-                    config.theme = theme
+                    config.appearance.theme = theme
                 } else {
                     let mut unsaved_config = self.settings_config.clone();
-                    unsaved_config.theme = theme;
+                    unsaved_config.appearance.theme = theme;
                     self.unsaved_config = Some(unsaved_config);
                 }
             }
@@ -118,9 +118,9 @@ impl SettingsTab {
         let theme_picklist = pick_list(
             &ALL_THEMES[..],
             Some(if let Some(config) = &self.unsaved_config {
-                config.theme.clone()
+                config.appearance.theme.clone()
             } else {
-                self.settings_config.theme.clone()
+                self.settings_config.appearance.theme.clone()
             }),
             Message::ThemeSelected,
         );

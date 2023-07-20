@@ -102,7 +102,7 @@ impl Application for TroxideGui {
     }
 
     fn theme(&self) -> iced::Theme {
-        match self.settings_tab.get_config_settings().theme {
+        match self.settings_tab.get_config_settings().appearance.theme {
             settings_config::Theme::Light => {
                 let theme = styles::theme::TroxideTheme::Light;
                 iced::Theme::Custom(Box::new(theme.get_theme()))
