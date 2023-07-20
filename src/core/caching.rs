@@ -52,6 +52,12 @@ impl Cacher {
         }
     }
 
+    /// Return the root path where all series troxide data resides including
+    /// the cache
+    pub fn get_project_path(&self) -> &path::Path {
+        &self.cache_path
+    }
+
     pub fn get_cache_folder_path(&self, cache_type: CacheFolderType) -> path::PathBuf {
         let mut cache_path = self.cache_path.clone();
         match cache_type {

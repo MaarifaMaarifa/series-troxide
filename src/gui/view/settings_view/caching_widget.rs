@@ -1,7 +1,7 @@
 use iced::widget::{button, column, container, horizontal_space, row, text, Button, Text};
 use iced::{Command, Element, Length, Renderer};
 
-use crate::core::caching::cache_cleaning;
+// use crate::core::caching::cache_cleaning;
 use crate::gui::styles;
 
 #[allow(clippy::enum_variant_names)] // Removing the word clean makes the message not make sense
@@ -39,29 +39,21 @@ impl Caching {
         match message {
             Message::CleanEndedCache => {
                 self.ended_series_cache_cleaning = CleaningStatus::Running;
-                return Command::perform(cache_cleaning::clean_ended_series_cache(), |res| {
+                return Command::perform(cache_cleaning::clean_ended_cache(), |res| {
                     Message::CleanEndedCacheComplete(res.err().map(|err| err.to_string()))
                 });
             }
             Message::CleanWaitingReleaseCache => {
                 self.waiting_release_series_cache_cleaning = CleaningStatus::Running;
-                return Command::perform(
-                    cache_cleaning::clean_running_cache(
-                        cache_cleaning::RunningStatus::WaitingRelease,
-                    ),
-                    |res| {
-                        Message::CleanWaitingReleaseCacheComplete(
-                            res.err().map(|err| err.to_string()),
-                        )
-                    },
-                );
+                return Command::perform(cache_cleaning::cleaning_waiting_release_cache(), |res| {
+                    Message::CleanWaitingReleaseCacheComplete(res.err().map(|err| err.to_string()))
+                });
             }
             Message::CleanAiredCache => {
                 self.aired_series_cache_cleaning = CleaningStatus::Running;
-                return Command::perform(
-                    cache_cleaning::clean_running_cache(cache_cleaning::RunningStatus::Aired),
-                    |res| Message::CleanAiredCacheComplete(res.err().map(|err| err.to_string())),
-                );
+                return Command::perform(cache_cleaning::clean_aired_cache(), |res| {
+                    Message::CleanAiredCacheComplete(res.err().map(|err| err.to_string()))
+                });
             }
             Message::CleanEndedCacheComplete(error_text) => {
                 self.ended_series_cache_cleaning = CleaningStatus::Done(error_text);
@@ -188,4 +180,27 @@ fn status_and_button_gen(
     };
 
     (status_text, button)
+}
+
+mod cache_cleaning {
+    use crate::core::caching::cache_cleaning::{CacheCleaner, CleanType, RunningStatus};
+
+    pub async fn clean_ended_cache() -> anyhow::Result<()> {
+        let mut cleaner = CacheCleaner::new()?;
+        cleaner.clean_cache(CleanType::Ended).await
+    }
+
+    pub async fn cleaning_waiting_release_cache() -> anyhow::Result<()> {
+        let mut cleaner = CacheCleaner::new()?;
+        cleaner
+            .clean_cache(CleanType::Running(RunningStatus::WaitingRelease))
+            .await
+    }
+
+    pub async fn clean_aired_cache() -> anyhow::Result<()> {
+        let mut cleaner = CacheCleaner::new()?;
+        cleaner
+            .clean_cache(CleanType::Running(RunningStatus::Aired))
+            .await
+    }
 }

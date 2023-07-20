@@ -12,8 +12,13 @@ use super::{
     episode_list::EpisodeList, read_cache, CacheFolderType, CACHER, EPISODE_LIST_FILENAME,
     SERIES_MAIN_INFORMATION_FILENAME,
 };
+use anyhow::bail;
+use chrono::{DateTime, Local, Utc};
+use serde::{Deserialize, Serialize};
 use tokio::fs;
 use tracing::{error, info};
+
+const CLEANING_RECORD_FILENAME: &str = "cache-cleaning-record.toml";
 
 /// A type of cleaning to be performed by cache cleaner
 pub enum CleanType {
@@ -32,8 +37,83 @@ pub enum RunningStatus {
     WaitingRelease,
 }
 
+#[derive(Debug, Default, Serialize, Deserialize)]
+struct CacheCleaningRecord {
+    pub last_aired_cache_clean: DateTime<Local>,
+    pub last_waiting_release_cache_clean: DateTime<Local>,
+    pub last_ended_cache_clean: DateTime<Local>,
+}
+
+pub struct CacheCleaner {
+    cache_cleaning_record: CacheCleaningRecord,
+}
+
+impl CacheCleaner {
+    fn get_cache_cleaning_record_path() -> path::PathBuf {
+        let mut cache_path = path::PathBuf::from(CACHER.get_project_path());
+        cache_path.push(CLEANING_RECORD_FILENAME);
+        cache_path
+    }
+
+    fn open_cleaning_record() -> anyhow::Result<CacheCleaningRecord> {
+        let cache_cleaning_record_path = Self::get_cache_cleaning_record_path();
+
+        let content = match std::fs::read_to_string(&cache_cleaning_record_path) {
+            Ok(content) => content,
+            Err(err) => {
+                if err.kind() == std::io::ErrorKind::NotFound {
+                    let cache_cleaning_record = CacheCleaningRecord::default();
+                    let content = toml::to_string(&cache_cleaning_record)?;
+                    std::fs::write(cache_cleaning_record_path, content)?;
+                    return Ok(cache_cleaning_record);
+                } else {
+                    bail!(err)
+                }
+            }
+        };
+        Ok(toml::from_str(&content)?)
+    }
+
+    pub fn new() -> anyhow::Result<Self> {
+        Ok(Self {
+            cache_cleaning_record: Self::open_cleaning_record()?,
+        })
+    }
+
+    pub async fn clean_cache(&mut self, clean_type: CleanType) -> anyhow::Result<()> {
+        match clean_type {
+            CleanType::Running(running_status) => {
+                clean_running_cache(&running_status).await?;
+                match running_status {
+                    RunningStatus::Aired => {
+                        self.cache_cleaning_record.last_aired_cache_clean =
+                            Utc::now().with_timezone(&Local)
+                    }
+
+                    RunningStatus::WaitingRelease => {
+                        self.cache_cleaning_record.last_waiting_release_cache_clean =
+                            Utc::now().with_timezone(&Local)
+                    }
+                }
+            }
+            CleanType::Ended => {
+                clean_ended_series_cache().await?;
+                self.cache_cleaning_record.last_ended_cache_clean =
+                    Utc::now().with_timezone(&Local);
+            }
+        }
+
+        std::fs::write(
+            Self::get_cache_cleaning_record_path(),
+            toml::to_string(&self.cache_cleaning_record)?,
+        )?;
+
+        Ok(())
+    }
+}
+
 /// Cleans the cache of all ended series
-pub async fn clean_ended_series_cache() -> anyhow::Result<()> {
+async fn clean_ended_series_cache() -> anyhow::Result<()> {
     let mut read_dir = fs::read_dir(CACHER.get_cache_folder_path(CacheFolderType::Series)).await?;
 
     while let Some(dir_entry) = read_dir.next_entry().await? {
@@ -59,7 +139,7 @@ pub async fn clean_ended_series_cache() -> anyhow::Result<()> {
 
 /// Cleans the cache of all running series depending on whether they are currently being aired or waiting for
 /// their release dates
-pub async fn clean_running_cache(running_status: RunningStatus) -> anyhow::Result<()> {
+async fn clean_running_cache(running_status: &RunningStatus) -> anyhow::Result<()> {
     let mut read_dir = fs::read_dir(CACHER.get_cache_folder_path(CacheFolderType::Series)).await?;
 
     while let Some(dir_entry) = read_dir.next_entry().await? {
