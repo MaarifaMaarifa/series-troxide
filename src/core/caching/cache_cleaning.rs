@@ -6,14 +6,17 @@
 
 use std::path;
 
-use crate::core::api::{deserialize_json, series_information::SeriesMainInformation};
+use crate::core::{
+    api::{deserialize_json, series_information::SeriesMainInformation},
+    settings_config::CacheSettings,
+};
 
 use super::{
     episode_list::EpisodeList, read_cache, CacheFolderType, CACHER, EPISODE_LIST_FILENAME,
     SERIES_MAIN_INFORMATION_FILENAME,
 };
 use anyhow::bail;
-use chrono::{DateTime, Local, Utc};
+use chrono::{DateTime, Duration, Local, Utc};
 use serde::{Deserialize, Serialize};
 use tokio::fs;
 use tracing::{error, info};
@@ -107,6 +110,37 @@ impl CacheCleaner {
             Self::get_cache_cleaning_record_path(),
             toml::to_string(&self.cache_cleaning_record)?,
         )?;
+
+        Ok(())
+    }
+
+    pub async fn auto_clean(&mut self, cache_settings: &CacheSettings) -> anyhow::Result<()> {
+        let local_time = Utc::now().with_timezone(&Local);
+
+        // Getting how many days have lasted since each type of clean was performed
+        let last_aired_clean_days = local_time - self.cache_cleaning_record.last_aired_cache_clean;
+        let last_ended_clean_days = local_time - self.cache_cleaning_record.last_ended_cache_clean;
+        let last_waiting_release_clean_days =
+            local_time - self.cache_cleaning_record.last_waiting_release_cache_clean;
+
+        // Checking if those lasted days exceeded the required time as set by CacheSetting and perform a clean
+        if last_aired_clean_days > Duration::days(cache_settings.aired_cache_clean_frequency as i64)
+        {
+            self.clean_cache(CleanType::Running(RunningStatus::Aired))
+                .await?;
+        }
+
+        if last_ended_clean_days > Duration::days(cache_settings.ended_cache_clean_frequency as i64)
+        {
+            self.clean_cache(CleanType::Ended).await?;
+        }
+
+        if last_waiting_release_clean_days
+            > Duration::days(cache_settings.waiting_release_cache_clean_frequency as i64)
+        {
+            self.clean_cache(CleanType::Running(RunningStatus::Aired))
+                .await?;
+        }
 
         Ok(())
     }
