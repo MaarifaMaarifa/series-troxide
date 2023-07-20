@@ -9,6 +9,7 @@ use crate::gui::{styles, troxide_widget, Message as GuiMessage, Tab};
 use caching_widget::{Caching, Message as CachingMessage};
 use database_widget::{Database, Message as DatabaseMessage};
 
+mod about_widget;
 mod caching_widget;
 mod database_widget;
 
@@ -79,6 +80,7 @@ impl SettingsTab {
             self.appearance_settings_view(),
             self.database_settings.view().map(Message::Database),
             self.caching_settings.view().map(Message::Caching),
+            about_widget::about_widget(),
         ]
         .spacing(5)
         .padding(5);
