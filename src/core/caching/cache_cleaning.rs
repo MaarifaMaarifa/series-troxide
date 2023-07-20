@@ -115,6 +115,8 @@ impl CacheCleaner {
     }
 
     pub async fn auto_clean(&mut self, cache_settings: &CacheSettings) -> anyhow::Result<()> {
+        info!("running cache autoclean");
+
         let local_time = Utc::now().with_timezone(&Local);
 
         // Getting how many days have lasted since each type of clean was performed
@@ -126,19 +128,22 @@ impl CacheCleaner {
         // Checking if those lasted days exceeded the required time as set by CacheSetting and perform a clean
         if last_aired_clean_days > Duration::days(cache_settings.aired_cache_clean_frequency as i64)
         {
+            info!("cleaning 'airing series cache'");
             self.clean_cache(CleanType::Running(RunningStatus::Aired))
                 .await?;
         }
 
         if last_ended_clean_days > Duration::days(cache_settings.ended_cache_clean_frequency as i64)
         {
+            info!("cleaning 'ended series cache'");
             self.clean_cache(CleanType::Ended).await?;
         }
 
         if last_waiting_release_clean_days
             > Duration::days(cache_settings.waiting_release_cache_clean_frequency as i64)
         {
-            self.clean_cache(CleanType::Running(RunningStatus::Aired))
+            info!("cleaning 'waiting release series cache'");
+            self.clean_cache(CleanType::Running(RunningStatus::WaitingRelease))
                 .await?;
         }
 

@@ -19,6 +19,11 @@ fn main() -> anyhow::Result<()> {
     tracing::info!("starting '{}'", env!("CARGO_PKG_NAME"));
 
     let config_settings = core::settings_config::load_config();
+
+    tokio::runtime::Runtime::new()?.block_on(
+        core::caching::cache_cleaning::CacheCleaner::new()?.auto_clean(&config_settings.cache),
+    )?;
+
     gui::TroxideGui::run(Settings {
         flags: config_settings,
         default_font: Some(gui::assets::fonts::NOTOSANS_REGULAR_STATIC),
