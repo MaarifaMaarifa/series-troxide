@@ -1,6 +1,4 @@
-use iced::widget::{
-    button, column, container, horizontal_space, pick_list, row, text, vertical_space,
-};
+use iced::widget::{button, column, container, horizontal_space, pick_list, row, scrollable, text};
 use iced::{Alignment, Command, Element, Length, Renderer};
 
 use crate::core::settings_config::{save_config, Config, Theme, ALL_THEMES};
@@ -76,14 +74,18 @@ impl SettingsTab {
         Command::none()
     }
     pub fn view(&self) -> Element<Message, Renderer> {
-        let settings_body = column![
-            self.appearance_settings_view(),
-            self.database_settings.view().map(Message::Database),
-            self.caching_settings.view().map(Message::Caching),
-            about_widget::about_widget(),
-        ]
-        .spacing(5)
-        .padding(5);
+        let settings_body = scrollable(
+            column![
+                self.appearance_settings_view(),
+                self.database_settings.view().map(Message::Database),
+                self.caching_settings.view().map(Message::Caching),
+                about_widget::about_widget(),
+            ]
+            .spacing(5)
+            .width(Length::Fill)
+            .align_items(Alignment::Center)
+            .padding(5),
+        );
 
         let mut save_settings_button = button("Save Settings");
 
@@ -95,11 +97,14 @@ impl SettingsTab {
 
         let save_button_bar = row!(horizontal_space(Length::Fill), save_settings_button).padding(5);
 
-        column![settings_body, vertical_space(Length::Fill), save_button_bar]
-            .align_items(Alignment::Center)
-            .spacing(5)
-            .padding(10)
-            .into()
+        column![
+            settings_body.height(Length::FillPortion(10)),
+            save_button_bar.height(Length::FillPortion(1))
+        ]
+        .align_items(Alignment::Center)
+        .spacing(5)
+        .padding(10)
+        .into()
     }
 
     fn appearance_settings_view(&self) -> Element<Message, Renderer> {
