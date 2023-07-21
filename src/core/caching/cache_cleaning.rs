@@ -198,6 +198,13 @@ async fn clean_running_cache(running_status: &RunningStatus) -> anyhow::Result<(
         let episode_list_cache_str = match read_cache(&series_episode_list_path).await {
             Ok(cache_string) => cache_string,
             Err(_) => {
+                /* For Series to have no episode-list cache file, it's mostly because the series was loaded in the discover
+                   page and thus episode-list were never loaded because it was not clicked. This will be treated as a aired
+                   series since it was aired that's why it was in the discover page
+                */
+                if let RunningStatus::Aired = running_status {
+                    clean_cache(&dir_entry.path()).await?;
+                }
                 continue;
             }
         };
