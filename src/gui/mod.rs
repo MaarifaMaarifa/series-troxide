@@ -16,6 +16,8 @@ use view::watchlist_view::{Message as WatchlistMessage, WatchlistTab};
 use iced::widget::{container, text, Column};
 use iced::{Application, Command, Element, Length};
 
+use crate::core::settings_config::SETTINGS;
+
 use super::core::settings_config;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -78,9 +80,9 @@ impl Application for TroxideGui {
     type Executor = iced::executor::Default;
     type Message = Message;
     type Theme = iced::Theme;
-    type Flags = settings_config::Config;
+    type Flags = ();
 
-    fn new(flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
+    fn new(_flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
         let (discover_tab, discover_command) = view::discover_view::DiscoverTab::new();
         (
             Self {
@@ -90,7 +92,7 @@ impl Application for TroxideGui {
                 watchlist_tab: WatchlistTab::default(),
                 statistics_tab: StatisticsTab::default(),
                 my_shows_tab: MyShowsTab::default(),
-                settings_tab: view::settings_view::SettingsTab::new(flags),
+                settings_tab: view::settings_view::SettingsTab::new(),
                 series_view: None,
             },
             discover_command.map(Message::Discover),
@@ -102,7 +104,13 @@ impl Application for TroxideGui {
     }
 
     fn theme(&self) -> iced::Theme {
-        match self.settings_tab.get_config_settings().appearance.theme {
+        match SETTINGS
+            .read()
+            .unwrap()
+            .get_current_settings()
+            .appearance
+            .theme
+        {
             settings_config::Theme::Light => {
                 let theme = styles::theme::TroxideTheme::Light;
                 iced::Theme::Custom(Box::new(theme.get_theme()))

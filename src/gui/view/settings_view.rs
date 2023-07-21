@@ -1,7 +1,7 @@
 use iced::widget::{button, column, container, horizontal_space, pick_list, row, scrollable, text};
 use iced::{Alignment, Command, Element, Length, Renderer};
 
-use crate::core::settings_config::{save_config, Config, Theme, ALL_THEMES};
+use crate::core::settings_config::{Theme, ALL_THEMES, SETTINGS};
 use crate::gui::assets::icons::GEAR_WIDE_CONNECTED;
 use crate::gui::{styles, troxide_widget, Message as GuiMessage, Tab};
 use caching_widget::{Caching, Message as CachingMessage};
@@ -21,46 +21,24 @@ pub enum Message {
 
 #[derive(Default)]
 pub struct SettingsTab {
-    settings_config: Config,
-    unsaved_config: Option<Config>,
     caching_settings: Caching,
     database_settings: Database,
 }
 
 impl SettingsTab {
-    pub fn new(settings_config: Config) -> Self {
+    pub fn new() -> Self {
         Self {
-            settings_config,
-            unsaved_config: None,
             caching_settings: Caching::default(),
             database_settings: Database::default(),
         }
     }
 
-    pub fn get_config_settings(&self) -> &Config {
-        if let Some(config) = &self.unsaved_config {
-            config
-        } else {
-            &self.settings_config
-        }
-    }
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::ThemeSelected(theme) => {
-                if let Some(config) = &mut self.unsaved_config {
-                    config.appearance.theme = theme
-                } else {
-                    let mut unsaved_config = self.settings_config.clone();
-                    unsaved_config.appearance.theme = theme;
-                    self.unsaved_config = Some(unsaved_config);
-                }
+                SETTINGS.write().unwrap().change_settings().appearance.theme = theme;
             }
-            Message::SaveSettings => {
-                if let Some(config) = self.unsaved_config.take() {
-                    self.settings_config = config;
-                    save_config(&self.settings_config);
-                }
-            }
+            Message::SaveSettings => SETTINGS.write().unwrap().save_settings(),
             Message::Caching(message) => {
                 return self.caching_settings.update(message).map(Message::Caching)
             }
@@ -89,10 +67,8 @@ impl SettingsTab {
 
         let mut save_settings_button = button("Save Settings");
 
-        if let Some(unsaved_settings) = &self.unsaved_config {
-            if *unsaved_settings != self.settings_config {
-                save_settings_button = save_settings_button.on_press(Message::SaveSettings);
-            }
+        if SETTINGS.read().unwrap().has_pending_save() {
+            save_settings_button = save_settings_button.on_press(Message::SaveSettings);
         };
 
         let save_button_bar = row!(horizontal_space(Length::Fill), save_settings_button).padding(5);
@@ -117,11 +93,15 @@ impl SettingsTab {
         let theme_text = text("Theme");
         let theme_picklist = pick_list(
             &ALL_THEMES[..],
-            Some(if let Some(config) = &self.unsaved_config {
-                config.appearance.theme.clone()
-            } else {
-                self.settings_config.appearance.theme.clone()
-            }),
+            Some(
+                SETTINGS
+                    .read()
+                    .unwrap()
+                    .get_current_settings()
+                    .appearance
+                    .theme
+                    .clone(),
+            ),
             Message::ThemeSelected,
         );
 

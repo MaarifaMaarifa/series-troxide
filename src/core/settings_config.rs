@@ -1,6 +1,7 @@
-use std::io::ErrorKind;
+use std::{io::ErrorKind, sync::RwLock};
 
 use directories::ProjectDirs;
+use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use tracing::{error, info, warn};
 
@@ -53,9 +54,45 @@ impl Default for CacheSettings {
     }
 }
 
+lazy_static! {
+    pub static ref SETTINGS: RwLock<Settings> = RwLock::new(Settings::new());
+}
+
+pub struct Settings {
+    current_config: Config,
+    unsaved_config: Config,
+}
+
+impl Settings {
+    fn new() -> Self {
+        let config = load_config();
+        Self {
+            current_config: config.clone(),
+            unsaved_config: config,
+        }
+    }
+
+    pub fn change_settings(&mut self) -> &mut Config {
+        &mut self.unsaved_config
+    }
+
+    pub fn get_current_settings(&self) -> &Config {
+        &self.unsaved_config
+    }
+
+    pub fn has_pending_save(&self) -> bool {
+        self.current_config != self.unsaved_config
+    }
+
+    pub fn save_settings(&mut self) {
+        save_config(&self.unsaved_config);
+        self.current_config = self.unsaved_config.clone();
+    }
+}
+
 const CONFIG_FILE_NAME: &str = "config.toml";
 
-pub fn load_config() -> Config {
+fn load_config() -> Config {
     if let Some(proj_dirs) = ProjectDirs::from("", "", env!("CARGO_PKG_NAME")) {
         let config_directory = std::path::PathBuf::from(proj_dirs.config_dir());
         let mut config_file = config_directory.clone();
@@ -102,7 +139,7 @@ pub fn load_config() -> Config {
     }
 }
 
-pub fn save_config(settings_config: &Config) {
+fn save_config(settings_config: &Config) {
     if let Some(proj_dirs) = ProjectDirs::from("", "", env!("CARGO_PKG_NAME")) {
         let mut config_file = std::path::PathBuf::from(proj_dirs.config_dir());
         config_file.push(CONFIG_FILE_NAME);

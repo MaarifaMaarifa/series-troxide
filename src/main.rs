@@ -18,14 +18,18 @@ fn main() -> anyhow::Result<()> {
 
     tracing::info!("starting '{}'", env!("CARGO_PKG_NAME"));
 
-    let config_settings = core::settings_config::load_config();
+    let cache_settings = core::settings_config::SETTINGS
+        .read()
+        .unwrap()
+        .get_current_settings()
+        .cache
+        .clone();
 
     tokio::runtime::Runtime::new()?.block_on(
-        core::caching::cache_cleaning::CacheCleaner::new()?.auto_clean(&config_settings.cache),
+        core::caching::cache_cleaning::CacheCleaner::new()?.auto_clean(&cache_settings),
     )?;
 
     gui::TroxideGui::run(Settings {
-        flags: config_settings,
         default_font: Some(gui::assets::fonts::NOTOSANS_REGULAR_STATIC),
         ..Default::default()
     })?;
