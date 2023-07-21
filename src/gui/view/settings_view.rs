@@ -15,6 +15,8 @@ mod database_widget;
 pub enum Message {
     ThemeSelected(Theme),
     SaveSettings,
+    RestoreDefaultSettings,
+    ResetSettings,
     Caching(CachingMessage),
     Database(DatabaseMessage),
 }
@@ -48,6 +50,8 @@ impl SettingsTab {
                     .update(message)
                     .map(Message::Database)
             }
+            Message::RestoreDefaultSettings => SETTINGS.write().unwrap().set_default_settings(),
+            Message::ResetSettings => SETTINGS.write().unwrap().reset_settings(),
         }
         Command::none()
     }
@@ -66,12 +70,27 @@ impl SettingsTab {
         );
 
         let mut save_settings_button = button("Save Settings");
+        let mut reset_settings_button = button("Reset Settings");
+        let mut restore_default_settings_button = button("Restore Default Settings");
 
         if SETTINGS.read().unwrap().has_pending_save() {
             save_settings_button = save_settings_button.on_press(Message::SaveSettings);
-        };
+            reset_settings_button = reset_settings_button.on_press(Message::ResetSettings);
+        }
 
-        let save_button_bar = row!(horizontal_space(Length::Fill), save_settings_button).padding(5);
+        if !SETTINGS.read().unwrap().has_default_settings() {
+            restore_default_settings_button =
+                restore_default_settings_button.on_press(Message::RestoreDefaultSettings);
+        }
+
+        let save_button_bar = row![
+            horizontal_space(Length::Fill),
+            restore_default_settings_button,
+            reset_settings_button,
+            save_settings_button
+        ]
+        .spacing(10)
+        .padding(5);
 
         column![
             settings_body.height(Length::FillPortion(10)),

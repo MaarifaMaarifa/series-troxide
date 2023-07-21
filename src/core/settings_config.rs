@@ -80,6 +80,25 @@ impl Settings {
         &self.unsaved_config
     }
 
+    /// Resets the settings to the initial unmodified state
+    pub fn reset_settings(&mut self) {
+        self.unsaved_config = self.current_config.clone();
+    }
+
+    /// Loads the default settings
+    ///
+    /// # Note
+    /// Does not save the settings
+    pub fn set_default_settings(&mut self) {
+        self.unsaved_config = Config::default();
+    }
+
+    /// Checks if the unsaved settings curresponds to the
+    /// default settings of the program
+    pub fn has_default_settings(&self) -> bool {
+        self.unsaved_config == Config::default()
+    }
+
     pub fn has_pending_save(&self) -> bool {
         self.current_config != self.unsaved_config
     }
