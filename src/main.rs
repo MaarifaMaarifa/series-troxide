@@ -20,7 +20,7 @@ fn main() -> anyhow::Result<()> {
 
     let cache_settings = core::settings_config::SETTINGS
         .read()
-        .unwrap()
+        .expect("could not read the program settigns")
         .get_current_settings()
         .cache
         .clone();
