@@ -99,6 +99,7 @@ impl MyShows {
                     self.series_page_sender
                         .send(series_view::Series::from_series_information(*series_info))
                         .expect("failed to send the series page");
+                    return Command::none();
                 }
                 self.series_posters[index]
                     .update(message)
