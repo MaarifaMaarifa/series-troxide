@@ -9,7 +9,7 @@ A modern Series Tracker.
 Series Troxide is in the very early stages of development. A lot of stuffs can and will change.
 
 ## Features
-- **Aired and New Series discovery**. See what's new worldwide (**Series Troxide** defaults to US for local aired shows discovery for now, but will be more flexible in the future).
+- **Aired and New Series discovery**. See what's new globally and locally.
 - **Series search**. Search for your favourite Series.
 - **Upcoming releases**. See when your tracked series are being aired.
 - **Series Information**. See general information of any series (Summary, genres, casts, etc).
