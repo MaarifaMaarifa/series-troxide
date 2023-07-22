@@ -14,7 +14,6 @@ pub mod series_poster {
     use crate::core::{caching, database};
     use crate::gui::helpers::season_episode_str_gen;
     use crate::gui::styles;
-    use crate::gui::view::series_view::SeriesStatus;
 
     use bytes::Bytes;
     use iced::widget::{
@@ -81,16 +80,11 @@ pub mod series_poster {
             (poster, command)
         }
 
-        /// Returns the underlying series information that the poster holds if it exists
-        pub fn get_series_information(&self) -> Option<&SeriesMainInformation> {
-            self.series_information.as_ref()
-        }
-
         pub fn update(&mut self, message: Message) -> Command<Message> {
             match message {
                 Message::ImageLoaded(_, image) => self.image = image,
                 Message::SeriesPosterPressed(_) => {
-                    unimplemented!("the series poster should not handle being pressed")
+                    unreachable!("the series poster should not handle being pressed")
                 }
                 Message::SeriesInfoReceived(id, series_info) => {
                     let image_url = series_info.image.clone();
@@ -200,7 +194,7 @@ pub mod series_poster {
 
         pub fn release_series_posters_view(
             &self,
-            episode_and_release_time: &(Episode, EpisodeReleaseTime),
+            episode_and_release_time: (&Episode, EpisodeReleaseTime),
         ) -> Element<'_, Message, Renderer> {
             let mut content = row!().padding(2).spacing(7);
             if let Some(image_bytes) = self.image.clone() {
@@ -270,10 +264,6 @@ pub mod series_poster {
             } else {
                 container("").into()
             }
-        }
-
-        pub fn get_status(&self) -> Option<SeriesStatus> {
-            self.series_information.as_ref().map(SeriesStatus::new)
         }
     }
 

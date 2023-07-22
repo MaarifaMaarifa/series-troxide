@@ -1,3 +1,5 @@
+use std::sync::mpsc;
+
 use iced::widget::{container, scrollable, Column};
 use iced::{Command, Element, Length, Renderer};
 use iced_aw::Spinner;
@@ -12,6 +14,8 @@ use crate::{
     gui::{Message as GuiMessage, Tab},
 };
 
+use super::series_view;
+
 #[derive(Debug, Clone)]
 pub enum Message {
     SeriesInformationLoaded(Vec<(SeriesMainInformation, usize)>),
@@ -25,17 +29,26 @@ enum LoadState {
     Loaded,
 }
 
-#[derive(Default)]
 pub struct WatchlistTab {
     series_posters: Vec<(SeriesPoster, usize)>,
     load_state: LoadState,
+    series_page_sender: mpsc::Sender<(series_view::Series, Command<series_view::Message>)>,
 }
 
 impl WatchlistTab {
-    pub fn refresh(&self) -> Command<Message> {
-        Command::perform(
-            get_series_informations_and_watched_episodes(),
-            Message::SeriesInformationLoaded,
+    pub fn new(
+        series_page_sender: mpsc::Sender<(series_view::Series, Command<series_view::Message>)>,
+    ) -> (Self, Command<Message>) {
+        (
+            Self {
+                series_posters: vec![],
+                load_state: LoadState::Loading,
+                series_page_sender,
+            },
+            Command::perform(
+                get_series_informations_and_watched_episodes(),
+                Message::SeriesInformationLoaded,
+            ),
         )
     }
 
@@ -55,12 +68,20 @@ impl WatchlistTab {
                     Message::SeriesPoster(message.get_id().unwrap_or(0), Box::new(message))
                 })
             }
-            Message::SeriesPoster(index, message) => self.series_posters[index]
-                .0
-                .update(*message)
-                .map(|message| {
-                    Message::SeriesPoster(message.get_id().unwrap_or(0), Box::new(message))
-                }),
+            Message::SeriesPoster(index, message) => {
+                if let SeriesPosterMessage::SeriesPosterPressed(series_info) = *message.clone() {
+                    self.series_page_sender
+                        .send(series_view::Series::from_series_information(*series_info))
+                        .expect("failed to send the series page");
+                    return Command::none();
+                }
+                self.series_posters[index]
+                    .0
+                    .update(*message)
+                    .map(|message| {
+                        Message::SeriesPoster(message.get_id().unwrap_or(0), Box::new(message))
+                    })
+            }
         }
     }
     pub fn view(&self) -> Element<Message, Renderer> {

@@ -1,10 +1,5 @@
-pub mod assets;
-mod helpers;
-mod styles;
-mod troxide_widget;
-mod view;
+use std::sync::mpsc;
 
-use troxide_widget::series_poster::Message as SeriesPosterMessage;
 use view::discover_view::{DiscoverTab, Message as DiscoverMessage};
 use view::my_shows_view::{Message as MyShowsMessage, MyShowsTab};
 use view::series_view::Message as SeriesMessage;
@@ -16,9 +11,14 @@ use view::watchlist_view::{Message as WatchlistMessage, WatchlistTab};
 use iced::widget::{container, text, Column};
 use iced::{Application, Command, Element, Length};
 
+use super::core::settings_config;
 use crate::core::settings_config::SETTINGS;
 
-use super::core::settings_config;
+pub mod assets;
+mod helpers;
+mod styles;
+mod troxide_widget;
+mod view;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TabId {
@@ -74,6 +74,8 @@ pub struct TroxideGui {
     statistics_tab: StatisticsTab,
     settings_tab: SettingsTab,
     series_view: Option<Series>,
+    series_page_sender: mpsc::Sender<(Series, Command<SeriesMessage>)>,
+    series_page_receiver: mpsc::Receiver<(Series, Command<SeriesMessage>)>,
 }
 
 impl Application for TroxideGui {
@@ -83,19 +85,31 @@ impl Application for TroxideGui {
     type Flags = ();
 
     fn new(_flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
-        let (discover_tab, discover_command) = view::discover_view::DiscoverTab::new();
+        let (sender, receiver) = mpsc::channel();
+
+        let (discover_tab, discover_command) =
+            view::discover_view::DiscoverTab::new(sender.clone());
+        let (my_shows_tab, my_shows_command) = MyShowsTab::new(sender.clone());
+        let (watchlist_tab, watchlist_command) = WatchlistTab::new(sender.clone());
+
         (
             Self {
                 active_tab: TabId::Discover,
                 series_view_active: false,
                 discover_tab,
-                watchlist_tab: WatchlistTab::default(),
+                watchlist_tab,
                 statistics_tab: StatisticsTab::default(),
-                my_shows_tab: MyShowsTab::default(),
+                my_shows_tab,
                 settings_tab: view::settings_view::SettingsTab::new(),
                 series_view: None,
+                series_page_sender: sender,
+                series_page_receiver: receiver,
             },
-            discover_command.map(Message::Discover),
+            Command::batch([
+                discover_command.map(Message::Discover),
+                my_shows_command.map(Message::MyShows),
+                watchlist_command.map(Message::Watchlist),
+            ]),
         )
     }
 
@@ -123,14 +137,6 @@ impl Application for TroxideGui {
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
-        if let Some((series_view, series_command)) =
-            handle_series_poster_selection(&self.active_tab, message.clone())
-        {
-            self.series_view = Some(series_view);
-            self.series_view_active = true;
-            return series_command.map(Message::Series);
-        }
-
         match message {
             Message::TabSelected(tab_id) => {
                 self.series_view_active = false;
@@ -138,21 +144,34 @@ impl Application for TroxideGui {
                 self.active_tab = tab_id.clone();
 
                 if let TabId::MyShows = tab_id {
-                    return self.my_shows_tab.refresh().map(Message::MyShows);
+                    let (my_shows_tab, my_shows_message) =
+                        MyShowsTab::new(self.series_page_sender.clone());
+                    self.my_shows_tab = my_shows_tab;
+                    return my_shows_message.map(Message::MyShows);
                 };
                 if let TabId::Watchlist = tab_id {
-                    return self.watchlist_tab.refresh().map(Message::Watchlist);
+                    let (watchlist_tab, watchlist_message) =
+                        WatchlistTab::new(self.series_page_sender.clone());
+                    self.watchlist_tab = watchlist_tab;
+                    return watchlist_message.map(Message::Watchlist);
                 };
                 if let TabId::Statistics = tab_id {
                     return self.statistics_tab.refresh().map(Message::Statistics);
                 };
                 Command::none()
             }
-            Message::Discover(message) => self.discover_tab.update(message).map(Message::Discover),
-            Message::Watchlist(message) => {
-                self.watchlist_tab.update(message).map(Message::Watchlist)
-            }
-            Message::MyShows(message) => self.my_shows_tab.update(message).map(Message::MyShows),
+            Message::Discover(message) => Command::batch([
+                self.discover_tab.update(message).map(Message::Discover),
+                self.try_series_page_switch(),
+            ]),
+            Message::Watchlist(message) => Command::batch([
+                self.watchlist_tab.update(message).map(Message::Watchlist),
+                self.try_series_page_switch(),
+            ]),
+            Message::MyShows(message) => Command::batch([
+                self.my_shows_tab.update(message).map(Message::MyShows),
+                self.try_series_page_switch(),
+            ]),
             Message::Statistics(message) => {
                 self.statistics_tab.update(message).map(Message::Statistics)
             }
@@ -221,45 +240,20 @@ impl Application for TroxideGui {
     }
 }
 
-fn handle_series_poster_selection(
-    tab_id: &TabId,
-    message: Message,
-) -> Option<(Series, Command<SeriesMessage>)> {
-    match tab_id {
-        TabId::Discover => {
-            if let Message::Discover(message) = message {
-                match message {
-                    DiscoverMessage::SeriesSelected(series_info) => {
-                        return Some(view::series_view::Series::from_series_information(
-                            *series_info,
-                        ));
-                    }
-                    DiscoverMessage::SeriesResultSelected(series_id) => {
-                        return Some(view::series_view::Series::from_series_id(series_id));
-                    }
-                    _ => return None,
-                }
+impl TroxideGui {
+    fn try_series_page_switch(&mut self) -> Command<Message> {
+        match self.series_page_receiver.try_recv() {
+            Ok((series_page, series_page_command)) => {
+                self.series_view = Some(series_page);
+                self.series_view_active = true;
+                series_page_command.map(Message::Series)
             }
+            Err(err) => match err {
+                mpsc::TryRecvError::Empty => Command::none(),
+                mpsc::TryRecvError::Disconnected => panic!("series page senders disconnected"),
+            },
         }
-        TabId::MyShows => {
-            if let Message::MyShows(MyShowsMessage::SeriesSelected(series_info)) = message {
-                return Some(view::series_view::Series::from_series_information(
-                    *series_info,
-                ));
-            }
-        }
-        TabId::Watchlist => {
-            if let Message::Watchlist(WatchlistMessage::SeriesPoster(_, message)) = message {
-                if let SeriesPosterMessage::SeriesPosterPressed(series_info) = *message {
-                    return Some(view::series_view::Series::from_series_information(
-                        *series_info,
-                    ));
-                }
-            }
-        }
-        _ => return None,
     }
-    None
 }
 
 fn handle_back_message_from_series(

@@ -1,3 +1,6 @@
+use std::sync::mpsc;
+
+use super::series_view;
 use crate::core::api::episodes_information::Episode;
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::api::tv_schedule::{get_episodes_with_country, get_episodes_with_date};
@@ -32,12 +35,10 @@ pub enum Message {
     SeriesPosterAction(/*series poster index*/ usize, SeriesPosterMessage),
     SearchAction(SearchMessage),
     SeriesSelected(Box<SeriesMainInformation>),
-    SeriesResultSelected(/*series_id*/ u32),
     ShowOverlay,
     HideOverlay,
 }
 
-#[derive(Default)]
 pub struct DiscoverTab {
     load_state: LoadState,
     show_overlay: bool,
@@ -45,11 +46,25 @@ pub struct DiscoverTab {
     new_episodes: Vec<SeriesPoster>,
     new_country_episodes: Vec<SeriesPoster>,
     series_updates: Vec<SeriesPoster>,
+    series_page_sender: mpsc::Sender<(series_view::Series, Command<series_view::Message>)>,
 }
 
 impl DiscoverTab {
-    pub fn new() -> (Self, Command<Message>) {
-        (Self::default(), load_discover_schedule_command())
+    pub fn new(
+        series_page_sender: mpsc::Sender<(series_view::Series, Command<series_view::Message>)>,
+    ) -> (Self, Command<Message>) {
+        (
+            Self {
+                load_state: LoadState::Loading,
+                show_overlay: false,
+                search_state: searching::Search::default(),
+                new_episodes: vec![],
+                new_country_episodes: vec![],
+                series_updates: vec![],
+                series_page_sender,
+            },
+            load_discover_schedule_command(),
+        )
     }
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
@@ -114,10 +129,11 @@ impl DiscoverTab {
             }
             Message::SearchAction(message) => {
                 if let SearchMessage::SeriesResultPressed(series_id) = message {
+                    self.series_page_sender
+                        .send(series_view::Series::from_series_id(series_id))
+                        .expect("failed to send series page");
                     self.show_overlay = false;
-                    return Command::perform(async {}, move |_| {
-                        Message::SeriesResultSelected(series_id)
-                    });
+                    return Command::none();
                 };
                 self.search_state.update(message)
             }
@@ -129,11 +145,11 @@ impl DiscoverTab {
                 self.show_overlay = false;
                 Command::none()
             }
-            Message::SeriesSelected(_) => {
-                unreachable!("Discover View should not handle Series View")
-            }
-            Message::SeriesResultSelected(_) => {
-                unreachable!("Discover View should not handle Series View")
+            Message::SeriesSelected(series_info) => {
+                self.series_page_sender
+                    .send(series_view::Series::from_series_information(*series_info))
+                    .expect("failed to send series page");
+                Command::none()
             }
             Message::CountryScheduleLoaded(episodes) => {
                 self.load_state = LoadState::Loaded;
