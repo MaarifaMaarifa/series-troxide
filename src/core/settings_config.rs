@@ -29,11 +29,25 @@ impl std::fmt::Display for Theme {
 pub struct Config {
     pub appearance: AppearanceSettings,
     pub cache: CacheSettings,
+    pub locale: LocaleSettings,
 }
 
 #[derive(Clone, Default, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub struct AppearanceSettings {
     pub theme: Theme,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
+pub struct LocaleSettings {
+    pub country_code: String,
+}
+
+impl Default for LocaleSettings {
+    fn default() -> Self {
+        Self {
+            country_code: "US".to_owned(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
@@ -175,5 +189,50 @@ fn save_config(settings_config: &Config) {
         }
     } else {
         error!("could not obtain config directory path when saving the settings");
+    }
+}
+
+pub mod locale_settings {
+    //! Deals with interaction of GUI locale settings with the actual settings from
+    //! the config file
+
+    use super::SETTINGS;
+    use rust_iso3166::ALL;
+
+    pub fn get_country_code_from_settings() -> String {
+        let country_code_str = SETTINGS
+            .read()
+            .unwrap()
+            .get_current_settings()
+            .locale
+            .country_code
+            .clone();
+
+        if ALL
+            .iter()
+            .any(|country_code| country_code.alpha2 == country_code_str)
+        {
+            return country_code_str;
+        }
+
+        String::from("US")
+    }
+
+    pub fn get_country_name_from_settings() -> String {
+        get_country_name_from_country_code(&get_country_code_from_settings())
+            .unwrap()
+            .to_owned()
+    }
+
+    pub fn get_country_code_from_country_name(country_name: &str) -> Option<&str> {
+        ALL.iter()
+            .find(|country_code| country_code.name == country_name)
+            .map(|country_code| country_code.alpha2)
+    }
+
+    pub fn get_country_name_from_country_code(country_code_str: &str) -> Option<&str> {
+        ALL.iter()
+            .find(|country_code| country_code.alpha2 == country_code_str)
+            .map(|country_code| country_code.name)
     }
 }

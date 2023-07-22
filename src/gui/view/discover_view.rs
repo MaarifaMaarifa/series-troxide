@@ -5,6 +5,7 @@ use crate::core::api::episodes_information::Episode;
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::api::tv_schedule::{get_episodes_with_country, get_episodes_with_date};
 use crate::core::api::updates::show_updates::*;
+use crate::core::settings_config::locale_settings;
 use crate::gui::assets::icons::BINOCULARS_FILL;
 use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
 use crate::gui::{troxide_widget, Message as GuiMessage, Tab};
@@ -181,6 +182,7 @@ impl DiscoverTab {
     }
 
     pub fn view(&self) -> Element<'_, Message, Renderer> {
+        let country = locale_settings::get_country_name_from_settings();
         let underlay: Element<'_, Message, Renderer> = match self.load_state {
             LoadState::Loading => container(Spinner::new())
                 .width(Length::Fill)
@@ -190,8 +192,11 @@ impl DiscoverTab {
                 .into(),
             LoadState::Loaded => column!(scrollable(
                 column!(
-                    series_posters_loader("Shows Airing Today", &self.new_episodes),
-                    series_posters_loader("Shows Airing Today in US", &self.new_country_episodes),
+                    series_posters_loader("Shows Airing Today Globally", &self.new_episodes),
+                    series_posters_loader(
+                        &format!("Shows Airing Today in {}", country),
+                        &self.new_country_episodes
+                    ),
                     series_posters_loader("Shows Updates", &self.series_updates),
                 )
                 .spacing(20)
@@ -243,10 +248,15 @@ fn load_discover_schedule_command() -> Command<Message> {
         Message::ScheduleLoaded(episodes.expect("failed to load episodes schedule"))
     });
 
-    let new_country_episodes_command =
-        Command::perform(get_episodes_with_country("US"), |episodes| {
+    let new_country_episodes_command = Command::perform(
+        async {
+            let country_code = locale_settings::get_country_code_from_settings();
+            get_episodes_with_country(&country_code).await
+        },
+        |episodes| {
             Message::CountryScheduleLoaded(episodes.expect("failed to load episodes schedule"))
-        });
+        },
+    );
 
     Command::batch([
         series_updates_command,

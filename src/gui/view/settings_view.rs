@@ -6,10 +6,12 @@ use crate::gui::assets::icons::GEAR_WIDE_CONNECTED;
 use crate::gui::{styles, troxide_widget, Message as GuiMessage, Tab};
 use caching_widget::{Caching, Message as CachingMessage};
 use database_widget::{Database, Message as DatabaseMessage};
+use locale_widget::{Locale, Message as LocaleMessage};
 
 mod about_widget;
 mod caching_widget;
 mod database_widget;
+mod locale_widget;
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -19,12 +21,14 @@ pub enum Message {
     ResetSettings,
     Caching(CachingMessage),
     Database(DatabaseMessage),
+    Locale(LocaleMessage),
 }
 
 #[derive(Default)]
 pub struct SettingsTab {
     caching_settings: Caching,
     database_settings: Database,
+    locale_settings: Locale,
 }
 
 impl SettingsTab {
@@ -32,6 +36,7 @@ impl SettingsTab {
         Self {
             caching_settings: Caching::default(),
             database_settings: Database::default(),
+            locale_settings: Locale::default(),
         }
     }
 
@@ -52,6 +57,7 @@ impl SettingsTab {
             }
             Message::RestoreDefaultSettings => SETTINGS.write().unwrap().set_default_settings(),
             Message::ResetSettings => SETTINGS.write().unwrap().reset_settings(),
+            Message::Locale(message) => self.locale_settings.update(message),
         }
         Command::none()
     }
@@ -61,6 +67,7 @@ impl SettingsTab {
                 self.appearance_settings_view(),
                 self.database_settings.view().map(Message::Database),
                 self.caching_settings.view().map(Message::Caching),
+                self.locale_settings.view().map(Message::Locale),
                 about_widget::about_widget(),
             ]
             .spacing(5)
