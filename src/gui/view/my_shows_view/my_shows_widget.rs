@@ -80,7 +80,10 @@ impl MyShows {
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::SeriesInformationReceived(series_infos) => {
-                let series_infos = series_infos.unwrap();
+                let mut series_infos = series_infos.unwrap();
+
+                // sorting the list according to name
+                series_infos.sort_by_key(|series_info| series_info.name.clone());
 
                 let mut series_posters_commands = Vec::with_capacity(series_infos.len());
                 let mut series_posters = Vec::with_capacity(series_infos.len());
