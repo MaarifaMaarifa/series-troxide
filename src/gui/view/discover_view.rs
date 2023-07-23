@@ -8,7 +8,7 @@ use crate::core::api::updates::show_updates::*;
 use crate::core::settings_config::locale_settings;
 use crate::gui::assets::icons::BINOCULARS_FILL;
 use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
-use crate::gui::{troxide_widget, Message as GuiMessage, Tab};
+use crate::gui::{styles, troxide_widget, Message as GuiMessage, Tab};
 use searching::Message as SearchMessage;
 
 use iced::widget::{column, container, scrollable, text, vertical_space};
@@ -286,22 +286,35 @@ fn series_posters_loader<'a>(
 ) -> Element<'a, Message, Renderer> {
     let title = text(title).size(25);
 
-    let wrapped_posters = Wrap::with_elements(
-        posters
-            .iter()
-            .map(|poster| {
-                poster.view().map(|message| {
-                    Message::SeriesPosterAction(message.get_id().unwrap_or(0), message)
+    if posters.is_empty() {
+        let text = container(text("No Series Found"))
+            .style(styles::container_styles::first_class_container_theme())
+            .center_x()
+            .center_y()
+            .height(100)
+            .width(Length::Fill);
+        column!(title, vertical_space(10), text)
+            .width(Length::Fill)
+            .padding(10)
+            .into()
+    } else {
+        let wrapped_posters = Wrap::with_elements(
+            posters
+                .iter()
+                .map(|poster| {
+                    poster.view().map(|message| {
+                        Message::SeriesPosterAction(message.get_id().unwrap_or(0), message)
+                    })
                 })
-            })
-            .collect(),
-    )
-    .spacing(5.0)
-    .line_spacing(5.0)
-    .padding(5.0);
+                .collect(),
+        )
+        .spacing(5.0)
+        .line_spacing(5.0)
+        .padding(5.0);
 
-    column!(title, vertical_space(10), wrapped_posters)
-        .width(Length::Fill)
-        .padding(10)
-        .into()
+        column!(title, vertical_space(10), wrapped_posters)
+            .width(Length::Fill)
+            .padding(10)
+            .into()
+    }
 }
