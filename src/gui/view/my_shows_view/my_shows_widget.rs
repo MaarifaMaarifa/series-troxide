@@ -2,7 +2,7 @@ use std::sync::mpsc;
 
 use iced::widget::{container, text};
 use iced::{Command, Element, Length, Renderer};
-use iced_aw::Wrap;
+use iced_aw::{Spinner, Wrap};
 
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::caching;
@@ -16,7 +16,15 @@ pub enum Message {
     SeriesInformationReceived(Option<Vec<SeriesMainInformation>>),
 }
 
+#[derive(Default)]
+enum LoadState {
+    #[default]
+    Loading,
+    Loaded,
+}
+
 pub struct MyShows {
+    load_state: LoadState,
     series_posters: Vec<SeriesPoster>,
     series_page_sender: mpsc::Sender<(series_view::Series, Command<series_view::Message>)>,
 }
@@ -27,6 +35,7 @@ impl MyShows {
     ) -> (Self, Command<Message>) {
         (
             Self {
+                load_state: LoadState::default(),
                 series_posters: vec![],
                 series_page_sender,
             },
@@ -46,6 +55,7 @@ impl MyShows {
     ) -> (Self, Command<Message>) {
         (
             Self {
+                load_state: LoadState::default(),
                 series_posters: vec![],
                 series_page_sender,
             },
@@ -65,6 +75,7 @@ impl MyShows {
     ) -> (Self, Command<Message>) {
         (
             Self {
+                load_state: LoadState::default(),
                 series_posters: vec![],
                 series_page_sender,
             },
@@ -82,6 +93,7 @@ impl MyShows {
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::SeriesInformationReceived(series_infos) => {
+                self.load_state = LoadState::Loaded;
                 let mut series_infos = series_infos.unwrap();
 
                 // sorting the list according to name
@@ -114,6 +126,14 @@ impl MyShows {
     }
 
     pub fn view(&self) -> Element<'_, Message, Renderer> {
+        if let LoadState::Loading = self.load_state {
+            return container(Spinner::new())
+                .center_x()
+                .center_y()
+                .height(100)
+                .width(Length::Fill)
+                .into();
+        }
         if self.series_posters.is_empty() {
             container(text("Nothing to show"))
                 .style(styles::container_styles::first_class_container_theme())

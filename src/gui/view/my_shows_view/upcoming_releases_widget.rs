@@ -2,6 +2,7 @@ use std::sync::mpsc;
 
 use iced::widget::{container, text, Column};
 use iced::{Command, Element, Length, Renderer};
+use iced_aw::Spinner;
 
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::caching;
@@ -16,7 +17,15 @@ pub enum Message {
     SeriesInformationReceived(Option<Vec<(SeriesMainInformation, EpisodeList)>>),
 }
 
+#[derive(Default)]
+enum LoadState {
+    #[default]
+    Loading,
+    Loaded,
+}
+
 pub struct UpcomingReleases {
+    load_state: LoadState,
     series_posters: Vec<(SeriesPoster, EpisodeList)>,
     series_page_sender: mpsc::Sender<(series_view::Series, Command<series_view::Message>)>,
 }
@@ -27,6 +36,7 @@ impl UpcomingReleases {
     ) -> (Self, Command<Message>) {
         (
             Self {
+                load_state: LoadState::default(),
                 series_posters: vec![],
                 series_page_sender,
             },
@@ -44,6 +54,7 @@ impl UpcomingReleases {
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::SeriesInformationReceived(series_infos) => {
+                self.load_state = LoadState::Loaded;
                 let mut series_infos = series_infos.unwrap();
 
                 // sorting the list according to release time
@@ -79,6 +90,14 @@ impl UpcomingReleases {
     }
 
     pub fn view(&self) -> Element<'_, Message, Renderer> {
+        if let LoadState::Loading = self.load_state {
+            return container(Spinner::new())
+                .center_x()
+                .center_y()
+                .height(100)
+                .width(Length::Fill)
+                .into();
+        }
         if self.series_posters.is_empty() {
             container(text("No Upcoming Episodes"))
                 .style(styles::container_styles::first_class_container_theme())
