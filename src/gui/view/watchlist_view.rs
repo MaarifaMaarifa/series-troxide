@@ -1,6 +1,6 @@
 use std::sync::mpsc;
 
-use iced::widget::{container, scrollable, Column};
+use iced::widget::{container, scrollable, text, Column};
 use iced::{Command, Element, Length, Renderer};
 use iced_aw::Spinner;
 
@@ -93,24 +93,41 @@ impl WatchlistTab {
                 .center_y()
                 .into(),
             LoadState::Loaded => {
-                let watchlist_items: Vec<Element<'_, Message, Renderer>> = self
-                    .series_posters
-                    .iter()
-                    .map(|(poster, total_episodes)| {
-                        poster.watchlist_view(*total_episodes).map(|message| {
-                            Message::SeriesPoster(message.get_id().unwrap_or(0), Box::new(message))
+                if self.series_posters.is_empty() {
+                    container(
+                        text(
+                            "All Cleared!\n'get lazy to watch your shows for them to appear here'",
+                        )
+                        .horizontal_alignment(iced::alignment::Horizontal::Center),
+                    )
+                    .center_x()
+                    .center_y()
+                    .height(Length::Fill)
+                    .width(Length::Fill)
+                    .into()
+                } else {
+                    let watchlist_items: Vec<Element<'_, Message, Renderer>> = self
+                        .series_posters
+                        .iter()
+                        .map(|(poster, total_episodes)| {
+                            poster.watchlist_view(*total_episodes).map(|message| {
+                                Message::SeriesPoster(
+                                    message.get_id().unwrap_or(0),
+                                    Box::new(message),
+                                )
+                            })
                         })
-                    })
-                    .collect();
+                        .collect();
 
-                scrollable(
-                    Column::with_children(watchlist_items)
-                        .padding(5)
-                        .spacing(5)
-                        .align_items(iced::Alignment::Center)
-                        .width(Length::Fill),
-                )
-                .into()
+                    scrollable(
+                        Column::with_children(watchlist_items)
+                            .padding(5)
+                            .spacing(5)
+                            .align_items(iced::Alignment::Center)
+                            .width(Length::Fill),
+                    )
+                    .into()
+                }
             }
         }
     }
