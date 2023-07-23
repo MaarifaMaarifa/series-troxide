@@ -8,7 +8,7 @@ use crate::core::api::updates::show_updates::*;
 use crate::core::settings_config::locale_settings;
 use crate::gui::assets::icons::BINOCULARS_FILL;
 use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
-use crate::gui::{styles, troxide_widget, Message as GuiMessage, Tab};
+use crate::gui::{troxide_widget, Message as GuiMessage, Tab};
 use searching::Message as SearchMessage;
 
 use iced::widget::{column, container, scrollable, text, vertical_space};
@@ -300,7 +300,6 @@ fn series_posters_loader<'a>(
 
     if let LoadState::Loading = load_state {
         let spinner = container(Spinner::new())
-            .style(styles::container_styles::first_class_container_theme())
             .center_x()
             .center_y()
             .height(100)
@@ -314,7 +313,6 @@ fn series_posters_loader<'a>(
 
     if posters.is_empty() {
         let text = container(text("No Series Found"))
-            .style(styles::container_styles::first_class_container_theme())
             .center_x()
             .center_y()
             .height(100)
