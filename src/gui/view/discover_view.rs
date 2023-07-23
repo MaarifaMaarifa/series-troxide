@@ -48,6 +48,7 @@ pub struct DiscoverTab {
     new_country_episodes: Vec<SeriesPoster>,
     series_updates: Vec<SeriesPoster>,
     series_page_sender: mpsc::Sender<(series_view::Series, Command<series_view::Message>)>,
+    country_name: String,
 }
 
 impl DiscoverTab {
@@ -63,9 +64,21 @@ impl DiscoverTab {
                 new_country_episodes: vec![],
                 series_updates: vec![],
                 series_page_sender,
+                country_name: locale_settings::get_country_name_from_settings(),
             },
             load_discover_schedule_command(),
         )
+    }
+
+    pub fn refresh(&mut self) -> Command<Message> {
+        let current_country_name = locale_settings::get_country_name_from_settings();
+        if self.country_name != current_country_name {
+            self.load_state = LoadState::Loading;
+            self.country_name = current_country_name;
+            load_discover_schedule_command()
+        } else {
+            Command::none()
+        }
     }
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
@@ -182,7 +195,6 @@ impl DiscoverTab {
     }
 
     pub fn view(&self) -> Element<'_, Message, Renderer> {
-        let country = locale_settings::get_country_name_from_settings();
         let underlay: Element<'_, Message, Renderer> = match self.load_state {
             LoadState::Loading => container(Spinner::new())
                 .width(Length::Fill)
@@ -194,7 +206,7 @@ impl DiscoverTab {
                 column!(
                     series_posters_loader("Shows Airing Today Globally", &self.new_episodes),
                     series_posters_loader(
-                        &format!("Shows Airing Today in {}", country),
+                        &format!("Shows Airing Today in {}", self.country_name),
                         &self.new_country_episodes
                     ),
                     series_posters_loader("Shows Updates", &self.series_updates),

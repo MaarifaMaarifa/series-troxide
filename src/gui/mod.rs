@@ -143,6 +143,9 @@ impl Application for TroxideGui {
                 let tab_id: TabId = tab_id.into();
                 self.active_tab = tab_id.clone();
 
+                if let TabId::Discover = tab_id {
+                    return self.discover_tab.refresh().map(Message::Discover);
+                }
                 if let TabId::MyShows = tab_id {
                     let (my_shows_tab, my_shows_message) =
                         MyShowsTab::new(self.series_page_sender.clone());

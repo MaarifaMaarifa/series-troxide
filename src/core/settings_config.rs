@@ -1,4 +1,7 @@
-use std::{io::ErrorKind, sync::RwLock};
+use std::{
+    io::ErrorKind,
+    sync::{Arc, RwLock},
+};
 
 use directories::ProjectDirs;
 use lazy_static::lazy_static;
@@ -69,7 +72,7 @@ impl Default for CacheSettings {
 }
 
 lazy_static! {
-    pub static ref SETTINGS: RwLock<Settings> = RwLock::new(Settings::new());
+    pub static ref SETTINGS: Arc<RwLock<Settings>> = Arc::new(RwLock::new(Settings::new()));
 }
 
 pub struct Settings {
@@ -78,7 +81,7 @@ pub struct Settings {
 }
 
 impl Settings {
-    fn new() -> Self {
+    pub fn new() -> Self {
         let config = load_config();
         Self {
             current_config: config.clone(),
@@ -120,6 +123,12 @@ impl Settings {
     pub fn save_settings(&mut self) {
         save_config(&self.unsaved_config);
         self.current_config = self.unsaved_config.clone();
+    }
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
