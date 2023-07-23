@@ -1,10 +1,12 @@
 use std::sync::mpsc;
 
-use iced::{Command, Element, Renderer};
+use iced::widget::{container, text};
+use iced::{Command, Element, Length, Renderer};
 use iced_aw::Wrap;
 
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::caching;
+use crate::gui::styles;
 use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
 use crate::gui::view::series_view;
 
@@ -112,18 +114,28 @@ impl MyShows {
     }
 
     pub fn view(&self) -> Element<'_, Message, Renderer> {
-        Wrap::with_elements(
-            self.series_posters
-                .iter()
-                .map(|poster| {
-                    poster.view().map(|message| {
-                        Message::SeriesPosters(message.get_id().unwrap_or(0), message)
+        if self.series_posters.is_empty() {
+            container(text("Nothing to show"))
+                .style(styles::container_styles::first_class_container_theme())
+                .center_x()
+                .center_y()
+                .height(100)
+                .width(Length::Fill)
+                .into()
+        } else {
+            Wrap::with_elements(
+                self.series_posters
+                    .iter()
+                    .map(|poster| {
+                        poster.view().map(|message| {
+                            Message::SeriesPosters(message.get_id().unwrap_or(0), message)
+                        })
                     })
-                })
-                .collect(),
-        )
-        .line_spacing(5.0)
-        .spacing(5.0)
-        .into()
+                    .collect(),
+            )
+            .line_spacing(5.0)
+            .spacing(5.0)
+            .into()
+        }
     }
 }
