@@ -1,11 +1,12 @@
 use std::sync::mpsc;
 
-use iced::widget::Column;
-use iced::{Command, Element, Renderer};
+use iced::widget::{container, text, Column};
+use iced::{Command, Element, Length, Renderer};
 
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::caching;
 use crate::core::caching::episode_list::EpisodeList;
+use crate::gui::styles;
 use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
 use crate::gui::view::series_view;
 
@@ -78,25 +79,35 @@ impl UpcomingReleases {
     }
 
     pub fn view(&self) -> Element<'_, Message, Renderer> {
-        Column::with_children(
-            self.series_posters
-                .iter()
-                .enumerate()
-                .map(|(index, (poster, _))| {
-                    poster
-                        .release_series_posters_view(
-                            self.series_posters[index]
-                                .1
-                                .get_next_episode_and_time()
-                                .unwrap(),
-                        )
-                        .map(|message| {
-                            Message::SeriesPosters(message.get_id().unwrap_or(0), message)
-                        })
-                })
-                .collect(),
-        )
-        .spacing(5)
-        .into()
+        if self.series_posters.is_empty() {
+            container(text("No Upcoming Episodes"))
+                .style(styles::container_styles::first_class_container_theme())
+                .center_x()
+                .center_y()
+                .height(100)
+                .width(Length::Fill)
+                .into()
+        } else {
+            Column::with_children(
+                self.series_posters
+                    .iter()
+                    .enumerate()
+                    .map(|(index, (poster, _))| {
+                        poster
+                            .release_series_posters_view(
+                                self.series_posters[index]
+                                    .1
+                                    .get_next_episode_and_time()
+                                    .unwrap(),
+                            )
+                            .map(|message| {
+                                Message::SeriesPosters(message.get_id().unwrap_or(0), message)
+                            })
+                    })
+                    .collect(),
+            )
+            .spacing(5)
+            .into()
+        }
     }
 }
