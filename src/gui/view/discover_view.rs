@@ -27,6 +27,13 @@ enum LoadState {
     Loaded,
 }
 
+#[derive(Default)]
+struct LoadStatus {
+    global_series: LoadState,
+    local_series: LoadState,
+    shows_update: LoadState,
+}
+
 #[derive(Clone, Debug)]
 pub enum Message {
     //LoadSchedule, TODO: implement a refresh button in the discover view
@@ -43,7 +50,7 @@ pub enum Message {
 }
 
 pub struct DiscoverTab {
-    load_state: LoadState,
+    load_status: LoadStatus,
     show_overlay: bool,
     search_state: searching::Search,
     new_episodes: Vec<SeriesPoster>,
@@ -59,7 +66,7 @@ impl DiscoverTab {
     ) -> (Self, Command<Message>) {
         (
             Self {
-                load_state: LoadState::Loading,
+                load_status: LoadStatus::default(),
                 show_overlay: false,
                 search_state: searching::Search::default(),
                 new_episodes: vec![],
@@ -75,9 +82,9 @@ impl DiscoverTab {
     pub fn refresh(&mut self) -> Command<Message> {
         let current_country_name = locale_settings::get_country_name_from_settings();
         if self.country_name != current_country_name {
-            self.load_state = LoadState::Loading;
+            self.load_status.local_series = LoadState::Loading;
             self.country_name = current_country_name;
-            load_discover_schedule_command()
+            load_local_aired_series()
         } else {
             Command::none()
         }
@@ -91,7 +98,7 @@ impl DiscoverTab {
             //     load_discover_schedule_command()
             // }
             Message::ScheduleLoaded(episodes) => {
-                self.load_state = LoadState::Loaded;
+                self.load_status.global_series = LoadState::Loaded;
 
                 let mut episode_posters = Vec::with_capacity(episodes.len());
                 let mut commands = Vec::with_capacity(episodes.len());
@@ -118,6 +125,7 @@ impl DiscoverTab {
                     .map(move |message| Message::EpisodePosterAction(index, message))
             }
             Message::SeriesUpdatesLoaded(series) => {
+                self.load_status.shows_update = LoadState::Loaded;
                 let mut series_infos = Vec::with_capacity(series.len());
                 let mut series_poster_commands = Vec::with_capacity(series.len());
                 for (index, series_info) in series.into_iter().enumerate() {
@@ -168,7 +176,7 @@ impl DiscoverTab {
                 Command::none()
             }
             Message::CountryScheduleLoaded(episodes) => {
-                self.load_state = LoadState::Loaded;
+                self.load_status.local_series = LoadState::Loaded;
 
                 let mut episode_posters = Vec::with_capacity(episodes.len());
                 let mut commands = Vec::with_capacity(episodes.len());
@@ -197,27 +205,28 @@ impl DiscoverTab {
     }
 
     pub fn view(&self) -> Element<'_, Message, Renderer> {
-        let underlay: Element<'_, Message, Renderer> = match self.load_state {
-            LoadState::Loading => container(Spinner::new())
-                .width(Length::Fill)
-                .height(Length::Fill)
-                .center_x()
-                .center_y()
-                .into(),
-            LoadState::Loaded => column!(scrollable(
-                column!(
-                    series_posters_loader("Shows Airing Today Globally", &self.new_episodes),
-                    series_posters_loader(
-                        &format!("Shows Airing Today in {}", self.country_name),
-                        &self.new_country_episodes
-                    ),
-                    series_posters_loader("Shows Updates", &self.series_updates),
-                )
-                .spacing(20)
+        let underlay: Element<'_, Message, Renderer> = column!(scrollable(
+            column!(
+                series_posters_loader(
+                    "Shows Airing Today Globally",
+                    &self.load_status.global_series,
+                    &self.new_episodes
+                ),
+                series_posters_loader(
+                    &format!("Shows Airing Today in {}", self.country_name),
+                    &self.load_status.local_series,
+                    &self.new_country_episodes
+                ),
+                series_posters_loader(
+                    "Shows Updates",
+                    &self.load_status.shows_update,
+                    &self.series_updates
+                ),
             )
-            .width(Length::Fill))
-            .into(),
-        };
+            .spacing(20)
+        )
+        .width(Length::Fill))
+        .into();
 
         let content = floating_element::FloatingElement::new(underlay, || {
             self.search_state.view().1.map(Message::SearchAction)
@@ -251,6 +260,18 @@ impl Tab for DiscoverTab {
     }
 }
 
+fn load_local_aired_series() -> Command<Message> {
+    Command::perform(
+        async {
+            let country_code = locale_settings::get_country_code_from_settings();
+            get_episodes_with_country(&country_code).await
+        },
+        |episodes| {
+            Message::CountryScheduleLoaded(episodes.expect("failed to load episodes schedule"))
+        },
+    )
+}
+
 /// loads the shows updates and the scheduled episodes of the discover view
 fn load_discover_schedule_command() -> Command<Message> {
     let series_updates_command =
@@ -262,29 +283,34 @@ fn load_discover_schedule_command() -> Command<Message> {
         Message::ScheduleLoaded(episodes.expect("failed to load episodes schedule"))
     });
 
-    let new_country_episodes_command = Command::perform(
-        async {
-            let country_code = locale_settings::get_country_code_from_settings();
-            get_episodes_with_country(&country_code).await
-        },
-        |episodes| {
-            Message::CountryScheduleLoaded(episodes.expect("failed to load episodes schedule"))
-        },
-    );
-
     Command::batch([
         series_updates_command,
         new_episodes_command,
-        new_country_episodes_command,
+        load_local_aired_series(),
     ])
 }
 
 /// wraps the given series posters and places a title above them
 fn series_posters_loader<'a>(
     title: &str,
+    load_state: &LoadState,
     posters: &'a [SeriesPoster],
 ) -> Element<'a, Message, Renderer> {
     let title = text(title).size(25);
+
+    if let LoadState::Loading = load_state {
+        let spinner = container(Spinner::new())
+            .style(styles::container_styles::first_class_container_theme())
+            .center_x()
+            .center_y()
+            .height(100)
+            .width(Length::Fill);
+
+        return column!(title, vertical_space(10), spinner)
+            .width(Length::Fill)
+            .padding(10)
+            .into();
+    }
 
     if posters.is_empty() {
         let text = container(text("No Series Found"))
