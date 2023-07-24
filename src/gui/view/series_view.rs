@@ -196,6 +196,7 @@ pub enum Message {
     CastWidgetAction(CastWidgetMessage),
     TrackSeries,
     UntrackSeries,
+    UpdateScrollerOffset(f32),
 }
 
 enum LoadState {
@@ -343,6 +344,9 @@ impl Series {
                     .map(|(episode, release_time)| (episode.clone(), release_time))
             }
             Message::SeriesBackgroundLoaded(background) => self.series_background = background,
+            Message::UpdateScrollerOffset(_) => {
+                unreachable!("scroller offset should not be handles in series page")
+            }
         }
         Command::none()
     }
@@ -386,6 +390,10 @@ impl Series {
                 column!(
                     top_bar(self.series_information.as_ref().unwrap()),
                     scrollable(content)
+                        .id(iced::widget::scrollable::Id::new("series-page-scroller"))
+                        .on_scroll(|relative_offset| Message::UpdateScrollerOffset(
+                            relative_offset.y
+                        ))
                 )
                 .into()
             }
