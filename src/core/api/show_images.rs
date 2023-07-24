@@ -7,6 +7,7 @@ pub enum ImageType {
     Poster,
     Banner,
     Background,
+    Typography,
     Other,
 }
 
@@ -16,6 +17,7 @@ impl ImageType {
             match image_type.as_str() {
                 "poster" => Self::Poster,
                 "banner" => Self::Banner,
+                "typography" => Self::Typography,
                 "background" => Self::Background,
                 _ => Self::Other,
             }

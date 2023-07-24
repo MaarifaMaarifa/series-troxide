@@ -10,14 +10,16 @@ use crate::gui::styles;
 use bytes::Bytes;
 use cast_widget::CastWidget;
 use cast_widget::Message as CastWidgetMessage;
+use iced_aw::floating_element::Offset;
 use mini_widgets::*;
 use season_widget::Message as SeasonMessage;
 
-use iced::widget::scrollable::Properties;
-use iced::widget::{button, column, container, horizontal_space, image, row, scrollable, text};
+use iced::widget::{
+    button, column, container, horizontal_space, image, row, scrollable, text, Space,
+};
 use iced::widget::{svg, vertical_space, Column, Row};
 use iced::{Alignment, Command, Element, Length, Renderer};
-use iced_aw::{Grid, Spinner};
+use iced_aw::{floating_element, Grid, Spinner};
 
 mod cast_widget;
 mod mini_widgets;
@@ -117,11 +119,30 @@ pub fn series_page<'a>(
         series_data_grid.insert(ended_widget.1);
     };
 
-    let series_data = column![series_data_grid, vertical_space(10), summary,].spacing(5);
+    let series_data = column![
+        Space::new(0, 150),
+        series_data_grid,
+        vertical_space(10),
+        summary,
+    ]
+    .spacing(5);
 
     main_info = main_info.push(series_data);
 
     content.push(main_info).width(Length::Fill)
+}
+
+fn background(background_bytes: Option<Bytes>) -> Element<'static, Message, Renderer> {
+    if let Some(image_bytes) = background_bytes {
+        let image_handle = image::Handle::from_memory(image_bytes);
+        image(image_handle)
+            .width(Length::Fill)
+            .height(300)
+            .content_fit(iced::ContentFit::Cover)
+            .into()
+    } else {
+        Space::new(0, 300).into()
+    }
 }
 
 fn top_bar(series_info: &SeriesMainInformation) -> Row<'_, Message, Renderer> {
@@ -168,6 +189,7 @@ fn top_bar(series_info: &SeriesMainInformation) -> Row<'_, Message, Renderer> {
 pub enum Message {
     SeriesInfoObtained(Box<SeriesMainInformation>),
     SeriesImageLoaded(Option<Bytes>),
+    SeriesBackgroundLoaded(Option<Bytes>),
     EpisodeListLoaded(caching::episode_list::EpisodeList),
     GoBack,
     SeasonAction(usize, Box<SeasonMessage>),
@@ -187,6 +209,7 @@ pub struct Series {
     seasons_load_state: LoadState,
     series_information: Option<SeriesMainInformation>,
     series_image: Option<Bytes>,
+    series_background: Option<Bytes>,
     next_episode_release_time: Option<(Episode, EpisodeReleaseTime)>,
     season_widgets: Vec<season_widget::Season>,
     cast_widget: CastWidget,
@@ -203,6 +226,7 @@ impl Series {
             series_information: None,
             next_episode_release_time: None,
             series_image: None,
+            series_background: None,
             season_widgets: vec![],
             cast_widget,
         };
@@ -239,12 +263,13 @@ impl Series {
             series_information: Some(series_information),
             next_episode_release_time: None,
             series_image: None,
+            series_background: None,
             season_widgets: vec![],
             cast_widget,
         };
 
         let commands = [
-            Command::batch(get_image_and_episode_list(series_image, series_id)),
+            Command::batch(get_images_and_episode_list(series_image, series_id)),
             cast_widget_command.map(Message::CastWidgetAction),
         ];
 
@@ -258,7 +283,7 @@ impl Series {
                 let info_image = info.image.clone();
                 self.series_information = Some(*info);
 
-                return Command::batch(get_image_and_episode_list(info_image, self.series_id));
+                return Command::batch(get_images_and_episode_list(info_image, self.series_id));
             }
             Message::SeriesImageLoaded(image) => {
                 self.series_image = image;
@@ -317,6 +342,7 @@ impl Series {
                     .get_next_episode_and_time()
                     .map(|(episode, release_time)| (episode.clone(), release_time))
             }
+            Message::SeriesBackgroundLoaded(background) => self.series_background = background,
         }
         Command::none()
     }
@@ -330,11 +356,7 @@ impl Series {
                 .center_y()
                 .into(),
             LoadState::Loaded => {
-                let main_body = series_page(
-                    self.series_information.as_ref().unwrap(),
-                    self.series_image.clone(),
-                    self.next_episode_release_time.as_ref(),
-                );
+                let underlay = background(self.series_background.clone());
 
                 let seasons_widget = column![
                     self.seasons_view(),
@@ -343,9 +365,29 @@ impl Series {
                 ]
                 .padding(10);
 
-                let content = scrollable(column!(main_body, seasons_widget))
-                    .vertical_scroll(Properties::new().scroller_width(5).width(1));
-                column!(top_bar(self.series_information.as_ref().unwrap()), content).into()
+                fn overlay(series: &Series) -> Element<'_, Message, Renderer> {
+                    series_page(
+                        series.series_information.as_ref().unwrap(),
+                        series.series_image.clone(),
+                        series.next_episode_release_time.as_ref(),
+                    )
+                    .into()
+                }
+                let content: Element<'_, Message, Renderer> =
+                    floating_element::FloatingElement::new(underlay, move || overlay(self))
+                        .anchor(floating_element::Anchor::NorthWest)
+                        .offset(Offset { x: 0.0, y: 150.0 })
+                        .into();
+
+                let main_content_height = content.as_widget().height();
+
+                let content = column![content, vertical_space(main_content_height), seasons_widget];
+
+                column!(
+                    top_bar(self.series_information.as_ref().unwrap()),
+                    scrollable(content)
+                )
+                .into()
             }
         }
     }
@@ -395,10 +437,10 @@ impl Series {
 }
 
 /// Returns two commands that requests series' image and seasons list
-fn get_image_and_episode_list(
+fn get_images_and_episode_list(
     series_info_image: Option<Image>,
     series_id: u32,
-) -> [Command<Message>; 2] {
+) -> [Command<Message>; 3] {
     let image_command = if let Some(image_url) = series_info_image {
         Command::perform(caching::load_image(image_url.original_image_url), |image| {
             Message::SeriesImageLoaded(image)
@@ -407,10 +449,15 @@ fn get_image_and_episode_list(
         Command::none()
     };
 
+    let background_command = Command::perform(
+        caching::show_images::get_recent_banner(series_id),
+        Message::SeriesBackgroundLoaded,
+    );
+
     let episode_list_command =
         Command::perform(get_episodes_list(series_id), Message::EpisodeListLoaded);
 
-    [image_command, episode_list_command]
+    [image_command, background_command, episode_list_command]
 }
 
 /// Returns the episodes_list of the current series

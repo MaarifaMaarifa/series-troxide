@@ -22,6 +22,7 @@ const IMAGES_CACHE_DIRECTORY: &str = "series-troxide-images-data";
 const EPISODE_LIST_FILENAME: &str = "episode-list";
 const SERIES_MAIN_INFORMATION_FILENAME: &str = "main-info";
 const SERIES_CAST_FILENAME: &str = "show-cast";
+const SERIES_IMAGE_LIST_FILENAME: &str = "image-list";
 
 lazy_static! {
     pub static ref CACHER: Cacher = Cacher::init();
@@ -36,6 +37,7 @@ pub enum CacheFilePath {
     SeriesMainInformation(u32),
     SeriesEpisodeList(u32),
     SeriesShowCast(u32),
+    SeriesImageList(u32),
 }
 
 pub struct Cacher {
@@ -85,6 +87,11 @@ impl Cacher {
             CacheFilePath::SeriesShowCast(series_id) => {
                 let mut cache_folder = self.get_series_cache_folder_path(series_id);
                 cache_folder.push(SERIES_CAST_FILENAME);
+                cache_folder
+            }
+            CacheFilePath::SeriesImageList(series_id) => {
+                let mut cache_folder = self.get_series_cache_folder_path(series_id);
+                cache_folder.push(SERIES_IMAGE_LIST_FILENAME);
                 cache_folder
             }
         }
