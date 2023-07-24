@@ -184,6 +184,7 @@ enum LoadState {
 pub struct Series {
     series_id: u32,
     load_state: LoadState,
+    seasons_load_state: LoadState,
     series_information: Option<SeriesMainInformation>,
     series_image: Option<Bytes>,
     next_episode_release_time: Option<(Episode, EpisodeReleaseTime)>,
@@ -198,6 +199,7 @@ impl Series {
         let series = Self {
             series_id,
             load_state: LoadState::Loading,
+            seasons_load_state: LoadState::Loading,
             series_information: None,
             next_episode_release_time: None,
             series_image: None,
@@ -233,6 +235,7 @@ impl Series {
         let series = Self {
             series_id,
             load_state: LoadState::Loaded,
+            seasons_load_state: LoadState::Loading,
             series_information: Some(series_information),
             next_episode_release_time: None,
             series_image: None,
@@ -292,6 +295,7 @@ impl Series {
                     .map(Message::CastWidgetAction)
             }
             Message::EpisodeListLoaded(episode_list) => {
+                self.seasons_load_state = LoadState::Loaded;
                 let season_and_total_episodes =
                     episode_list.get_season_numbers_with_total_episode();
 
@@ -332,37 +336,8 @@ impl Series {
                     self.next_episode_release_time.as_ref(),
                 );
 
-                let seasons_widget = container(
-                    container(
-                        column![
-                            text("Seasons").size(25),
-                            vertical_space(10),
-                            Column::with_children(
-                                self.season_widgets
-                                    .iter()
-                                    .enumerate()
-                                    .map(|(index, widget)| {
-                                        widget
-                                            .view()
-                                            .map(move |m| Message::SeasonAction(index, Box::new(m)))
-                                    })
-                                    .collect(),
-                            )
-                            .padding(5)
-                            .spacing(5)
-                            .align_items(Alignment::Center)
-                        ]
-                        .align_items(Alignment::Center),
-                    )
-                    .padding(10)
-                    .style(styles::container_styles::first_class_container_theme()),
-                )
-                .width(Length::Fill)
-                .center_x()
-                .center_y();
-
                 let seasons_widget = column![
-                    seasons_widget,
+                    self.seasons_view(),
                     vertical_space(10),
                     self.cast_widget.view().map(Message::CastWidgetAction),
                 ]
@@ -373,6 +348,49 @@ impl Series {
                 column!(top_bar(self.series_information.as_ref().unwrap()), content).into()
             }
         }
+    }
+
+    fn seasons_view(&self) -> Element<'_, Message, Renderer> {
+        let seasons_body = column![text("Seasons").size(25)]
+            .align_items(Alignment::Center)
+            .spacing(10);
+
+        let content = if let LoadState::Loading = self.seasons_load_state {
+            container(seasons_body.push(Spinner::new()))
+                .width(700)
+                .center_x()
+        } else if self.season_widgets.is_empty() {
+            container(seasons_body.push(text("No seasons found")))
+                .width(700)
+                .center_x()
+        } else {
+            container(
+                seasons_body.push(
+                    Column::with_children(
+                        self.season_widgets
+                            .iter()
+                            .enumerate()
+                            .map(|(index, widget)| {
+                                widget
+                                    .view()
+                                    .map(move |m| Message::SeasonAction(index, Box::new(m)))
+                            })
+                            .collect(),
+                    )
+                    .padding(5)
+                    .spacing(5)
+                    .align_items(Alignment::Center),
+                ),
+            )
+        }
+        .padding(10)
+        .style(styles::container_styles::first_class_container_theme());
+
+        container(content)
+            .width(Length::Fill)
+            .center_x()
+            .center_y()
+            .into()
     }
 }
 
