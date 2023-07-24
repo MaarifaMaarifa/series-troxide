@@ -11,12 +11,12 @@ pub struct Cast {
 #[derive(Deserialize, Debug, Clone)]
 pub struct Person {
     pub name: String,
+    pub image: Option<Image>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Character {
     pub name: String,
-    pub image: Option<Image>,
 }
 
 // replace ID with the actual show id

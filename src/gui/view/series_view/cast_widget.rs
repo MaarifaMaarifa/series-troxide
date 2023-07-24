@@ -109,7 +109,7 @@ mod cast_poster {
 
     impl CastPoster {
         pub fn new(id: usize, cast: Cast) -> (Self, Command<Message>) {
-            let image = cast.character.image.clone();
+            let image = cast.person.image.clone();
             let poster = Self { cast, image: None };
             let poster_command = if let Some(image) = image {
                 Command::perform(
@@ -140,8 +140,8 @@ mod cast_poster {
             }
 
             let name = text(format!(
-                "{}\n({})",
-                self.cast.character.name, self.cast.person.name
+                "{}\nas {}",
+                self.cast.person.name, self.cast.character.name
             ))
             .horizontal_alignment(alignment::Horizontal::Center)
             .width(100)
