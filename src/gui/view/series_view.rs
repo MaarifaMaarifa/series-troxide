@@ -364,7 +364,6 @@ impl Series {
                 let seasons_widget = column![
                     seasons_widget,
                     vertical_space(10),
-                    text("Top Cast").size(25),
                     self.cast_widget.view().map(Message::CastWidgetAction),
                 ]
                 .padding(10);

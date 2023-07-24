@@ -1,5 +1,6 @@
 use cast_poster::{CastPoster, Message as CastMessage};
-use iced::{Command, Element, Renderer};
+use iced::widget::{column, container, text, Space};
+use iced::{Command, Element, Length, Renderer};
 use iced_aw::{Spinner, Wrap};
 
 use crate::core::{api::show_cast::Cast, caching};
@@ -58,21 +59,37 @@ impl CastWidget {
 
     pub fn view(&self) -> Element<'_, Message, Renderer> {
         match self.load_state {
-            LoadState::Loading => Spinner::new().into(),
-            LoadState::Loaded => Wrap::with_elements(
-                self.cast
-                    .iter()
-                    .map(|poster| {
-                        poster
-                            .view()
-                            .map(|message| Message::CastAction(message.get_id(), message))
-                    })
-                    .collect(),
-            )
-            .padding(5.0)
-            .line_spacing(5.0)
-            .spacing(5.0)
-            .into(),
+            LoadState::Loading => {
+                return container(Spinner::new())
+                    .center_x()
+                    .center_y()
+                    .height(100)
+                    .width(Length::Fill)
+                    .into()
+            }
+            LoadState::Loaded => {
+                if self.cast.is_empty() {
+                    Space::new(0, 0).into()
+                } else {
+                    column![
+                        text("Top Cast").size(25),
+                        Wrap::with_elements(
+                            self.cast
+                                .iter()
+                                .map(|poster| {
+                                    poster.view().map(|message| {
+                                        Message::CastAction(message.get_id(), message)
+                                    })
+                                })
+                                .collect(),
+                        )
+                        .padding(5.0)
+                        .line_spacing(5.0)
+                        .spacing(5.0)
+                    ]
+                    .into()
+                }
+            }
         }
     }
 }
