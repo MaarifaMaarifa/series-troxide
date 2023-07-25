@@ -44,5 +44,6 @@ cargo install --path .
 ![Statistics](screenshots/statistics-page.png)
 
 ## Credit
-- The [API](https://en.wikipedia.org/wiki/API) used by **Series Troxide** is provided by **TVmaze** Licenced under [CC BY-SA](https://creativecommons.org/licenses/by-sa/4.0/). You can check out their site [here](https://www.tvmaze.com/).
-- The icons used are provided by **bootstrap icons**. You can check out their site [here](https://icons.getbootstrap.com/).
+- The API used has been provided by TVmaze, you can check out the site [here](https://www.tvmaze.com/).
+- The Icons used have been provided by boostrap icons, you can check out the site [here](https://icons.getbootstrap.com/).
+- The Graphical User Interface has been made using Iced, you can check out the site [here](https://iced.rs/).
