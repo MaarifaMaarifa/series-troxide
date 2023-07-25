@@ -14,7 +14,8 @@ use mini_widgets::*;
 use season_widget::Message as SeasonMessage;
 
 use iced::widget::{
-    button, column, container, horizontal_rule, image, row, scrollable, text, Button, Space,
+    button, column, container, horizontal_rule, horizontal_space, image, row, scrollable, text,
+    Button, Space,
 };
 use iced::widget::{svg, vertical_space, Column};
 use iced::{Alignment, Command, Element, Length, Renderer};
@@ -114,13 +115,20 @@ pub fn series_metadata<'a>(
 
     let next_episode_widget = next_episode_release_time_widget(next_episode_release_time);
 
+    let rating_and_release_widget = row![
+        rating_widget,
+        horizontal_space(Length::Fill),
+        next_episode_widget
+    ]
+    .padding(3);
+
     let series_data = column![
         title_bar,
-        rating_widget,
+        rating_and_release_widget,
         horizontal_rule(1),
         series_data_grid,
         vertical_space(10),
-        next_episode_widget
+        // next_episode_widget
     ]
     .width(700)
     .spacing(5);
