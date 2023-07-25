@@ -66,6 +66,9 @@ fn info_widget() -> Element<'static, Message, Renderer> {
     grid.insert(text("Version"));
     grid.insert(text(built_info::PKG_VERSION));
 
+    grid.insert(text("License"));
+    grid.insert(text(built_info::PKG_LICENSE));
+
     if !built_info::GIT_DIRTY.unwrap_or(false) {
         if let Some(commit_hash) = built_info::GIT_COMMIT_HASH {
             grid.insert(text("Commit Hash"));
