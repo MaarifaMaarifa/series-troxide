@@ -62,7 +62,7 @@ pub fn genres_widget(
         while let Some(genre) = series_result_iter.next() {
             genres.push_str(genre);
             if series_result_iter.peek().is_some() {
-                genres.push_str(", ");
+                genres.push_str(" | ");
             }
         }
         let genres = text(genres);
