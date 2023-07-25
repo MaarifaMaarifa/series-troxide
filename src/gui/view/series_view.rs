@@ -10,7 +10,6 @@ use crate::gui::styles;
 use bytes::Bytes;
 use cast_widget::CastWidget;
 use cast_widget::Message as CastWidgetMessage;
-use iced_aw::floating_element::Offset;
 use mini_widgets::*;
 use season_widget::Message as SeasonMessage;
 
@@ -19,7 +18,7 @@ use iced::widget::{
 };
 use iced::widget::{svg, vertical_space, Column, Row};
 use iced::{Alignment, Command, Element, Length, Renderer};
-use iced_aw::{floating_element, Grid, Spinner};
+use iced_aw::{Grid, Spinner};
 
 mod cast_widget;
 mod mini_widgets;
@@ -119,13 +118,7 @@ pub fn series_page<'a>(
         series_data_grid.insert(ended_widget.1);
     };
 
-    let series_data = column![
-        Space::new(0, 150),
-        series_data_grid,
-        vertical_space(10),
-        summary,
-    ]
-    .spacing(5);
+    let series_data = column![series_data_grid, vertical_space(10), summary,].spacing(5);
 
     main_info = main_info.push(series_data);
 
@@ -196,7 +189,6 @@ pub enum Message {
     CastWidgetAction(CastWidgetMessage),
     TrackSeries,
     UntrackSeries,
-    UpdateScrollerOffset(f32),
 }
 
 enum LoadState {
@@ -344,9 +336,6 @@ impl Series {
                     .map(|(episode, release_time)| (episode.clone(), release_time))
             }
             Message::SeriesBackgroundLoaded(background) => self.series_background = background,
-            Message::UpdateScrollerOffset(_) => {
-                unreachable!("scroller offset should not be handles in series page")
-            }
         }
         Command::none()
     }
@@ -360,41 +349,24 @@ impl Series {
                 .center_y()
                 .into(),
             LoadState::Loaded => {
-                let underlay = background(self.series_background.clone());
+                let background = background(self.series_background.clone());
 
-                let seasons_widget = column![
-                    self.seasons_view(),
-                    vertical_space(10),
-                    self.cast_widget.view().map(Message::CastWidgetAction),
-                ]
-                .padding(10);
+                let series_metadata = series_page(
+                    self.series_information.as_ref().unwrap(),
+                    self.series_image.clone(),
+                    self.next_episode_release_time.as_ref(),
+                );
 
-                fn overlay(series: &Series) -> Element<'_, Message, Renderer> {
-                    series_page(
-                        series.series_information.as_ref().unwrap(),
-                        series.series_image.clone(),
-                        series.next_episode_release_time.as_ref(),
-                    )
-                    .into()
-                }
-                let content: Element<'_, Message, Renderer> =
-                    floating_element::FloatingElement::new(underlay, move || overlay(self))
-                        .anchor(floating_element::Anchor::NorthWest)
-                        .offset(Offset { x: 0.0, y: 150.0 })
-                        .into();
+                let seasons_widget = self.seasons_view();
 
-                let main_content_height = content.as_widget().height();
+                let cast_widget = self.cast_widget.view().map(Message::CastWidgetAction);
 
-                let content = column![content, vertical_space(main_content_height), seasons_widget];
+                let content = column![background, series_metadata, seasons_widget, cast_widget,];
 
-                column!(
+                column![
                     top_bar(self.series_information.as_ref().unwrap()),
-                    scrollable(content)
-                        .id(iced::widget::scrollable::Id::new("series-page-scroller"))
-                        .on_scroll(|relative_offset| Message::UpdateScrollerOffset(
-                            relative_offset.y
-                        ))
-                )
+                    scrollable(content),
+                ]
                 .into()
             }
         }

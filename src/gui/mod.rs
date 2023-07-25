@@ -9,7 +9,6 @@ use view::statistics_view::{Message as StatisticsMessage, StatisticsTab};
 use view::watchlist_view::{Message as WatchlistMessage, WatchlistTab};
 
 use iced::widget::{container, text, Column};
-use iced::{subscription, Event};
 use iced::{Application, Command, Element, Length};
 
 use super::core::settings_config;
@@ -64,7 +63,6 @@ pub enum Message {
     Statistics(StatisticsMessage),
     Settings(SettingsMessage),
     Series(SeriesMessage),
-    EventOccured(Event),
 }
 
 pub struct TroxideGui {
@@ -76,7 +74,6 @@ pub struct TroxideGui {
     statistics_tab: StatisticsTab,
     settings_tab: SettingsTab,
     series_view: Option<Series>,
-    series_page_scroller_offset: series_page_scrolling::ScrollerOffset,
     series_page_sender: mpsc::Sender<(Series, Command<SeriesMessage>)>,
     series_page_receiver: mpsc::Receiver<(Series, Command<SeriesMessage>)>,
 }
@@ -105,7 +102,6 @@ impl Application for TroxideGui {
                 my_shows_tab,
                 settings_tab: view::settings_view::SettingsTab::new(),
                 series_view: None,
-                series_page_scroller_offset: series_page_scrolling::ScrollerOffset::default(),
                 series_page_sender: sender,
                 series_page_receiver: receiver,
             },
@@ -138,10 +134,6 @@ impl Application for TroxideGui {
                 iced::Theme::Custom(Box::new(theme.get_theme()))
             }
         }
-    }
-
-    fn subscription(&self) -> iced::Subscription<Self::Message> {
-        subscription::events().map(Message::EventOccured)
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
@@ -188,11 +180,6 @@ impl Application for TroxideGui {
             }
             Message::Settings(message) => self.settings_tab.update(message).map(Message::Settings),
             Message::Series(message) => {
-                if let SeriesMessage::UpdateScrollerOffset(new_value) = message {
-                    self.series_page_scroller_offset.set_value(new_value);
-                    return Command::none();
-                }
-
                 if let Some(command) =
                     handle_back_message_from_series(&message, &mut self.series_view_active)
                 {
@@ -204,10 +191,6 @@ impl Application for TroxideGui {
                     .update(message)
                     .map(Message::Series)
             }
-            Message::EventOccured(event) => series_page_scrolling::handle_series_page_scrolling(
-                &mut self.series_page_scroller_offset,
-                event,
-            ),
         }
     }
 
@@ -307,85 +290,4 @@ trait Tab {
     }
 
     fn content(&self) -> Element<'_, Self::Message>;
-}
-
-mod series_page_scrolling {
-    //! Deals with the scrolling in the series page
-    //!
-    //! Since the series page makes use of a floating element, whenever the mouse is ontop of it
-    //! it captures the scrolling preventing the series page from scrolling, a behaviour that is
-    //! not expected by the user when browsing the series page. This module is designed to provide
-    //! a workaround by listening to mouse event and scroll the series page appropriately.
-
-    use super::Message;
-    use iced::mouse::Event as MouseEvent;
-    use iced::widget::scrollable::RelativeOffset;
-    use iced::widget::scrollable::{snap_to, Id};
-    use iced::Command;
-    use iced::Event;
-
-    /// A custom Scroller Offset for the Scrollbar
-    #[derive(Default, Debug)]
-    pub struct ScrollerOffset {
-        offset: f32,
-    }
-
-    impl ScrollerOffset {
-        /// Puts a new value into the `ScrollerOffset` taking care the direction and numbers
-        /// below 0.0 and abouve 1.0
-        fn put(&mut self, value: f32) {
-            let new_value = self.offset + (-1.0 * value);
-
-            if new_value > 1.0 {
-                self.offset = 1.0;
-            } else if new_value < 0.0 {
-                self.offset = 0.0;
-            } else {
-                self.offset = new_value;
-            }
-        }
-
-        /// Sets the new y value in the `ScrollerOffset`, this value is expected to come from
-        /// `Scroller` directly.
-        pub fn set_value(&mut self, new_value: f32) {
-            self.offset = new_value;
-        }
-
-        /// Get the current value of the `ScrollerOffset`
-        fn get_value(&self) -> f32 {
-            self.offset
-        }
-    }
-
-    /// Handles the scrolling of the series page
-    pub fn handle_series_page_scrolling(
-        scroller_offset: &mut ScrollerOffset,
-        event: Event,
-    ) -> Command<Message> {
-        if let Event::Mouse(MouseEvent::WheelScrolled { delta }) = event {
-            match delta {
-                iced::mouse::ScrollDelta::Lines { x: _, y } => {
-                    scroller_offset.put(y / 10.0);
-                    return snap_to(
-                        Id::new("series-page-scroller"),
-                        RelativeOffset {
-                            x: 0.0,
-                            y: scroller_offset.get_value(),
-                        },
-                    );
-                }
-                iced::mouse::ScrollDelta::Pixels { x: _, y } => {
-                    scroller_offset.put(y / 10.0);
-                    return snap_to(
-                        Id::new("series-page-scroller"),
-                        RelativeOffset {
-                            x: 0.0,
-                            y: scroller_offset.get_value(),
-                        },
-                    );
-                }
-            }
-        }
-        Command::none()
-    }
 }
