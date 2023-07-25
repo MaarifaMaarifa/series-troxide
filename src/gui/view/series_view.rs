@@ -291,7 +291,6 @@ impl Series {
                 if let Some(mut series) = database::DB.get_series(series_id) {
                     series.mark_untracked();
                 }
-                // database::DB.untrack_series(self.series_information.as_ref().unwrap().id);
             }
             Message::CastWidgetAction(message) => {
                 return self
