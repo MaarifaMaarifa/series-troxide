@@ -10,12 +10,13 @@ use crate::gui::styles;
 use bytes::Bytes;
 use cast_widget::CastWidget;
 use cast_widget::Message as CastWidgetMessage;
+use image;
 use mini_widgets::*;
 use season_widget::Message as SeasonMessage;
 
 use iced::widget::{
-    button, column, container, horizontal_rule, horizontal_space, image, row, scrollable, text,
-    Button, Space,
+    button, column, container, horizontal_rule, horizontal_space, row, scrollable, text, Button,
+    Space,
 };
 use iced::widget::{svg, vertical_space, Column};
 use iced::{Alignment, Command, Element, Length, Renderer};
@@ -55,8 +56,8 @@ pub fn series_metadata<'a>(
     let mut main_info = row!().padding(5).spacing(10);
 
     if let Some(image_bytes) = image_bytes {
-        let image_handle = image::Handle::from_memory(image_bytes);
-        let image = image(image_handle).width(180);
+        let image_handle = iced::widget::image::Handle::from_memory(image_bytes);
+        let image = iced::widget::image(image_handle).width(180);
 
         main_info = main_info.push(image);
     }
@@ -150,15 +151,31 @@ pub fn series_metadata<'a>(
         .into()
 }
 
-fn background(background_bytes: Option<Bytes>) -> Element<'static, Message, Renderer> {
+fn background(
+    background_bytes: Option<Bytes>,
+    series_image_blurred: Option<image::DynamicImage>,
+) -> Element<'static, Message, Renderer> {
     if let Some(image_bytes) = background_bytes {
-        let image_handle = image::Handle::from_memory(image_bytes);
-        image(image_handle)
+        let image_handle = iced::widget::image::Handle::from_memory(image_bytes);
+        iced::widget::image(image_handle)
             .width(Length::Fill)
             .height(300)
             .content_fit(iced::ContentFit::Cover)
             .into()
     } else {
+        // using the blurred series image when the background is not yet present(or still loading)
+        if let Some(image) = series_image_blurred {
+            let image_handle = iced::widget::image::Handle::from_pixels(
+                image.width(),
+                image.height(),
+                image.into_rgba8().into_vec(),
+            );
+            return iced::widget::image(image_handle)
+                .width(Length::Fill)
+                .height(300)
+                .content_fit(iced::ContentFit::Cover)
+                .into();
+        }
         Space::new(0, 300).into()
     }
 }
@@ -210,6 +227,7 @@ pub struct Series {
     seasons_load_state: LoadState,
     series_information: Option<SeriesMainInformation>,
     series_image: Option<Bytes>,
+    series_image_blurred: Option<image::DynamicImage>,
     series_background: Option<Bytes>,
     next_episode_release_time: Option<(Episode, EpisodeReleaseTime)>,
     season_widgets: Vec<season_widget::Season>,
@@ -227,6 +245,7 @@ impl Series {
             series_information: None,
             next_episode_release_time: None,
             series_image: None,
+            series_image_blurred: None,
             series_background: None,
             season_widgets: vec![],
             cast_widget,
@@ -264,6 +283,7 @@ impl Series {
             series_information: Some(series_information),
             next_episode_release_time: None,
             series_image: None,
+            series_image_blurred: None,
             series_background: None,
             season_widgets: vec![],
             cast_widget,
@@ -287,6 +307,26 @@ impl Series {
                 return Command::batch(get_images_and_episode_list(info_image, self.series_id));
             }
             Message::SeriesImageLoaded(image) => {
+                // Since blurring the image in debug build is really slow, so it is only enabled in release build
+                #[cfg(debug_assertions)]
+                fn blur_image(image: Option<&Bytes>) -> Option<image::DynamicImage> {
+                    image.map(|image| image::load_from_memory(image).unwrap())
+                }
+                #[cfg(not(debug_assertions))]
+                fn blur_image(image: Option<&Bytes>) -> Option<image::DynamicImage> {
+                    image.map(|image| {
+                        image::load_from_memory(image)
+                            .unwrap()
+                            /*
+                            creating a thumbnail out of it as this is going to make blurring
+                            process more faster
+                            */
+                            .thumbnail(100, 100)
+                            .blur(5.0)
+                    })
+                }
+                // This blurred series image is going to be used when the background is loading or missing
+                self.series_image_blurred = blur_image(image.as_ref());
                 self.series_image = image;
             }
             Message::SeasonAction(index, message) => {
@@ -355,7 +395,10 @@ impl Series {
                 .center_y()
                 .into(),
             LoadState::Loaded => {
-                let background = background(self.series_background.clone());
+                let background = background(
+                    self.series_background.clone(),
+                    self.series_image_blurred.clone(),
+                );
 
                 let series_metadata = series_metadata(
                     self.series_information.as_ref().unwrap(),

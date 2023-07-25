@@ -3505,6 +3505,7 @@ dependencies = [
  "html2text",
  "iced",
  "iced_aw",
+ "image",
  "indexmap",
  "json",
  "lazy_static",
