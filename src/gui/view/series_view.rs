@@ -50,7 +50,7 @@ pub fn series_metadata<'a>(
     series_information: &'a SeriesMainInformation,
     image_bytes: Option<Bytes>,
     next_episode_release_time: Option<&'a (Episode, EpisodeReleaseTime)>,
-) -> Column<'a, Message, Renderer> {
+) -> Element<'a, Message, Renderer> {
     let mut main_info = row!().padding(5).spacing(10);
 
     if let Some(image_bytes) = image_bytes {
@@ -127,9 +127,19 @@ pub fn series_metadata<'a>(
 
     main_info = main_info.push(series_data);
 
-    column![main_info, summary]
-        .align_items(Alignment::Center)
+    let content = container(
+        column![main_info, summary]
+            .align_items(Alignment::Center)
+            .padding(5)
+            .width(Length::Fill),
+    )
+    .style(styles::container_styles::first_class_container_tab_theme());
+
+    container(content)
         .width(Length::Fill)
+        .padding(10)
+        .center_x()
+        .into()
 }
 
 fn background(background_bytes: Option<Bytes>) -> Element<'static, Message, Renderer> {
