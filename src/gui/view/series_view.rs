@@ -49,26 +49,13 @@ pub fn series_metadata<'a>(
     image_bytes: Option<Bytes>,
     next_episode_release_time: Option<&'a (Episode, EpisodeReleaseTime)>,
 ) -> Column<'a, Message, Renderer> {
-    let content = column!();
-
     let mut main_info = row!().padding(5).spacing(10);
-
-    // Putting the image to the main info
-    let next_episode_widget = next_episode_release_time_widget(next_episode_release_time);
 
     if let Some(image_bytes) = image_bytes {
         let image_handle = image::Handle::from_memory(image_bytes);
         let image = image(image_handle).width(180);
 
-        main_info = main_info.push(
-            column![image, next_episode_widget]
-                .align_items(Alignment::Center)
-                .spacing(10)
-                .width(180),
-        );
-    } else {
-        // TODO: A Default image should be placed when the series image is missing
-        main_info = main_info.push(next_episode_widget);
+        main_info = main_info.push(image);
     }
 
     let mut series_data_grid = Grid::with_columns(2);
@@ -124,14 +111,20 @@ pub fn series_metadata<'a>(
         tracking_button(series_information.id).width(Length::FillPortion(1))
     ];
 
-    let series_data = column![title_bar, series_data_grid, vertical_space(10), summary,]
-        .width(700)
-        .spacing(5);
+    let next_episode_widget = next_episode_release_time_widget(next_episode_release_time);
+
+    let series_data = column![
+        title_bar,
+        series_data_grid,
+        vertical_space(10),
+        next_episode_widget
+    ]
+    .width(700)
+    .spacing(5);
 
     main_info = main_info.push(series_data);
 
-    content
-        .push(main_info)
+    column![main_info, summary]
         .align_items(Alignment::Center)
         .width(Length::Fill)
 }

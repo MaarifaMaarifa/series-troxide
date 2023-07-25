@@ -8,7 +8,7 @@ use crate::gui::helpers::season_episode_str_gen;
 use crate::gui::styles;
 use crate::gui::troxide_widget::INFO_HEADER;
 
-use iced::widget::{column, container, row, svg, text, Space};
+use iced::widget::{container, row, svg, text, Space};
 use iced::{Element, Length, Renderer};
 
 use super::Message;
@@ -130,9 +130,7 @@ pub fn ended_widget(
 pub fn summary_widget(series_info: &SeriesMainInformation) -> iced::Element<'_, Message, Renderer> {
     if let Some(summary) = &series_info.summary {
         let summary = html2text::from_read(summary.as_bytes(), 1000);
-        column![text("Summary"), text(summary).size(15),]
-            .spacing(5)
-            .into()
+        text(summary).size(15).width(880).into()
     } else {
         text("").into()
     }
