@@ -3,12 +3,12 @@ use crate::core::api::episodes_information::Episode;
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::caching::episode_list::EpisodeReleaseTime;
 use crate::gui::assets::get_static_cow_from_asset;
-use crate::gui::assets::icons::CLOCK_FILL;
+use crate::gui::assets::icons::{CLOCK_FILL, STAR, STAR_FILL};
 use crate::gui::helpers::season_episode_str_gen;
 use crate::gui::styles;
 use crate::gui::troxide_widget::INFO_HEADER;
 
-use iced::widget::{container, row, svg, text, Space};
+use iced::widget::{container, horizontal_space, row, svg, text, Space};
 use iced::{Element, Length, Renderer};
 
 use super::Message;
@@ -136,20 +136,45 @@ pub fn summary_widget(series_info: &SeriesMainInformation) -> iced::Element<'_, 
     }
 }
 
-pub fn rating_widget(
-    series_info: &SeriesMainInformation,
-) -> (
-    Element<'_, Message, Renderer>,
-    Element<'_, Message, Renderer>,
-) {
-    let title_text = text("Average rating");
-    let body_text = if let Some(average_rating) = series_info.rating.average {
-        text(average_rating.to_string())
-    } else {
-        text("unavailable")
-    };
+pub fn rating_widget(series_info: &SeriesMainInformation) -> Element<'_, Message, Renderer> {
+    if let Some(average_rating) = series_info.rating.average {
+        let star_handle = svg::Handle::from_memory(get_static_cow_from_asset(STAR));
 
-    (title_text.into(), body_text.into())
+        let star_fill_handle = svg::Handle::from_memory(get_static_cow_from_asset(STAR_FILL));
+
+        let mut rating = row![];
+
+        let total_rating = 10_u8;
+        let series_rating = average_rating as u8;
+        let missing_rating = total_rating - series_rating;
+
+        let rating_text = text(format!("{} / {}", average_rating, total_rating));
+
+        for _ in 0..series_rating {
+            rating = rating.push(
+                svg(star_fill_handle.clone())
+                    .width(15)
+                    .height(15)
+                    .style(styles::svg_styles::colored_svg_theme()),
+            )
+        }
+
+        for _ in 0..missing_rating {
+            rating = rating.push(
+                svg(star_handle.clone())
+                    .width(15)
+                    .height(15)
+                    .style(styles::svg_styles::colored_svg_theme()),
+            )
+        }
+
+        rating = rating.push(horizontal_space(10));
+        rating = rating.push(rating_text);
+
+        rating.into()
+    } else {
+        Space::new(0, 0).into()
+    }
 }
 
 pub fn network_widget(

@@ -84,8 +84,6 @@ pub fn series_metadata<'a>(
     series_data_grid.insert(language_widget.1);
     series_data_grid.insert(average_runtime_widget.0);
     series_data_grid.insert(average_runtime_widget.1);
-    series_data_grid.insert(rating_widget.0);
-    series_data_grid.insert(rating_widget.1);
 
     if let Some(network_widget) = network_widget {
         series_data_grid.insert(network_widget.0);
@@ -118,6 +116,7 @@ pub fn series_metadata<'a>(
 
     let series_data = column![
         title_bar,
+        rating_widget,
         horizontal_rule(1),
         series_data_grid,
         vertical_space(10),
