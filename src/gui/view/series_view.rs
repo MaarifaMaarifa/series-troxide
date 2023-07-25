@@ -61,7 +61,7 @@ pub fn series_metadata<'a>(
 
         main_info = main_info.push(image);
     } else {
-        main_info = main_info.push(Space::new(180, 443));
+        main_info = main_info.push(Space::new(180, 253));
     };
 
     let mut series_data_grid = Grid::with_columns(2);
