@@ -14,8 +14,7 @@ use mini_widgets::*;
 use season_widget::Message as SeasonMessage;
 
 use iced::widget::{
-    button, column, container, horizontal_rule, image, row, scrollable, text, vertical_rule,
-    Button, Space,
+    button, column, container, horizontal_rule, image, row, scrollable, text, Button, Space,
 };
 use iced::widget::{svg, vertical_space, Column};
 use iced::{Alignment, Command, Element, Length, Renderer};
