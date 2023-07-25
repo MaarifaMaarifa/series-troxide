@@ -4,7 +4,7 @@ use crate::core::api::Image;
 use crate::core::caching::episode_list::EpisodeReleaseTime;
 use crate::core::{caching, database};
 use crate::gui::assets::get_static_cow_from_asset;
-use crate::gui::assets::icons::{CHECK_CIRCLE, CHECK_CIRCLE_FILL};
+use crate::gui::assets::icons::{PATCH_PLUS, PATCH_PLUS_FILL};
 use crate::gui::styles;
 
 use bytes::Bytes;
@@ -106,9 +106,10 @@ pub fn series_metadata<'a>(
     let series_name = text(series_information.name.clone())
         .size(35)
         .style(styles::text_styles::purple_text_theme());
+
     let title_bar = row![
         series_name.width(Length::FillPortion(10)),
-        tracking_button(series_information.id).width(Length::FillPortion(1))
+        tracking_button(series_information.id)
     ];
 
     let next_episode_widget = next_episode_release_time_widget(next_episode_release_time);
@@ -149,15 +150,17 @@ fn tracking_button(series_id: u32) -> Button<'static, Message, Renderer> {
         .unwrap_or(false)
     {
         let tracked_icon_handle =
-            svg::Handle::from_memory(get_static_cow_from_asset(CHECK_CIRCLE_FILL));
+            svg::Handle::from_memory(get_static_cow_from_asset(PATCH_PLUS_FILL));
         let icon = svg(tracked_icon_handle)
-            .width(Length::Shrink)
+            .width(30)
+            .height(30)
             .style(styles::svg_styles::colored_svg_theme());
         button(icon).on_press(Message::UntrackSeries)
     } else {
-        let tracked_icon_handle = svg::Handle::from_memory(get_static_cow_from_asset(CHECK_CIRCLE));
+        let tracked_icon_handle = svg::Handle::from_memory(get_static_cow_from_asset(PATCH_PLUS));
         let icon = svg(tracked_icon_handle)
-            .width(Length::Shrink)
+            .width(30)
+            .height(30)
             .style(styles::svg_styles::colored_svg_theme());
         button(icon).on_press(Message::TrackSeries)
     }

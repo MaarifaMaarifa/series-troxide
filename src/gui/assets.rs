@@ -20,9 +20,9 @@ pub mod icons {
     pub static CLOCK_FILL: &[u8; 267] = include_bytes!("../../assets/icons/clock-fill.svg");
     pub static CHEVRON_UP: &[u8; 271] = include_bytes!("../../assets/icons/chevron-up.svg");
     pub static CHEVRON_DOWN: &[u8; 290] = include_bytes!("../../assets/icons/chevron-down.svg");
-    pub static CHECK_CIRCLE: &[u8; 387] = include_bytes!("../../assets/icons/check-circle.svg");
-    pub static CHECK_CIRCLE_FILL: &[u8; 340] =
-        include_bytes!("../../assets/icons/check-circle-fill.svg");
+    pub static PATCH_PLUS: &[u8; 1039] = include_bytes!("../../assets/icons/patch-plus.svg");
+    pub static PATCH_PLUS_FILL: &[u8; 607] =
+        include_bytes!("../../assets/icons/patch-plus-fill.svg");
 }
 
 pub mod fonts {
