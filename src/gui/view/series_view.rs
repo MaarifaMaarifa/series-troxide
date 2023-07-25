@@ -4,7 +4,7 @@ use crate::core::api::Image;
 use crate::core::caching::episode_list::EpisodeReleaseTime;
 use crate::core::{caching, database};
 use crate::gui::assets::get_static_cow_from_asset;
-use crate::gui::assets::icons::{ARROW_LEFT, CHECK_CIRCLE, CHECK_CIRCLE_FILL};
+use crate::gui::assets::icons::{CHECK_CIRCLE, CHECK_CIRCLE_FILL};
 use crate::gui::styles;
 
 use bytes::Bytes;
@@ -13,10 +13,8 @@ use cast_widget::Message as CastWidgetMessage;
 use mini_widgets::*;
 use season_widget::Message as SeasonMessage;
 
-use iced::widget::{
-    button, column, container, horizontal_space, image, row, scrollable, text, Space,
-};
-use iced::widget::{svg, vertical_space, Column, Row};
+use iced::widget::{button, column, container, image, row, scrollable, text, Button, Space};
+use iced::widget::{svg, vertical_space, Column};
 use iced::{Alignment, Command, Element, Length, Renderer};
 use iced_aw::{Grid, Spinner};
 
@@ -45,8 +43,8 @@ impl SeriesStatus {
     }
 }
 
-/// Generates the Series Page
-pub fn series_page<'a>(
+/// Generates the Series Metadata
+pub fn series_metadata<'a>(
     series_information: &'a SeriesMainInformation,
     image_bytes: Option<Bytes>,
     next_episode_release_time: Option<&'a (Episode, EpisodeReleaseTime)>,
@@ -118,11 +116,24 @@ pub fn series_page<'a>(
         series_data_grid.insert(ended_widget.1);
     };
 
-    let series_data = column![series_data_grid, vertical_space(10), summary,].spacing(5);
+    let series_name = text(series_information.name.clone())
+        .size(35)
+        .style(styles::text_styles::purple_text_theme());
+    let title_bar = row![
+        series_name.width(Length::FillPortion(10)),
+        tracking_button(series_information.id).width(Length::FillPortion(1))
+    ];
+
+    let series_data = column![title_bar, series_data_grid, vertical_space(10), summary,]
+        .width(700)
+        .spacing(5);
 
     main_info = main_info.push(series_data);
 
-    content.push(main_info).width(Length::Fill)
+    content
+        .push(main_info)
+        .align_items(Alignment::Center)
+        .width(Length::Fill)
 }
 
 fn background(background_bytes: Option<Bytes>) -> Element<'static, Message, Renderer> {
@@ -138,14 +149,9 @@ fn background(background_bytes: Option<Bytes>) -> Element<'static, Message, Rend
     }
 }
 
-fn top_bar(series_info: &SeriesMainInformation) -> Row<'_, Message, Renderer> {
-    let back_icon_handle = svg::Handle::from_memory(get_static_cow_from_asset(ARROW_LEFT));
-    let back_icon = svg(back_icon_handle)
-        .width(Length::Shrink)
-        .style(styles::svg_styles::colored_svg_theme());
-
-    let track_button = if database::DB
-        .get_series(series_info.id)
+fn tracking_button(series_id: u32) -> Button<'static, Message, Renderer> {
+    if database::DB
+        .get_series(series_id)
         .map(|series| series.is_tracked())
         .unwrap_or(false)
     {
@@ -154,28 +160,15 @@ fn top_bar(series_info: &SeriesMainInformation) -> Row<'_, Message, Renderer> {
         let icon = svg(tracked_icon_handle)
             .width(Length::Shrink)
             .style(styles::svg_styles::colored_svg_theme());
-        button(icon)
-            .on_press(Message::UntrackSeries)
-            .style(styles::button_styles::transparent_button_theme())
+        button(icon).on_press(Message::UntrackSeries)
     } else {
         let tracked_icon_handle = svg::Handle::from_memory(get_static_cow_from_asset(CHECK_CIRCLE));
         let icon = svg(tracked_icon_handle)
             .width(Length::Shrink)
             .style(styles::svg_styles::colored_svg_theme());
-        button(icon)
-            .on_press(Message::TrackSeries)
-            .style(styles::button_styles::transparent_button_theme())
-    };
-
-    row!(
-        button(back_icon)
-            .on_press(Message::GoBack)
-            .style(styles::button_styles::transparent_button_theme()),
-        horizontal_space(Length::Fill),
-        text(&series_info.name).size(30),
-        horizontal_space(Length::Fill),
-        track_button,
-    )
+        button(icon).on_press(Message::TrackSeries)
+    }
+    .style(styles::button_styles::transparent_button_theme())
 }
 
 #[derive(Clone, Debug)]
@@ -184,7 +177,6 @@ pub enum Message {
     SeriesImageLoaded(Option<Bytes>),
     SeriesBackgroundLoaded(Option<Bytes>),
     EpisodeListLoaded(caching::episode_list::EpisodeList),
-    GoBack,
     SeasonAction(usize, Box<SeasonMessage>),
     CastWidgetAction(CastWidgetMessage),
     TrackSeries,
@@ -281,7 +273,6 @@ impl Series {
             Message::SeriesImageLoaded(image) => {
                 self.series_image = image;
             }
-            Message::GoBack => return Command::perform(async {}, |_| Message::GoBack),
             Message::SeasonAction(index, message) => {
                 return self.season_widgets[index].update(*message);
             }
@@ -351,7 +342,7 @@ impl Series {
             LoadState::Loaded => {
                 let background = background(self.series_background.clone());
 
-                let series_metadata = series_page(
+                let series_metadata = series_metadata(
                     self.series_information.as_ref().unwrap(),
                     self.series_image.clone(),
                     self.next_episode_release_time.as_ref(),
@@ -361,13 +352,15 @@ impl Series {
 
                 let cast_widget = self.cast_widget.view().map(Message::CastWidgetAction);
 
-                let content = column![background, series_metadata, seasons_widget, cast_widget,];
+                let content = column![
+                    background,
+                    series_metadata,
+                    vertical_space(10),
+                    seasons_widget,
+                    cast_widget,
+                ];
 
-                column![
-                    top_bar(self.series_information.as_ref().unwrap()),
-                    scrollable(content),
-                ]
-                .into()
+                scrollable(content).into()
             }
         }
     }
@@ -410,6 +403,7 @@ impl Series {
 
         container(content)
             .width(Length::Fill)
+            .padding(10)
             .center_x()
             .center_y()
             .into()

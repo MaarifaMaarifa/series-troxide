@@ -179,18 +179,12 @@ impl Application for TroxideGui {
                 self.statistics_tab.update(message).map(Message::Statistics)
             }
             Message::Settings(message) => self.settings_tab.update(message).map(Message::Settings),
-            Message::Series(message) => {
-                if let Some(command) =
-                    handle_back_message_from_series(&message, &mut self.series_view_active)
-                {
-                    return command;
-                };
-                self.series_view
-                    .as_mut()
-                    .expect("for series view to send a message it must exist")
-                    .update(message)
-                    .map(Message::Series)
-            }
+            Message::Series(message) => self
+                .series_view
+                .as_mut()
+                .expect("for series view to send a message it must exist")
+                .update(message)
+                .map(Message::Series),
         }
     }
 
@@ -257,17 +251,6 @@ impl TroxideGui {
             },
         }
     }
-}
-
-fn handle_back_message_from_series(
-    series_message: &SeriesMessage,
-    series_view_active: &mut bool,
-) -> Option<Command<Message>> {
-    if let SeriesMessage::GoBack = series_message {
-        *series_view_active = false;
-        return Some(Command::none());
-    }
-    None
 }
 
 trait Tab {
