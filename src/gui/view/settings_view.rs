@@ -4,6 +4,7 @@ use iced::{Alignment, Command, Element, Length, Renderer};
 use crate::core::settings_config::{Theme, ALL_THEMES, SETTINGS};
 use crate::gui::assets::icons::GEAR_WIDE_CONNECTED;
 use crate::gui::{styles, troxide_widget, Message as GuiMessage, Tab};
+use about_widget::{About, Message as AboutMessage};
 use caching_widget::{Caching, Message as CachingMessage};
 use database_widget::{Database, Message as DatabaseMessage};
 use locale_widget::{Locale, Message as LocaleMessage};
@@ -22,6 +23,7 @@ pub enum Message {
     Caching(CachingMessage),
     Database(DatabaseMessage),
     Locale(LocaleMessage),
+    About(AboutMessage),
 }
 
 #[derive(Default)]
@@ -29,6 +31,7 @@ pub struct SettingsTab {
     caching_settings: Caching,
     database_settings: Database,
     locale_settings: Locale,
+    about: About,
 }
 
 impl SettingsTab {
@@ -37,6 +40,7 @@ impl SettingsTab {
             caching_settings: Caching::default(),
             database_settings: Database::default(),
             locale_settings: Locale::default(),
+            about: About,
         }
     }
 
@@ -58,6 +62,7 @@ impl SettingsTab {
             Message::RestoreDefaultSettings => SETTINGS.write().unwrap().set_default_settings(),
             Message::ResetSettings => SETTINGS.write().unwrap().reset_settings(),
             Message::Locale(message) => self.locale_settings.update(message),
+            Message::About(message) => self.about.update(message),
         }
         Command::none()
     }
@@ -68,7 +73,7 @@ impl SettingsTab {
                 self.database_settings.view().map(Message::Database),
                 self.caching_settings.view().map(Message::Caching),
                 self.locale_settings.view().map(Message::Locale),
-                about_widget::about_widget(),
+                self.about.view().map(Message::About),
             ]
             .spacing(5)
             .width(Length::Fill)

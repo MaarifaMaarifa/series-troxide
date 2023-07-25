@@ -37,6 +37,7 @@ bytes = "1.4.0"
 rfd = "0.11.4"
 rust_iso3166 = "0.1.10"
 image = "0.24.6"
+webbrowser = "0.8.10"
 
 [build-dependencies]
 built = { version = "0.6.1", features = ["git2", "chrono"] }

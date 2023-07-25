@@ -1,13 +1,60 @@
 use crate::gui::styles;
 
-use super::Message;
-use iced::{
-    widget::{column, container, text},
-    Element, Renderer,
-};
+use iced::widget::{column, container, horizontal_rule, mouse_area, row, text, vertical_space};
+use iced::{Element, Renderer};
 use iced_aw::Grid;
+use tracing::error;
 
-pub fn about_widget() -> Element<'static, Message, Renderer> {
+#[derive(Debug, Clone)]
+pub enum Message {
+    TvMaze,
+    BootstrapIcons,
+    Iced,
+}
+
+#[derive(Default)]
+pub struct About;
+
+impl About {
+    pub fn update(&mut self, message: Message) {
+        match message {
+            Message::TvMaze => {
+                webbrowser::open("https://www.tvmaze.com/")
+                    .unwrap_or_else(|err| error!("failed to open TVmaze site: {}", err));
+            }
+            Message::BootstrapIcons => {
+                webbrowser::open("https://icons.getbootstrap.com/")
+                    .unwrap_or_else(|err| error!("failed to open bootstrap icons site: {}", err));
+            }
+            Message::Iced => {
+                webbrowser::open("https://iced.rs/")
+                    .unwrap_or_else(|err| error!("failed to open Iced site: {}", err));
+            }
+        }
+    }
+
+    pub fn view(&self) -> Element<'_, Message, Renderer> {
+        let content = column![
+            text("About")
+                .style(styles::text_styles::purple_text_theme())
+                .size(25),
+            info_widget(),
+            horizontal_rule(1),
+            vertical_space(5),
+            text("Credit").size(22),
+            credit_widget(),
+        ]
+        .spacing(10);
+
+        container(content)
+            .style(styles::container_styles::first_class_container_theme())
+            .width(1000)
+            .padding(5)
+            .into()
+    }
+}
+
+fn info_widget() -> Element<'static, Message, Renderer> {
     let mut grid = Grid::with_columns(2);
 
     grid.insert(text("Program"));
@@ -32,19 +79,30 @@ pub fn about_widget() -> Element<'static, Message, Renderer> {
     grid.insert(text("Rust Version    ")); // adding some space in grid since it is the longest text
     grid.insert(text(built_info::RUSTC_VERSION));
 
-    let content = column![
-        text("About")
-            .style(styles::text_styles::purple_text_theme())
-            .size(25),
-        grid
-    ]
-    .spacing(10);
+    grid.into()
+}
 
-    container(content)
-        .style(styles::container_styles::first_class_container_theme())
-        .width(1000)
-        .padding(5)
-        .into()
+fn credit_widget() -> Element<'static, Message, Renderer> {
+    let go_to_site_text = text("here")
+        .size(15)
+        .style(styles::text_styles::purple_text_theme());
+
+    let tv_maze = row![
+        text("- The API used has been provided by TVmaze, you can check out the site ").size(15),
+        mouse_area(go_to_site_text.clone()).on_press(Message::TvMaze)
+    ];
+    let bootstrap_icons = row![
+        text("- The Icons used have been provided by boostrap icons, you can check out the site ")
+            .size(15),
+        mouse_area(go_to_site_text.clone()).on_press(Message::BootstrapIcons)
+    ];
+    let iced =
+        row![
+        text("- The Graphical User Interface has been made using Iced, you can check out the site ")
+            .size(15),
+        mouse_area(go_to_site_text).on_press(Message::Iced)
+    ];
+    column![tv_maze, bootstrap_icons, iced].into()
 }
 
 mod built_info {
