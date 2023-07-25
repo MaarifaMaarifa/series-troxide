@@ -136,7 +136,7 @@ impl MyShows {
         }
         if self.series_posters.is_empty() {
             container(text("Nothing to show"))
-                .style(styles::container_styles::first_class_container_theme())
+                .style(styles::container_styles::first_class_container_tab_theme())
                 .center_x()
                 .center_y()
                 .height(100)
