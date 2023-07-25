@@ -97,7 +97,7 @@ mod cast_poster {
     use bytes::Bytes;
     use iced::{
         alignment,
-        widget::{container, image, text, Column},
+        widget::{container, image, text, Column, Space},
         Command, Element, Renderer,
     };
 
@@ -154,7 +154,9 @@ mod cast_poster {
 
                 let image = image(image_handle).width(100);
                 content = content.push(image);
-            }
+            } else {
+                content = content.push(Space::new(100, 140));
+            };
 
             let name = text(format!(
                 "{}\nas {}",

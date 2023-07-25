@@ -1,7 +1,7 @@
 use bytes::Bytes;
 use iced::widget::{
     column, container, horizontal_space, image, mouse_area, row, scrollable, text, text_input,
-    vertical_space, Column,
+    vertical_space, Column, Space,
 };
 use iced::{Command, Element, Length, Renderer};
 use iced_aw::Spinner;
@@ -154,15 +154,17 @@ pub fn series_result_widget(
 ) -> iced::Element<'_, Message, Renderer> {
     let mut row = row!();
 
-    if let Some(image_bytes) = image_bytes {
+    let image: Element<'_, Message, Renderer> = if let Some(image_bytes) = image_bytes {
         let image_handle = image::Handle::from_memory(image_bytes);
+        image(image_handle).height(60).into()
+    } else {
+        Space::new(43, 60).into()
+    };
 
-        let image = image(image_handle).height(60);
-        row = row
-            .push(horizontal_space(5))
-            .push(image)
-            .push(horizontal_space(5));
-    }
+    row = row
+        .push(horizontal_space(5))
+        .push(image)
+        .push(horizontal_space(5));
 
     // Getting the series genres
     let genres = if !series_result.show.genres.is_empty() {

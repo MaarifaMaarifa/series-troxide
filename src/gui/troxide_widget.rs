@@ -18,7 +18,7 @@ pub mod series_poster {
     use bytes::Bytes;
     use iced::widget::{
         column, container, horizontal_space, image, mouse_area, progress_bar, row, text,
-        vertical_space,
+        vertical_space, Space,
     };
     use iced::{Command, Element, Length, Renderer};
 
@@ -102,6 +102,8 @@ pub mod series_poster {
                 let image_handle = image::Handle::from_memory(image_bytes);
                 let image = image(image_handle).width(100);
                 content = content.push(image);
+            } else {
+                content = content.push(Space::new(100, 140));
             };
 
             if let Some(series_info) = &self.series_information {
@@ -132,6 +134,8 @@ pub mod series_poster {
                 let image_handle = image::Handle::from_memory(image_bytes);
                 let image = image(image_handle).width(100);
                 content = content.push(image);
+            } else {
+                content = content.push(Space::new(100, 140));
             };
 
             let mut metadata = column!().padding(2).spacing(5);
@@ -201,6 +205,8 @@ pub mod series_poster {
                 let image_handle = image::Handle::from_memory(image_bytes);
                 let image = image(image_handle).width(100);
                 content = content.push(image);
+            } else {
+                content = content.push(Space::new(100, 140));
             };
 
             let mut metadata = column!().spacing(5);

@@ -60,7 +60,9 @@ pub fn series_metadata<'a>(
         let image = iced::widget::image(image_handle).width(180);
 
         main_info = main_info.push(image);
-    }
+    } else {
+        main_info = main_info.push(Space::new(180, 443));
+    };
 
     let mut series_data_grid = Grid::with_columns(2);
 
