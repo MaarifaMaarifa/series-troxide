@@ -13,7 +13,10 @@ use cast_widget::Message as CastWidgetMessage;
 use mini_widgets::*;
 use season_widget::Message as SeasonMessage;
 
-use iced::widget::{button, column, container, image, row, scrollable, text, Button, Space};
+use iced::widget::{
+    button, column, container, horizontal_rule, image, row, scrollable, text, vertical_rule,
+    Button, Space,
+};
 use iced::widget::{svg, vertical_space, Column};
 use iced::{Alignment, Command, Element, Length, Renderer};
 use iced_aw::{Grid, Spinner};
@@ -116,6 +119,7 @@ pub fn series_metadata<'a>(
 
     let series_data = column![
         title_bar,
+        horizontal_rule(1),
         series_data_grid,
         vertical_space(10),
         next_episode_widget
