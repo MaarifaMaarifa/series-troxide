@@ -2,7 +2,7 @@
 name = "series-troxide"
 authors = ["Maarifa Maarifa"]
 license = "GPL-3.0"
-description = "A modern Series Tracker"
+description = "A Simple and Modern Series Tracker"
 categories = ["series", "TV"]
 keywords = ["series-tracker", "tv-shows", "tv-series"]
 repository = "https://github.com/MaarifaMaarifa/series-troxide"
