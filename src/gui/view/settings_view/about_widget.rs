@@ -7,6 +7,7 @@ use tracing::error;
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    Repository,
     TvMaze,
     BootstrapIcons,
     Iced,
@@ -18,6 +19,10 @@ pub struct About;
 impl About {
     pub fn update(&mut self, message: Message) {
         match message {
+            Message::Repository => {
+                webbrowser::open(built_info::PKG_REPOSITORY)
+                    .unwrap_or_else(|err| error!("failed to open repository site: {}", err));
+            }
             Message::TvMaze => {
                 webbrowser::open("https://www.tvmaze.com/")
                     .unwrap_or_else(|err| error!("failed to open TVmaze site: {}", err));
@@ -68,6 +73,13 @@ fn info_widget() -> Element<'static, Message, Renderer> {
 
     grid.insert(text("License"));
     grid.insert(text(built_info::PKG_LICENSE));
+
+    let repository = mouse_area(
+        text(built_info::PKG_REPOSITORY).style(styles::text_styles::purple_text_theme()),
+    )
+    .on_press(Message::Repository);
+    grid.insert(text("Repository"));
+    grid.insert(repository);
 
     if !built_info::GIT_DIRTY.unwrap_or(false) {
         if let Some(commit_hash) = built_info::GIT_COMMIT_HASH {
