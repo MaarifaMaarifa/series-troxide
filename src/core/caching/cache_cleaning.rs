@@ -65,9 +65,15 @@ impl CacheCleaner {
             Ok(content) => content,
             Err(err) => {
                 if err.kind() == std::io::ErrorKind::NotFound {
+                    let mut cache_cleaning_record_directory = cache_cleaning_record_path.clone();
+                    cache_cleaning_record_directory.pop();
+
                     let cache_cleaning_record = CacheCleaningRecord::default();
                     let content = toml::to_string(&cache_cleaning_record)?;
+
+                    std::fs::create_dir_all(cache_cleaning_record_directory)?;
                     std::fs::write(cache_cleaning_record_path, content)?;
+
                     return Ok(cache_cleaning_record);
                 } else {
                     bail!(err)
