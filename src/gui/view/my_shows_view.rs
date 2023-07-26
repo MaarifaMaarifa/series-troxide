@@ -113,7 +113,7 @@ impl MyShowsTab {
             .padding(10)
             .spacing(50)
             .width(Length::Fill)
-            .align_items(iced::Alignment::Center),
+            .align_items(iced::Alignment::Start),
         )
         .into()
     }

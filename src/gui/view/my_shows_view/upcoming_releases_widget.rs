@@ -126,6 +126,8 @@ impl UpcomingReleases {
                     .collect(),
             )
             .spacing(5)
+            .width(Length::Fill)
+            .align_items(iced::Alignment::Center)
             .into()
         }
     }
