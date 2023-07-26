@@ -44,7 +44,7 @@ cargo install --path .
 ![My Shows page](screenshots/my-shows-page.png)
 ![Statistics](screenshots/statistics-page.png)
 
-## Credit
+## Credits
 - The API used has been provided by TVmaze, you can check out the site [here](https://www.tvmaze.com/).
 - The Icons used have been provided by boostrap icons, you can check out the site [here](https://icons.getbootstrap.com/).
 - The Graphical User Interface has been made using Iced, you can check out the site [here](https://iced.rs/).
