@@ -136,6 +136,10 @@ impl Application for TroxideGui {
         }
     }
 
+    fn subscription(&self) -> iced::Subscription<Message> {
+        self.discover_tab.subscription().map(Message::Discover)
+    }
+
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::TabSelected(tab_id) => {
