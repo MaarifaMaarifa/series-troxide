@@ -74,6 +74,7 @@ pub struct TroxideGui {
     statistics_tab: StatisticsTab,
     settings_tab: SettingsTab,
     series_view: Option<Series>,
+    // TODO: to use iced::subscription
     series_page_sender: mpsc::Sender<(Series, Command<SeriesMessage>)>,
     series_page_receiver: mpsc::Receiver<(Series, Command<SeriesMessage>)>,
 }
