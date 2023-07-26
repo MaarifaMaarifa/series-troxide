@@ -95,10 +95,8 @@ impl WatchlistTab {
             LoadState::Loaded => {
                 if self.series_posters.is_empty() {
                     container(
-                        text(
-                            "All Cleared!\n'get lazy to watch your shows for them to appear here'",
-                        )
-                        .horizontal_alignment(iced::alignment::Horizontal::Center),
+                        text("All Clear!")
+                            .horizontal_alignment(iced::alignment::Horizontal::Center),
                     )
                     .center_x()
                     .center_y()
