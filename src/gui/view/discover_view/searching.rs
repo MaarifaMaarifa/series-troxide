@@ -106,13 +106,24 @@ impl Search {
         .align_items(iced::Alignment::Center);
 
         let menu_widgets: Element<'_, Message, Renderer> = match self.load_state {
-            LoadState::Loaded => Column::with_children(load(
-                &self.series_search_result,
-                &self.series_search_results_images,
-            ))
-            .padding(20)
-            .spacing(5)
-            .into(),
+            LoadState::Loaded => {
+                let items = load(
+                    &self.series_search_result,
+                    &self.series_search_results_images,
+                );
+
+                if items.is_empty() {
+                    container(text("No results"))
+                        .padding(10)
+                        .height(Length::Fill)
+                        .width(Length::Fill)
+                        .center_x()
+                        .center_y()
+                        .into()
+                } else {
+                    Column::with_children(items).padding(20).spacing(5).into()
+                }
+            }
             LoadState::Loading => container(Spinner::new())
                 .height(Length::Fill)
                 .width(Length::Fill)
