@@ -37,6 +37,7 @@ pub mod cli_data {
     use std::path;
 
     #[derive(Parser)]
+    #[command(author, version, about)]
     pub struct Cli {
         #[clap(subcommand)]
         pub command: Option<Command>,
