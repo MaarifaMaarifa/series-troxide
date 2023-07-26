@@ -295,7 +295,7 @@ fn load_local_aired_series() -> Command<Message> {
 /// loads the shows updates and the scheduled episodes of the discover view
 fn load_discover_schedule_command() -> Command<Message> {
     let series_updates_command =
-        Command::perform(get_show_updates(UpdateTimestamp::Day, Some(5)), |series| {
+        Command::perform(get_show_updates(UpdateTimestamp::Day, Some(20)), |series| {
             Message::SeriesUpdatesLoaded(series.expect("failed to load series updates"))
         });
 
