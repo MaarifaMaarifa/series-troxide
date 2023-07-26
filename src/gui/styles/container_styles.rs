@@ -5,13 +5,17 @@ use iced::Background;
 use iced::{color, Color};
 
 /// A custom theme for container respecting Light and Dark TroxideTheme
-pub fn first_class_container_theme() -> Container {
-    Container::Custom(Box::new(ContainerThemeFirst) as Box<dyn StyleSheet<Style = iced::Theme>>)
+pub fn first_class_container_rounded_theme() -> Container {
+    Container::Custom(
+        Box::new(FirstClassContainerRoundedTheme) as Box<dyn StyleSheet<Style = iced::Theme>>
+    )
 }
 
 /// A custom theme for container respecting Light and Dark TroxideTheme
-pub fn second_class_container_theme() -> Container {
-    Container::Custom(Box::new(ContainerThemeSecond) as Box<dyn StyleSheet<Style = iced::Theme>>)
+pub fn second_class_container_rounded_theme() -> Container {
+    Container::Custom(
+        Box::new(SecondClassContainerRoundedTheme) as Box<dyn StyleSheet<Style = iced::Theme>>
+    )
 }
 
 /// A custom theme for container respecting Light and Dark TroxideTheme
@@ -23,18 +27,22 @@ pub fn release_time_container_theme() -> Container {
 }
 
 /// A custom theme for container respecting Light and Dark TroxideTheme designed for the tabs
-pub fn first_class_container_tab_theme() -> Container {
-    Container::Custom(Box::new(ContainerTabThemeFirst) as Box<dyn StyleSheet<Style = iced::Theme>>)
+pub fn first_class_container_square_theme() -> Container {
+    Container::Custom(
+        Box::new(FirstClassContainerSquareTheme) as Box<dyn StyleSheet<Style = iced::Theme>>
+    )
 }
 
 /// A custom theme for container respecting Light and Dark TroxideTheme designed for the tabs
-pub fn second_class_container_tab_theme() -> Container {
-    Container::Custom(Box::new(ContainerTabThemeSecond) as Box<dyn StyleSheet<Style = iced::Theme>>)
+pub fn second_class_container_square_theme() -> Container {
+    Container::Custom(
+        Box::new(SecondClassContainerSquareTheme) as Box<dyn StyleSheet<Style = iced::Theme>>
+    )
 }
 
-pub struct ContainerThemeFirst;
+pub struct FirstClassContainerRoundedTheme;
 
-impl StyleSheet for ContainerThemeFirst {
+impl StyleSheet for FirstClassContainerRoundedTheme {
     type Style = iced::Theme;
 
     fn appearance(&self, style: &Self::Style) -> Appearance {
@@ -61,9 +69,9 @@ impl StyleSheet for ContainerThemeFirst {
     }
 }
 
-pub struct ContainerThemeSecond;
+pub struct SecondClassContainerRoundedTheme;
 
-impl StyleSheet for ContainerThemeSecond {
+impl StyleSheet for SecondClassContainerRoundedTheme {
     type Style = iced::Theme;
 
     fn appearance(&self, style: &Self::Style) -> Appearance {
@@ -90,9 +98,9 @@ impl StyleSheet for ContainerThemeSecond {
     }
 }
 
-pub struct ContainerTabThemeFirst;
+pub struct FirstClassContainerSquareTheme;
 
-impl StyleSheet for ContainerTabThemeFirst {
+impl StyleSheet for FirstClassContainerSquareTheme {
     type Style = iced::Theme;
 
     fn appearance(&self, style: &Self::Style) -> Appearance {
@@ -119,9 +127,9 @@ impl StyleSheet for ContainerTabThemeFirst {
     }
 }
 
-pub struct ContainerTabThemeSecond;
+pub struct SecondClassContainerSquareTheme;
 
-impl StyleSheet for ContainerTabThemeSecond {
+impl StyleSheet for SecondClassContainerSquareTheme {
     type Style = iced::Theme;
 
     fn appearance(&self, style: &Self::Style) -> Appearance {

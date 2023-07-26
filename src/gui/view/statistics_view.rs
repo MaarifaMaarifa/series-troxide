@@ -71,8 +71,8 @@ impl StatisticsTab {
                 .collect(),
         );
 
-        let series_list =
-            container(series_list).style(styles::container_styles::first_class_container_theme());
+        let series_list = container(series_list)
+            .style(styles::container_styles::first_class_container_rounded_theme());
 
         let content = column![
             row![watch_count(), time_count(&self.series_infos_and_time)].spacing(10),

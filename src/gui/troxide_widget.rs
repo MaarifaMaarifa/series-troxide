@@ -117,7 +117,7 @@ pub mod series_poster {
 
                 let content = container(content)
                     .padding(5)
-                    .style(styles::container_styles::second_class_container_theme());
+                    .style(styles::container_styles::second_class_container_rounded_theme());
 
                 mouse_area(content)
                     .on_press(Message::SeriesPosterPressed(Box::new(series_info.clone())))
@@ -185,7 +185,7 @@ pub mod series_poster {
 
                 let content = container(content)
                     .padding(5)
-                    .style(styles::container_styles::first_class_container_theme())
+                    .style(styles::container_styles::first_class_container_rounded_theme())
                     .width(1000);
 
                 mouse_area(content)
@@ -261,7 +261,7 @@ pub mod series_poster {
 
                 let content = container(content)
                     .padding(5)
-                    .style(styles::container_styles::first_class_container_theme())
+                    .style(styles::container_styles::first_class_container_rounded_theme())
                     .width(1000);
 
                 mouse_area(content)
@@ -352,8 +352,8 @@ pub mod tabs {
 
                     // Highlighting the tab if is active
                     if index == self.active_tab {
-                        tab =
-                            tab.style(styles::container_styles::second_class_container_tab_theme())
+                        tab = tab
+                            .style(styles::container_styles::second_class_container_square_theme())
                     };
                     tab.into()
                 })
@@ -366,7 +366,7 @@ pub mod tabs {
                 tab_views,
                 horizontal_space(Length::Fill)
             ])
-            .style(styles::container_styles::first_class_container_tab_theme())
+            .style(styles::container_styles::first_class_container_square_theme())
             .into()
         }
 

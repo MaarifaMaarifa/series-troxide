@@ -170,7 +170,7 @@ mod cast_poster {
             let content = content.push(name);
 
             container(content)
-                .style(styles::container_styles::second_class_container_theme())
+                .style(styles::container_styles::second_class_container_rounded_theme())
                 .padding(7)
                 .into()
         }

@@ -44,7 +44,7 @@ pub fn watch_count() -> Element<'static, Message, Renderer> {
         .padding(10)
         .center_x()
         .center_y()
-        .style(styles::container_styles::first_class_container_theme())
+        .style(styles::container_styles::first_class_container_rounded_theme())
         .into()
 }
 
@@ -90,7 +90,7 @@ pub fn time_count(
         .padding(10)
         .center_x()
         .center_y()
-        .style(styles::container_styles::first_class_container_theme())
+        .style(styles::container_styles::first_class_container_rounded_theme())
         .into()
 }
 

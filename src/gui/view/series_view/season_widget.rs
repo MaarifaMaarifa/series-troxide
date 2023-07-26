@@ -366,7 +366,7 @@ mod episode_widget {
             let content = content.push(info);
 
             container(content)
-                .style(styles::container_styles::second_class_container_theme())
+                .style(styles::container_styles::second_class_container_rounded_theme())
                 .into()
         }
     }

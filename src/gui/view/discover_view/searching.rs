@@ -133,8 +133,8 @@ impl Search {
             LoadState::NotLoaded => container("").into(),
         };
 
-        let menu_widgets =
-            container(menu_widgets).style(styles::container_styles::first_class_container_theme());
+        let menu_widgets = container(menu_widgets)
+            .style(styles::container_styles::first_class_container_rounded_theme());
 
         (search_bar.into(), scrollable(menu_widgets).into())
     }

@@ -100,7 +100,7 @@ impl UpcomingReleases {
         }
         if self.series_posters.is_empty() {
             container(text("No Upcoming Episodes"))
-                .style(styles::container_styles::first_class_container_tab_theme())
+                .style(styles::container_styles::first_class_container_square_theme())
                 .center_x()
                 .center_y()
                 .height(100)

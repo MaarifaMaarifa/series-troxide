@@ -144,7 +144,7 @@ pub fn series_metadata<'a>(
             .padding(5)
             .width(Length::Fill),
     )
-    .style(styles::container_styles::first_class_container_tab_theme());
+    .style(styles::container_styles::first_class_container_square_theme());
 
     container(content)
         .width(Length::Fill)
@@ -459,7 +459,7 @@ impl Series {
             )
         }
         .padding(10)
-        .style(styles::container_styles::first_class_container_theme());
+        .style(styles::container_styles::first_class_container_rounded_theme());
 
         container(content)
             .width(Length::Fill)

@@ -225,7 +225,7 @@ pub fn next_episode_release_time_widget(
         .size(INFO_HEADER);
 
         container(row![clock_icon, text].spacing(5))
-            .style(styles::container_styles::second_class_container_tab_theme())
+            .style(styles::container_styles::second_class_container_square_theme())
             .padding(5)
             .into()
     } else {

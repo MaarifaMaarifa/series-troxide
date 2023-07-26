@@ -47,7 +47,7 @@ impl About {
         .spacing(10);
 
         container(content)
-            .style(styles::container_styles::first_class_container_theme())
+            .style(styles::container_styles::first_class_container_rounded_theme())
             .width(1000)
             .padding(5)
             .into()
