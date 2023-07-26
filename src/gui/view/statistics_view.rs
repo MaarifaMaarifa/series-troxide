@@ -1,4 +1,4 @@
-use iced::widget::{column, container, scrollable, Column};
+use iced::widget::{column, container, row, scrollable, Column};
 use iced::{Command, Element, Length, Renderer};
 
 use crate::gui::assets::icons::GRAPH_UP_ARROW;
@@ -75,8 +75,7 @@ impl StatisticsTab {
             container(series_list).style(styles::container_styles::first_class_container_theme());
 
         let content = column![
-            watch_count(),
-            time_count(&self.series_infos_and_time),
+            row![watch_count(), time_count(&self.series_infos_and_time)].spacing(10),
             series_list
         ]
         .spacing(10)
