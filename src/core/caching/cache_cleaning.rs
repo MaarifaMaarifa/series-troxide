@@ -157,9 +157,26 @@ impl CacheCleaner {
     }
 }
 
+// get `tokio::fs::ReadDir` of the series cache directory, creating the directory on the process if it does not exist
+async fn get_series_cache_directory_path() -> anyhow::Result<fs::ReadDir> {
+    let series_folder = CACHER.get_cache_folder_path(CacheFolderType::Series);
+    Ok(loop {
+        match fs::read_dir(&series_folder).await {
+            Ok(read_dir) => break read_dir,
+            Err(err) => {
+                if err.kind() == std::io::ErrorKind::NotFound {
+                    fs::create_dir_all(&series_folder).await?;
+                } else {
+                    bail!(err);
+                }
+            }
+        }
+    })
+}
+
 /// Cleans the cache of all ended series
 async fn clean_ended_series_cache() -> anyhow::Result<()> {
-    let mut read_dir = fs::read_dir(CACHER.get_cache_folder_path(CacheFolderType::Series)).await?;
+    let mut read_dir = get_series_cache_directory_path().await?;
 
     while let Some(dir_entry) = read_dir.next_entry().await? {
         let mut series_main_info_path = dir_entry.path();
@@ -185,7 +202,7 @@ async fn clean_ended_series_cache() -> anyhow::Result<()> {
 /// Cleans the cache of all running series depending on whether they are currently being aired or waiting for
 /// their release dates
 async fn clean_running_cache(running_status: &RunningStatus) -> anyhow::Result<()> {
-    let mut read_dir = fs::read_dir(CACHER.get_cache_folder_path(CacheFolderType::Series)).await?;
+    let mut read_dir = get_series_cache_directory_path().await?;
 
     while let Some(dir_entry) = read_dir.next_entry().await? {
         let mut series_main_info_path = dir_entry.path();
