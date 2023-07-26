@@ -52,7 +52,7 @@ pub mod cli_data {
         },
 
         /// Exports Series Troxide series tracking data, overwritting
-        /// any file of the same name if it exists.
+        /// an existing file of the same name.
         ExportData {
             /// The folder path for writing exported data
             path_to_data: path::PathBuf,
