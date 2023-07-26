@@ -41,7 +41,7 @@ impl About {
             info_widget(),
             horizontal_rule(1),
             vertical_space(5),
-            text("Credit").size(22),
+            text("Credits").size(22),
             credit_widget(),
         ]
         .spacing(10);
