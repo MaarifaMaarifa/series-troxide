@@ -1,6 +1,6 @@
 [package]
 name = "series-troxide"
-authors = ["Maarifa Maarifa"]
+authors = ["Maarifa Maarifa <maarifamaarifa20@gmail.com>"]
 license = "GPL-3.0"
 description = "A Simple and Modern Series Tracker"
 categories = ["series", "TV"]
