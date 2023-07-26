@@ -13,5 +13,5 @@ pub fn red_text_theme() -> Text {
 
 /// A custom theme that makes text green
 pub fn green_text_theme() -> Text {
-    Text::Color(Color::from_rgb(0.0, 1.28, 0.0))
+    Text::Color(color!(0x008000))
 }
