@@ -2,7 +2,7 @@
 
 A Simple and Modern Series Tracker.
 
-![](screenshots/discover-page-dark.png)
+![](screenshots/demo.gif)
 
 ## WARNING
 
@@ -38,11 +38,6 @@ git clone https://github.com/MaarifaMaarifa/series-troxide
 cd series-troxide
 cargo install --path .
 ```
-## More Screenshots
-![Light Variant Discover page](screenshots/discover-page-light.png)
-![Watchlist page](screenshots/watchlist-page.png)
-![My Shows page](screenshots/my-shows-page.png)
-![Statistics](screenshots/statistics-page.png)
 
 ## Credits
 - The API used has been provided by TVmaze, you can check out the site [here](https://www.tvmaze.com/).
