@@ -4,10 +4,6 @@ A Simple and Modern Series Tracker.
 
 ![](screenshots/demo.gif)
 
-## WARNING
-
-Series Troxide is in the very early stages of development. A lot of stuffs can and will change.
-
 ## Features
 - **Aired and New Series discovery**. See what's new globally and locally.
 - **Series search**. Search for your favourite Series.
