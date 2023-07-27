@@ -2,7 +2,7 @@
 
 A Simple and Modern Series Tracker.
 
-![](screenshots/discover-page.png)
+![](screenshots/demo.gif)
 
 ## Features
 - **Aired and New Series discovery**. See what's new globally and locally.
