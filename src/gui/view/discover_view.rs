@@ -36,7 +36,7 @@ struct LoadStatus {
 
 #[derive(Clone, Debug)]
 pub enum Message {
-    LoadDiscoverPage,
+    ReloadDiscoverPage,
     ScheduleLoaded(Vec<Episode>),
     CountryScheduleLoaded(Vec<Episode>),
     SeriesUpdatesLoaded(Vec<SeriesMainInformation>),
@@ -102,7 +102,7 @@ impl DiscoverTab {
                     return Some(Message::EscapeKeyPressed);
                 }
                 if key_code == iced::keyboard::KeyCode::F5 && modifiers.is_empty() {
-                    return Some(Message::LoadDiscoverPage);
+                    return Some(Message::ReloadDiscoverPage);
                 }
             }
             None
@@ -111,9 +111,23 @@ impl DiscoverTab {
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message::LoadDiscoverPage => {
-                self.load_status = LoadStatus::default();
-                load_discover_schedule_command()
+            Message::ReloadDiscoverPage => {
+                let mut load_commands = [Command::none(), Command::none(), Command::none()];
+
+                if let LoadState::Loaded = &self.load_status.local_series {
+                    self.load_status.local_series = LoadState::Loading;
+                    load_commands[0] = load_local_aired_series();
+                }
+                if let LoadState::Loaded = &self.load_status.global_series {
+                    self.load_status.global_series = LoadState::Loading;
+                    load_commands[1] = load_global_aried_series();
+                }
+                if let LoadState::Loaded = &self.load_status.shows_update {
+                    self.load_status.shows_update = LoadState::Loading;
+                    load_commands[2] = load_series_updates();
+                }
+
+                Command::batch(load_commands)
             }
             Message::ScheduleLoaded(episodes) => {
                 self.load_status.global_series = LoadState::Loaded;
@@ -282,6 +296,7 @@ impl Tab for DiscoverTab {
     }
 }
 
+/// Loads the locally aired series picking up the country set from the settings
 fn load_local_aired_series() -> Command<Message> {
     Command::perform(
         async {
@@ -294,20 +309,25 @@ fn load_local_aired_series() -> Command<Message> {
     )
 }
 
-/// loads the shows updates and the scheduled episodes of the discover view
-fn load_discover_schedule_command() -> Command<Message> {
-    let series_updates_command =
-        Command::perform(get_show_updates(UpdateTimestamp::Day, Some(20)), |series| {
-            Message::SeriesUpdatesLoaded(series.expect("failed to load series updates"))
-        });
+/// Loads series updates
+fn load_series_updates() -> Command<Message> {
+    Command::perform(get_show_updates(UpdateTimestamp::Day, Some(20)), |series| {
+        Message::SeriesUpdatesLoaded(series.expect("failed to load series updates"))
+    })
+}
 
-    let new_episodes_command = Command::perform(get_episodes_with_date(None), |episodes| {
+/// Loads the globally aired series
+fn load_global_aried_series() -> Command<Message> {
+    Command::perform(get_episodes_with_date(None), |episodes| {
         Message::ScheduleLoaded(episodes.expect("failed to load episodes schedule"))
-    });
+    })
+}
 
+/// Loads series updates, globally and locally aired series all at once
+fn load_discover_schedule_command() -> Command<Message> {
     Command::batch([
-        series_updates_command,
-        new_episodes_command,
+        load_series_updates(),
+        load_global_aried_series(),
         load_local_aired_series(),
     ])
 }
