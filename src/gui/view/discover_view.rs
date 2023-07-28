@@ -47,7 +47,7 @@ pub enum Message {
     SeriesSelected(Box<SeriesMainInformation>),
     ShowOverlay,
     HideOverlay,
-    EventOccured(iced::Event),
+    EscapeKeyPressed,
 }
 
 pub struct DiscoverTab {
@@ -92,7 +92,18 @@ impl DiscoverTab {
     }
 
     pub fn subscription(&self) -> iced::Subscription<Message> {
-        iced::subscription::events().map(Message::EventOccured)
+        iced::subscription::events_with(|event, _| {
+            if let iced::Event::Keyboard(iced::keyboard::Event::KeyPressed {
+                key_code,
+                modifiers,
+            }) = event
+            {
+                if key_code == iced::keyboard::KeyCode::Escape && modifiers.is_empty() {
+                    return Some(Message::EscapeKeyPressed);
+                }
+            }
+            None
+        })
     }
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
@@ -206,19 +217,8 @@ impl DiscoverTab {
                     .update(message)
                     .map(move |message| Message::CountryEpisodePosterAction(index, message))
             }
-            Message::EventOccured(event) => {
-                if let iced::Event::Keyboard(iced::keyboard::Event::KeyPressed {
-                    key_code,
-                    modifiers,
-                }) = event
-                {
-                    if self.show_overlay
-                        && key_code == iced::keyboard::KeyCode::Escape
-                        && modifiers.is_empty()
-                    {
-                        self.show_overlay = false;
-                    }
-                }
+            Message::EscapeKeyPressed => {
+                self.show_overlay = false;
                 Command::none()
             }
         }
