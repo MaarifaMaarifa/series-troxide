@@ -36,7 +36,7 @@ struct LoadStatus {
 
 #[derive(Clone, Debug)]
 pub enum Message {
-    //LoadSchedule, TODO: implement a refresh button in the discover view
+    LoadDiscoverPage,
     ScheduleLoaded(Vec<Episode>),
     CountryScheduleLoaded(Vec<Episode>),
     SeriesUpdatesLoaded(Vec<SeriesMainInformation>),
@@ -101,6 +101,9 @@ impl DiscoverTab {
                 if key_code == iced::keyboard::KeyCode::Escape && modifiers.is_empty() {
                     return Some(Message::EscapeKeyPressed);
                 }
+                if key_code == iced::keyboard::KeyCode::F5 && modifiers.is_empty() {
+                    return Some(Message::LoadDiscoverPage);
+                }
             }
             None
         })
@@ -108,11 +111,10 @@ impl DiscoverTab {
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            // TODO: implement a refresh button in the discover view
-            // Message::LoadSchedule => {
-            //     self.load_state = LoadState::Loading;
-            //     load_discover_schedule_command()
-            // }
+            Message::LoadDiscoverPage => {
+                self.load_status = LoadStatus::default();
+                load_discover_schedule_command()
+            }
             Message::ScheduleLoaded(episodes) => {
                 self.load_status.global_series = LoadState::Loaded;
 
