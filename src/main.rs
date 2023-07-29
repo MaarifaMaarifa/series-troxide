@@ -29,9 +29,7 @@ fn main() -> anyhow::Result<()> {
         core::caching::cache_cleaning::CacheCleaner::new()?.auto_clean(&cache_settings),
     )?;
 
-    gui::TroxideGui::run(Settings {
-        default_font: Some(gui::assets::fonts::NOTOSANS_REGULAR_STATIC),
-        ..Default::default()
-    })?;
+    gui::TroxideGui::run(Settings::default())?;
+
     Ok(())
 }

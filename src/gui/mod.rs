@@ -63,6 +63,7 @@ pub enum Message {
     Statistics(StatisticsMessage),
     Settings(SettingsMessage),
     Series(SeriesMessage),
+    FontLoaded(Result<(), iced::font::Error>),
 }
 
 pub struct TroxideGui {
@@ -86,6 +87,9 @@ impl Application for TroxideGui {
     type Flags = ();
 
     fn new(_flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
+        let font_command = iced::font::load(assets::get_static_cow_from_asset(
+            assets::fonts::NOTOSANS_REGULAR_STATIC,
+        ));
         let (sender, receiver) = mpsc::channel();
 
         let (discover_tab, discover_command) =
@@ -107,6 +111,7 @@ impl Application for TroxideGui {
                 series_page_receiver: receiver,
             },
             Command::batch([
+                font_command.map(Message::FontLoaded),
                 discover_command.map(Message::Discover),
                 my_shows_command.map(Message::MyShows),
                 watchlist_command.map(Message::Watchlist),
@@ -190,6 +195,12 @@ impl Application for TroxideGui {
                 .expect("for series view to send a message it must exist")
                 .update(message)
                 .map(Message::Series),
+            Message::FontLoaded(res) => {
+                if res.is_err() {
+                    tracing::error!("failed to load font");
+                }
+                Command::none()
+            }
         }
     }
 

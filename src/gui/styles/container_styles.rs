@@ -1,8 +1,8 @@
 use super::theme::TroxideTheme;
 use iced::theme::Container;
 use iced::widget::container::{Appearance, StyleSheet};
-use iced::Background;
 use iced::{color, Color};
+use iced::{Background, BorderRadius};
 
 /// A custom theme for container respecting Light and Dark TroxideTheme
 pub fn first_class_container_rounded_theme() -> Container {
@@ -48,7 +48,7 @@ impl StyleSheet for FirstClassContainerRoundedTheme {
     fn appearance(&self, style: &Self::Style) -> Appearance {
         let mut appearance = Appearance {
             border_width: 1.0,
-            border_radius: 10.0,
+            border_radius: BorderRadius::from(10.0),
             ..Appearance::default()
         };
 
@@ -77,7 +77,7 @@ impl StyleSheet for SecondClassContainerRoundedTheme {
     fn appearance(&self, style: &Self::Style) -> Appearance {
         let mut appearance = Appearance {
             border_width: 1.0,
-            border_radius: 10.0,
+            border_radius: BorderRadius::from(10.0),
             ..Appearance::default()
         };
 
@@ -166,7 +166,7 @@ impl StyleSheet for ContainerThemeReleaseTime {
             background: Some(Background::Color(color!(0x8f6593))),
             border_color: color!(0xbbbbbb),
             border_width: 1.0,
-            border_radius: 1000.0, // Making sure it is circular
+            border_radius: BorderRadius::from(1000.0), // Making sure it is circular
             ..Appearance::default()
         };
 

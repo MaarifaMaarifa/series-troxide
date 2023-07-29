@@ -264,9 +264,10 @@ impl DiscoverTab {
         .width(Length::Fill))
         .into();
 
-        let content = floating_element::FloatingElement::new(underlay, || {
-            self.search_state.view().1.map(Message::SearchAction)
-        })
+        let content = floating_element::FloatingElement::new(
+            underlay,
+            self.search_state.view().1.map(Message::SearchAction),
+        )
         .anchor(floating_element::Anchor::North)
         .hide(!self.show_overlay);
 
