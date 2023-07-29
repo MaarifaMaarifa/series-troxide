@@ -426,7 +426,7 @@ impl Series {
     }
 
     fn seasons_view(&self) -> Element<'_, Message, Renderer> {
-        let seasons_body = column![text("Seasons").size(25)]
+        let seasons_body = column![text("Seasons").size(21)]
             .align_items(Alignment::Center)
             .spacing(10);
 
