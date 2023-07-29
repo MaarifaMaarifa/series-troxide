@@ -105,6 +105,7 @@ pub mod series_poster {
                         .size(11)
                         .width(100)
                         .height(30)
+                        .vertical_alignment(iced::alignment::Vertical::Center)
                         .horizontal_alignment(iced::alignment::Horizontal::Center),
                 );
 

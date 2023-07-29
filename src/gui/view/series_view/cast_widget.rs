@@ -163,6 +163,7 @@ mod cast_poster {
                 self.cast.person.name, self.cast.character.name
             ))
             .horizontal_alignment(alignment::Horizontal::Center)
+            .vertical_alignment(iced::alignment::Vertical::Center)
             .width(100)
             .height(45)
             .size(11);
