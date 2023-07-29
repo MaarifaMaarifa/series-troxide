@@ -5,6 +5,12 @@ use crate::core::{
     api::series_information::SeriesMainInformation,
     database::{self, Series},
 };
+use lazy_static::lazy_static;
+
+lazy_static! {
+    static ref TRACKED_SERIES_INFORMATIONS_REQUEST_LOCK: tokio::sync::Mutex<()> =
+        tokio::sync::Mutex::new(());
+}
 
 pub struct SeriesList {
     series_list: Vec<(String, Series)>,
@@ -56,6 +62,12 @@ impl SeriesList {
     pub async fn get_tracked_series_informations(
         &self,
     ) -> anyhow::Result<Vec<SeriesMainInformation>> {
+        // Since diferrent methods can end up calling this same method, they will end up doing
+        // multiple unecessary api request if the data is not cached, this lock makes the first
+        // code to call this method to do all the work first and the other methods will eventually
+        // read from the cache
+        let _ = TRACKED_SERIES_INFORMATIONS_REQUEST_LOCK.lock().await;
+
         let handles: Vec<_> = self
             .get_tracked_series_ids()
             .iter()
