@@ -256,7 +256,7 @@ mod episode_widget {
     use iced::{
         widget::{
             checkbox, column, container, horizontal_space, image, row, text, vertical_space, Row,
-            Text,
+            Space, Text,
         },
         Command, Element, Length, Renderer,
     };
@@ -354,7 +354,10 @@ mod episode_widget {
                 let image_handle = image::Handle::from_memory(image_bytes);
                 let image = image(image_handle).height(60);
                 content = content.push(image);
+            } else {
+                content = content.push(Space::new(107, 60));
             };
+
             let info = column!(
                 heading_widget(self.series_id, &self.episode_information),
                 airdate_widget(&self.episode_information),
