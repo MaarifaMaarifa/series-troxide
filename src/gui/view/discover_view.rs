@@ -241,7 +241,7 @@ impl DiscoverTab {
     }
 
     pub fn view(&self) -> Element<'_, Message, Renderer> {
-        let underlay: Element<'_, Message, Renderer> = column!(scrollable(
+        let underlay: Element<'_, Message, Renderer> = scrollable(
             column!(
                 series_posters_loader(
                     "Shows Airing Today Globally",
@@ -259,9 +259,9 @@ impl DiscoverTab {
                     &self.series_updates
                 ),
             )
-            .spacing(20)
+            .spacing(20),
         )
-        .width(Length::Fill))
+        .width(Length::Fill)
         .into();
 
         let content = floating_element::FloatingElement::new(
