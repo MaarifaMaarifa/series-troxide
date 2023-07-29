@@ -194,12 +194,12 @@ pub fn series_result_widget(
     };
 
     let mut column = column!(
-        text(&series_result.show.name).size(20),
-        text(genres).size(15),
+        text(&series_result.show.name).size(16),
+        text(genres).size(11),
     );
 
     if let Some(premier) = &series_result.show.premiered {
-        column = column.push(text(format!("Premiered: {}", premier)).size(13));
+        column = column.push(text(format!("Premiered: {}", premier)).size(9));
     }
 
     mouse_area(row.push(column))
