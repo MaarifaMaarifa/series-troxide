@@ -99,14 +99,14 @@ impl Caching {
     }
 
     pub fn view(&self) -> Element<'_, Message, Renderer> {
-        let manual_cleaning_heading_text = text("Manual Cache Cleaning").size(22);
+        let manual_cleaning_heading_text = text("Manual Cache Cleaning").size(18);
         let manual_cleaning_explaination_text = text("Sometimes, you may want to perform manual cache clean up for some reasons. \
             All of the cache type can be cleaned up manually. When their individual clean buttons are pressed, a clean will be performed immediately and the last clean \
-            record for that type of clean will be update.").size(15);
+            record for that type of clean will be update.").size(11);
 
         let content = column![
             text("Series Troxide Cache")
-                .size(25)
+                .size(21)
                 .style(styles::text_styles::purple_text_theme()),
             self.caching_frequency_settings_widget
                 .view()
@@ -135,7 +135,7 @@ impl Caching {
         column![
             text("Ended Cache Cleaning"),
             row![
-                text("clean cache for the series that have ended").size(15),
+                text("clean cache for the series that have ended").size(11),
                 horizontal_space(Length::Fill),
                 status_text,
                 button,
@@ -152,7 +152,7 @@ impl Caching {
         column![
             text("Aired Cache Cleaning"),
             row![
-                text("clean cache for the series that are currently being aired").size(15),
+                text("clean cache for the series that are currently being aired").size(11),
                 horizontal_space(Length::Fill),
                 status_text,
                 button,
@@ -171,7 +171,7 @@ impl Caching {
         column![
             text("Waiting Release Cache Cleaning"),
             row![
-                text("clean cache for the series waiting for their release date").size(15),
+                text("clean cache for the series waiting for their release date").size(11),
                 horizontal_space(Length::Fill),
                 status_text,
                 button,
@@ -294,10 +294,10 @@ mod cache_cleaning_frequency_widget {
             grid.insert(text("Ended series cache cleaning frequency(days)"));
             grid.insert(ended_clean_frequency);
 
-            let heading_text = text("Automatic Cache Cleaning").size(22);
+            let heading_text = text("Automatic Cache Cleaning").size(18);
             let explaination_text = text("Outdated cache are cleaned up automatically during \
                 program startup based on the settings, this makes the program have the latest series data from the API. \
-                You can manage cache auto-clean frequency by setting after how many days each cache clean should be performed.").size(15);
+                You can manage cache auto-clean frequency by setting after how many days each cache clean should be performed.").size(11);
 
             column![heading_text, explaination_text, vertical_space(10), grid,]
                 .spacing(5)

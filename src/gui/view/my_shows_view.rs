@@ -80,7 +80,7 @@ impl MyShowsTab {
 
         let waiting_releases: Element<'_, Message, Renderer> = column![
             text("Waiting for release date")
-                .size(25)
+                .size(21)
                 .style(styles::text_styles::green_text_theme()),
             self.waiting_releases.view().map(Message::Waiting)
         ]
@@ -89,7 +89,7 @@ impl MyShowsTab {
 
         let ended_releases: Element<'_, Message, Renderer> = column![
             text("Ended")
-                .size(25)
+                .size(21)
                 .style(styles::text_styles::red_text_theme()),
             self.ended_releases.view().map(Message::Ended)
         ]
@@ -97,7 +97,7 @@ impl MyShowsTab {
         .into();
 
         let untracked_releases: Element<'_, Message, Renderer> = column![
-            text("Untracked").size(25),
+            text("Untracked").size(21),
             self.untracked_releases.view().map(Message::Untracked)
         ]
         .spacing(5)

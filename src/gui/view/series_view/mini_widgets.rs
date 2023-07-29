@@ -6,7 +6,6 @@ use crate::gui::assets::get_static_cow_from_asset;
 use crate::gui::assets::icons::{CLOCK_FILL, STAR, STAR_FILL};
 use crate::gui::helpers::season_episode_str_gen;
 use crate::gui::styles;
-use crate::gui::troxide_widget::INFO_HEADER;
 
 use iced::widget::{container, horizontal_space, row, svg, text, Space};
 use iced::{Element, Length, Renderer};
@@ -130,7 +129,7 @@ pub fn ended_widget(
 pub fn summary_widget(series_info: &SeriesMainInformation) -> iced::Element<'_, Message, Renderer> {
     if let Some(summary) = &series_info.summary {
         let summary = html2text::from_read(summary.as_bytes(), 1000);
-        text(summary).size(15).width(880).into()
+        text(summary).size(11).width(880).into()
     } else {
         text("").into()
     }
@@ -222,7 +221,7 @@ pub fn next_episode_release_time_widget(
             next_episode,
             release_time.get_remaining_release_time().unwrap()
         ))
-        .size(INFO_HEADER);
+        .size(14);
 
         container(row![clock_icon, text].spacing(5))
             .style(styles::container_styles::second_class_container_square_theme())

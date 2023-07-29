@@ -42,11 +42,11 @@ impl About {
         let content = column![
             text("About")
                 .style(styles::text_styles::purple_text_theme())
-                .size(25),
+                .size(21),
             info_widget(),
             horizontal_rule(1),
             vertical_space(5),
-            text("Credits").size(22),
+            text("Credits").size(18),
             credit_widget(),
         ]
         .spacing(10);
@@ -99,22 +99,22 @@ fn info_widget() -> Element<'static, Message, Renderer> {
 
 fn credit_widget() -> Element<'static, Message, Renderer> {
     let go_to_site_text = text("here")
-        .size(15)
+        .size(11)
         .style(styles::text_styles::purple_text_theme());
 
     let tv_maze = row![
-        text("- The API used has been provided by TVmaze, you can check out the site ").size(15),
+        text("- The API used has been provided by TVmaze, you can check out the site ").size(11),
         mouse_area(go_to_site_text.clone()).on_press(Message::TvMaze)
     ];
     let bootstrap_icons = row![
         text("- The Icons used have been provided by boostrap icons, you can check out the site ")
-            .size(15),
+            .size(11),
         mouse_area(go_to_site_text.clone()).on_press(Message::BootstrapIcons)
     ];
     let iced =
         row![
         text("- The Graphical User Interface has been made using Iced, you can check out the site ")
-            .size(15),
+            .size(11),
         mouse_area(go_to_site_text).on_press(Message::Iced)
     ];
     column![tv_maze, bootstrap_icons, iced].into()

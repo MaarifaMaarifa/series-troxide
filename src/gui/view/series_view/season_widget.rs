@@ -374,7 +374,7 @@ mod episode_widget {
     fn summary_widget(episode_information: &EpisodeInfo) -> Text<'static, Renderer> {
         if let Some(summary) = &episode_information.summary {
             let summary = html2text::from_read(summary.as_bytes(), 1000);
-            text(summary).size(15)
+            text(summary).size(11)
         } else {
             text("")
         }
@@ -382,7 +382,7 @@ mod episode_widget {
 
     fn airdate_widget(episode_information: &EpisodeInfo) -> Text<'static, Renderer> {
         if let Some(airdate) = &episode_information.airdate {
-            text(format!("Air date: {}", airdate)).size(15)
+            text(format!("Air date: {}", airdate)).size(11)
         } else {
             text("")
         }
@@ -413,7 +413,7 @@ mod episode_widget {
             } else {
                 text("")
             },
-            text(&episode_information.name).size(17),
+            text(&episode_information.name).size(13),
             horizontal_space(Length::Fill),
             tracking_checkbox.size(17),
         )

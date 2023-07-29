@@ -29,7 +29,10 @@ fn main() -> anyhow::Result<()> {
         core::caching::cache_cleaning::CacheCleaner::new()?.auto_clean(&cache_settings),
     )?;
 
-    gui::TroxideGui::run(Settings::default())?;
+    gui::TroxideGui::run(Settings {
+        default_text_size: 14.0,
+        ..Default::default()
+    })?;
 
     Ok(())
 }

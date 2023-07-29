@@ -34,7 +34,7 @@ impl Locale {
         use locale_settings::{get_country_code_from_settings, get_country_name_from_country_code};
 
         let content = column![text("Locale")
-            .size(25)
+            .size(21)
             .style(styles::text_styles::purple_text_theme())]
         .padding(5)
         .spacing(5);
@@ -50,8 +50,8 @@ impl Locale {
                 .to_owned();
 
         let country_setting_info = column![
-        text("Country").size(22),
-        text("The chosen country will be used by the discover page to provide locally aired series.").size(15)];
+        text("Country").size(18),
+        text("The chosen country will be used by the discover page to provide locally aired series.").size(11)];
 
         let theme_picklist = pick_list(
             country_list,

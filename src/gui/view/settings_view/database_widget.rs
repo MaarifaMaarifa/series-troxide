@@ -42,9 +42,9 @@ impl Database {
 
     pub fn view(&self) -> Element<'_, Message, Renderer> {
         let import_widget = column![
-            text("Import Data").size(22),
+            text("Import Data").size(18),
             row![
-                text("Import your series tracking data into Series Troxide").size(15),
+                text("Import your series tracking data into Series Troxide").size(11),
                 horizontal_space(Length::Fill),
                 get_status_text(self.import_status.as_ref()),
                 button("Import").on_press(Message::ImportDatabasePressed)
@@ -53,9 +53,9 @@ impl Database {
         ];
 
         let export_widget = column![
-            text("Export Data").size(22),
+            text("Export Data").size(18),
             row![
-                text("Export your series tracking data from Series Troxide").size(15),
+                text("Export your series tracking data from Series Troxide").size(11),
                 horizontal_space(Length::Fill),
                 get_status_text(self.export_status.as_ref()),
                 button("Export").on_press(Message::ExportDatabasePressed)
@@ -65,7 +65,7 @@ impl Database {
 
         let content = column![
             text("Series Troxide Data")
-                .size(25)
+                .size(21)
                 .style(styles::text_styles::purple_text_theme()),
             import_widget,
             export_widget,

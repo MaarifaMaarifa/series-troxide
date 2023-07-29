@@ -72,7 +72,7 @@ impl CastWidget {
                     Space::new(0, 0).into()
                 } else {
                     column![
-                        text("Top Cast").size(25),
+                        text("Top Cast").size(21),
                         Wrap::with_elements(
                             self.cast
                                 .iter()
@@ -165,7 +165,7 @@ mod cast_poster {
             .horizontal_alignment(alignment::Horizontal::Center)
             .width(100)
             .height(45)
-            .size(15);
+            .size(11);
 
             let content = content.push(name);
 

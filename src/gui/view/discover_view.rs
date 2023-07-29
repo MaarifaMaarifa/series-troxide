@@ -339,7 +339,7 @@ fn series_posters_loader<'a>(
     load_state: &LoadState,
     posters: &'a [SeriesPoster],
 ) -> Element<'a, Message, Renderer> {
-    let title = text(title).size(25);
+    let title = text(title).size(21);
 
     if let LoadState::Loading = load_state {
         let spinner = container(Spinner::new())

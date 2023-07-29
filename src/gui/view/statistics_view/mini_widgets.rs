@@ -13,18 +13,18 @@ pub fn watch_count() -> Element<'static, Message, Renderer> {
     let episodes_total_number = database::DB.get_total_episodes();
 
     let episodes_count = column![
-        text(episodes_total_number).size(35),
-        text("Episodes").size(15),
+        text(episodes_total_number).size(31),
+        text("Episodes").size(11),
     ]
     .align_items(Alignment::Center);
 
     let series_seasons_count = row![
-        column![text(series_total_number).size(35), text("Series").size(15)]
+        column![text(series_total_number).size(31), text("Series").size(11)]
             .align_items(Alignment::Center),
         horizontal_space(10),
         column![
-            text(seasons_total_number).size(35),
-            text("Seasons").size(15)
+            text(seasons_total_number).size(31),
+            text("Seasons").size(11)
         ]
         .align_items(Alignment::Center)
     ]
@@ -57,8 +57,8 @@ pub fn time_count(
         .sum();
 
     let total_minutes_count = column![
-        text(total_average_minutes).size(35),
-        text("Minutes").size(15)
+        text(total_average_minutes).size(31),
+        text("Minutes").size(11)
     ]
     .align_items(Alignment::Center);
 
@@ -68,10 +68,10 @@ pub fn time_count(
     let hours = (total_average_minutes / 60) % 24;
 
     let complete_time_count = row![
-        column![text(years).size(35), text("Years").size(15)].align_items(Alignment::Center),
-        column![text(months).size(35), text("Months").size(15)].align_items(Alignment::Center),
-        column![text(days).size(35), text("Days").size(15)].align_items(Alignment::Center),
-        column![text(hours).size(35), text("Hours").size(15)].align_items(Alignment::Center),
+        column![text(years).size(31), text("Years").size(11)].align_items(Alignment::Center),
+        column![text(months).size(31), text("Months").size(11)].align_items(Alignment::Center),
+        column![text(days).size(31), text("Days").size(11)].align_items(Alignment::Center),
+        column![text(hours).size(31), text("Hours").size(11)].align_items(Alignment::Center),
     ]
     .align_items(Alignment::Center)
     .spacing(10);
@@ -158,11 +158,11 @@ pub mod series_banner {
             let episodes = series.get_total_episodes();
 
             let metadata = row![
-                column![text(time_in_hours).size(35), text("Hours").size(15)]
+                column![text(time_in_hours).size(31), text("Hours").size(11)]
                     .align_items(Alignment::Center),
-                column![text(seasons).size(35), text("Seasons").size(15)]
+                column![text(seasons).size(31), text("Seasons").size(11)]
                     .align_items(Alignment::Center),
-                column![text(episodes).size(35), text("episodes").size(15)]
+                column![text(episodes).size(31), text("episodes").size(11)]
                     .align_items(Alignment::Center),
             ]
             .align_items(Alignment::Center)

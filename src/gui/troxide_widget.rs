@@ -1,10 +1,3 @@
-// The text size of the beginning part of a info
-pub const INFO_HEADER: u16 = 18;
-// The text size of the main part of a info
-// pub const INFO_BODY: u16 = 15;
-
-// const INFO_BODY_HEIGHT: u16 = INFO_HEADER - (INFO_HEADER - INFO_BODY);
-
 pub mod series_poster {
 
     use crate::core::api::episodes_information::Episode;
@@ -109,7 +102,7 @@ pub mod series_poster {
             if let Some(series_info) = &self.series_information {
                 content = content.push(
                     text(&series_info.name)
-                        .size(15)
+                        .size(11)
                         .width(100)
                         .height(30)
                         .horizontal_alignment(iced::alignment::Horizontal::Center),
