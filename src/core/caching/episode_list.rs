@@ -214,16 +214,16 @@ impl EpisodeReleaseTime {
             let time_diff = self.release_time - local_time;
 
             if time_diff.num_weeks() != 0 {
-                return Some(format!("{} weeks", time_diff.num_weeks()));
+                return Some(plurize_time(time_diff.num_weeks(), "week"));
             }
             if time_diff.num_days() != 0 {
-                return Some(format!("{} days", time_diff.num_days()));
+                return Some(plurize_time(time_diff.num_days(), "day"));
             }
             if time_diff.num_hours() != 0 {
-                return Some(format!("{} hours", time_diff.num_hours()));
+                return Some(plurize_time(time_diff.num_hours(), "hour"));
             }
             if time_diff.num_minutes() != 0 {
-                return Some(format!("{} minutes", time_diff.num_minutes()));
+                return Some(plurize_time(time_diff.num_minutes(), "minute"));
             }
             Some(String::from("Now"))
         } else {
@@ -255,5 +255,15 @@ impl EpisodeReleaseTime {
             minute,
             pm_am
         )
+    }
+}
+
+/// Takes the time and it's name i.e week, day, hour and concatenates the
+/// two terms handling the condition when the time is above 1 (plural)
+fn plurize_time(time_numeral: i64, word: &str) -> String {
+    if time_numeral > 1 {
+        format!("{} {}s", time_numeral, word)
+    } else {
+        format!("{} {}", time_numeral, word)
     }
 }
