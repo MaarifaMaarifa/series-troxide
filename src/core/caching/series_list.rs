@@ -111,9 +111,20 @@ impl SeriesList {
         &self,
     ) -> anyhow::Result<Vec<SeriesMainInformation>> {
         let series_infos = self.get_running_tracked_series_informations().await?;
+
+        let mut episode_list_handles = Vec::with_capacity(series_infos.len());
+        for series_info in series_infos.iter() {
+            episode_list_handles.push(tokio::spawn(super::episode_list::EpisodeList::new(
+                series_info.id,
+            )))
+        }
+
         let mut waiting_releases_series_infos = Vec::with_capacity(series_infos.len());
-        for series_info in series_infos {
-            let episode_list = super::episode_list::EpisodeList::new(series_info.id).await?;
+        for (handle, series_info) in episode_list_handles
+            .into_iter()
+            .zip(series_infos.into_iter())
+        {
+            let episode_list = handle.await??;
             if episode_list.get_next_episode().is_none() {
                 waiting_releases_series_infos.push(series_info)
             }
