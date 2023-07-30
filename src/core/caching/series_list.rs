@@ -85,6 +85,27 @@ impl SeriesList {
         Ok(series_informations)
     }
 
+    /// Gets the series informations of all the series in the database
+    pub async fn get_all_series_informations(&self) -> anyhow::Result<Vec<SeriesMainInformation>> {
+        let _ = TRACKED_SERIES_INFORMATIONS_REQUEST_LOCK.lock().await;
+
+        let handles: Vec<_> = self
+            .series_list
+            .iter()
+            .map(|(id, _)| {
+                let id = id.parse().expect("could not parse series id");
+                tokio::spawn(series_information::get_series_main_info_with_id(id))
+            })
+            .collect();
+
+        let mut series_informations = Vec::with_capacity(handles.len());
+        for handle in handles {
+            series_informations.push(handle.await??)
+        }
+
+        Ok(series_informations)
+    }
+
     pub async fn get_running_tracked_series_informations(
         &self,
     ) -> anyhow::Result<Vec<SeriesMainInformation>> {
