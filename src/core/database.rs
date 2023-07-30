@@ -296,7 +296,7 @@ impl Series {
     ///
     /// This method returns SeriesMainInformation associated with the Series
     /// together with it's total runtime
-    pub async fn get_total_average_runtime(&self) -> Option<(SeriesMainInformation, u32)> {
+    pub async fn get_total_average_watchtime(&self) -> Option<(SeriesMainInformation, u32)> {
         let series_info = caching::series_information::get_series_main_info_with_id(self.id)
             .await
             .unwrap();

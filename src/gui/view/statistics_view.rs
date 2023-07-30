@@ -94,12 +94,11 @@ async fn get_series_with_runtime() -> Vec<(SeriesMainInformation, u32)> {
     let series_ids_handles: Vec<_> = database::DB
         .get_series_collection()
         .into_iter()
-        .map(|series| tokio::spawn(async move { series.get_total_average_runtime().await }))
+        .map(|series| tokio::spawn(async move { series.get_total_average_watchtime().await }))
         .collect();
 
     let mut infos_and_time = Vec::with_capacity(series_ids_handles.len());
     for handle in series_ids_handles {
-        // let info_and_time = handle.await.unwrap();x
         if let Some(info_and_time) = handle
             .await
             .expect("failed to await all series_infos and their average runtime")
