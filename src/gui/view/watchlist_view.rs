@@ -6,6 +6,7 @@ use iced_aw::Spinner;
 
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::caching::episode_list::EpisodeList;
+use crate::core::caching::series_list;
 use crate::gui::assets::icons::CARD_CHECKLIST;
 use crate::gui::troxide_widget;
 use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
@@ -132,20 +133,20 @@ impl WatchlistTab {
 }
 
 /// checks of the given series has pending episodes to be watched in the database. That given series
-/// is provides through it's EpisodeList Structure.
+/// is provided through it's EpisodeList Structure.
 fn has_pending_episodes(database_series: &database::Series, episodes_list: &EpisodeList) -> bool {
     episodes_list.get_total_watchable_episodes() != database_series.get_total_episodes()
 }
 
-/// Get the series ids of all the series that have pending episodes to be watched
-async fn get_pending_series_ids() -> Vec<u32> {
-    let ids = database::DB.get_ids_and_series();
-    let episode_lists_handles: Vec<_> = ids
+async fn get_series_informations_and_watched_episodes() -> Vec<(SeriesMainInformation, usize)> {
+    let tracked_series_informations = series_list::SeriesList::new()
+        .get_tracked_series_informations()
+        .await
+        .unwrap();
+
+    let episode_lists_handles: Vec<_> = tracked_series_informations
         .iter()
-        .map(|(id, _)| {
-            let id = id.parse::<u32>().expect("could not parse series id");
-            tokio::spawn(caching::episode_list::EpisodeList::new(id))
-        })
+        .map(|series_info| tokio::spawn(caching::episode_list::EpisodeList::new(series_info.id)))
         .collect();
 
     let mut episodes_lists = Vec::with_capacity(episode_lists_handles.len());
@@ -158,41 +159,17 @@ async fn get_pending_series_ids() -> Vec<u32> {
         episodes_lists.push(episode_list);
     }
 
-    ids.iter()
-        .zip(episodes_lists.iter())
-        .filter(|((_, series), _)| series.is_tracked())
-        .filter(|((_, series), episode_list)| has_pending_episodes(series, episode_list))
-        .map(|((id, _), _)| id.parse::<u32>().expect("could not parse series id"))
-        .collect()
-}
-
-async fn get_series_informations_and_watched_episodes() -> Vec<(SeriesMainInformation, usize)> {
-    let handles: Vec<_> = get_pending_series_ids()
-        .await
+    tracked_series_informations
         .into_iter()
-        .map(|id| {
-            tokio::spawn(async move {
-                let series_information_res =
-                    caching::series_information::get_series_main_info_with_id(id)
-                        .await
-                        .expect("failed to get series information");
-                let total_episode = caching::episode_list::EpisodeList::new(id)
-                    .await
-                    .expect("failed to get series episode list")
-                    .get_total_watchable_episodes();
-                (series_information_res, total_episode)
-            })
+        .zip(episodes_lists.into_iter())
+        .filter(|(series_info, episode_list)| {
+            let series = database::DB.get_series(series_info.id).unwrap();
+            has_pending_episodes(&series, episode_list)
         })
-        .collect();
-
-    let mut series_informations = Vec::with_capacity(handles.len());
-    for handle in handles {
-        let series_info = handle
-            .await
-            .expect("failed to await when requesting series information");
-        series_informations.push(series_info);
-    }
-    series_informations
+        .map(|(series_info, episode_list)| {
+            (series_info, episode_list.get_total_watchable_episodes())
+        })
+        .collect()
 }
 
 impl Tab for WatchlistTab {
