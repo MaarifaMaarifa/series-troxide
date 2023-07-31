@@ -38,6 +38,8 @@ rfd = "0.11.4"
 rust_iso3166 = "0.1.10"
 image = "0.24.6"
 webbrowser = "0.8.10"
+notify-rust = "4.8.0"
+notify = "6.0.1"
 
 [build-dependencies]
 built = { version = "0.6.1", features = ["git2", "chrono"] }

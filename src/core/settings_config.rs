@@ -33,6 +33,7 @@ pub struct Config {
     pub appearance: AppearanceSettings,
     pub cache: CacheSettings,
     pub locale: LocaleSettings,
+    pub notifications: NotificationSettings,
 }
 
 #[derive(Clone, Default, Debug, Serialize, Deserialize, Eq, PartialEq)]
@@ -68,6 +69,18 @@ impl Default for CacheSettings {
             ended_cache_clean_frequency: 7,
             waiting_release_cache_clean_frequency: 2,
         }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
+pub struct NotificationSettings {
+    // the time is in minutes
+    pub time_to_notify: u32,
+}
+
+impl Default for NotificationSettings {
+    fn default() -> Self {
+        Self { time_to_notify: 60 }
     }
 }
 
@@ -132,7 +145,7 @@ impl Default for Settings {
     }
 }
 
-const CONFIG_FILE_NAME: &str = "config.toml";
+pub const CONFIG_FILE_NAME: &str = "config.toml";
 
 fn load_config() -> Config {
     if let Some(proj_dirs) = ProjectDirs::from("", "", env!("CARGO_PKG_NAME")) {

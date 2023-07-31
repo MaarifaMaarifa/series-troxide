@@ -29,6 +29,8 @@ fn main() -> anyhow::Result<()> {
         core::caching::cache_cleaning::CacheCleaner::new()?.auto_clean(&cache_settings),
     )?;
 
+    std::thread::spawn(|| core::notifications::TroxideNotify::new()?.run());
+
     gui::TroxideGui::run(Settings {
         default_text_size: 14.0,
         ..Default::default()

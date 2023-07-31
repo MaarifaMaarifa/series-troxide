@@ -8,7 +8,7 @@ use crate::core::{
     },
     caching::CACHER,
 };
-use chrono::{DateTime, Datelike, Local, Timelike, Utc};
+use chrono::{DateTime, Datelike, Duration, Local, Timelike, Utc};
 use tracing::info;
 
 use super::{read_cache, write_cache, CacheFilePath};
@@ -204,6 +204,11 @@ impl EpisodeReleaseTime {
                 .unwrap()
                 .with_timezone(&Local),
         }
+    }
+
+    pub fn get_remaining_release_duration(&self) -> Duration {
+        let local_time = Utc::now().with_timezone(&Local);
+        self.release_time - local_time
     }
 
     /// Returns the remaining time for an episode to be released

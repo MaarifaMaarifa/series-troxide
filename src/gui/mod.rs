@@ -15,7 +15,7 @@ use super::core::settings_config;
 use crate::core::settings_config::SETTINGS;
 
 pub mod assets;
-mod helpers;
+pub mod helpers;
 mod styles;
 mod troxide_widget;
 mod view;
