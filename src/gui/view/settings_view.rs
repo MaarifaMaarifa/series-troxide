@@ -8,11 +8,13 @@ use about_widget::{About, Message as AboutMessage};
 use caching_widget::{Caching, Message as CachingMessage};
 use database_widget::{Database, Message as DatabaseMessage};
 use locale_widget::{Locale, Message as LocaleMessage};
+use notifications_widget::{Message as NotificationsMessage, Notifications};
 
 mod about_widget;
 mod caching_widget;
 mod database_widget;
 mod locale_widget;
+mod notifications_widget;
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -22,6 +24,7 @@ pub enum Message {
     ResetSettings,
     Caching(CachingMessage),
     Database(DatabaseMessage),
+    Notifications(NotificationsMessage),
     Locale(LocaleMessage),
     About(AboutMessage),
 }
@@ -30,6 +33,7 @@ pub enum Message {
 pub struct SettingsTab {
     caching_settings: Caching,
     database_settings: Database,
+    notifications_settings: Notifications,
     locale_settings: Locale,
     about: About,
 }
@@ -39,6 +43,7 @@ impl SettingsTab {
         Self {
             caching_settings: Caching::default(),
             database_settings: Database::default(),
+            notifications_settings: Notifications,
             locale_settings: Locale::default(),
             about: About,
         }
@@ -63,6 +68,7 @@ impl SettingsTab {
             Message::ResetSettings => SETTINGS.write().unwrap().reset_settings(),
             Message::Locale(message) => self.locale_settings.update(message),
             Message::About(message) => self.about.update(message),
+            Message::Notifications(message) => self.notifications_settings.update(message),
         }
         Command::none()
     }
@@ -72,6 +78,9 @@ impl SettingsTab {
                 self.appearance_settings_view(),
                 self.database_settings.view().map(Message::Database),
                 self.caching_settings.view().map(Message::Caching),
+                self.notifications_settings
+                    .view()
+                    .map(Message::Notifications),
                 self.locale_settings.view().map(Message::Locale),
                 self.about.view().map(Message::About),
             ]
