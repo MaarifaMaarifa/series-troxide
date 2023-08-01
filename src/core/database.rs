@@ -311,7 +311,15 @@ impl Series {
 
 impl Drop for Series {
     fn drop(&mut self) {
-        self.update()
+        // Making sure database series is updated
+        self.update();
+
+        // Preventing unwatched and untracked series from cloggin up the database.
+        // This can happen when a user adds a series for tracking and untracks the
+        // series without having any episodes checked.
+        if !self.is_tracked() && self.get_total_episodes() == 0 {
+            DB.remove_series(self.id);
+        }
     }
 }
 
