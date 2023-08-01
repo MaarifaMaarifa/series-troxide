@@ -22,6 +22,7 @@ pub mod icons {
     pub static CHEVRON_DOWN: &[u8; 290] = include_bytes!("../../assets/icons/chevron-down.svg");
     pub static STAR: &[u8; 635] = include_bytes!("../../assets/icons/star.svg");
     pub static STAR_FILL: &[u8; 399] = include_bytes!("../../assets/icons/star-fill.svg");
+    pub static STAR_HALF: &[u8; 648] = include_bytes!("../../assets/icons/star-half.svg");
     pub static PATCH_PLUS: &[u8; 1039] = include_bytes!("../../assets/icons/patch-plus.svg");
     pub static PATCH_PLUS_FILL: &[u8; 607] =
         include_bytes!("../../assets/icons/patch-plus-fill.svg");

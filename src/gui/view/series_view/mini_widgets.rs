@@ -3,7 +3,7 @@ use crate::core::api::episodes_information::Episode;
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::caching::episode_list::EpisodeReleaseTime;
 use crate::gui::assets::get_static_cow_from_asset;
-use crate::gui::assets::icons::{CLOCK_FILL, STAR, STAR_FILL};
+use crate::gui::assets::icons::{CLOCK_FILL, STAR, STAR_FILL, STAR_HALF};
 use crate::gui::helpers::season_episode_str_gen;
 use crate::gui::styles;
 
@@ -138,14 +138,14 @@ pub fn summary_widget(series_info: &SeriesMainInformation) -> iced::Element<'_, 
 pub fn rating_widget(series_info: &SeriesMainInformation) -> Element<'_, Message, Renderer> {
     if let Some(average_rating) = series_info.rating.average {
         let star_handle = svg::Handle::from_memory(get_static_cow_from_asset(STAR));
-
+        let star_half_handle = svg::Handle::from_memory(get_static_cow_from_asset(STAR_HALF));
         let star_fill_handle = svg::Handle::from_memory(get_static_cow_from_asset(STAR_FILL));
 
         let mut rating = row![];
 
         let total_rating = 10_u8;
         let series_rating = average_rating as u8;
-        let missing_rating = total_rating - series_rating;
+        let mut missing_rating = total_rating - series_rating;
 
         let rating_text = text(format!("{} / {}", average_rating, total_rating));
 
@@ -157,6 +157,16 @@ pub fn rating_widget(series_info: &SeriesMainInformation) -> Element<'_, Message
                     .style(styles::svg_styles::colored_svg_theme()),
             )
         }
+
+        if average_rating.trunc() != average_rating {
+            missing_rating -= 1;
+            rating = rating.push(
+                svg(star_half_handle)
+                    .width(15)
+                    .height(15)
+                    .style(styles::svg_styles::colored_svg_theme()),
+            )
+        };
 
         for _ in 0..missing_rating {
             rating = rating.push(
