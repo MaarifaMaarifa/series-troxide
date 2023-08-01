@@ -135,7 +135,11 @@ pub mod series_poster {
             let mut metadata = column!().padding(2).spacing(5);
 
             if let Some(series_info) = &self.series_information {
-                metadata = metadata.push(text(&series_info.name));
+                metadata = metadata.push(
+                    text(&series_info.name)
+                        .size(18)
+                        .style(styles::text_styles::purple_text_theme()),
+                );
                 metadata = metadata.push(vertical_space(10));
 
                 let watched_episodes = database::DB
