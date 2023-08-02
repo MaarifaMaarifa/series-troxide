@@ -55,8 +55,12 @@ impl WatchlistTab {
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message::SeriesInformationLoaded(series_infos) => {
+            Message::SeriesInformationLoaded(mut series_infos) => {
                 self.load_state = LoadState::Loaded;
+
+                // Arranging the watchlist shows alphabetically
+                series_infos.sort_by_key(|(series_info, _)| series_info.name.clone());
+
                 let mut posters = Vec::with_capacity(series_infos.len());
                 let mut commands = Vec::with_capacity(series_infos.len());
                 for (index, (info, total_episodes)) in series_infos.into_iter().enumerate() {
