@@ -63,15 +63,15 @@ impl Season {
 
                 return Command::perform(
                     async move {
-                        loop {
-                            if let Some(mut series) = database::DB.get_series(series_id) {
-                                break series
-                                    .add_episodes(season_number, 1..=total_episodes as u32)
-                                    .await;
-                            } else {
-                                let series = database::Series::new(series_name.clone(), series_id);
-                                database::DB.add_series(series_id, &series);
-                            }
+                        if let Some(mut series) = database::DB.get_series(series_id) {
+                            series
+                                .add_episodes(season_number, 1..=total_episodes as u32)
+                                .await
+                        } else {
+                            let mut series = database::Series::new(series_name, series_id);
+                            series
+                                .add_episodes(season_number, 1..=total_episodes as u32)
+                                .await
                         }
                     },
                     move |all_newly_added| {
@@ -316,14 +316,11 @@ mod episode_widget {
 
                     return Command::perform(
                         async move {
-                            loop {
-                                if let Some(mut series) = database::DB.get_series(series_id) {
-                                    break series.add_episode(season_number, episode_number).await;
-                                } else {
-                                    let series =
-                                        database::Series::new(series_name.clone(), series_id);
-                                    database::DB.add_series(series_id, &series);
-                                }
+                            if let Some(mut series) = database::DB.get_series(series_id) {
+                                series.add_episode(season_number, episode_number).await
+                            } else {
+                                let mut series = database::Series::new(series_name, series_id);
+                                series.add_episode(season_number, episode_number).await
                             }
                         },
                         move |is_newly_added| {
