@@ -15,7 +15,7 @@ A Simple and Modern Series Tracker.
 - **Light and Dark themes**. Use **Series Troxide** at any time of the day.
 - **Database export and import**. Carry your series tracking data anywhere.
 - **Caching**. Due to the rate limit of the API, caching makes **Series Troxide** fast when opening previously opened items and be able to perform crazy things like getting the statistics of all watched series. Cache cleaning can be managed both automatically and manually to make sure the program does not have outdated series data.
-- **Notifications for upcoming episodes**. _in progress_.
+- **Notifications for upcoming episodes**. Configure when to get notified before an episode release.
 
 ## Installation
 
