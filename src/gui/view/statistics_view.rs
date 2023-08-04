@@ -1,8 +1,9 @@
-use iced::widget::{column, container, row, scrollable, Column};
+use iced::widget::{column, container, row, scrollable};
 use iced::{Command, Element, Length, Renderer};
+use iced_aw::Wrap;
 
 use crate::gui::assets::icons::GRAPH_UP_ARROW;
-use crate::gui::{styles, troxide_widget};
+use crate::gui::troxide_widget;
 use crate::{
     core::{api::series_information::SeriesMainInformation, database},
     gui::{Message as GuiMessage, Tab},
@@ -60,7 +61,7 @@ impl StatisticsTab {
         }
     }
     pub fn view(&self) -> Element<Message, Renderer> {
-        let series_list = Column::with_children(
+        let series_list = Wrap::with_elements(
             self.series_banners
                 .iter()
                 .map(|banner| {
@@ -69,10 +70,11 @@ impl StatisticsTab {
                         .map(|message| Message::SeriesBanner(message.get_id(), message))
                 })
                 .collect(),
-        );
+        )
+        .spacing(5.0)
+        .line_spacing(5.0);
 
-        let series_list = container(series_list)
-            .style(styles::container_styles::first_class_container_rounded_theme());
+        let series_list = container(series_list).width(Length::Fill).center_x();
 
         let content = column![
             row![watch_count(), time_count(&self.series_infos_and_time)].spacing(10),
