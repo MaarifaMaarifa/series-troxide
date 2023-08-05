@@ -2,8 +2,7 @@ use std::sync::mpsc;
 
 use view::discover_view::{DiscoverTab, Message as DiscoverMessage};
 use view::my_shows_view::{Message as MyShowsMessage, MyShowsTab};
-use view::series_view::Message as SeriesMessage;
-use view::series_view::Series;
+use view::series_view::{Message as SeriesMessage, Series};
 use view::settings_view::{Message as SettingsMessage, SettingsTab};
 use view::statistics_view::{Message as StatisticsMessage, StatisticsTab};
 use view::watchlist_view::{Message as WatchlistMessage, WatchlistTab};
