@@ -120,7 +120,10 @@ impl TabsController {
     }
 
     pub fn subscription(&self) -> iced::Subscription<Message> {
-        self.discover_tab.subscription().map(Message::Discover)
+        match self.current_tab {
+            Tab::Discover => self.discover_tab.subscription().map(Message::Discover),
+            _ => iced::subscription::Subscription::none(),
+        }
     }
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
