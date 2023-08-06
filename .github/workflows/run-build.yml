@@ -1,0 +1,27 @@
+name: Run Build
+
+on:
+  workflow_call:
+
+jobs:
+  build:
+    name: Run build
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: apt update
+        run: sudo apt update
+
+      - name: apt install librust-atk-dev
+        run: sudo apt install librust-atk-dev
+
+      - name: apt install librust-gdk-dev
+        run: sudo apt install librust-gdk-dev
+
+      - name: Run build
+        uses: actions-rs/cargo@v1
+        with:
+            command: build
