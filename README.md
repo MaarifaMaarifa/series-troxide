@@ -1,6 +1,15 @@
-# Series Troxide
-
-A Simple and Modern Series Tracker.
+<div align="center">
+  <h1><strong>Series Troxide</strong></h1>
+  <p>
+    <strong>A Simple and Modern Series Tracker</strong>
+  </p>
+  <p>
+    <a href="https://github.com/MaarifaMaarifa/series-troxide/actions">
+        <img src="https://github.com/MaarifaMaarifa/series-troxide/workflows/CI/badge.svg" alt="build status" />
+    </a>
+    <a href="https://crates.io/crates/series-troxide"><img alt="" src="https://img.shields.io/crates/v/series-troxide?&logo=rust&color=blue"/></a>    
+  </p>
+</div>
 
 ![](screenshots/demo.gif)
 
