@@ -16,6 +16,8 @@ jobs:
     - uses: actions/checkout@v3
     - name: Update Rust
       run: rustup update
+    - name: Update ubuntu-latest
+      run: sudo apt update
     - name: Installing ATK build dependency
       run: sudo apt install librust-atk-dev
     - name: Installing GDK build dependency
