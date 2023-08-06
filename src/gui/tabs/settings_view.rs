@@ -3,7 +3,7 @@ use iced::{Alignment, Command, Element, Length, Renderer};
 
 use crate::core::settings_config::{Theme, ALL_THEMES, SETTINGS};
 use crate::gui::assets::icons::GEAR_WIDE_CONNECTED;
-use crate::gui::{styles, troxide_widget, Message as GuiMessage, Tab};
+use crate::gui::{styles, troxide_widget};
 use about_widget::{About, Message as AboutMessage};
 use caching_widget::{Caching, Message as CachingMessage};
 use database_widget::{Database, Message as DatabaseMessage};
@@ -158,19 +158,13 @@ impl SettingsTab {
     }
 }
 
-impl Tab for SettingsTab {
-    type Message = GuiMessage;
-
-    fn title(&self) -> String {
+impl SettingsTab {
+    pub fn title() -> String {
         "Settings".to_owned()
     }
 
-    fn tab_label(&self) -> troxide_widget::tabs::TabLabel {
-        troxide_widget::tabs::TabLabel::new(self.title(), GEAR_WIDE_CONNECTED)
-    }
-
-    fn content(&self) -> Element<'_, Self::Message> {
-        self.view().map(GuiMessage::Settings)
+    pub fn tab_label() -> troxide_widget::tabs::TabLabel {
+        troxide_widget::tabs::TabLabel::new(Self::title(), GEAR_WIDE_CONNECTED)
     }
 }
 

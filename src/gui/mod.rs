@@ -1,81 +1,33 @@
 use std::sync::mpsc;
 
-use view::discover_view::{DiscoverTab, Message as DiscoverMessage};
-use view::my_shows_view::{Message as MyShowsMessage, MyShowsTab};
-use view::series_view::{Message as SeriesMessage, Series};
-use view::settings_view::{Message as SettingsMessage, SettingsTab};
-use view::statistics_view::{Message as StatisticsMessage, StatisticsTab};
-use view::watchlist_view::{Message as WatchlistMessage, WatchlistTab};
-
-use iced::widget::{container, text, Column};
-use iced::{Application, Command, Element, Length};
+use iced::{Application, Command};
 
 use super::core::settings_config;
 use crate::core::settings_config::SETTINGS;
 
+use tabs::series_view::{Message as SeriesMessage, Series};
+use tabs::{Message as TabsControllerMessage, Tab as TabId, TabsController};
+
 pub mod assets;
 pub mod helpers;
 mod styles;
+mod tabs;
 mod troxide_widget;
-mod view;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TabId {
-    Discover,
-    Watchlist,
-    MyShows,
-    Statistics,
-    Settings,
-}
-
-impl From<usize> for TabId {
-    fn from(value: usize) -> Self {
-        match value {
-            0 => Self::Discover,
-            1 => Self::Watchlist,
-            2 => Self::MyShows,
-            3 => Self::Statistics,
-            4 => Self::Settings,
-            _ => unreachable!("no more tabs"),
-        }
-    }
-}
-
-impl From<TabId> for usize {
-    fn from(val: TabId) -> Self {
-        match val {
-            TabId::Discover => 0,
-            TabId::Watchlist => 1,
-            TabId::MyShows => 2,
-            TabId::Statistics => 3,
-            TabId::Settings => 4,
-        }
-    }
-}
 
 #[derive(Debug, Clone)]
 pub enum Message {
     TabSelected(usize),
-    Discover(DiscoverMessage),
-    Watchlist(WatchlistMessage),
-    MyShows(MyShowsMessage),
-    Statistics(StatisticsMessage),
-    Settings(SettingsMessage),
     Series(SeriesMessage),
+    TabsController(TabsControllerMessage),
     FontLoaded(Result<(), iced::font::Error>),
 }
 
 pub struct TroxideGui {
     active_tab: TabId,
     series_view_active: bool,
-    discover_tab: DiscoverTab,
-    watchlist_tab: WatchlistTab,
-    my_shows_tab: MyShowsTab,
-    statistics_tab: StatisticsTab,
-    settings_tab: SettingsTab,
+    tabs_controller: TabsController,
     series_view: Option<Series>,
     // TODO: to use iced::subscription
-    series_page_sender: mpsc::Sender<(Series, Command<SeriesMessage>)>,
     series_page_receiver: mpsc::Receiver<(Series, Command<SeriesMessage>)>,
 }
 
@@ -90,30 +42,19 @@ impl Application for TroxideGui {
             assets::fonts::NOTOSANS_REGULAR_STATIC,
         ));
         let (sender, receiver) = mpsc::channel();
-
-        let (discover_tab, discover_command) =
-            view::discover_view::DiscoverTab::new(sender.clone());
-        let (my_shows_tab, my_shows_command) = MyShowsTab::new(sender.clone());
-        let (watchlist_tab, watchlist_command) = WatchlistTab::new(sender.clone());
+        let (tabs_controller, tabs_controller_command) = TabsController::new(sender.clone());
 
         (
             Self {
                 active_tab: TabId::Discover,
                 series_view_active: false,
-                discover_tab,
-                watchlist_tab,
-                statistics_tab: StatisticsTab::default(),
-                my_shows_tab,
-                settings_tab: view::settings_view::SettingsTab::new(),
+                tabs_controller,
                 series_view: None,
-                series_page_sender: sender,
                 series_page_receiver: receiver,
             },
             Command::batch([
                 font_command.map(Message::FontLoaded),
-                discover_command.map(Message::Discover),
-                my_shows_command.map(Message::MyShows),
-                watchlist_command.map(Message::Watchlist),
+                tabs_controller_command.map(Message::TabsController),
             ]),
         )
     }
@@ -142,7 +83,9 @@ impl Application for TroxideGui {
     }
 
     fn subscription(&self) -> iced::Subscription<Message> {
-        self.discover_tab.subscription().map(Message::Discover)
+        self.tabs_controller
+            .subscription()
+            .map(Message::TabsController)
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
@@ -151,43 +94,16 @@ impl Application for TroxideGui {
                 self.series_view_active = false;
                 let tab_id: TabId = tab_id.into();
                 self.active_tab = tab_id.clone();
-
-                if let TabId::Discover = tab_id {
-                    return self.discover_tab.refresh().map(Message::Discover);
-                }
-                if let TabId::MyShows = tab_id {
-                    let (my_shows_tab, my_shows_message) =
-                        MyShowsTab::new(self.series_page_sender.clone());
-                    self.my_shows_tab = my_shows_tab;
-                    return my_shows_message.map(Message::MyShows);
-                };
-                if let TabId::Watchlist = tab_id {
-                    let (watchlist_tab, watchlist_message) =
-                        WatchlistTab::new(self.series_page_sender.clone());
-                    self.watchlist_tab = watchlist_tab;
-                    return watchlist_message.map(Message::Watchlist);
-                };
-                if let TabId::Statistics = tab_id {
-                    return self.statistics_tab.refresh().map(Message::Statistics);
-                };
-                Command::none()
+                self.tabs_controller
+                    .switch_to_tab(tab_id)
+                    .map(Message::TabsController)
             }
-            Message::Discover(message) => Command::batch([
-                self.discover_tab.update(message).map(Message::Discover),
+            Message::TabsController(message) => Command::batch([
+                self.tabs_controller
+                    .update(message)
+                    .map(Message::TabsController),
                 self.try_series_page_switch(),
             ]),
-            Message::Watchlist(message) => Command::batch([
-                self.watchlist_tab.update(message).map(Message::Watchlist),
-                self.try_series_page_switch(),
-            ]),
-            Message::MyShows(message) => Command::batch([
-                self.my_shows_tab.update(message).map(Message::MyShows),
-                self.try_series_page_switch(),
-            ]),
-            Message::Statistics(message) => {
-                self.statistics_tab.update(message).map(Message::Statistics)
-            }
-            Message::Settings(message) => self.settings_tab.update(message).map(Message::Settings),
             Message::Series(message) => self
                 .series_view
                 .as_mut()
@@ -204,41 +120,13 @@ impl Application for TroxideGui {
     }
 
     fn view(&self) -> iced::Element<'_, Message, iced::Renderer<Self::Theme>> {
-        let mut tabs: Vec<(
-            troxide_widget::tabs::TabLabel,
-            Element<'_, Message, iced::Renderer>,
-        )> = vec![
-            (
-                self.discover_tab.tab_label(),
-                self.discover_tab.view().map(Message::Discover),
-            ),
-            (
-                self.watchlist_tab.tab_label(),
-                self.watchlist_tab.view().map(Message::Watchlist),
-            ),
-            (
-                self.my_shows_tab.tab_label(),
-                self.my_shows_tab.view().map(Message::MyShows),
-            ),
-            (
-                self.statistics_tab.tab_label(),
-                self.statistics_tab.view().map(Message::Statistics),
-            ),
-            (
-                self.settings_tab.tab_label(),
-                self.settings_tab.view().map(Message::Settings),
-            ),
-        ];
+        let mut tab_view = self.tabs_controller.view().map(Message::TabsController);
 
         let active_tab_index: usize = self.active_tab.to_owned().into();
 
         // Hijacking the current tab view when series view is active
         if self.series_view_active {
-            let (_, current_view): &mut (
-                troxide_widget::tabs::TabLabel,
-                Element<'_, Message, iced::Renderer>,
-            ) = &mut tabs[active_tab_index];
-            *current_view = self
+            tab_view = self
                 .series_view
                 .as_ref()
                 .unwrap()
@@ -246,9 +134,13 @@ impl Application for TroxideGui {
                 .map(Message::Series);
         }
 
-        troxide_widget::tabs::Tabs::with_tabs(tabs, Message::TabSelected)
-            .set_active_tab(active_tab_index)
-            .view()
+        troxide_widget::tabs::Tabs::with_labels(
+            self.tabs_controller.get_labels(),
+            tab_view,
+            Message::TabSelected,
+        )
+        .set_active_tab(active_tab_index)
+        .view()
     }
 }
 
@@ -266,26 +158,4 @@ impl TroxideGui {
             },
         }
     }
-}
-
-trait Tab {
-    type Message;
-
-    fn title(&self) -> String;
-
-    fn tab_label(&self) -> troxide_widget::tabs::TabLabel;
-
-    fn view(&self) -> Element<'_, Self::Message> {
-        let column = Column::new()
-            .spacing(20)
-            .push(text(self.title()).size(32))
-            .push(self.content());
-
-        container(column)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .into()
-    }
-
-    fn content(&self) -> Element<'_, Self::Message>;
 }

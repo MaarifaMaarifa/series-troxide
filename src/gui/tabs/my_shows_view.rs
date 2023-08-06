@@ -3,7 +3,6 @@ use std::sync::mpsc;
 use super::series_view;
 use crate::gui::assets::icons::FILM;
 use crate::gui::{styles, troxide_widget};
-use crate::gui::{Message as GuiMessage, Tab};
 
 use iced::widget::{column, scrollable, text};
 use iced::{Command, Element, Length, Renderer};
@@ -119,18 +118,12 @@ impl MyShowsTab {
     }
 }
 
-impl Tab for MyShowsTab {
-    type Message = GuiMessage;
-
-    fn title(&self) -> String {
+impl MyShowsTab {
+    pub fn title() -> String {
         "My Shows".to_owned()
     }
 
-    fn tab_label(&self) -> troxide_widget::tabs::TabLabel {
-        troxide_widget::tabs::TabLabel::new(self.title(), FILM)
-    }
-
-    fn content(&self) -> Element<'_, Self::Message> {
-        self.view().map(GuiMessage::MyShows)
+    pub fn tab_label() -> troxide_widget::tabs::TabLabel {
+        troxide_widget::tabs::TabLabel::new(Self::title(), FILM)
     }
 }

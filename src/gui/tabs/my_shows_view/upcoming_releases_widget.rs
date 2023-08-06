@@ -8,8 +8,8 @@ use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::caching;
 use crate::core::caching::episode_list::EpisodeList;
 use crate::gui::styles;
+use crate::gui::tabs::series_view;
 use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
-use crate::gui::view::series_view;
 
 #[derive(Debug, Clone)]
 pub enum Message {

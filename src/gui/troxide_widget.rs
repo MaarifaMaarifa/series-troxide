@@ -308,15 +308,17 @@ pub mod tabs {
     pub struct Tabs<'a, Message> {
         active_tab: usize,
         on_select: Box<dyn Fn(usize) -> Message>,
-        tabs: Vec<(TabLabel, Element<'a, Message, Renderer>)>,
+        tab_labels: Vec<TabLabel>,
+        current_tab_view: Element<'a, Message, Renderer>,
     }
 
     impl<'a, Message> Tabs<'a, Message>
     where
         Message: Clone + 'a,
     {
-        pub fn with_tabs<F>(
-            tabs: Vec<(TabLabel, Element<'a, Message, Renderer>)>,
+        pub fn with_labels<F>(
+            tab_labels: Vec<TabLabel>,
+            current_tab_view: Element<'a, Message, Renderer>,
             on_select: F,
         ) -> Self
         where
@@ -324,8 +326,9 @@ pub mod tabs {
         {
             Self {
                 active_tab: usize::default(),
+                tab_labels,
                 on_select: Box::new(on_select),
-                tabs,
+                current_tab_view,
             }
         }
 
@@ -336,10 +339,10 @@ pub mod tabs {
 
         fn tab_view(&self) -> iced::Element<'a, Message, Renderer> {
             let tab_views = self
-                .tabs
+                .tab_labels
                 .iter()
                 .enumerate()
-                .map(|(index, (tab_label, _))| {
+                .map(|(index, tab_label)| {
                     let svg_handle =
                         svg::Handle::from_memory(get_static_cow_from_asset(tab_label.icon));
                     let icon = svg(svg_handle)
@@ -372,11 +375,9 @@ pub mod tabs {
             .into()
         }
 
-        pub fn view(mut self) -> Element<'a, Message, Renderer> {
+        pub fn view(self) -> Element<'a, Message, Renderer> {
             let tab_view = self.tab_view();
-            let active_tab = self.active_tab;
-            let main_view = self.tabs.swap_remove(active_tab).1;
-            column![tab_view, main_view].into()
+            column![tab_view, self.current_tab_view].into()
         }
     }
 }

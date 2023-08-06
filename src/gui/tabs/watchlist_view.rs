@@ -7,13 +7,10 @@ use iced_aw::Spinner;
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::caching::episode_list::EpisodeList;
 use crate::core::caching::series_list;
+use crate::core::{caching, database};
 use crate::gui::assets::icons::CARD_CHECKLIST;
 use crate::gui::troxide_widget;
 use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
-use crate::{
-    core::{caching, database},
-    gui::{Message as GuiMessage, Tab},
-};
 
 use super::series_view;
 
@@ -176,18 +173,12 @@ async fn get_series_informations_and_watched_episodes() -> Vec<(SeriesMainInform
         .collect()
 }
 
-impl Tab for WatchlistTab {
-    type Message = GuiMessage;
-
-    fn title(&self) -> String {
+impl WatchlistTab {
+    pub fn title() -> String {
         "Watchlist".to_owned()
     }
 
-    fn tab_label(&self) -> troxide_widget::tabs::TabLabel {
-        troxide_widget::tabs::TabLabel::new(self.title(), CARD_CHECKLIST)
-    }
-
-    fn content(&self) -> Element<'_, Self::Message> {
-        self.view().map(GuiMessage::Watchlist)
+    pub fn tab_label() -> troxide_widget::tabs::TabLabel {
+        troxide_widget::tabs::TabLabel::new(Self::title(), CARD_CHECKLIST)
     }
 }
