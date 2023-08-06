@@ -206,6 +206,27 @@ fn tracking_button(series_id: u32) -> Button<'static, Message, Renderer> {
     .style(styles::button_styles::transparent_button_theme())
 }
 
+/// This Series Message is useful to make sure that the appropiate
+/// series page receives it's exact series message. Since the series
+/// page can be switched rapidly by the user, some of the commands
+/// might be running in the background and my complete when a new instance
+/// of series page has been opened updating it with wrong data.
+#[derive(Clone, Debug)]
+pub struct IdentifiableMessage {
+    pub id: u32,
+    pub message: Message,
+}
+
+impl IdentifiableMessage {
+    pub fn new(id: u32, message: Message) -> Self {
+        Self { id, message }
+    }
+
+    pub fn matches(&self, id: u32) -> bool {
+        self.id == id
+    }
+}
+
 #[derive(Clone, Debug)]
 pub enum Message {
     SeriesInfoObtained(Box<SeriesMainInformation>),
@@ -297,6 +318,10 @@ impl Series {
         ];
 
         (series, Command::batch(commands))
+    }
+
+    pub fn get_series_id(&self) -> u32 {
+        self.series_id
     }
 
     pub fn update(&mut self, message: Message) -> Command<Message> {

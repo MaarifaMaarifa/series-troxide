@@ -5,7 +5,9 @@ use iced::{Application, Command};
 use super::core::settings_config;
 use crate::core::settings_config::SETTINGS;
 
-use tabs::series_view::{Message as SeriesMessage, Series};
+use tabs::series_view::{
+    IdentifiableMessage as IdentifiableSeriesMessage, Message as SeriesMessage, Series,
+};
 use tabs::{Message as TabsControllerMessage, Tab as TabId, TabsController};
 
 pub mod assets;
@@ -17,7 +19,7 @@ mod troxide_widget;
 #[derive(Debug, Clone)]
 pub enum Message {
     TabSelected(usize),
-    Series(SeriesMessage),
+    Series(IdentifiableSeriesMessage),
     TabsController(TabsControllerMessage),
     FontLoaded(Result<(), iced::font::Error>),
 }
@@ -104,12 +106,23 @@ impl Application for TroxideGui {
                     .map(Message::TabsController),
                 self.try_series_page_switch(),
             ]),
-            Message::Series(message) => self
-                .series_view
-                .as_mut()
-                .expect("for series view to send a message it must exist")
-                .update(message)
-                .map(Message::Series),
+            Message::Series(message) => {
+                let series_page = self
+                    .series_view
+                    .as_mut()
+                    .expect("for series view to send a message it must exist");
+
+                let series_id = series_page.get_series_id();
+
+                if message.matches(series_id) {
+                    series_page.update(message.message).map(move |message| {
+                        Message::Series(IdentifiableSeriesMessage::new(series_id, message))
+                    })
+                } else {
+                    Command::none()
+                }
+            }
+
             Message::FontLoaded(res) => {
                 if res.is_err() {
                     tracing::error!("failed to load font");
@@ -126,12 +139,11 @@ impl Application for TroxideGui {
 
         // Hijacking the current tab view when series view is active
         if self.series_view_active {
-            tab_view = self
-                .series_view
-                .as_ref()
-                .unwrap()
-                .view()
-                .map(Message::Series);
+            let series_view = self.series_view.as_ref().unwrap();
+            let series_id = series_view.get_series_id();
+            tab_view = series_view.view().map(move |message| {
+                Message::Series(IdentifiableSeriesMessage::new(series_id, message))
+            });
         }
 
         troxide_widget::tabs::Tabs::with_labels(
@@ -148,9 +160,12 @@ impl TroxideGui {
     fn try_series_page_switch(&mut self) -> Command<Message> {
         match self.series_page_receiver.try_recv() {
             Ok((series_page, series_page_command)) => {
+                let series_id = series_page.get_series_id();
                 self.series_view = Some(series_page);
                 self.series_view_active = true;
-                series_page_command.map(Message::Series)
+                series_page_command.map(move |message| {
+                    Message::Series(IdentifiableSeriesMessage::new(series_id, message))
+                })
             }
             Err(err) => match err {
                 mpsc::TryRecvError::Empty => Command::none(),
