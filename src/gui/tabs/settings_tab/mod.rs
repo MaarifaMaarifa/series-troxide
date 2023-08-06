@@ -125,7 +125,7 @@ impl SettingsTab {
 
     fn appearance_settings_view(&self) -> Element<Message, Renderer> {
         let content = column![text("Appearance")
-            .size(25)
+            .size(21)
             .style(styles::text_styles::purple_text_theme())]
         .padding(5)
         .spacing(5);
