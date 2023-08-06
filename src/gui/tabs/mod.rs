@@ -1,21 +1,20 @@
-use discover_view::{DiscoverTab, Message as DiscoverMessage};
-use my_shows_view::{Message as MyShowsMessage, MyShowsTab};
-use series_view::{Message as SeriesMessage, Series};
-use settings_view::{Message as SettingsMessage, SettingsTab};
-use statistics_view::{Message as StatisticsMessage, StatisticsTab};
-use watchlist_view::{Message as WatchlistMessage, WatchlistTab};
+use crate::gui::series_page::{Message as SeriesMessage, Series};
+use discover_tab::{DiscoverTab, Message as DiscoverMessage};
+use my_shows_tab::{Message as MyShowsMessage, MyShowsTab};
+use settings_tab::{Message as SettingsMessage, SettingsTab};
+use statistics_tab::{Message as StatisticsMessage, StatisticsTab};
+use watchlist_tab::{Message as WatchlistMessage, WatchlistTab};
 
 use iced::{Command, Element, Renderer};
 use std::sync::mpsc;
 
 use super::troxide_widget;
 
-pub mod discover_view;
-pub mod my_shows_view;
-pub mod series_view;
-pub mod settings_view;
-pub mod statistics_view;
-pub mod watchlist_view;
+pub mod discover_tab;
+pub mod my_shows_tab;
+pub mod settings_tab;
+pub mod statistics_tab;
+pub mod watchlist_tab;
 
 #[derive(Clone)]
 pub enum Tab {

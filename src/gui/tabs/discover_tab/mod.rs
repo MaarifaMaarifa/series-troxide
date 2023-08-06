@@ -1,12 +1,12 @@
 use std::sync::mpsc;
 
-use super::series_view;
 use crate::core::api::episodes_information::Episode;
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::api::tv_schedule::{get_episodes_with_country, get_episodes_with_date};
 use crate::core::api::updates::show_updates::*;
 use crate::core::settings_config::locale_settings;
 use crate::gui::assets::icons::BINOCULARS_FILL;
+use crate::gui::series_page;
 use crate::gui::troxide_widget;
 use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
 use searching::Message as SearchMessage;
@@ -57,13 +57,13 @@ pub struct DiscoverTab {
     new_episodes: Vec<SeriesPoster>,
     new_country_episodes: Vec<SeriesPoster>,
     series_updates: Vec<SeriesPoster>,
-    series_page_sender: mpsc::Sender<(series_view::Series, Command<series_view::Message>)>,
+    series_page_sender: mpsc::Sender<(series_page::Series, Command<series_page::Message>)>,
     country_name: String,
 }
 
 impl DiscoverTab {
     pub fn new(
-        series_page_sender: mpsc::Sender<(series_view::Series, Command<series_view::Message>)>,
+        series_page_sender: mpsc::Sender<(series_page::Series, Command<series_page::Message>)>,
     ) -> (Self, Command<Message>) {
         (
             Self {
@@ -186,7 +186,7 @@ impl DiscoverTab {
             Message::SearchAction(message) => {
                 if let SearchMessage::SeriesResultPressed(series_id) = message {
                     self.series_page_sender
-                        .send(series_view::Series::from_series_id(series_id))
+                        .send(series_page::Series::from_series_id(series_id))
                         .expect("failed to send series page");
                     self.show_overlay = false;
                     return Command::none();
@@ -203,7 +203,7 @@ impl DiscoverTab {
             }
             Message::SeriesSelected(series_info) => {
                 self.series_page_sender
-                    .send(series_view::Series::from_series_information(*series_info))
+                    .send(series_page::Series::from_series_information(*series_info))
                     .expect("failed to send series page");
                 Command::none()
             }

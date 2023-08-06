@@ -5,13 +5,14 @@ use iced::{Application, Command};
 use super::core::settings_config;
 use crate::core::settings_config::SETTINGS;
 
-use tabs::series_view::{
+use series_page::{
     IdentifiableMessage as IdentifiableSeriesMessage, Message as SeriesMessage, Series,
 };
 use tabs::{Message as TabsControllerMessage, Tab as TabId, TabsController};
 
 pub mod assets;
 pub mod helpers;
+pub mod series_page;
 mod styles;
 mod tabs;
 mod troxide_widget;

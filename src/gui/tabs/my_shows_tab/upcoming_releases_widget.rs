@@ -7,8 +7,8 @@ use iced_aw::Spinner;
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::caching;
 use crate::core::caching::episode_list::EpisodeList;
+use crate::gui::series_page;
 use crate::gui::styles;
-use crate::gui::tabs::series_view;
 use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
 
 #[derive(Debug, Clone)]
@@ -28,12 +28,12 @@ enum LoadState {
 pub struct UpcomingReleases {
     load_state: LoadState,
     series_posters: Vec<(SeriesPoster, EpisodeList)>,
-    series_page_sender: mpsc::Sender<(series_view::Series, Command<series_view::Message>)>,
+    series_page_sender: mpsc::Sender<(series_page::Series, Command<series_page::Message>)>,
 }
 
 impl UpcomingReleases {
     pub fn new(
-        series_page_sender: mpsc::Sender<(series_view::Series, Command<series_view::Message>)>,
+        series_page_sender: mpsc::Sender<(series_page::Series, Command<series_page::Message>)>,
     ) -> (Self, Command<Message>) {
         (
             Self {
@@ -77,7 +77,7 @@ impl UpcomingReleases {
             Message::SeriesPosters(index, message) => {
                 if let SeriesPosterMessage::SeriesPosterPressed(series_info) = message.clone() {
                     self.series_page_sender
-                        .send(series_view::Series::from_series_information(*series_info))
+                        .send(series_page::Series::from_series_information(*series_info))
                         .expect("failed to send the series page");
                     return Command::none();
                 }
