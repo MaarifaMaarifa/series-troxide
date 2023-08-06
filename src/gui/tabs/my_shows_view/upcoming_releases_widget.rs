@@ -15,6 +15,7 @@ use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, 
 pub enum Message {
     SeriesPosters(usize, SeriesPosterMessage),
     SeriesInformationReceived(Option<Vec<(SeriesMainInformation, EpisodeList)>>),
+    Refresh,
 }
 
 #[derive(Default)]
@@ -40,15 +41,14 @@ impl UpcomingReleases {
                 series_posters: vec![],
                 series_page_sender,
             },
-            Command::perform(
-                async {
-                    caching::series_list::SeriesList::new()
-                        .get_upcoming_release_series_informations_and_episodes()
-                        .await
-                },
-                |res| Message::SeriesInformationReceived(res.ok()),
-            ),
+            load_upcoming_releases(),
         )
+    }
+
+    pub fn subscription(&self) -> iced::Subscription<Message> {
+        // Refreshing the widget every one minute so as to avoid having outdated
+        // episodes release time
+        iced::time::every(std::time::Duration::from_secs(60)).map(|_| Message::Refresh)
     }
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
@@ -86,6 +86,7 @@ impl UpcomingReleases {
                     .update(message)
                     .map(|message| Message::SeriesPosters(message.get_id().unwrap_or(0), message))
             }
+            Message::Refresh => load_upcoming_releases(),
         }
     }
 
@@ -131,4 +132,15 @@ impl UpcomingReleases {
             .into()
         }
     }
+}
+
+fn load_upcoming_releases() -> Command<Message> {
+    Command::perform(
+        async {
+            caching::series_list::SeriesList::new()
+                .get_upcoming_release_series_informations_and_episodes()
+                .await
+        },
+        |res| Message::SeriesInformationReceived(res.ok()),
+    )
 }

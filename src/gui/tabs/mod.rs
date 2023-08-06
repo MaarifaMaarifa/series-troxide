@@ -122,7 +122,18 @@ impl TabsController {
     pub fn subscription(&self) -> iced::Subscription<Message> {
         match self.current_tab {
             Tab::Discover => self.discover_tab.subscription().map(Message::Discover),
-            _ => iced::subscription::Subscription::none(),
+            _ => {
+                if let Some(reloadable_tab) = &self.reloadable_tab {
+                    match reloadable_tab {
+                        ReloadableTab::MyShows(my_shows) => {
+                            my_shows.subscription().map(Message::MyShows)
+                        }
+                        _ => iced::subscription::Subscription::none(),
+                    }
+                } else {
+                    iced::subscription::Subscription::none()
+                }
+            }
         }
     }
 

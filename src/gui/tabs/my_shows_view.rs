@@ -57,6 +57,10 @@ impl MyShowsTab {
         )
     }
 
+    pub fn subscription(&self) -> iced::Subscription<Message> {
+        self.upcoming_releases.subscription().map(Message::Upcoming)
+    }
+
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Ended(message) => self.ended_releases.update(message).map(Message::Ended),
