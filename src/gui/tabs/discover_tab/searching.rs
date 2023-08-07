@@ -213,20 +213,14 @@ mod search_result {
         }
 
         pub fn view(&self) -> Element<'_, Message, Renderer> {
-            let mut row = row!();
+            let mut row = row!().spacing(5).padding(5);
 
-            let image: Element<'_, Message, Renderer> =
-                if let Some(image_bytes) = self.image.clone() {
-                    let image_handle = image::Handle::from_memory(image_bytes);
-                    image(image_handle).height(60).into()
-                } else {
-                    Space::new(43, 60).into()
-                };
-
-            row = row
-                .push(horizontal_space(5))
-                .push(image)
-                .push(horizontal_space(5));
+            if let Some(image_bytes) = self.image.clone() {
+                let image_handle = image::Handle::from_memory(image_bytes);
+                row = row.push(image(image_handle).height(60))
+            } else {
+                row = row.push(Space::new(43, 60))
+            };
 
             // Getting the series genres
             let genres: Element<'_, Message, Renderer> =
