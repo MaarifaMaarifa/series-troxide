@@ -87,6 +87,7 @@ impl CastWidget {
                         .line_spacing(5.0)
                         .spacing(5.0)
                     ]
+                    .padding(5)
                     .into()
                 }
             }
