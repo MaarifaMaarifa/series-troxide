@@ -229,25 +229,23 @@ mod search_result {
                 .push(horizontal_space(5));
 
             // Getting the series genres
-            let genres = if !self.search_result.show.genres.is_empty() {
-                let mut genres = String::from("Genres: ");
+            let genres: Element<'_, Message, Renderer> =
+                if !self.search_result.show.genres.is_empty() {
+                    let mut genres = String::from("Genres: ");
 
-                let mut series_result_iter = self.search_result.show.genres.iter().peekable();
-                while let Some(genre) = series_result_iter.next() {
-                    genres.push_str(genre);
-                    if series_result_iter.peek().is_some() {
-                        genres.push_str(", ");
+                    let mut series_result_iter = self.search_result.show.genres.iter().peekable();
+                    while let Some(genre) = series_result_iter.next() {
+                        genres.push_str(genre);
+                        if series_result_iter.peek().is_some() {
+                            genres.push_str(", ");
+                        }
                     }
-                }
-                genres
-            } else {
-                String::new()
-            };
+                    text(genres).size(11).into()
+                } else {
+                    Space::new(0, 0).into()
+                };
 
-            let mut column = column!(
-                text(&self.search_result.show.name).size(16),
-                text(genres).size(11),
-            );
+            let mut column = column!(text(&self.search_result.show.name).size(16), genres,);
 
             if let Some(premier) = &self.search_result.show.premiered {
                 column = column.push(text(format!("Premiered: {}", premier)).size(9));
