@@ -157,10 +157,11 @@ impl Search {
 
 mod search_result {
     use bytes::Bytes;
-    use iced::widget::{column, horizontal_space, image, mouse_area, row, text, Space};
+    use iced::widget::{column, image, mouse_area, row, text, Space};
     use iced::{Command, Element, Renderer};
 
     use crate::core::{api::series_searching, caching};
+    use crate::gui::styles;
 
     #[derive(Debug, Clone)]
     pub enum Message {
@@ -239,7 +240,12 @@ mod search_result {
                     Space::new(0, 0).into()
                 };
 
-            let mut column = column!(text(&self.search_result.show.name).size(16), genres,);
+            let mut column = column![
+                text(&self.search_result.show.name)
+                    .size(16)
+                    .style(styles::text_styles::purple_text_theme()),
+                genres
+            ];
 
             if let Some(premier) = &self.search_result.show.premiered {
                 column = column.push(text(format!("Premiered: {}", premier)).size(9));
