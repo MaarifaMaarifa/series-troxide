@@ -141,12 +141,7 @@ impl Search {
                         .into()
                 }
             }
-            LoadState::Loading => container(Spinner::new())
-                .height(Length::Fill)
-                .width(Length::Fill)
-                .center_x()
-                .center_y()
-                .into(),
+            LoadState::Loading => Spinner::new().into(),
             LoadState::NotLoaded => Space::new(0, 0).into(),
         };
 
