@@ -1,5 +1,7 @@
 use bytes::Bytes;
-use iced::widget::{column, container, scrollable, text, text_input, vertical_space, Column};
+use iced::widget::{
+    column, container, scrollable, text, text_input, vertical_space, Column, Space,
+};
 use iced::{Command, Element, Length, Renderer};
 use iced_aw::Spinner;
 use search_result::{Message as SearchResultMessage, SearchResult};
@@ -116,7 +118,7 @@ impl Search {
         .width(Length::Fill)
         .align_items(iced::Alignment::Center);
 
-        let menu_widgets: Element<'_, Message, Renderer> = match self.load_state {
+        let search_results: Element<'_, Message, Renderer> = match self.load_state {
             LoadState::Loaded => {
                 let result_items: Vec<_> = self
                     .search_results
@@ -145,13 +147,13 @@ impl Search {
                 .center_x()
                 .center_y()
                 .into(),
-            LoadState::NotLoaded => container("").into(),
+            LoadState::NotLoaded => Space::new(0, 0).into(),
         };
 
-        let menu_widgets = container(menu_widgets)
+        let search_results = container(search_results)
             .style(styles::container_styles::first_class_container_rounded_theme());
 
-        (search_bar.into(), scrollable(menu_widgets).into())
+        (search_bar.into(), scrollable(search_results).into())
     }
 }
 
