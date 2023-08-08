@@ -1,9 +1,6 @@
-use std::sync::mpsc;
-
+use crate::core::settings_config::{self, SETTINGS};
 use iced::{Application, Command};
-
-use super::core::settings_config;
-use crate::core::settings_config::SETTINGS;
+use std::sync::mpsc;
 
 use series_page::{
     IdentifiableMessage as IdentifiableSeriesMessage, Message as SeriesMessage, Series,
