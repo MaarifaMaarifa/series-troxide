@@ -179,6 +179,14 @@ pub mod series_poster {
 
                 metadata = metadata.push(text(format!("{} episodes left", episodes_left)));
 
+                if let Some(runtime) = self.series_information.as_ref().unwrap().average_runtime {
+                    let watchtime = format!(
+                        "Average time left to complete, {} minutes",
+                        runtime * episodes_left as u32
+                    );
+                    metadata = metadata.push(text(watchtime));
+                };
+
                 content = content.push(metadata);
 
                 let content = container(content)
