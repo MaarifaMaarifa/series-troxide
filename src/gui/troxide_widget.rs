@@ -147,6 +147,19 @@ pub mod series_poster {
                     .map(|series| series.get_total_episodes())
                     .unwrap_or(0);
 
+                let progress_bar = row![
+                    progress_bar(0.0..=total_episodes as f32, watched_episodes as f32,)
+                        .height(10)
+                        .width(500),
+                    text(format!(
+                        "{}/{}",
+                        watched_episodes as f32, total_episodes as f32
+                    ))
+                ]
+                .spacing(5);
+
+                metadata = metadata.push(progress_bar);
+
                 let last_episode_watched = if let Some(series) =
                     database::DB.get_series(series_info.id)
                 {
@@ -161,19 +174,6 @@ pub mod series_poster {
                 };
 
                 metadata = metadata.push(last_episode_watched);
-
-                let progress_bar = row!(
-                    progress_bar(0.0..=total_episodes as f32, watched_episodes as f32,)
-                        .height(10)
-                        .width(500),
-                    text(format!(
-                        "{}/{}",
-                        watched_episodes as f32, total_episodes as f32
-                    ))
-                )
-                .spacing(5);
-
-                metadata = metadata.push(progress_bar);
 
                 let episodes_left = total_episodes - watched_episodes;
 
