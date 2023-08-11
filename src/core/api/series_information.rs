@@ -66,17 +66,3 @@ pub async fn get_series_main_info_with_url(url: String) -> Result<String, ApiErr
 pub async fn get_series_main_info_with_id(series_id: u32) -> Result<String, ApiError> {
     get_series_main_info_with_url(format!("{}{}", SERIES_INFORMATION_ADDRESS, series_id)).await
 }
-
-// async fn get_series_main_info_with_ids(series_ids: Vec<String>) -> Vec<SeriesInfoAndStr> {
-//     let handles: Vec<_> = series_ids
-//         .iter()
-//         .map(|id| tokio::spawn(get_series_main_info_with_id(id.parse().unwrap())))
-//         .collect();
-
-//     let mut series_infos = Vec::with_capacity(handles.len());
-//     for handle in handles {
-//         let series_info = handle.await.unwrap().unwrap();
-//         series_infos.push(series_info);
-//     }
-//     series_infos
-// }
