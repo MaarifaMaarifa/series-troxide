@@ -2,8 +2,6 @@ use bytes::Bytes;
 use serde::Deserialize;
 use thiserror::Error;
 
-use super::caching;
-
 pub mod episodes_information;
 pub mod seasons_list;
 pub mod series_information;
@@ -118,10 +116,4 @@ async fn get_pretty_json_from_url(url: String) -> Result<String, reqwest::Error>
 async fn random_async_sleep() {
     let random_val = rand::random::<u64>() / 100_000_000_000_000_000;
     tokio::time::sleep(std::time::Duration::from_millis(random_val)).await;
-}
-
-pub async fn get_series_from_episode(
-    episode_info: episodes_information::Episode,
-) -> Result<series_information::SeriesMainInformation, ApiError> {
-    caching::series_information::get_series_main_info_with_url(episode_info.links.show.href).await
 }

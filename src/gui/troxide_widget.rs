@@ -2,7 +2,7 @@ pub mod series_poster {
 
     use crate::core::api::episodes_information::Episode;
     use crate::core::api::series_information::SeriesMainInformation;
-    use crate::core::api::{get_series_from_episode, Image};
+    use crate::core::api::Image;
     use crate::core::caching::episode_list::EpisodeReleaseTime;
     use crate::core::{caching, database};
     use crate::gui::helpers::season_episode_str_gen;
@@ -18,16 +18,12 @@ pub mod series_poster {
     #[derive(Clone, Debug)]
     pub enum Message {
         ImageLoaded(usize, Option<Bytes>),
-        SeriesInfoReceived(usize, Box<SeriesMainInformation>),
         SeriesPosterPressed(Box<SeriesMainInformation>),
     }
 
     impl Message {
         pub fn get_id(&self) -> Option<usize> {
             if let Self::ImageLoaded(id, _) = self {
-                return Some(id.to_owned());
-            }
-            if let Self::SeriesInfoReceived(id, _) = self {
                 return Some(id.to_owned());
             }
             None
@@ -57,32 +53,11 @@ pub mod series_poster {
             (poster, series_image_command)
         }
 
-        pub fn from_episode_info(id: usize, episode_info: Episode) -> (Self, Command<Message>) {
-            let poster = Self {
-                series_information: None,
-                image: None,
-            };
-
-            let command =
-                Command::perform(get_series_from_episode(episode_info), move |series_info| {
-                    Message::SeriesInfoReceived(
-                        id,
-                        Box::new(series_info.expect("failed to get series information")),
-                    )
-                });
-            (poster, command)
-        }
-
         pub fn update(&mut self, message: Message) -> Command<Message> {
             match message {
                 Message::ImageLoaded(_, image) => self.image = image,
                 Message::SeriesPosterPressed(_) => {
                     unreachable!("the series poster should not handle being pressed")
-                }
-                Message::SeriesInfoReceived(id, series_info) => {
-                    let image_url = series_info.image.clone();
-                    self.series_information = Some(*series_info);
-                    return poster_image_command(id, image_url);
                 }
             }
             Command::none()

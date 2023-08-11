@@ -1,9 +1,8 @@
 use std::sync::mpsc;
 
-use crate::core::api::episodes_information::Episode;
 use crate::core::api::series_information::SeriesMainInformation;
-use crate::core::api::tv_schedule::{get_episodes_with_country, get_episodes_with_date};
 use crate::core::api::updates::show_updates::*;
+use crate::core::caching::tv_schedule::{get_series_with_country, get_series_with_date};
 use crate::core::settings_config::locale_settings;
 use crate::gui::assets::icons::BINOCULARS_FILL;
 use crate::gui::series_page;
@@ -37,8 +36,8 @@ struct LoadStatus {
 #[derive(Clone, Debug)]
 pub enum Message {
     ReloadDiscoverPage,
-    ScheduleLoaded(Vec<Episode>),
-    CountryScheduleLoaded(Vec<Episode>),
+    GlobalSeriesLoaded(Vec<SeriesMainInformation>),
+    LocalSeriesLoaded(Vec<SeriesMainInformation>),
     SeriesUpdatesLoaded(Vec<SeriesMainInformation>),
     EpisodePosterAction(/*episode poster index*/ usize, SeriesPosterMessage),
     CountryEpisodePosterAction(/*episode poster index*/ usize, SeriesPosterMessage),
@@ -54,8 +53,8 @@ pub struct DiscoverTab {
     load_status: LoadStatus,
     show_overlay: bool,
     search_state: searching::Search,
-    new_episodes: Vec<SeriesPoster>,
-    new_country_episodes: Vec<SeriesPoster>,
+    new_global_series: Vec<SeriesPoster>,
+    new_local_series: Vec<SeriesPoster>,
     series_updates: Vec<SeriesPoster>,
     series_page_sender: mpsc::Sender<(series_page::Series, Command<series_page::Message>)>,
     country_name: String,
@@ -70,8 +69,8 @@ impl DiscoverTab {
                 load_status: LoadStatus::default(),
                 show_overlay: false,
                 search_state: searching::Search::default(),
-                new_episodes: vec![],
-                new_country_episodes: vec![],
+                new_global_series: vec![],
+                new_local_series: vec![],
                 series_updates: vec![],
                 series_page_sender,
                 country_name: locale_settings::get_country_name_from_settings(),
@@ -129,18 +128,18 @@ impl DiscoverTab {
 
                 Command::batch(load_commands)
             }
-            Message::ScheduleLoaded(episodes) => {
+            Message::GlobalSeriesLoaded(series_infos) => {
                 self.load_status.global_series = LoadState::Loaded;
 
-                let mut episode_posters = Vec::with_capacity(episodes.len());
-                let mut commands = Vec::with_capacity(episodes.len());
-                for (index, episode) in episodes.into_iter().enumerate() {
-                    let (poster, command) = SeriesPoster::from_episode_info(index, episode);
-                    episode_posters.push(poster);
+                let mut series_posters = Vec::with_capacity(series_infos.len());
+                let mut commands = Vec::with_capacity(series_infos.len());
+                for (index, series_info) in series_infos.into_iter().enumerate() {
+                    let (poster, command) = SeriesPoster::new(index, series_info);
+                    series_posters.push(poster);
                     commands.push(command);
                 }
 
-                self.new_episodes = episode_posters;
+                self.new_global_series = series_posters;
                 Command::batch(commands).map(|message| {
                     Message::EpisodePosterAction(message.get_id().unwrap_or(0), message)
                 })
@@ -152,7 +151,7 @@ impl DiscoverTab {
                         Message::SeriesSelected(series_information)
                     });
                 }
-                self.new_episodes[index]
+                self.new_global_series[index]
                     .update(message)
                     .map(move |message| Message::EpisodePosterAction(index, message))
             }
@@ -207,17 +206,17 @@ impl DiscoverTab {
                     .expect("failed to send series page");
                 Command::none()
             }
-            Message::CountryScheduleLoaded(episodes) => {
+            Message::LocalSeriesLoaded(series_infos) => {
                 self.load_status.local_series = LoadState::Loaded;
 
-                let mut episode_posters = Vec::with_capacity(episodes.len());
-                let mut commands = Vec::with_capacity(episodes.len());
-                for (index, episode) in episodes.into_iter().enumerate() {
-                    let (poster, command) = SeriesPoster::from_episode_info(index, episode);
-                    episode_posters.push(poster);
+                let mut series_posters = Vec::with_capacity(series_infos.len());
+                let mut commands = Vec::with_capacity(series_infos.len());
+                for (index, series_info) in series_infos.into_iter().enumerate() {
+                    let (poster, command) = SeriesPoster::new(index, series_info);
+                    series_posters.push(poster);
                     commands.push(command);
                 }
-                self.new_country_episodes = episode_posters;
+                self.new_local_series = series_posters;
                 Command::batch(commands).map(|message| {
                     Message::CountryEpisodePosterAction(message.get_id().unwrap_or(0), message)
                 })
@@ -229,7 +228,7 @@ impl DiscoverTab {
                         Message::SeriesSelected(series_information)
                     });
                 }
-                self.new_country_episodes[index]
+                self.new_local_series[index]
                     .update(message)
                     .map(move |message| Message::CountryEpisodePosterAction(index, message))
             }
@@ -246,12 +245,12 @@ impl DiscoverTab {
                 series_posters_loader(
                     "Shows Airing Today Globally",
                     &self.load_status.global_series,
-                    &self.new_episodes
+                    &self.new_global_series
                 ),
                 series_posters_loader(
                     &format!("Shows Airing Today in {}", self.country_name),
                     &self.load_status.local_series,
-                    &self.new_country_episodes
+                    &self.new_local_series
                 ),
                 series_posters_loader(
                     "Shows Updates",
@@ -296,11 +295,9 @@ fn load_local_aired_series() -> Command<Message> {
     Command::perform(
         async {
             let country_code = locale_settings::get_country_code_from_settings();
-            get_episodes_with_country(&country_code).await
+            get_series_with_country(&country_code).await
         },
-        |episodes| {
-            Message::CountryScheduleLoaded(episodes.expect("failed to load episodes schedule"))
-        },
+        |series| Message::LocalSeriesLoaded(series.expect("failed to load series schedule")),
     )
 }
 
@@ -313,8 +310,8 @@ fn load_series_updates() -> Command<Message> {
 
 /// Loads the globally aired series
 fn load_global_aried_series() -> Command<Message> {
-    Command::perform(get_episodes_with_date(None), |episodes| {
-        Message::ScheduleLoaded(episodes.expect("failed to load episodes schedule"))
+    Command::perform(get_series_with_date(None), |series| {
+        Message::GlobalSeriesLoaded(series.expect("failed to load series schedule"))
     })
 }
 

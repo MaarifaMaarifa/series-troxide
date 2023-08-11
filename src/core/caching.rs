@@ -16,6 +16,7 @@ pub mod series_information;
 pub mod series_list;
 pub mod show_cast;
 pub mod show_images;
+pub mod tv_schedule;
 
 const SERIES_CACHE_DIRECTORY: &str = "series-troxide-series-data";
 const IMAGES_CACHE_DIRECTORY: &str = "series-troxide-images-data";
