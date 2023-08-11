@@ -32,7 +32,7 @@ pub mod series_poster {
 
     #[derive(PartialEq, Eq, Hash)]
     pub struct SeriesPoster {
-        series_information: Option<SeriesMainInformation>,
+        series_information: SeriesMainInformation,
         image: Option<Bytes>,
     }
 
@@ -44,7 +44,7 @@ pub mod series_poster {
             let image_url = series_information.image.clone();
 
             let poster = Self {
-                series_information: Some(series_information),
+                series_information,
                 image: None,
             };
 
@@ -74,26 +74,24 @@ pub mod series_poster {
                 content = content.push(Space::new(100, 140));
             };
 
-            if let Some(series_info) = &self.series_information {
-                content = content.push(
-                    text(&series_info.name)
-                        .size(11)
-                        .width(100)
-                        .height(30)
-                        .vertical_alignment(iced::alignment::Vertical::Center)
-                        .horizontal_alignment(iced::alignment::Horizontal::Center),
-                );
+            content = content.push(
+                text(&self.series_information.name)
+                    .size(11)
+                    .width(100)
+                    .height(30)
+                    .vertical_alignment(iced::alignment::Vertical::Center)
+                    .horizontal_alignment(iced::alignment::Horizontal::Center),
+            );
 
-                let content = container(content)
-                    .padding(5)
-                    .style(styles::container_styles::second_class_container_rounded_theme());
+            let content = container(content)
+                .padding(5)
+                .style(styles::container_styles::second_class_container_rounded_theme());
 
-                mouse_area(content)
-                    .on_press(Message::SeriesPosterPressed(Box::new(series_info.clone())))
-                    .into()
-            } else {
-                container("").into()
-            }
+            mouse_area(content)
+                .on_press(Message::SeriesPosterPressed(Box::new(
+                    self.series_information.clone(),
+                )))
+                .into()
         }
 
         /// View intended for the watchlist tab
@@ -109,72 +107,70 @@ pub mod series_poster {
 
             let mut metadata = column!().padding(2).spacing(5);
 
-            if let Some(series_info) = &self.series_information {
-                metadata = metadata.push(
-                    text(&series_info.name)
-                        .size(18)
-                        .style(styles::text_styles::purple_text_theme()),
-                );
-                metadata = metadata.push(vertical_space(10));
+            metadata = metadata.push(
+                text(&self.series_information.name)
+                    .size(18)
+                    .style(styles::text_styles::purple_text_theme()),
+            );
+            metadata = metadata.push(vertical_space(10));
 
-                let watched_episodes = database::DB
-                    .get_series(series_info.id)
-                    .map(|series| series.get_total_episodes())
-                    .unwrap_or(0);
+            let watched_episodes = database::DB
+                .get_series(self.series_information.id)
+                .map(|series| series.get_total_episodes())
+                .unwrap_or(0);
 
-                let progress_bar = row![
-                    progress_bar(0.0..=total_episodes as f32, watched_episodes as f32,)
-                        .height(10)
-                        .width(500),
-                    text(format!(
-                        "{}/{}",
-                        watched_episodes as f32, total_episodes as f32
-                    ))
-                ]
-                .spacing(5);
+            let progress_bar = row![
+                progress_bar(0.0..=total_episodes as f32, watched_episodes as f32,)
+                    .height(10)
+                    .width(500),
+                text(format!(
+                    "{}/{}",
+                    watched_episodes as f32, total_episodes as f32
+                ))
+            ]
+            .spacing(5);
 
-                metadata = metadata.push(progress_bar);
+            metadata = metadata.push(progress_bar);
 
-                let last_episode_watched = if let Some(series) =
-                    database::DB.get_series(series_info.id)
-                {
-                    if let Some((season_num, last_watched_season)) = series.get_last_season() {
-                        last_watched_season.get_last_episode();
-                        text(format!("{} {}","Last watched", season_episode_str_gen(season_num, last_watched_season.get_last_episode().expect("the season should have atleast one episode for it to be the last watched"))))
-                    } else {
-                        text("No Episode Watched")
-                    }
+            let last_episode_watched = if let Some(series) =
+                database::DB.get_series(self.series_information.id)
+            {
+                if let Some((season_num, last_watched_season)) = series.get_last_season() {
+                    last_watched_season.get_last_episode();
+                    text(format!("{} {}","Last watched", season_episode_str_gen(season_num, last_watched_season.get_last_episode().expect("the season should have atleast one episode for it to be the last watched"))))
                 } else {
                     text("No Episode Watched")
-                };
-
-                metadata = metadata.push(last_episode_watched);
-
-                let episodes_left = total_episodes - watched_episodes;
-
-                metadata = metadata.push(text(format!("{} episodes left", episodes_left)));
-
-                if let Some(runtime) = self.series_information.as_ref().unwrap().average_runtime {
-                    let watchtime = format!(
-                        "Average time left to complete, {} minutes",
-                        runtime * episodes_left as u32
-                    );
-                    metadata = metadata.push(text(watchtime));
-                };
-
-                content = content.push(metadata);
-
-                let content = container(content)
-                    .padding(5)
-                    .style(styles::container_styles::first_class_container_rounded_theme())
-                    .width(1000);
-
-                mouse_area(content)
-                    .on_press(Message::SeriesPosterPressed(Box::new(series_info.clone())))
-                    .into()
+                }
             } else {
-                container("").into()
-            }
+                text("No Episode Watched")
+            };
+
+            metadata = metadata.push(last_episode_watched);
+
+            let episodes_left = total_episodes - watched_episodes;
+
+            metadata = metadata.push(text(format!("{} episodes left", episodes_left)));
+
+            if let Some(runtime) = self.series_information.average_runtime {
+                let watchtime = format!(
+                    "Average time left to complete, {} minutes",
+                    runtime * episodes_left as u32
+                );
+                metadata = metadata.push(text(watchtime));
+            };
+
+            content = content.push(metadata);
+
+            let content = container(content)
+                .padding(5)
+                .style(styles::container_styles::first_class_container_rounded_theme())
+                .width(1000);
+
+            mouse_area(content)
+                .on_press(Message::SeriesPosterPressed(Box::new(
+                    self.series_information.clone(),
+                )))
+                .into()
         }
 
         pub fn release_series_posters_view(
@@ -191,70 +187,68 @@ pub mod series_poster {
             };
 
             let mut metadata = column!().spacing(5);
-            if let Some(series_info) = &self.series_information {
-                metadata = metadata.push(
-                    text(&series_info.name)
-                        .size(18)
-                        .style(styles::text_styles::purple_text_theme()),
-                );
-                // Some separation between series name and the rest of content
-                metadata = metadata.push(vertical_space(10));
+            metadata = metadata.push(
+                text(&self.series_information.name)
+                    .size(18)
+                    .style(styles::text_styles::purple_text_theme()),
+            );
+            // Some separation between series name and the rest of content
+            metadata = metadata.push(vertical_space(10));
 
-                let season_number = episode_and_release_time.0.season;
-                let episode_number = episode_and_release_time
-                    .0
-                    .number
-                    .expect("an episode should have a valid number");
+            let season_number = episode_and_release_time.0.season;
+            let episode_number = episode_and_release_time
+                .0
+                .number
+                .expect("an episode should have a valid number");
 
-                let episode_name = &episode_and_release_time.0.name;
+            let episode_name = &episode_and_release_time.0.name;
 
-                metadata = metadata.push(text(format!(
-                    "{}: {}",
-                    season_episode_str_gen(season_number, episode_number),
-                    episode_name,
-                )));
+            metadata = metadata.push(text(format!(
+                "{}: {}",
+                season_episode_str_gen(season_number, episode_number),
+                episode_name,
+            )));
 
-                metadata = metadata.push(text(
-                    episode_and_release_time.1.get_full_release_date_and_time(),
-                ));
+            metadata = metadata.push(text(
+                episode_and_release_time.1.get_full_release_date_and_time(),
+            ));
 
-                content = content.push(metadata);
+            content = content.push(metadata);
 
-                content = content.push(horizontal_space(Length::Fill));
-                let release_time_widget = container(
-                    container(
-                        text(
-                            &episode_and_release_time
-                                .1
-                                .get_remaining_release_time()
-                                .unwrap(),
-                        )
-                        .horizontal_alignment(iced::alignment::Horizontal::Center),
+            content = content.push(horizontal_space(Length::Fill));
+            let release_time_widget = container(
+                container(
+                    text(
+                        &episode_and_release_time
+                            .1
+                            .get_remaining_release_time()
+                            .unwrap(),
                     )
-                    .width(70)
-                    .height(70)
-                    .padding(5)
-                    .center_x()
-                    .center_y()
-                    .style(styles::container_styles::release_time_container_theme()),
+                    .horizontal_alignment(iced::alignment::Horizontal::Center),
                 )
+                .width(70)
+                .height(70)
+                .padding(5)
                 .center_x()
                 .center_y()
-                .height(140);
+                .style(styles::container_styles::release_time_container_theme()),
+            )
+            .center_x()
+            .center_y()
+            .height(140);
 
-                content = content.push(release_time_widget);
+            content = content.push(release_time_widget);
 
-                let content = container(content)
-                    .padding(5)
-                    .style(styles::container_styles::first_class_container_rounded_theme())
-                    .width(1000);
+            let content = container(content)
+                .padding(5)
+                .style(styles::container_styles::first_class_container_rounded_theme())
+                .width(1000);
 
-                mouse_area(content)
-                    .on_press(Message::SeriesPosterPressed(Box::new(series_info.clone())))
-                    .into()
-            } else {
-                container("").into()
-            }
+            mouse_area(content)
+                .on_press(Message::SeriesPosterPressed(Box::new(
+                    self.series_information.clone(),
+                )))
+                .into()
         }
     }
 
