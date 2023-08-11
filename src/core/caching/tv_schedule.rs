@@ -17,11 +17,11 @@ pub async fn get_series_with_date(
         })
         .collect();
 
-    let mut series_information_strs = Vec::with_capacity(handles.len());
+    let mut series_infos = Vec::with_capacity(handles.len());
     for handle in handles {
-        series_information_strs.push(handle.await??)
+        series_infos.push(handle.await??)
     }
-    Ok(series_information_strs)
+    Ok(series_infos)
 }
 
 /// Retrieves series aired on the current day at a particular country provided in ISO 3166-1
@@ -39,9 +39,9 @@ pub async fn get_series_with_country(
         })
         .collect();
 
-    let mut series_information_strs = Vec::with_capacity(handles.len());
+    let mut series_infos = Vec::with_capacity(handles.len());
     for handle in handles {
-        series_information_strs.push(handle.await??)
+        series_infos.push(handle.await??)
     }
-    Ok(series_information_strs)
+    Ok(series_infos)
 }
