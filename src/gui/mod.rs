@@ -64,22 +64,20 @@ impl Application for TroxideGui {
     }
 
     fn theme(&self) -> iced::Theme {
-        match SETTINGS
-            .read()
-            .unwrap()
-            .get_current_settings()
-            .appearance
-            .theme
-        {
-            settings_config::Theme::Light => {
-                let theme = styles::theme::TroxideTheme::Light;
-                iced::Theme::Custom(Box::new(theme.get_theme()))
+        let custom_theme = Box::new(
+            match SETTINGS
+                .read()
+                .unwrap()
+                .get_current_settings()
+                .appearance
+                .theme
+            {
+                settings_config::Theme::Light => styles::theme::TroxideTheme::Light,
+                settings_config::Theme::Dark => styles::theme::TroxideTheme::Dark,
             }
-            settings_config::Theme::Dark => {
-                let theme = styles::theme::TroxideTheme::Dark;
-                iced::Theme::Custom(Box::new(theme.get_theme()))
-            }
-        }
+            .get_custom_theme(),
+        );
+        iced::Theme::Custom(custom_theme)
     }
 
     fn subscription(&self) -> iced::Subscription<Message> {

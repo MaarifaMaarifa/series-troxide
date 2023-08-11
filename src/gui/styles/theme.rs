@@ -9,7 +9,7 @@ pub enum TroxideTheme {
 }
 
 impl TroxideTheme {
-    pub fn get_theme(&self) -> Custom {
+    pub fn get_custom_theme(&self) -> Custom {
         match self {
             TroxideTheme::Light => Custom::new(Palette {
                 background: color!(0xdddddd),

@@ -54,7 +54,7 @@ impl StyleSheet for FirstClassContainerRoundedTheme {
 
         match style {
             iced::Theme::Custom(custom) => {
-                if **custom == TroxideTheme::get_theme(&TroxideTheme::Light) {
+                if **custom == TroxideTheme::get_custom_theme(&TroxideTheme::Light) {
                     appearance.background = Some(Background::Color(color!(0xcccccc)));
                     appearance.border_color = color!(0xbbbbbb);
                     appearance
@@ -83,7 +83,7 @@ impl StyleSheet for SecondClassContainerRoundedTheme {
 
         match style {
             iced::Theme::Custom(custom) => {
-                if **custom == TroxideTheme::get_theme(&TroxideTheme::Light) {
+                if **custom == TroxideTheme::get_custom_theme(&TroxideTheme::Light) {
                     appearance.background = Some(Background::Color(color!(0xbbbbbb)));
                     appearance.border_color = color!(0xbbbbbb);
                     appearance
@@ -112,7 +112,7 @@ impl StyleSheet for FirstClassContainerSquareTheme {
 
         match style {
             iced::Theme::Custom(custom) => {
-                if **custom == TroxideTheme::get_theme(&TroxideTheme::Light) {
+                if **custom == TroxideTheme::get_custom_theme(&TroxideTheme::Light) {
                     appearance.background = Some(Background::Color(color!(0xcccccc)));
                     appearance.border_color = color!(0xbbbbbb);
                     appearance
@@ -141,7 +141,7 @@ impl StyleSheet for SecondClassContainerSquareTheme {
 
         match style {
             iced::Theme::Custom(custom) => {
-                if **custom == TroxideTheme::get_theme(&TroxideTheme::Light) {
+                if **custom == TroxideTheme::get_custom_theme(&TroxideTheme::Light) {
                     appearance.background = Some(Background::Color(color!(0xbbbbbb)));
                     appearance.border_color = color!(0xbbbbbb);
                     appearance
@@ -172,7 +172,7 @@ impl StyleSheet for ContainerThemeReleaseTime {
 
         match style {
             iced::Theme::Custom(custom) => {
-                if **custom == TroxideTheme::get_theme(&TroxideTheme::Light) {
+                if **custom == TroxideTheme::get_custom_theme(&TroxideTheme::Light) {
                     appearance.background = Some(Background::Color(color!(0x8f6593)));
                     appearance.border_color = color!(0xbbbbbb);
                     appearance
