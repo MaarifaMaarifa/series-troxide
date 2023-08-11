@@ -119,7 +119,7 @@ impl DiscoverTab {
                 }
                 if let LoadState::Loaded = &self.load_status.global_series {
                     self.load_status.global_series = LoadState::Loading;
-                    load_commands[1] = load_global_aried_series();
+                    load_commands[1] = load_global_aired_series();
                 }
                 if let LoadState::Loaded = &self.load_status.shows_update {
                     self.load_status.shows_update = LoadState::Loading;
@@ -309,7 +309,7 @@ fn load_series_updates() -> Command<Message> {
 }
 
 /// Loads the globally aired series
-fn load_global_aried_series() -> Command<Message> {
+fn load_global_aired_series() -> Command<Message> {
     Command::perform(get_series_with_date(None), |series| {
         Message::GlobalSeriesLoaded(series.expect("failed to load series schedule"))
     })
@@ -319,7 +319,7 @@ fn load_global_aried_series() -> Command<Message> {
 fn load_discover_schedule_command() -> Command<Message> {
     Command::batch([
         load_series_updates(),
-        load_global_aried_series(),
+        load_global_aired_series(),
         load_local_aired_series(),
     ])
 }
