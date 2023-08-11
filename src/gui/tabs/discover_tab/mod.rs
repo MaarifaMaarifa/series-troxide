@@ -39,9 +39,9 @@ pub enum Message {
     GlobalSeriesLoaded(Vec<SeriesMainInformation>),
     LocalSeriesLoaded(Vec<SeriesMainInformation>),
     SeriesUpdatesLoaded(Vec<SeriesMainInformation>),
-    EpisodePosterAction(/*episode poster index*/ usize, SeriesPosterMessage),
-    CountryEpisodePosterAction(/*episode poster index*/ usize, SeriesPosterMessage),
-    SeriesPosterAction(/*series poster index*/ usize, SeriesPosterMessage),
+    EpisodePosterAction(SeriesPosterMessage),
+    CountryEpisodePosterAction(SeriesPosterMessage),
+    SeriesPosterAction(SeriesPosterMessage),
     SearchAction(SearchMessage),
     SeriesSelected(Box<SeriesMainInformation>),
     ShowOverlay,
@@ -140,20 +140,18 @@ impl DiscoverTab {
                 }
 
                 self.new_global_series = series_posters;
-                Command::batch(commands).map(|message| {
-                    Message::EpisodePosterAction(message.get_id().unwrap_or(0), message)
-                })
+                Command::batch(commands).map(Message::EpisodePosterAction)
             }
-            Message::EpisodePosterAction(index, message) => {
+            Message::EpisodePosterAction(message) => {
                 if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
                     self.show_overlay = false;
                     return Command::perform(async {}, |_| {
                         Message::SeriesSelected(series_information)
                     });
                 }
-                self.new_global_series[index]
+                self.new_global_series[message.get_index().expect("message should have an index")]
                     .update(message)
-                    .map(move |message| Message::EpisodePosterAction(index, message))
+                    .map(Message::EpisodePosterAction)
             }
             Message::SeriesUpdatesLoaded(series) => {
                 self.load_status.shows_update = LoadState::Loaded;
@@ -167,20 +165,18 @@ impl DiscoverTab {
                 }
                 self.series_updates = series_infos;
 
-                Command::batch(series_poster_commands).map(|message| {
-                    Message::SeriesPosterAction(message.get_id().unwrap_or(0), message)
-                })
+                Command::batch(series_poster_commands).map(Message::SeriesPosterAction)
             }
-            Message::SeriesPosterAction(index, message) => {
+            Message::SeriesPosterAction(message) => {
                 if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
                     self.show_overlay = false;
                     return Command::perform(async {}, |_| {
                         Message::SeriesSelected(series_information)
                     });
                 }
-                self.series_updates[index]
+                self.series_updates[message.get_index().expect("message should have an index")]
                     .update(message)
-                    .map(move |message| Message::SeriesPosterAction(index, message))
+                    .map(Message::SeriesPosterAction)
             }
             Message::SearchAction(message) => {
                 if let SearchMessage::SeriesResultPressed(series_id) = message {
@@ -217,20 +213,18 @@ impl DiscoverTab {
                     commands.push(command);
                 }
                 self.new_local_series = series_posters;
-                Command::batch(commands).map(|message| {
-                    Message::CountryEpisodePosterAction(message.get_id().unwrap_or(0), message)
-                })
+                Command::batch(commands).map(Message::CountryEpisodePosterAction)
             }
-            Message::CountryEpisodePosterAction(index, message) => {
+            Message::CountryEpisodePosterAction(message) => {
                 if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
                     self.show_overlay = false;
                     return Command::perform(async {}, |_| {
                         Message::SeriesSelected(series_information)
                     });
                 }
-                self.new_local_series[index]
+                self.new_local_series[message.get_index().expect("message should have an index")]
                     .update(message)
-                    .map(move |message| Message::CountryEpisodePosterAction(index, message))
+                    .map(Message::CountryEpisodePosterAction)
             }
             Message::EscapeKeyPressed => {
                 self.show_overlay = false;
@@ -359,11 +353,7 @@ fn series_posters_loader<'a>(
         let wrapped_posters = Wrap::with_elements(
             posters
                 .iter()
-                .map(|poster| {
-                    poster.view().map(|message| {
-                        Message::SeriesPosterAction(message.get_id().unwrap_or(0), message)
-                    })
-                })
+                .map(|poster| poster.view().map(Message::SeriesPosterAction))
                 .collect(),
         )
         .spacing(5.0)

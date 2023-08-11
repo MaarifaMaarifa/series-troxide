@@ -13,7 +13,7 @@ use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, 
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    SeriesPosters(usize, SeriesPosterMessage),
+    SeriesPosters(SeriesPosterMessage),
     SeriesInformationReceived(Option<Vec<(SeriesMainInformation, EpisodeList)>>),
     Refresh,
 }
@@ -71,20 +71,19 @@ impl UpcomingReleases {
                     series_posters_commands.push(command);
                 }
                 self.series_posters = series_posters;
-                Command::batch(series_posters_commands)
-                    .map(|message| Message::SeriesPosters(message.get_id().unwrap_or(0), message))
+                Command::batch(series_posters_commands).map(Message::SeriesPosters)
             }
-            Message::SeriesPosters(index, message) => {
+            Message::SeriesPosters(message) => {
                 if let SeriesPosterMessage::SeriesPosterPressed(series_info) = message.clone() {
                     self.series_page_sender
                         .send(series_page::Series::from_series_information(*series_info))
                         .expect("failed to send the series page");
                     return Command::none();
                 }
-                self.series_posters[index]
+                self.series_posters[message.get_index().expect("message should have and index")]
                     .0
                     .update(message)
-                    .map(|message| Message::SeriesPosters(message.get_id().unwrap_or(0), message))
+                    .map(Message::SeriesPosters)
             }
             Message::Refresh => load_upcoming_releases(),
         }
@@ -120,9 +119,7 @@ impl UpcomingReleases {
                                     .get_next_episode_and_time()
                                     .unwrap(),
                             )
-                            .map(|message| {
-                                Message::SeriesPosters(message.get_id().unwrap_or(0), message)
-                            })
+                            .map(Message::SeriesPosters)
                     })
                     .collect(),
             )

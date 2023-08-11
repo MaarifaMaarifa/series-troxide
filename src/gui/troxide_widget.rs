@@ -22,7 +22,12 @@ pub mod series_poster {
     }
 
     impl Message {
-        pub fn get_id(&self) -> Option<usize> {
+        /// Returns the index given to the `Series Poster` when it was created
+        ///
+        /// Since `Series Posters` are normaly stored in a `Vec` and run Commands
+        /// this method provide a simple way of sending back the Command Message
+        /// to the appropriate `Series Poster` in a `Vec`
+        pub fn get_index(&self) -> Option<usize> {
             if let Self::ImageLoaded(id, _) = self {
                 return Some(id.to_owned());
             }
@@ -38,7 +43,7 @@ pub mod series_poster {
 
     impl SeriesPoster {
         pub fn new(
-            id: usize,
+            index: usize,
             series_information: SeriesMainInformation,
         ) -> (Self, Command<Message>) {
             let image_url = series_information.image.clone();
@@ -48,7 +53,7 @@ pub mod series_poster {
                 image: None,
             };
 
-            let series_image_command = poster_image_command(id, image_url);
+            let series_image_command = poster_image_command(index, image_url);
 
             (poster, series_image_command)
         }

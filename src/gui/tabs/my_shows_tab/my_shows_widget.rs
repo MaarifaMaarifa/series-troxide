@@ -12,7 +12,7 @@ use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, 
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    SeriesPosters(usize, SeriesPosterMessage),
+    SeriesPosters(SeriesPosterMessage),
     SeriesInformationReceived(Option<Vec<SeriesMainInformation>>),
 }
 
@@ -108,19 +108,18 @@ impl MyShows {
                     series_posters_commands.push(command);
                 }
                 self.series_posters = series_posters;
-                Command::batch(series_posters_commands)
-                    .map(|message| Message::SeriesPosters(message.get_id().unwrap_or(0), message))
+                Command::batch(series_posters_commands).map(Message::SeriesPosters)
             }
-            Message::SeriesPosters(index, message) => {
+            Message::SeriesPosters(message) => {
                 if let SeriesPosterMessage::SeriesPosterPressed(series_info) = message.clone() {
                     self.series_page_sender
                         .send(series_page::Series::from_series_information(*series_info))
                         .expect("failed to send the series page");
                     return Command::none();
                 }
-                self.series_posters[index]
+                self.series_posters[message.get_index().expect("message should have an index")]
                     .update(message)
-                    .map(|message| Message::SeriesPosters(message.get_id().unwrap_or(0), message))
+                    .map(Message::SeriesPosters)
             }
         }
     }
@@ -146,11 +145,7 @@ impl MyShows {
             Wrap::with_elements(
                 self.series_posters
                     .iter()
-                    .map(|poster| {
-                        poster.view().map(|message| {
-                            Message::SeriesPosters(message.get_id().unwrap_or(0), message)
-                        })
-                    })
+                    .map(|poster| poster.view().map(Message::SeriesPosters))
                     .collect(),
             )
             .line_spacing(5.0)

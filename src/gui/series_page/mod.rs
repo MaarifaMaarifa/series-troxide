@@ -8,8 +8,7 @@ use crate::gui::assets::icons::{PATCH_PLUS, PATCH_PLUS_FILL};
 use crate::gui::styles;
 
 use bytes::Bytes;
-use cast_widget::CastWidget;
-use cast_widget::Message as CastWidgetMessage;
+use cast_widget::{CastWidget, Message as CastWidgetMessage};
 use image;
 use mini_widgets::*;
 use season_widget::Message as SeasonMessage;

@@ -66,7 +66,7 @@ impl WatchlistTab {
                 }
                 self.series_posters = posters;
                 Command::batch(commands).map(|message| {
-                    Message::SeriesPoster(message.get_id().unwrap_or(0), Box::new(message))
+                    Message::SeriesPoster(message.get_index().unwrap_or(0), Box::new(message))
                 })
             }
             Message::SeriesPoster(index, message) => {
@@ -80,7 +80,7 @@ impl WatchlistTab {
                     .0
                     .update(*message)
                     .map(|message| {
-                        Message::SeriesPoster(message.get_id().unwrap_or(0), Box::new(message))
+                        Message::SeriesPoster(message.get_index().unwrap_or(0), Box::new(message))
                     })
             }
         }
@@ -111,7 +111,7 @@ impl WatchlistTab {
                         .map(|(poster, total_episodes)| {
                             poster.watchlist_view(*total_episodes).map(|message| {
                                 Message::SeriesPoster(
-                                    message.get_id().unwrap_or(0),
+                                    message.get_index().unwrap_or(0),
                                     Box::new(message),
                                 )
                             })
