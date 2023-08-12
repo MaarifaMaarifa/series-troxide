@@ -31,12 +31,21 @@
 ### Getting pre-built binaries
 Pre-built binaries for your specific platform can be obtained from the [release page](https://github.com/MaarifaMaarifa/series-troxide/releases)
 
-### Cargo ([crates.io](https://crates.io/crates/series-troxide))
+### Building
+**Series Troxide** depends on [**rfd** crate](https://github.com/PolyMeilex/rfd) for opening up a file picker. When building for **Linux and BSD** systems, [GTK3 Rust bindings](https://gtk-rs.org/) are required. The package names on various distributions are;
+
+|Distribution   | Installation Command   |
+|:--------------|:-----------------------|
+|Fedora         |dnf install gtk3-devel  |
+|Arch           |pacman -S gtk3          |
+|Debian & Ubuntu|apt install libgtk-3-dev|
+
+#### From Cargo ([crates.io](https://crates.io/crates/series-troxide))
 **Series Troxide** is available in crates.io and can be installed using Cargo.
 ```shell
 cargo install series-troxide
 ```
-### Building from source.
+#### From source.
 You can build **Series Troxide** from source assuming you have Git, Cargo and Rustc set up on your machine. You can check the [guide](https://rustup.rs/) incase you're not setup.
 ```shell
 git clone https://github.com/MaarifaMaarifa/series-troxide
