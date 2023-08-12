@@ -35,17 +35,17 @@ struct LoadStatus {
 
 #[derive(Clone, Debug)]
 pub enum Message {
-    ReloadDiscoverPage,
+    Reload,
     GlobalSeriesLoaded(Vec<SeriesMainInformation>),
     LocalSeriesLoaded(Vec<SeriesMainInformation>),
     SeriesUpdatesLoaded(Vec<SeriesMainInformation>),
-    EpisodePosterAction(SeriesPosterMessage),
-    CountryEpisodePosterAction(SeriesPosterMessage),
-    SeriesPosterAction(SeriesPosterMessage),
-    SearchAction(SearchMessage),
+    GlobalSeries(SeriesPosterMessage),
+    LocalSeries(SeriesPosterMessage),
+    SeriesUpdates(SeriesPosterMessage),
+    Search(SearchMessage),
     SeriesSelected(Box<SeriesMainInformation>),
-    ShowOverlay,
-    HideOverlay,
+    ShowSearchResults,
+    HideSearchResults,
     EscapeKeyPressed,
 }
 
@@ -101,7 +101,7 @@ impl DiscoverTab {
                     return Some(Message::EscapeKeyPressed);
                 }
                 if key_code == iced::keyboard::KeyCode::F5 && modifiers.is_empty() {
-                    return Some(Message::ReloadDiscoverPage);
+                    return Some(Message::Reload);
                 }
             }
             None
@@ -110,7 +110,7 @@ impl DiscoverTab {
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message::ReloadDiscoverPage => {
+            Message::Reload => {
                 let mut load_commands = [Command::none(), Command::none(), Command::none()];
 
                 if let LoadState::Loaded = &self.load_status.local_series {
@@ -140,9 +140,9 @@ impl DiscoverTab {
                 }
 
                 self.new_global_series = series_posters;
-                Command::batch(commands).map(Message::EpisodePosterAction)
+                Command::batch(commands).map(Message::GlobalSeries)
             }
-            Message::EpisodePosterAction(message) => {
+            Message::GlobalSeries(message) => {
                 if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
                     self.show_overlay = false;
                     return Command::perform(async {}, |_| {
@@ -151,7 +151,7 @@ impl DiscoverTab {
                 }
                 self.new_global_series[message.get_index().expect("message should have an index")]
                     .update(message)
-                    .map(Message::EpisodePosterAction)
+                    .map(Message::GlobalSeries)
             }
             Message::SeriesUpdatesLoaded(series) => {
                 self.load_status.shows_update = LoadState::Loaded;
@@ -165,9 +165,9 @@ impl DiscoverTab {
                 }
                 self.series_updates = series_infos;
 
-                Command::batch(series_poster_commands).map(Message::SeriesPosterAction)
+                Command::batch(series_poster_commands).map(Message::SeriesUpdates)
             }
-            Message::SeriesPosterAction(message) => {
+            Message::SeriesUpdates(message) => {
                 if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
                     self.show_overlay = false;
                     return Command::perform(async {}, |_| {
@@ -176,9 +176,9 @@ impl DiscoverTab {
                 }
                 self.series_updates[message.get_index().expect("message should have an index")]
                     .update(message)
-                    .map(Message::SeriesPosterAction)
+                    .map(Message::SeriesUpdates)
             }
-            Message::SearchAction(message) => {
+            Message::Search(message) => {
                 if let SearchMessage::SeriesResultPressed(series_id) = message {
                     self.series_page_sender
                         .send(series_page::Series::from_series_id(series_id))
@@ -188,11 +188,11 @@ impl DiscoverTab {
                 };
                 self.search_state.update(message)
             }
-            Message::ShowOverlay => {
+            Message::ShowSearchResults => {
                 self.show_overlay = true;
                 Command::none()
             }
-            Message::HideOverlay => {
+            Message::HideSearchResults => {
                 self.show_overlay = false;
                 Command::none()
             }
@@ -213,9 +213,9 @@ impl DiscoverTab {
                     commands.push(command);
                 }
                 self.new_local_series = series_posters;
-                Command::batch(commands).map(Message::CountryEpisodePosterAction)
+                Command::batch(commands).map(Message::LocalSeries)
             }
-            Message::CountryEpisodePosterAction(message) => {
+            Message::LocalSeries(message) => {
                 if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
                     self.show_overlay = false;
                     return Command::perform(async {}, |_| {
@@ -224,7 +224,7 @@ impl DiscoverTab {
                 }
                 self.new_local_series[message.get_index().expect("message should have an index")]
                     .update(message)
-                    .map(Message::CountryEpisodePosterAction)
+                    .map(Message::LocalSeries)
             }
             Message::EscapeKeyPressed => {
                 self.show_overlay = false;
@@ -259,18 +259,15 @@ impl DiscoverTab {
 
         let content = floating_element::FloatingElement::new(
             underlay,
-            self.search_state.view().1.map(Message::SearchAction),
+            self.search_state.view().1.map(Message::Search),
         )
         .anchor(floating_element::Anchor::North)
         .hide(!self.show_overlay);
 
-        column![
-            self.search_state.view().0.map(Message::SearchAction),
-            content
-        ]
-        .spacing(2)
-        .padding(10)
-        .into()
+        column![self.search_state.view().0.map(Message::Search), content]
+            .spacing(2)
+            .padding(10)
+            .into()
     }
 }
 
@@ -353,7 +350,7 @@ fn series_posters_loader<'a>(
         let wrapped_posters = Wrap::with_elements(
             posters
                 .iter()
-                .map(|poster| poster.view().map(Message::SeriesPosterAction))
+                .map(|poster| poster.view().map(Message::SeriesUpdates))
                 .collect(),
         )
         .spacing(5.0)

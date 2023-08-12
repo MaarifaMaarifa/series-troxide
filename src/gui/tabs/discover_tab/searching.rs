@@ -43,7 +43,7 @@ impl Search {
                 self.search_term = term;
                 return if self.search_term.is_empty() {
                     self.load_state = LoadState::NotLoaded;
-                    Command::perform(async {}, |_| DiscoverMessage::HideOverlay)
+                    Command::perform(async {}, |_| DiscoverMessage::HideSearchResults)
                 } else {
                     Command::none()
                 };
@@ -54,12 +54,12 @@ impl Search {
                 let series_result = series_searching::search_series(self.search_term.clone());
 
                 let search_status_command = Command::perform(series_result, |res| match res {
-                    Ok(res) => DiscoverMessage::SearchAction(Message::SearchSuccess(res)),
-                    Err(_) => DiscoverMessage::SearchAction(Message::SearchFail),
+                    Ok(res) => DiscoverMessage::Search(Message::SearchSuccess(res)),
+                    Err(_) => DiscoverMessage::Search(Message::SearchFail),
                 });
 
                 let show_overlay_command =
-                    Command::perform(async {}, |_| DiscoverMessage::ShowOverlay);
+                    Command::perform(async {}, |_| DiscoverMessage::ShowSearchResults);
 
                 return Command::batch([search_status_command, show_overlay_command]);
             }
@@ -67,16 +67,17 @@ impl Search {
                 self.load_state = LoadState::Loaded;
                 self.series_search_results_images.clear();
                 let show_overlay_command =
-                    Command::perform(async {}, |_| DiscoverMessage::ShowOverlay);
+                    Command::perform(async {}, |_| DiscoverMessage::ShowSearchResults);
 
                 let mut search_results = Vec::with_capacity(results.len());
                 let mut search_results_commands = Vec::with_capacity(results.len());
                 results.into_iter().enumerate().for_each(|(index, result)| {
                     let (search_result, search_result_command) = SearchResult::new(index, result);
                     search_results.push(search_result);
-                    search_results_commands.push(search_result_command.map(|message| {
-                        DiscoverMessage::SearchAction(Message::SearchResult(message))
-                    }));
+                    search_results_commands
+                        .push(search_result_command.map(|message| {
+                            DiscoverMessage::Search(Message::SearchResult(message))
+                        }));
                 });
 
                 self.search_results = search_results;
@@ -93,7 +94,7 @@ impl Search {
             Message::SearchResult(message) => {
                 if let SearchResultMessage::SeriesResultPressed(series_id) = message {
                     return Command::perform(async {}, move |_| {
-                        DiscoverMessage::SearchAction(Message::SeriesResultPressed(series_id))
+                        DiscoverMessage::Search(Message::SeriesResultPressed(series_id))
                     });
                 }
                 self.search_results[message.get_id().unwrap_or(0)].update(message)
