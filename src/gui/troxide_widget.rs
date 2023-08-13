@@ -69,7 +69,10 @@ pub mod series_poster {
         }
 
         /// Views the series poster widget
-        pub fn view(&self) -> Element<'_, Message, Renderer> {
+        ///
+        /// This is the normal view of the poster, just having the image of the
+        /// of the series and it's name below it
+        pub fn normal_view(&self) -> Element<'_, Message, Renderer> {
             let mut content = column!().padding(2).spacing(1);
             if let Some(image_bytes) = self.image.clone() {
                 let image_handle = image::Handle::from_memory(image_bytes);
@@ -100,6 +103,9 @@ pub mod series_poster {
         }
 
         /// View intended for the watchlist tab
+        ///
+        /// Consists of the Series image to the left and it's metadata (progress bar, etc)
+        /// related to stuffs left to watch (episodes, time, etc)
         pub fn watchlist_view(&self, total_episodes: usize) -> Element<'_, Message, Renderer> {
             let mut content = row!().padding(2).spacing(5);
             if let Some(image_bytes) = self.image.clone() {
@@ -178,6 +184,10 @@ pub mod series_poster {
                 .into()
         }
 
+        /// View intended for the upcoming releases
+        ///
+        /// This view is intended to be used in my_shows tab for the series whose next release
+        /// episode is known
         pub fn release_series_posters_view(
             &self,
             episode_and_release_time: (&Episode, EpisodeReleaseTime),

@@ -145,7 +145,7 @@ impl MyShows {
             Wrap::with_elements(
                 self.series_posters
                     .iter()
-                    .map(|poster| poster.view().map(Message::SeriesPosters))
+                    .map(|poster| poster.normal_view().map(Message::SeriesPosters))
                     .collect(),
             )
             .line_spacing(5.0)

@@ -51,7 +51,7 @@ pub enum Message {
 
 pub struct DiscoverTab {
     load_status: LoadStatus,
-    show_overlay: bool,
+    show_search_results: bool,
     search_state: searching::Search,
     new_global_series: Vec<SeriesPoster>,
     new_local_series: Vec<SeriesPoster>,
@@ -67,7 +67,7 @@ impl DiscoverTab {
         (
             Self {
                 load_status: LoadStatus::default(),
-                show_overlay: false,
+                show_search_results: false,
                 search_state: searching::Search::default(),
                 new_global_series: vec![],
                 new_local_series: vec![],
@@ -144,7 +144,7 @@ impl DiscoverTab {
             }
             Message::GlobalSeries(message) => {
                 if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
-                    self.show_overlay = false;
+                    self.show_search_results = false;
                     return Command::perform(async {}, |_| {
                         Message::SeriesSelected(series_information)
                     });
@@ -155,21 +155,21 @@ impl DiscoverTab {
             }
             Message::SeriesUpdatesLoaded(series) => {
                 self.load_status.shows_update = LoadState::Loaded;
-                let mut series_infos = Vec::with_capacity(series.len());
+                let mut series_posters = Vec::with_capacity(series.len());
                 let mut series_poster_commands = Vec::with_capacity(series.len());
                 for (index, series_info) in series.into_iter().enumerate() {
                     let (series_poster, series_poster_command) =
                         SeriesPoster::new(index, series_info);
-                    series_infos.push(series_poster);
+                    series_posters.push(series_poster);
                     series_poster_commands.push(series_poster_command);
                 }
-                self.series_updates = series_infos;
+                self.series_updates = series_posters;
 
                 Command::batch(series_poster_commands).map(Message::SeriesUpdates)
             }
             Message::SeriesUpdates(message) => {
                 if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
-                    self.show_overlay = false;
+                    self.show_search_results = false;
                     return Command::perform(async {}, |_| {
                         Message::SeriesSelected(series_information)
                     });
@@ -183,17 +183,17 @@ impl DiscoverTab {
                     self.series_page_sender
                         .send(series_page::Series::from_series_id(series_id))
                         .expect("failed to send series page");
-                    self.show_overlay = false;
+                    self.show_search_results = false;
                     return Command::none();
                 };
                 self.search_state.update(message)
             }
             Message::ShowSearchResults => {
-                self.show_overlay = true;
+                self.show_search_results = true;
                 Command::none()
             }
             Message::HideSearchResults => {
-                self.show_overlay = false;
+                self.show_search_results = false;
                 Command::none()
             }
             Message::SeriesSelected(series_info) => {
@@ -217,7 +217,7 @@ impl DiscoverTab {
             }
             Message::LocalSeries(message) => {
                 if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
-                    self.show_overlay = false;
+                    self.show_search_results = false;
                     return Command::perform(async {}, |_| {
                         Message::SeriesSelected(series_information)
                     });
@@ -227,7 +227,7 @@ impl DiscoverTab {
                     .map(Message::LocalSeries)
             }
             Message::EscapeKeyPressed => {
-                self.show_overlay = false;
+                self.show_search_results = false;
                 Command::none()
             }
         }
@@ -240,17 +240,20 @@ impl DiscoverTab {
                     "Shows Airing Today Globally",
                     &self.load_status.global_series,
                     &self.new_global_series
-                ),
+                )
+                .map(Message::GlobalSeries),
                 series_posters_loader(
                     &format!("Shows Airing Today in {}", self.country_name),
                     &self.load_status.local_series,
                     &self.new_local_series
-                ),
+                )
+                .map(Message::LocalSeries),
                 series_posters_loader(
                     "Shows Updates",
                     &self.load_status.shows_update,
                     &self.series_updates
-                ),
+                )
+                .map(Message::SeriesUpdates),
             )
             .spacing(20),
         )
@@ -262,7 +265,7 @@ impl DiscoverTab {
             self.search_state.view().1.map(Message::Search),
         )
         .anchor(floating_element::Anchor::North)
-        .hide(!self.show_overlay);
+        .hide(!self.show_search_results);
 
         column![self.search_state.view().0.map(Message::Search), content]
             .spacing(2)
@@ -320,7 +323,7 @@ fn series_posters_loader<'a>(
     title: &str,
     load_state: &LoadState,
     posters: &'a [SeriesPoster],
-) -> Element<'a, Message, Renderer> {
+) -> Element<'a, SeriesPosterMessage, Renderer> {
     let title = text(title).size(21);
 
     if let LoadState::Loading = load_state {
@@ -347,15 +350,11 @@ fn series_posters_loader<'a>(
             .padding(10)
             .into()
     } else {
-        let wrapped_posters = Wrap::with_elements(
-            posters
-                .iter()
-                .map(|poster| poster.view().map(Message::SeriesUpdates))
-                .collect(),
-        )
-        .spacing(5.0)
-        .line_spacing(5.0)
-        .padding(5.0);
+        let wrapped_posters =
+            Wrap::with_elements(posters.iter().map(|poster| poster.normal_view()).collect())
+                .spacing(5.0)
+                .line_spacing(5.0)
+                .padding(5.0);
 
         column!(title, vertical_space(10), wrapped_posters)
             .width(Length::Fill)
