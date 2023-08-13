@@ -13,13 +13,13 @@ mod mini_widgets;
 
 #[derive(Clone, Debug)]
 pub enum Message {
-    SeriesInfosAndTimeReceived(Vec<(SeriesMainInformation, u32)>),
+    SeriesInfosAndTimeReceived(Vec<(SeriesMainInformation, Option<u32>)>),
     SeriesBanner(usize, SeriesBannerMessage),
 }
 
 #[derive(Default)]
 pub struct StatisticsTab {
-    series_infos_and_time: Vec<(SeriesMainInformation, u32)>,
+    series_infos_and_time: Vec<(SeriesMainInformation, Option<u32>)>,
     series_banners: Vec<SeriesBanner>,
 }
 
@@ -92,7 +92,7 @@ impl StatisticsTab {
 
 /// Get the collection of all series with their associated total
 /// average runtime
-async fn get_series_with_runtime() -> Vec<(SeriesMainInformation, u32)> {
+async fn get_series_with_runtime() -> Vec<(SeriesMainInformation, Option<u32>)> {
     let series_ids_handles: Vec<_> = database::DB
         .get_series_collection()
         .into_iter()
@@ -101,12 +101,11 @@ async fn get_series_with_runtime() -> Vec<(SeriesMainInformation, u32)> {
 
     let mut infos_and_time = Vec::with_capacity(series_ids_handles.len());
     for handle in series_ids_handles {
-        if let Some(info_and_time) = handle
-            .await
-            .expect("failed to await all series_infos and their average runtime")
-        {
-            infos_and_time.push(info_and_time);
-        }
+        infos_and_time.push(
+            handle
+                .await
+                .expect("failed to await all series_infos and their average runtime"),
+        );
     }
     infos_and_time
 }

@@ -58,11 +58,11 @@ pub fn watch_count() -> Element<'static, Message, Renderer> {
 }
 
 pub fn time_count(
-    series_infos_and_time: &[(SeriesMainInformation, u32)],
+    series_infos_and_time: &[(SeriesMainInformation, Option<u32>)],
 ) -> Element<'_, Message, Renderer> {
     let total_average_minutes: u32 = series_infos_and_time
         .iter()
-        .map(|(_, average_runtime)| average_runtime)
+        .map(|(_, average_runtime)| average_runtime.unwrap_or(0))
         .sum();
 
     let total_minutes_count = column![
@@ -154,14 +154,14 @@ pub mod series_banner {
 
     pub struct SeriesBanner {
         id: usize,
-        series_info_and_time: (SeriesMainInformation, u32),
+        series_info_and_time: (SeriesMainInformation, Option<u32>),
         banner: Option<Bytes>,
     }
 
     impl SeriesBanner {
         pub fn new(
             id: usize,
-            series_info_and_time: (SeriesMainInformation, u32),
+            series_info_and_time: (SeriesMainInformation, Option<u32>),
         ) -> (Self, Command<Message>) {
             let image_url = series_info_and_time
                 .0
@@ -195,15 +195,19 @@ pub mod series_banner {
             let series = database::DB.get_series(series_id).unwrap();
 
             let series_name = format!("{}: {}", self.id + 1, &self.series_info_and_time.0.name);
-            let time_in_hours = self.series_info_and_time.1 / 60;
+            let time_in_hours = self.series_info_and_time.1.map(|time| time / 60);
+
             let seasons = series.get_total_seasons();
             let episodes = series.get_total_episodes();
 
             let metadata = row![
                 column![
-                    text(time_in_hours)
-                        .size(31)
-                        .style(styles::text_styles::purple_text_theme()),
+                    if let Some(time_in_hours) = time_in_hours {
+                        text(time_in_hours).size(31)
+                    } else {
+                        text("unavailable")
+                    }
+                    .style(styles::text_styles::purple_text_theme()),
                     text("Hours").size(11)
                 ]
                 .align_items(Alignment::Center),

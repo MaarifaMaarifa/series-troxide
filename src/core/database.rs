@@ -296,16 +296,16 @@ impl Series {
     ///
     /// This method returns SeriesMainInformation associated with the Series
     /// together with it's total runtime
-    pub async fn get_total_average_watchtime(&self) -> Option<(SeriesMainInformation, u32)> {
+    pub async fn get_total_average_watchtime(&self) -> (SeriesMainInformation, Option<u32>) {
         let series_info = caching::series_information::get_series_main_info_with_id(self.id)
             .await
             .unwrap();
-        let episode_average_watchtime = series_info.average_runtime?;
+        let episode_average_watchtime = series_info.average_runtime;
 
-        Some((
+        (
             series_info,
-            self.get_total_episodes() as u32 * episode_average_watchtime,
-        ))
+            episode_average_watchtime.map(|time| time * self.get_total_episodes() as u32),
+        )
     }
 }
 
