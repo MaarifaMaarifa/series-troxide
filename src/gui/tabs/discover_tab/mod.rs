@@ -179,9 +179,9 @@ impl DiscoverTab {
                     .map(Message::SeriesUpdates)
             }
             Message::Search(message) => {
-                if let SearchMessage::SeriesResultPressed(series_id) = message {
+                if let SearchMessage::SeriesResultPressed(series_info) = message {
                     self.series_page_sender
-                        .send(series_page::Series::from_series_id(series_id))
+                        .send(series_page::Series::new(*series_info))
                         .expect("failed to send series page");
                     self.show_search_results = false;
                     return Command::none();
@@ -198,7 +198,7 @@ impl DiscoverTab {
             }
             Message::SeriesSelected(series_info) => {
                 self.series_page_sender
-                    .send(series_page::Series::from_series_information(*series_info))
+                    .send(series_page::Series::new(*series_info))
                     .expect("failed to send series page");
                 Command::none()
             }

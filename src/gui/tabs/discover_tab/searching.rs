@@ -7,6 +7,7 @@ use iced_aw::Spinner;
 use search_result::{Message as SearchResultMessage, SearchResult};
 
 use super::Message as DiscoverMessage;
+use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::api::series_searching;
 use crate::gui::styles;
 
@@ -24,7 +25,7 @@ pub enum Message {
     SearchTermSearched,
     SearchSuccess(Vec<series_searching::SeriesSearchResult>),
     SearchFail,
-    SeriesResultPressed(/*series id*/ u32),
+    SeriesResultPressed(Box<SeriesMainInformation>),
     SearchResult(SearchResultMessage),
 }
 
@@ -158,13 +159,14 @@ mod search_result {
     use iced::widget::{column, image, mouse_area, row, text, Space};
     use iced::{Command, Element, Renderer};
 
+    use crate::core::api::series_information::SeriesMainInformation;
     use crate::core::{api::series_searching, caching};
     use crate::gui::styles;
 
     #[derive(Debug, Clone)]
     pub enum Message {
         ImageLoaded(usize, Option<Bytes>),
-        SeriesResultPressed(u32),
+        SeriesResultPressed(Box<SeriesMainInformation>),
     }
 
     impl Message {
@@ -250,7 +252,9 @@ mod search_result {
             }
 
             mouse_area(row.push(column))
-                .on_press(Message::SeriesResultPressed(self.search_result.show.id))
+                .on_press(Message::SeriesResultPressed(Box::new(
+                    self.search_result.show.clone(),
+                )))
                 .into()
         }
     }

@@ -113,7 +113,7 @@ impl MyShows {
             Message::SeriesPosters(message) => {
                 if let SeriesPosterMessage::SeriesPosterPressed(series_info) = message.clone() {
                     self.series_page_sender
-                        .send(series_page::Series::from_series_information(*series_info))
+                        .send(series_page::Series::new(*series_info))
                         .expect("failed to send the series page");
                     return Command::none();
                 }

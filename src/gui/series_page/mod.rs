@@ -228,7 +228,6 @@ impl IdentifiableMessage {
 
 #[derive(Clone, Debug)]
 pub enum Message {
-    SeriesInfoObtained(Box<SeriesMainInformation>),
     SeriesImageLoaded(Option<Bytes>),
     SeriesBackgroundLoaded(Option<Bytes>),
     EpisodeListLoaded(caching::episode_list::EpisodeList),
@@ -245,9 +244,8 @@ enum LoadState {
 
 pub struct Series {
     series_id: u32,
-    load_state: LoadState,
     seasons_load_state: LoadState,
-    series_information: Option<SeriesMainInformation>,
+    series_information: SeriesMainInformation,
     series_image: Option<Bytes>,
     series_image_blurred: Option<image::DynamicImage>,
     series_background: Option<Bytes>,
@@ -257,52 +255,15 @@ pub struct Series {
 }
 
 impl Series {
-    /// Counstruct the series page by providing it with id
-    pub fn from_series_id(series_id: u32) -> (Self, Command<Message>) {
-        let (cast_widget, cast_widget_command) = CastWidget::new(series_id);
-        let series = Self {
-            series_id,
-            load_state: LoadState::Loading,
-            seasons_load_state: LoadState::Loading,
-            series_information: None,
-            next_episode_release_time: None,
-            series_image: None,
-            series_image_blurred: None,
-            series_background: None,
-            season_widgets: vec![],
-            cast_widget,
-        };
-
-        let series_command = Command::perform(
-            caching::series_information::get_series_main_info_with_id(series_id),
-            |info| {
-                Message::SeriesInfoObtained(Box::new(
-                    info.expect("Failed to load series information"),
-                ))
-            },
-        );
-
-        (
-            series,
-            Command::batch([
-                series_command,
-                cast_widget_command.map(Message::CastWidgetAction),
-            ]),
-        )
-    }
-
     /// Counstruct the series page by providing it with SeriesMainInformation
-    pub fn from_series_information(
-        series_information: SeriesMainInformation,
-    ) -> (Self, Command<Message>) {
+    pub fn new(series_information: SeriesMainInformation) -> (Self, Command<Message>) {
         let series_id = series_information.id;
         let (cast_widget, cast_widget_command) = CastWidget::new(series_id);
         let series_image = series_information.image.clone();
         let series = Self {
             series_id,
-            load_state: LoadState::Loaded,
             seasons_load_state: LoadState::Loading,
-            series_information: Some(series_information),
+            series_information,
             next_episode_release_time: None,
             series_image: None,
             series_image_blurred: None,
@@ -325,13 +286,6 @@ impl Series {
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message::SeriesInfoObtained(info) => {
-                self.load_state = LoadState::Loaded;
-                let info_image = info.image.clone();
-                self.series_information = Some(*info);
-
-                return Command::batch(get_images_and_episode_list(info_image, self.series_id));
-            }
             Message::SeriesImageLoaded(image) => {
                 // Since blurring the image in debug build is really slow, so it is only enabled in release build
                 #[cfg(debug_assertions)]
@@ -359,21 +313,21 @@ impl Series {
                 return self.season_widgets[index].update(*message);
             }
             Message::TrackSeries => {
-                let series_id = self.series_information.as_ref().unwrap().id;
+                let series_id = self.series_information.id;
 
                 if let Some(mut series) = database::DB.get_series(series_id) {
                     series.mark_tracked();
                 } else {
                     let mut series = database::Series::new(
-                        self.series_information.as_ref().unwrap().name.to_owned(),
+                        self.series_information.name.to_owned(),
                         self.series_id,
                     );
                     series.mark_tracked();
-                    database::DB.add_series(self.series_information.as_ref().unwrap().id, &series);
+                    database::DB.add_series(self.series_information.id, &series);
                 }
             }
             Message::UntrackSeries => {
-                let series_id = self.series_information.as_ref().unwrap().id;
+                let series_id = self.series_information.id;
                 if let Some(mut series) = database::DB.get_series(series_id) {
                     series.mark_untracked();
                 }
@@ -396,7 +350,7 @@ impl Series {
                         season_widget::Season::new(
                             index,
                             self.series_id,
-                            self.series_information.as_ref().unwrap().clone().name,
+                            self.series_information.clone().name,
                             season.0,
                             season.1,
                         )
@@ -413,40 +367,30 @@ impl Series {
     }
 
     pub fn view(&self) -> Element<Message, Renderer> {
-        match self.load_state {
-            LoadState::Loading => container(Spinner::new())
-                .height(Length::Fill)
-                .width(Length::Fill)
-                .center_x()
-                .center_y()
-                .into(),
-            LoadState::Loaded => {
-                let background = background(
-                    self.series_background.clone(),
-                    self.series_image_blurred.clone(),
-                );
+        let background = background(
+            self.series_background.clone(),
+            self.series_image_blurred.clone(),
+        );
 
-                let series_metadata = series_metadata(
-                    self.series_information.as_ref().unwrap(),
-                    self.series_image.clone(),
-                    self.next_episode_release_time.as_ref(),
-                );
+        let series_metadata = series_metadata(
+            &self.series_information,
+            self.series_image.clone(),
+            self.next_episode_release_time.as_ref(),
+        );
 
-                let seasons_widget = self.seasons_view();
+        let seasons_widget = self.seasons_view();
 
-                let cast_widget = self.cast_widget.view().map(Message::CastWidgetAction);
+        let cast_widget = self.cast_widget.view().map(Message::CastWidgetAction);
 
-                let content = column![
-                    background,
-                    series_metadata,
-                    vertical_space(10),
-                    seasons_widget,
-                    cast_widget,
-                ];
+        let content = column![
+            background,
+            series_metadata,
+            vertical_space(10),
+            seasons_widget,
+            cast_widget,
+        ];
 
-                scrollable(content).into()
-            }
-        }
+        scrollable(content).into()
     }
 
     fn seasons_view(&self) -> Element<'_, Message, Renderer> {
