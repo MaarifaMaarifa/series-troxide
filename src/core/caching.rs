@@ -48,12 +48,12 @@ pub struct Cacher {
 impl Cacher {
     pub fn init() -> Self {
         info!("opening cache");
-        if let Some(proj_dir) = ProjectDirs::from("", "", env!("CARGO_PKG_NAME")) {
-            let cache_path = path::PathBuf::from(&proj_dir.data_dir());
-            Self { cache_path }
-        } else {
-            panic!("could not get the cache path");
-        }
+
+        let proj_dir = ProjectDirs::from("", "", env!("CARGO_PKG_NAME"))
+            .expect("could not get the cache path");
+
+        let cache_path = path::PathBuf::from(&proj_dir.cache_dir());
+        Self { cache_path }
     }
 
     /// Return the root path where all series troxide data resides including

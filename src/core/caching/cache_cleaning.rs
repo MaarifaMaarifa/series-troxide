@@ -17,6 +17,7 @@ use super::{
 };
 use anyhow::bail;
 use chrono::{DateTime, Duration, Local, Utc};
+use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 use tokio::fs;
 use tracing::{error, info};
@@ -53,7 +54,9 @@ pub struct CacheCleaner {
 
 impl CacheCleaner {
     fn get_cache_cleaning_record_path() -> path::PathBuf {
-        let mut cache_path = path::PathBuf::from(CACHER.get_project_path());
+        let proj_dir = ProjectDirs::from("", "", env!("CARGO_PKG_NAME"))
+            .expect("could not get the project path");
+        let mut cache_path = path::PathBuf::from(proj_dir.data_dir());
         cache_path.push(CLEANING_RECORD_FILENAME);
         cache_path
     }
