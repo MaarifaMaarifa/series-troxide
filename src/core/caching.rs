@@ -18,8 +18,8 @@ pub mod show_cast;
 pub mod show_images;
 pub mod tv_schedule;
 
-const SERIES_CACHE_DIRECTORY: &str = "series-troxide-series-data";
-const IMAGES_CACHE_DIRECTORY: &str = "series-troxide-images-data";
+const SERIES_CACHE_DIRECTORY: &str = "series-cache";
+const IMAGES_CACHE_DIRECTORY: &str = "images-cache";
 const EPISODE_LIST_FILENAME: &str = "episode-list";
 const SERIES_MAIN_INFORMATION_FILENAME: &str = "main-info";
 const SERIES_CAST_FILENAME: &str = "show-cast";
