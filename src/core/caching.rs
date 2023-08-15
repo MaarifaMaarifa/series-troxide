@@ -1,3 +1,30 @@
+//! Caching for Series and Images data
+//!
+//! Due to the rate limit of the api and avoiding overwhelming the api i.e. when
+//! computing statistics for all the series in the database, caching becomes one
+//! of the most important aspects of series troxide.
+//!
+//! # Caching Strategy
+//! The current implementation of caching for series troxide involves two directories
+//! series cache directory and images cache directory.
+//!
+//! ## Series cache directory
+//! Series cache directory stores folders for individual series named after their series
+//! ids corresponding to their ids provided by the tvmaze api. Each series folder contains
+//! four files which are all in json format.
+//! - `main-info`. The main series information.
+//! - `episode-list`. The list of all episode of the series.
+//! - `show-cast`. The list of top cast of the series.
+//! - `image-list`. The list of all images of the series i.e posters, banners, backgrounds etc.
+//!
+//! ## Images cache directory
+//! This contains all the images ever loaded by series troxide. Having all images ever loaded by
+//! the program in the same directory makes it more efficient by reusing the same images that might
+//! be required in different places. A good example is the show cast, the same actor can appear
+//! in different shows and tvmaze reuses the same image for that actor. Another example is when
+//! searching for series, results may include a series that is already tracked and whose image
+//! is already cached.
+
 use bytes::Bytes;
 use std::io::{self, ErrorKind};
 use std::path;
