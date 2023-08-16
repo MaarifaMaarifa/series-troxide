@@ -106,7 +106,11 @@ pub mod series_poster {
         ///
         /// Consists of the Series image to the left and it's metadata (progress bar, etc)
         /// related to stuffs left to watch (episodes, time, etc)
-        pub fn watchlist_view(&self, total_episodes: usize) -> Element<'_, Message, Renderer> {
+        pub fn watchlist_view(
+            &self,
+            next_episode_to_watch: Option<&Episode>,
+            total_episodes: usize,
+        ) -> Element<'_, Message, Renderer> {
             let mut content = row!().padding(2).spacing(5);
             if let Some(image_bytes) = self.image.clone() {
                 let image_handle = image::Handle::from_memory(image_bytes);
@@ -143,20 +147,19 @@ pub mod series_poster {
 
             metadata = metadata.push(progress_bar);
 
-            let last_episode_watched = if let Some(series) =
-                database::DB.get_series(self.series_information.id)
-            {
-                if let Some((season_num, last_watched_season)) = series.get_last_season() {
-                    last_watched_season.get_last_episode();
-                    text(format!("{} {}","Last watched", season_episode_str_gen(season_num, last_watched_season.get_last_episode().expect("the season should have atleast one episode for it to be the last watched"))))
-                } else {
-                    text("No Episode Watched")
-                }
-            } else {
-                text("No Episode Watched")
+            if let Some(next_episode_to_watch) = next_episode_to_watch {
+                let season_number = next_episode_to_watch.season;
+                let episode_number = next_episode_to_watch
+                    .number
+                    .expect("episode should have a valid number at this point");
+                let episode_name = next_episode_to_watch.name.as_str();
+                let episode_text = text(format!(
+                    "{}: {}",
+                    season_episode_str_gen(season_number, episode_number),
+                    episode_name
+                ));
+                metadata = metadata.push(episode_text);
             };
-
-            metadata = metadata.push(last_episode_watched);
 
             let episodes_left = total_episodes - watched_episodes;
 

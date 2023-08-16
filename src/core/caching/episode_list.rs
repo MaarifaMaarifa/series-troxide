@@ -59,6 +59,10 @@ impl EpisodeList {
             .collect()
     }
 
+    pub fn get_all_episodes(&self) -> &[Episode] {
+        &self.episodes
+    }
+
     // /// Get the total number of all episodes in the Series
     // pub fn get_total_episodes(&self) -> usize {
     //     self.episodes.len()

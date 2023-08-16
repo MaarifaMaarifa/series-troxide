@@ -4,6 +4,7 @@ use iced::widget::{container, scrollable, text, Column};
 use iced::{Command, Element, Length, Renderer};
 use iced_aw::Spinner;
 
+use crate::core::api::episodes_information::Episode;
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::caching::episode_list::EpisodeList;
 use crate::core::caching::series_list;
@@ -15,7 +16,7 @@ use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, 
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    SeriesInformationLoaded(Vec<(SeriesMainInformation, usize)>),
+    SeriesInformationLoaded(Vec<(SeriesMainInformation, Option<Episode>, usize)>),
     SeriesPoster(usize, Box<SeriesPosterMessage>),
 }
 
@@ -27,7 +28,7 @@ enum LoadState {
 }
 
 pub struct WatchlistTab {
-    series_posters: Vec<(SeriesPoster, usize)>,
+    series_posters: Vec<(SeriesPoster, Option<Episode>, usize)>,
     load_state: LoadState,
     series_page_sender: mpsc::Sender<(series_page::Series, Command<series_page::Message>)>,
 }
@@ -55,13 +56,14 @@ impl WatchlistTab {
                 self.load_state = LoadState::Loaded;
 
                 // Arranging the watchlist shows alphabetically
-                series_infos.sort_by_key(|(series_info, _)| series_info.name.clone());
+                series_infos.sort_by_key(|(series_info, _, _)| series_info.name.clone());
 
                 let mut posters = Vec::with_capacity(series_infos.len());
                 let mut commands = Vec::with_capacity(series_infos.len());
-                for (index, (info, total_episodes)) in series_infos.into_iter().enumerate() {
+                for (index, (info, episode, total_episodes)) in series_infos.into_iter().enumerate()
+                {
                     let (poster, command) = SeriesPoster::new(index, info);
-                    posters.push((poster, total_episodes));
+                    posters.push((poster, episode, total_episodes));
                     commands.push(command);
                 }
                 self.series_posters = posters;
@@ -108,13 +110,15 @@ impl WatchlistTab {
                     let watchlist_items: Vec<Element<'_, Message, Renderer>> = self
                         .series_posters
                         .iter()
-                        .map(|(poster, total_episodes)| {
-                            poster.watchlist_view(*total_episodes).map(|message| {
-                                Message::SeriesPoster(
-                                    message.get_index().unwrap_or(0),
-                                    Box::new(message),
-                                )
-                            })
+                        .map(|(poster, last_watched_episode, total_episodes)| {
+                            poster
+                                .watchlist_view(last_watched_episode.as_ref(), *total_episodes)
+                                .map(|message| {
+                                    Message::SeriesPoster(
+                                        message.get_index().unwrap_or(0),
+                                        Box::new(message),
+                                    )
+                                })
                         })
                         .collect();
 
@@ -138,7 +142,8 @@ fn has_pending_episodes(database_series: &database::Series, episodes_list: &Epis
     episodes_list.get_total_watchable_episodes() != database_series.get_total_episodes()
 }
 
-async fn get_series_informations_and_watched_episodes() -> Vec<(SeriesMainInformation, usize)> {
+async fn get_series_informations_and_watched_episodes(
+) -> Vec<(SeriesMainInformation, Option<Episode>, usize)> {
     let tracked_series_informations = series_list::SeriesList::new()
         .get_tracked_series_informations()
         .await
@@ -167,7 +172,25 @@ async fn get_series_informations_and_watched_episodes() -> Vec<(SeriesMainInform
             has_pending_episodes(&series, episode_list)
         })
         .map(|(series_info, episode_list)| {
-            (series_info, episode_list.get_total_watchable_episodes())
+            let series = database::DB.get_series(series_info.id).unwrap();
+
+            // Finding an episode that is not watched, making it as the next episode to watch
+            let next_episode_to_watch = episode_list.get_all_episodes().iter().find(|episode| {
+                series
+                    .get_season(episode.season)
+                    .map(|season| {
+                        episode
+                            .number
+                            .map(|episode_number| !season.is_episode_watched(episode_number))
+                            .unwrap_or(false)
+                    })
+                    .unwrap_or(true) // if season isn't watched, let's get it's first episode
+            });
+            (
+                series_info,
+                next_episode_to_watch.cloned(),
+                episode_list.get_total_watchable_episodes(),
+            )
         })
         .collect()
 }
