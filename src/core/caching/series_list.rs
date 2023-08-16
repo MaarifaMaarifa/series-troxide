@@ -158,8 +158,14 @@ impl SeriesList {
     ) -> anyhow::Result<Vec<(SeriesMainInformation, super::episode_list::EpisodeList)>> {
         let series_infos = self.get_running_tracked_series_informations().await?;
         let mut waiting_releases_series_infos = Vec::with_capacity(series_infos.len());
-        for series_info in series_infos {
-            let episode_list = super::episode_list::EpisodeList::new(series_info.id).await?;
+
+        let handles: Vec<_> = series_infos
+            .iter()
+            .map(|series_info| tokio::spawn(super::episode_list::EpisodeList::new(series_info.id)))
+            .collect();
+
+        for (handle, series_info) in handles.into_iter().zip(series_infos.into_iter()) {
+            let episode_list = handle.await??;
             if episode_list.get_next_episode().is_some() {
                 waiting_releases_series_infos.push((series_info, episode_list))
             }
