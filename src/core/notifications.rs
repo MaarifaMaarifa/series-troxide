@@ -131,15 +131,11 @@ async fn get_releases_with_duration_to_release() -> Vec<(SeriesMainInformation, 
         .context("failed to get upcoming series releases")
         .unwrap()
         .into_iter()
-        .map(|(series_info, episode_list)| {
+        .map(|(series_info, next_episode, release_time)| {
             (
                 series_info,
-                episode_list.get_next_episode().unwrap().to_owned(),
-                episode_list
-                    .get_next_episode_and_time()
-                    .unwrap()
-                    .1
-                    .get_remaining_release_duration(),
+                next_episode,
+                release_time.get_remaining_release_duration(),
             )
         })
         .collect()

@@ -4,9 +4,10 @@ use iced::widget::{container, text, Column};
 use iced::{Command, Element, Length, Renderer};
 use iced_aw::Spinner;
 
+use crate::core::api::episodes_information::Episode;
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::caching;
-use crate::core::caching::episode_list::EpisodeList;
+use crate::core::caching::episode_list::EpisodeReleaseTime;
 use crate::gui::series_page;
 use crate::gui::styles;
 use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
@@ -14,7 +15,7 @@ use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, 
 #[derive(Debug, Clone)]
 pub enum Message {
     SeriesPosters(SeriesPosterMessage),
-    SeriesInformationReceived(Option<Vec<(SeriesMainInformation, EpisodeList)>>),
+    SeriesInformationReceived(Option<Vec<(SeriesMainInformation, Episode, EpisodeReleaseTime)>>),
     Refresh,
 }
 
@@ -27,7 +28,7 @@ enum LoadState {
 
 pub struct UpcomingReleases {
     load_state: LoadState,
-    series_posters: Vec<(SeriesPoster, EpisodeList)>,
+    series_posters: Vec<(SeriesPoster, Episode, EpisodeReleaseTime)>,
     series_page_sender: mpsc::Sender<(series_page::Series, Command<series_page::Message>)>,
 }
 
@@ -58,16 +59,16 @@ impl UpcomingReleases {
                 let mut series_infos = series_infos.unwrap();
 
                 // sorting the list according to release time
-                series_infos.sort_by_key(|(_, episode_list)| {
-                    episode_list.get_next_episode_and_time().unwrap().1
-                });
+                series_infos.sort_by_key(|(_, _, release_time)| release_time.clone());
 
                 let mut series_posters_commands = Vec::with_capacity(series_infos.len());
                 let mut series_posters = Vec::with_capacity(series_infos.len());
 
-                for (index, series_info) in series_infos.into_iter().enumerate() {
-                    let (poster, command) = SeriesPoster::new(index, series_info.0);
-                    series_posters.push((poster, series_info.1));
+                for (index, (series_info, episode, release_time)) in
+                    series_infos.into_iter().enumerate()
+                {
+                    let (poster, command) = SeriesPoster::new(index, series_info);
+                    series_posters.push((poster, episode, release_time));
                     series_posters_commands.push(command);
                 }
                 self.series_posters = series_posters;
@@ -111,14 +112,12 @@ impl UpcomingReleases {
                 self.series_posters
                     .iter()
                     .enumerate()
-                    .map(|(index, (poster, _))| {
+                    .map(|(index, (poster, _, _))| {
                         poster
-                            .release_series_posters_view(
-                                self.series_posters[index]
-                                    .1
-                                    .get_next_episode_and_time()
-                                    .unwrap(),
-                            )
+                            .release_series_posters_view({
+                                let (_, episode, release_time) = &self.series_posters[index];
+                                (episode, release_time)
+                            })
                             .map(Message::SeriesPosters)
                     })
                     .collect(),

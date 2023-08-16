@@ -190,7 +190,7 @@ pub mod series_poster {
         /// episode is known
         pub fn release_series_posters_view(
             &self,
-            episode_and_release_time: (&Episode, EpisodeReleaseTime),
+            episode_and_release_time: (&Episode, &EpisodeReleaseTime),
         ) -> Element<'_, Message, Renderer> {
             let mut content = row!().padding(2).spacing(7);
             if let Some(image_bytes) = self.image.clone() {

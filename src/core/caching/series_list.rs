@@ -1,8 +1,8 @@
 //! Perform different operations on the database series
 
-use super::series_information;
+use super::{episode_list::EpisodeReleaseTime, series_information};
 use crate::core::{
-    api::series_information::SeriesMainInformation,
+    api::{episodes_information::Episode, series_information::SeriesMainInformation},
     database::{self, Series},
 };
 use lazy_static::lazy_static;
@@ -155,7 +155,7 @@ impl SeriesList {
 
     pub async fn get_upcoming_release_series_informations_and_episodes(
         &self,
-    ) -> anyhow::Result<Vec<(SeriesMainInformation, super::episode_list::EpisodeList)>> {
+    ) -> anyhow::Result<Vec<(SeriesMainInformation, Episode, EpisodeReleaseTime)>> {
         let series_infos = self.get_running_tracked_series_informations().await?;
         let mut waiting_releases_series_infos = Vec::with_capacity(series_infos.len());
 
@@ -166,8 +166,12 @@ impl SeriesList {
 
         for (handle, series_info) in handles.into_iter().zip(series_infos.into_iter()) {
             let episode_list = handle.await??;
-            if episode_list.get_next_episode().is_some() {
-                waiting_releases_series_infos.push((series_info, episode_list))
+            if let Some((next_episode, release_time)) = episode_list.get_next_episode_and_time() {
+                waiting_releases_series_infos.push((
+                    series_info,
+                    next_episode.to_owned(),
+                    release_time,
+                ))
             }
         }
         Ok(waiting_releases_series_infos)
