@@ -251,7 +251,7 @@ pub mod series_poster {
                         column![text(time_value), text(time_text),]
                             .align_items(iced::Alignment::Center)
                     })
-                    .unwrap(),
+                    .unwrap_or(column![text("Now")]),
                 )
                 .width(70)
                 .height(70)

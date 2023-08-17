@@ -41,7 +41,8 @@ pub mod time {
         /// and all of it's remaining portions split in months days, hours and finally minutes.
         ///
         /// # Note
-        /// Any missing portion/fraction will not be part of the collection
+        /// The `Vec` returned will be empty if the time is smaller than 1 minute as that's the
+        /// smallest amount time that can be returned in the collection.
         pub fn get_time(&self) -> Vec<(String, u32)> {
             let mut time = vec![];
 
