@@ -42,7 +42,7 @@ pub mod time {
         ///
         /// # Note
         /// Any missing portion/fraction will not be part of the collection
-        pub fn get_time(&self) -> Vec<(&'static str, u32)> {
+        pub fn get_time(&self) -> Vec<(String, u32)> {
             let mut time = vec![];
 
             let years = self.time_in_minutes / (60 * 24 * 365);
@@ -54,21 +54,33 @@ pub mod time {
             let minutes = (float_hours.fract() * 60.0) as u32;
 
             if minutes > 0 {
-                time.push(("Minutes", minutes))
+                time.push(("Minute", minutes))
             }
             if hours > 0 {
-                time.push(("Hours", hours))
+                time.push(("Hour", hours))
             }
             if days > 0 {
-                time.push(("Days", days))
+                time.push(("Day", days))
             }
             if months > 0 {
-                time.push(("Months", months))
+                time.push(("Month", months))
             }
             if years > 0 {
-                time.push(("Years", years))
+                time.push(("Year", years))
             }
-            time
+            time.into_iter().map(plurize_time).collect()
         }
+    }
+
+    /// Takes the time and it's name i.e week, day, hour and concatenates the
+    /// two terms handling the condition when the time is above 1 (plural)
+    fn plurize_time(it: (&str, u32)) -> (String, u32) {
+        let (time_text, time_value) = it;
+        let word = if time_value > 1 {
+            format!("{}s", time_text)
+        } else {
+            time_text.to_string()
+        };
+        (word, time_value)
     }
 }
