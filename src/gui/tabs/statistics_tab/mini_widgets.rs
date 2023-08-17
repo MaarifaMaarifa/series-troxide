@@ -1,9 +1,9 @@
-use iced::widget::{column, container, horizontal_space, row, text};
+use iced::widget::{column, container, horizontal_space, row, text, Row};
 use iced::{Alignment, Element, Length, Renderer};
 
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::database;
-use crate::gui::styles;
+use crate::gui::{helpers, styles};
 
 use super::Message;
 
@@ -73,43 +73,26 @@ pub fn time_count(
     ]
     .align_items(Alignment::Center);
 
-    let years = total_average_minutes / (60 * 24 * 365);
-    let months = (total_average_minutes / (60 * 24 * 30)) % 12;
-    let days = (total_average_minutes / (60 * 24)) % 30;
-    let hours = (total_average_minutes / 60) % 24;
+    let times = helpers::time::SaneTime::new(total_average_minutes).get_time();
 
-    let complete_time_count = row![
-        column![
-            text(years)
-                .size(31)
-                .style(styles::text_styles::purple_text_theme()),
-            text("Years").size(11)
-        ]
-        .align_items(Alignment::Center),
-        column![
-            text(months)
-                .size(31)
-                .style(styles::text_styles::purple_text_theme()),
-            text("Months").size(11)
-        ]
-        .align_items(Alignment::Center),
-        column![
-            text(days)
-                .size(31)
-                .style(styles::text_styles::purple_text_theme()),
-            text("Days").size(11)
-        ]
-        .align_items(Alignment::Center),
-        column![
-            text(hours)
-                .size(31)
-                .style(styles::text_styles::purple_text_theme()),
-            text("Hours").size(11)
-        ]
-        .align_items(Alignment::Center),
-    ]
-    .align_items(Alignment::Center)
-    .spacing(10);
+    let time_values: Vec<_> = times
+        .into_iter()
+        .rev()
+        .map(|(time_text, time_value)| {
+            column![
+                text(time_value)
+                    .size(31)
+                    .style(styles::text_styles::purple_text_theme()),
+                text(time_text).size(11)
+            ]
+            .align_items(Alignment::Center)
+            .into()
+        })
+        .collect();
+
+    let complete_time_count = Row::with_children(time_values)
+        .align_items(Alignment::Center)
+        .spacing(10);
 
     let content = column![
         text("Total average time spent watching Series"),
