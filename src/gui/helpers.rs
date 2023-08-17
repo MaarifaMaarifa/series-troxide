@@ -21,3 +21,54 @@ pub fn season_episode_str_gen(season_number: u32, episode_number: u32) -> String
         parse_season_episode_number(episode_number)
     )
 }
+
+pub mod time {
+    //! Time related helpers
+
+    pub struct SaneTime {
+        time_in_minutes: u32,
+    }
+
+    impl SaneTime {
+        pub fn new(time_in_minutes: u32) -> Self {
+            Self { time_in_minutes }
+        }
+
+        /// Return a `Vec` of time values and their texts starting from
+        /// the smallest to the largest
+        ///
+        /// This is useful if you want to get the highest sane time(a year for example)
+        /// and all of it's remaining portions split in months days, hours and finally minutes.
+        ///
+        /// # Note
+        /// Any missing portion/fraction will not be part of the collection
+        pub fn get_time(&self) -> Vec<(&'static str, u32)> {
+            let mut time = vec![];
+
+            let years = self.time_in_minutes / (60 * 24 * 365);
+            let months = (self.time_in_minutes / (60 * 24 * 30)) % 12;
+            let days = (self.time_in_minutes / (60 * 24)) % 30;
+            let hours = (self.time_in_minutes / 60) % 24;
+
+            let float_hours = (self.time_in_minutes as f32 / 60.0) % 24.0;
+            let minutes = (float_hours.fract() * 60.0) as u32;
+
+            if minutes > 0 {
+                time.push(("Minutes", minutes))
+            }
+            if hours > 0 {
+                time.push(("Hours", hours))
+            }
+            if days > 0 {
+                time.push(("Days", days))
+            }
+            if months > 0 {
+                time.push(("Months", months))
+            }
+            if years > 0 {
+                time.push(("Years", years))
+            }
+            time
+        }
+    }
+}

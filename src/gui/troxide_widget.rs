@@ -5,7 +5,7 @@ pub mod series_poster {
     use crate::core::api::Image;
     use crate::core::caching::episode_list::EpisodeReleaseTime;
     use crate::core::{caching, database};
-    use crate::gui::helpers::season_episode_str_gen;
+    use crate::gui::helpers::{self, season_episode_str_gen};
     use crate::gui::styles;
 
     use bytes::Bytes;
@@ -166,10 +166,12 @@ pub mod series_poster {
             metadata = metadata.push(text(format!("{} episodes left", episodes_left)));
 
             if let Some(runtime) = self.series_information.average_runtime {
-                let watchtime = format!(
-                    "Average time left to complete, {} minutes",
-                    runtime * episodes_left as u32
-                );
+                let time = helpers::time::SaneTime::new(runtime * episodes_left as u32).get_time();
+                let watchtime: String = time
+                    .into_iter()
+                    .rev()
+                    .map(|(time_text, time_value)| format!("{} {} ", time_value, time_text))
+                    .collect();
                 metadata = metadata.push(text(watchtime));
             };
 
