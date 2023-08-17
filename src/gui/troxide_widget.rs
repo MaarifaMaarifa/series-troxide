@@ -238,13 +238,20 @@ pub mod series_poster {
             content = content.push(horizontal_space(Length::Fill));
             let release_time_widget = container(
                 container(
-                    text(
-                        &episode_and_release_time
+                    helpers::time::SaneTime::new(
+                        episode_and_release_time
                             .1
-                            .get_remaining_release_time()
-                            .unwrap(),
+                            .get_remaining_release_duration()
+                            .num_minutes() as u32,
                     )
-                    .horizontal_alignment(iced::alignment::Horizontal::Center),
+                    .get_time()
+                    .into_iter()
+                    .last()
+                    .map(|(time_text, time_value)| {
+                        column![text(time_value), text(time_text),]
+                            .align_items(iced::Alignment::Center)
+                    })
+                    .unwrap(),
                 )
                 .width(70)
                 .height(70)

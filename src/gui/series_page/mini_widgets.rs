@@ -4,7 +4,7 @@ use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::caching::episode_list::EpisodeReleaseTime;
 use crate::gui::assets::get_static_cow_from_asset;
 use crate::gui::assets::icons::{CLOCK_FILL, STAR, STAR_FILL, STAR_HALF};
-use crate::gui::helpers::season_episode_str_gen;
+use crate::gui::helpers::{self, season_episode_str_gen};
 use crate::gui::styles;
 
 use iced::widget::{container, horizontal_space, row, svg, text, Space};
@@ -229,7 +229,14 @@ pub fn next_episode_release_time_widget(
         let text = text(format!(
             "{} in {}",
             next_episode,
-            release_time.get_remaining_release_time().unwrap()
+            helpers::time::SaneTime::new(
+                release_time.get_remaining_release_duration().num_minutes() as u32
+            )
+            .get_time()
+            .into_iter()
+            .rev()
+            .map(|(time_text, time_value)| format!("{} {} ", time_value, time_text))
+            .collect::<String>()
         ))
         .size(14);
 

@@ -215,31 +215,6 @@ impl EpisodeReleaseTime {
         self.release_time - local_time
     }
 
-    /// Returns the remaining time for an episode to be released
-    pub fn get_remaining_release_time(&self) -> Option<String> {
-        let local_time = Utc::now().with_timezone(&Local);
-
-        if self.release_time > local_time {
-            let time_diff = self.release_time - local_time;
-
-            if time_diff.num_weeks() != 0 {
-                return Some(plurize_time(time_diff.num_weeks(), "week"));
-            }
-            if time_diff.num_days() != 0 {
-                return Some(plurize_time(time_diff.num_days(), "day"));
-            }
-            if time_diff.num_hours() != 0 {
-                return Some(plurize_time(time_diff.num_hours(), "hour"));
-            }
-            if time_diff.num_minutes() != 0 {
-                return Some(plurize_time(time_diff.num_minutes(), "minute"));
-            }
-            Some(String::from("Now"))
-        } else {
-            None
-        }
-    }
-
     /// Returns the remaining full date and time for an episode to be released
     pub fn get_full_release_date_and_time(&self) -> String {
         /// appends zero the minute digit if it's below 10 for better display
@@ -264,15 +239,5 @@ impl EpisodeReleaseTime {
             minute,
             pm_am
         )
-    }
-}
-
-/// Takes the time and it's name i.e week, day, hour and concatenates the
-/// two terms handling the condition when the time is above 1 (plural)
-fn plurize_time(time_numeral: i64, word: &str) -> String {
-    if time_numeral > 1 {
-        format!("{} {}s", time_numeral, word)
-    } else {
-        format!("{} {}", time_numeral, word)
     }
 }
