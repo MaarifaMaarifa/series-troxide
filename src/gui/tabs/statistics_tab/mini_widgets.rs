@@ -114,12 +114,12 @@ pub fn time_count(
 
 pub mod series_banner {
     use bytes::Bytes;
-    use iced::widget::{column, container, image, row, text, Space};
+    use iced::widget::{column, container, image, row, text, Row, Space};
     use iced::{Alignment, Command, Element, Length, Renderer};
 
     use crate::core::caching;
     use crate::core::{api::series_information::SeriesMainInformation, database};
-    use crate::gui::styles;
+    use crate::gui::{helpers, styles};
 
     #[derive(Debug, Clone)]
     pub enum Message {
@@ -178,32 +178,46 @@ pub mod series_banner {
             let series = database::DB.get_series(series_id).unwrap();
 
             let series_name = format!("{}: {}", self.id + 1, &self.series_info_and_time.0.name);
-            let time_in_hours = self.series_info_and_time.1.map(|time| time / 60);
+            let times = self
+                .series_info_and_time
+                .1
+                .map(|time| helpers::time::SaneTime::new(time).get_time())
+                .unwrap_or_default();
 
             let seasons = series.get_total_seasons();
             let episodes = series.get_total_episodes();
 
-            let metadata = row![
-                column![
-                    if let Some(time_in_hours) = time_in_hours {
-                        text(time_in_hours).size(31)
-                    } else {
-                        text("unavailable")
-                    }
-                    .style(styles::text_styles::purple_text_theme()),
-                    text("Hours").size(11)
-                ]
-                .align_items(Alignment::Center),
+            let time_stats = Row::with_children(
+                times
+                    .into_iter()
+                    .rev()
+                    .map(|(time_text, time_value)| {
+                        column![
+                            text(time_value)
+                                .size(20)
+                                .style(styles::text_styles::purple_text_theme()),
+                            text(time_text).size(11)
+                        ]
+                        .align_items(Alignment::Center)
+                        .spacing(5)
+                        .into()
+                    })
+                    .collect(),
+            )
+            .align_items(Alignment::Center)
+            .spacing(5);
+
+            let count_stats = row![
                 column![
                     text(seasons)
-                        .size(31)
+                        .size(20)
                         .style(styles::text_styles::purple_text_theme()),
                     text("Seasons").size(11)
                 ]
                 .align_items(Alignment::Center),
                 column![
                     text(episodes)
-                        .size(31)
+                        .size(20)
                         .style(styles::text_styles::purple_text_theme()),
                     text("episodes").size(11)
                 ]
@@ -211,6 +225,10 @@ pub mod series_banner {
             ]
             .align_items(Alignment::Center)
             .spacing(5);
+
+            let metadata = column![count_stats, time_stats]
+                .align_items(Alignment::Center)
+                .spacing(5);
 
             let banner: Element<'_, Message, Renderer> =
                 if let Some(image_bytes) = self.banner.clone() {
