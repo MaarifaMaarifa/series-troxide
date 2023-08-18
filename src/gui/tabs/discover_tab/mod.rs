@@ -1,6 +1,6 @@
 use std::sync::mpsc;
 
-use crate::core::api::series_information::SeriesMainInformation;
+use crate::core::api::series_information::{Genre, SeriesMainInformation};
 use crate::core::api::updates::show_updates::*;
 use crate::core::caching;
 use crate::core::caching::tv_schedule::{get_series_with_country, get_series_with_date};
@@ -31,10 +31,9 @@ enum LoadState {
 struct LoadStatus {
     global_series: LoadState,
     local_series: LoadState,
-    monthly_new_series: LoadState,
-    monthly_returning_series: LoadState,
-    popular_series: LoadState,
     shows_update: LoadState,
+    // series which depend on `FullSchedule`
+    schedule_series: LoadState,
 }
 
 #[derive(Clone, Debug)]
@@ -49,6 +48,15 @@ pub enum Message {
     MonthlyNewSeries(SeriesPosterMessage),
     MonthlyReturningSeries(SeriesPosterMessage),
     SeriesUpdates(SeriesPosterMessage),
+    RomanceSeries(SeriesPosterMessage),
+    DramaSeries(SeriesPosterMessage),
+    ActionSeries(SeriesPosterMessage),
+    SciFiSeries(SeriesPosterMessage),
+    HorrorSeries(SeriesPosterMessage),
+    AdventureSeries(SeriesPosterMessage),
+    ComedySeries(SeriesPosterMessage),
+    CrimeSeries(SeriesPosterMessage),
+    AnimeSeries(SeriesPosterMessage),
     Search(SearchMessage),
     SeriesSelected(Box<SeriesMainInformation>),
     ShowSearchResults,
@@ -61,14 +69,24 @@ pub struct DiscoverTab {
     load_status: LoadStatus,
     show_search_results: bool,
     search_state: searching::Search,
+    series_page_sender: mpsc::Sender<(series_page::Series, Command<series_page::Message>)>,
+    country_name: String,
+
     new_global_series: Vec<SeriesPoster>,
     new_local_series: Vec<SeriesPoster>,
     popular_series: Vec<SeriesPoster>,
     monthly_new_series: Vec<SeriesPoster>,
     monthly_returning_series: Vec<SeriesPoster>,
+    romance_series: Vec<SeriesPoster>,
+    action_series: Vec<SeriesPoster>,
+    scifi_series: Vec<SeriesPoster>,
+    drama_series: Vec<SeriesPoster>,
+    horror_series: Vec<SeriesPoster>,
+    comedy_series: Vec<SeriesPoster>,
+    adventure_series: Vec<SeriesPoster>,
+    crime_series: Vec<SeriesPoster>,
+    anime_series: Vec<SeriesPoster>,
     series_updates: Vec<SeriesPoster>,
-    series_page_sender: mpsc::Sender<(series_page::Series, Command<series_page::Message>)>,
-    country_name: String,
 }
 
 impl DiscoverTab {
@@ -83,6 +101,15 @@ impl DiscoverTab {
                 new_global_series: vec![],
                 new_local_series: vec![],
                 popular_series: vec![],
+                romance_series: vec![],
+                scifi_series: vec![],
+                drama_series: vec![],
+                action_series: vec![],
+                horror_series: vec![],
+                adventure_series: vec![],
+                comedy_series: vec![],
+                crime_series: vec![],
+                anime_series: vec![],
                 monthly_new_series: vec![],
                 monthly_returning_series: vec![],
                 series_updates: vec![],
@@ -148,10 +175,8 @@ impl DiscoverTab {
                 // `monthly new series` will represent others that obtain information
                 // from `FullSchedule` since when one is loaded, all are guaranteed to be
                 // loaded and vice-versa is true
-                if let LoadState::Loaded = &self.load_status.monthly_new_series {
-                    self.load_status.monthly_new_series = LoadState::Loading;
-                    self.load_status.monthly_returning_series = LoadState::Loading;
-                    self.load_status.popular_series = LoadState::Loading;
+                if let LoadState::Loaded = &self.load_status.schedule_series {
+                    self.load_status.schedule_series = LoadState::Loading;
                     load_commands[3] = load_full_schedule();
                 }
 
@@ -268,7 +293,7 @@ impl DiscoverTab {
                 }
                 self.monthly_new_series[message.get_index().expect("message should have an index")]
                     .update(message)
-                    .map(Message::LocalSeries)
+                    .map(Message::MonthlyNewSeries)
             }
             Message::MonthlyReturningSeries(message) => {
                 if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
@@ -280,7 +305,7 @@ impl DiscoverTab {
                 self.monthly_returning_series
                     [message.get_index().expect("message should have an index")]
                 .update(message)
-                .map(Message::LocalSeries)
+                .map(Message::MonthlyReturningSeries)
             }
             Message::PopularSeries(message) => {
                 if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
@@ -291,60 +316,200 @@ impl DiscoverTab {
                 }
                 self.popular_series[message.get_index().expect("message should have an index")]
                     .update(message)
-                    .map(Message::LocalSeries)
+                    .map(Message::PopularSeries)
             }
             Message::FullScheduleLoaded(full_schedule) => {
-                // Generating appropriate series
-                let monthly_new_series_infos =
-                    full_schedule.get_monthly_new_series(20, get_current_month());
-                let monthly_returning_series_infos =
-                    full_schedule.get_monthly_returning_series(20, get_current_month());
-                let popular_series_infos = full_schedule.get_popular_series(20);
+                // Generating appropriate series posters and their commands
+                let (monthly_new_posters, monthly_new_posters_commands) =
+                    Self::generate_posters_and_commands_from_series_infos(
+                        full_schedule.get_monthly_new_series(20, get_current_month()),
+                    );
 
-                // Dealing with monthly new shows
-                let mut monthly_new_posters = Vec::with_capacity(monthly_new_series_infos.len());
-                let mut monthly_new_posters_commands =
-                    Vec::with_capacity(monthly_new_series_infos.len());
-                for (index, series_info) in monthly_new_series_infos.into_iter().enumerate() {
-                    let (poster, command) = SeriesPoster::new(index, series_info);
-                    monthly_new_posters.push(poster);
-                    monthly_new_posters_commands.push(command);
-                }
+                let (monthly_returning_posters, monthly_returning_posters_commands) =
+                    Self::generate_posters_and_commands_from_series_infos(
+                        full_schedule.get_monthly_returning_series(20, get_current_month()),
+                    );
 
-                // Dealing with monthly returning shows
-                let mut monthly_returning_posters =
-                    Vec::with_capacity(monthly_returning_series_infos.len());
-                let mut monthly_returning_posters_commands =
-                    Vec::with_capacity(monthly_returning_series_infos.len());
-                for (index, series_info) in monthly_returning_series_infos.into_iter().enumerate() {
-                    let (poster, command) = SeriesPoster::new(index, series_info);
-                    monthly_returning_posters.push(poster);
-                    monthly_returning_posters_commands.push(command);
-                }
+                let (popular_posters, popular_posters_commands) =
+                    Self::generate_posters_and_commands_from_series_infos(
+                        full_schedule.get_popular_series(20),
+                    );
 
-                // Dealing with popular shows
-                let mut popular_posters = Vec::with_capacity(popular_series_infos.len());
-                let mut popular_posters_commands = Vec::with_capacity(popular_series_infos.len());
-                for (index, series_info) in popular_series_infos.into_iter().enumerate() {
-                    let (poster, command) = SeriesPoster::new(index, series_info);
-                    popular_posters.push(poster);
-                    popular_posters_commands.push(command);
-                }
+                let (romance_posters, romance_posters_commands) =
+                    Self::generate_posters_and_commands_from_series_infos(
+                        full_schedule.get_popular_series_by_genre(20, Genre::Romance),
+                    );
+
+                let (scifi_posters, scifi_posters_commands) =
+                    Self::generate_posters_and_commands_from_series_infos(
+                        full_schedule.get_popular_series_by_genre(20, Genre::ScienceFiction),
+                    );
+
+                let (drama_posters, drama_posters_commands) =
+                    Self::generate_posters_and_commands_from_series_infos(
+                        full_schedule.get_popular_series_by_genre(20, Genre::Drama),
+                    );
+
+                let (horror_posters, horror_posters_commands) =
+                    Self::generate_posters_and_commands_from_series_infos(
+                        full_schedule.get_popular_series_by_genre(20, Genre::Horror),
+                    );
+
+                let (adventure_posters, adventure_posters_commands) =
+                    Self::generate_posters_and_commands_from_series_infos(
+                        full_schedule.get_popular_series_by_genre(20, Genre::Adventure),
+                    );
+
+                let (comedy_posters, comedy_posters_commands) =
+                    Self::generate_posters_and_commands_from_series_infos(
+                        full_schedule.get_popular_series_by_genre(20, Genre::Comedy),
+                    );
+
+                let (crime_posters, crime_posters_commands) =
+                    Self::generate_posters_and_commands_from_series_infos(
+                        full_schedule.get_popular_series_by_genre(20, Genre::Crime),
+                    );
+
+                let (anime_posters, anime_posters_commands) =
+                    Self::generate_posters_and_commands_from_series_infos(
+                        full_schedule.get_popular_series_by_genre(20, Genre::Anime),
+                    );
+
+                let (action_posters, action_posters_commands) =
+                    Self::generate_posters_and_commands_from_series_infos(
+                        full_schedule.get_popular_series_by_genre(20, Genre::Action),
+                    );
 
                 // Finishing setting up
                 self.monthly_new_series = monthly_new_posters;
                 self.monthly_returning_series = monthly_returning_posters;
                 self.popular_series = popular_posters;
-                self.load_status.monthly_new_series = LoadState::Loaded;
-                self.load_status.monthly_returning_series = LoadState::Loaded;
-                self.load_status.popular_series = LoadState::Loaded;
+                self.romance_series = romance_posters;
+                self.action_series = action_posters;
+                self.scifi_series = scifi_posters;
+                self.drama_series = drama_posters;
+                self.horror_series = horror_posters;
+                self.adventure_series = adventure_posters;
+                self.comedy_series = comedy_posters;
+                self.crime_series = crime_posters;
+                self.anime_series = anime_posters;
+
+                self.load_status.schedule_series = LoadState::Loaded;
 
                 Command::batch([
                     Command::batch(monthly_new_posters_commands).map(Message::MonthlyNewSeries),
                     Command::batch(popular_posters_commands).map(Message::PopularSeries),
                     Command::batch(monthly_returning_posters_commands)
                         .map(Message::MonthlyReturningSeries),
+                    Command::batch(romance_posters_commands).map(Message::RomanceSeries),
+                    Command::batch(action_posters_commands).map(Message::ActionSeries),
+                    Command::batch(scifi_posters_commands).map(Message::SciFiSeries),
+                    Command::batch(drama_posters_commands).map(Message::DramaSeries),
+                    Command::batch(horror_posters_commands).map(Message::HorrorSeries),
+                    Command::batch(adventure_posters_commands).map(Message::AdventureSeries),
+                    Command::batch(comedy_posters_commands).map(Message::ComedySeries),
+                    Command::batch(crime_posters_commands).map(Message::CrimeSeries),
+                    Command::batch(anime_posters_commands).map(Message::AnimeSeries),
                 ])
+            }
+            Message::RomanceSeries(message) => {
+                if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
+                    self.show_search_results = false;
+                    return Command::perform(async {}, |_| {
+                        Message::SeriesSelected(series_information)
+                    });
+                }
+                self.romance_series[message.get_index().expect("message should have an index")]
+                    .update(message)
+                    .map(Message::RomanceSeries)
+            }
+            Message::ActionSeries(message) => {
+                if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
+                    self.show_search_results = false;
+                    return Command::perform(async {}, |_| {
+                        Message::SeriesSelected(series_information)
+                    });
+                }
+                self.action_series[message.get_index().expect("message should have an index")]
+                    .update(message)
+                    .map(Message::ActionSeries)
+            }
+            Message::SciFiSeries(message) => {
+                if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
+                    self.show_search_results = false;
+                    return Command::perform(async {}, |_| {
+                        Message::SeriesSelected(series_information)
+                    });
+                }
+                self.scifi_series[message.get_index().expect("message should have an index")]
+                    .update(message)
+                    .map(Message::SciFiSeries)
+            }
+            Message::DramaSeries(message) => {
+                if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
+                    self.show_search_results = false;
+                    return Command::perform(async {}, |_| {
+                        Message::SeriesSelected(series_information)
+                    });
+                }
+                self.drama_series[message.get_index().expect("message should have an index")]
+                    .update(message)
+                    .map(Message::DramaSeries)
+            }
+            Message::HorrorSeries(message) => {
+                if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
+                    self.show_search_results = false;
+                    return Command::perform(async {}, |_| {
+                        Message::SeriesSelected(series_information)
+                    });
+                }
+                self.horror_series[message.get_index().expect("message should have an index")]
+                    .update(message)
+                    .map(Message::HorrorSeries)
+            }
+            Message::AdventureSeries(message) => {
+                if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
+                    self.show_search_results = false;
+                    return Command::perform(async {}, |_| {
+                        Message::SeriesSelected(series_information)
+                    });
+                }
+                self.adventure_series[message.get_index().expect("message should have an index")]
+                    .update(message)
+                    .map(Message::AdventureSeries)
+            }
+            Message::ComedySeries(message) => {
+                if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
+                    self.show_search_results = false;
+                    return Command::perform(async {}, |_| {
+                        Message::SeriesSelected(series_information)
+                    });
+                }
+                self.comedy_series[message.get_index().expect("message should have an index")]
+                    .update(message)
+                    .map(Message::ComedySeries)
+            }
+            Message::CrimeSeries(message) => {
+                if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
+                    self.show_search_results = false;
+                    return Command::perform(async {}, |_| {
+                        Message::SeriesSelected(series_information)
+                    });
+                }
+                self.crime_series[message.get_index().expect("message should have an index")]
+                    .update(message)
+                    .map(Message::CrimeSeries)
+            }
+            Message::AnimeSeries(message) => {
+                if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
+                    self.show_search_results = false;
+                    return Command::perform(async {}, |_| {
+                        Message::SeriesSelected(series_information)
+                    });
+                }
+                self.anime_series[message.get_index().expect("message should have an index")]
+                    .update(message)
+                    .map(Message::AnimeSeries)
             }
         }
     }
@@ -366,22 +531,76 @@ impl DiscoverTab {
                 .map(Message::LocalSeries),
                 series_posters_loader(
                     "Popular Shows",
-                    &self.load_status.popular_series,
+                    &self.load_status.schedule_series,
                     &self.popular_series,
                 )
                 .map(Message::PopularSeries),
                 series_posters_loader(
                     &format!("New Shows Airing in {} ", get_current_month().name()),
-                    &self.load_status.monthly_new_series,
+                    &self.load_status.schedule_series,
                     &self.monthly_new_series
                 )
                 .map(Message::MonthlyNewSeries),
                 series_posters_loader(
                     &format!("Shows Returning in {}", get_current_month().name()),
-                    &self.load_status.monthly_returning_series,
+                    &self.load_status.schedule_series,
                     &self.monthly_returning_series
                 )
                 .map(Message::MonthlyReturningSeries),
+                series_posters_loader(
+                    "Action",
+                    &self.load_status.schedule_series,
+                    &self.action_series,
+                )
+                .map(Message::ActionSeries),
+                series_posters_loader(
+                    "Science Fiction",
+                    &self.load_status.schedule_series,
+                    &self.scifi_series,
+                )
+                .map(Message::SciFiSeries),
+                series_posters_loader(
+                    "Drama",
+                    &self.load_status.schedule_series,
+                    &self.drama_series,
+                )
+                .map(Message::DramaSeries),
+                series_posters_loader(
+                    "Romance",
+                    &self.load_status.schedule_series,
+                    &self.romance_series,
+                )
+                .map(Message::RomanceSeries),
+                series_posters_loader(
+                    "Horror",
+                    &self.load_status.schedule_series,
+                    &self.horror_series,
+                )
+                .map(Message::HorrorSeries),
+                series_posters_loader(
+                    "Adventure",
+                    &self.load_status.schedule_series,
+                    &self.adventure_series,
+                )
+                .map(Message::AdventureSeries),
+                series_posters_loader(
+                    "Comedy",
+                    &self.load_status.schedule_series,
+                    &self.comedy_series,
+                )
+                .map(Message::ComedySeries),
+                series_posters_loader(
+                    "Crime",
+                    &self.load_status.schedule_series,
+                    &self.crime_series,
+                )
+                .map(Message::CrimeSeries),
+                series_posters_loader(
+                    "Anime",
+                    &self.load_status.schedule_series,
+                    &self.anime_series,
+                )
+                .map(Message::AnimeSeries),
                 series_posters_loader(
                     "Shows Updates",
                     &self.load_status.shows_update,
@@ -415,6 +634,19 @@ impl DiscoverTab {
 
     pub fn tab_label() -> troxide_widget::tabs::TabLabel {
         troxide_widget::tabs::TabLabel::new(Self::title(), BINOCULARS_FILL)
+    }
+
+    fn generate_posters_and_commands_from_series_infos(
+        series_infos: Vec<SeriesMainInformation>,
+    ) -> (Vec<SeriesPoster>, Vec<Command<SeriesPosterMessage>>) {
+        let mut posters = Vec::with_capacity(series_infos.len());
+        let mut posters_commands = Vec::with_capacity(series_infos.len());
+        for (index, series_info) in series_infos.into_iter().enumerate() {
+            let (poster, command) = SeriesPoster::new(index, series_info);
+            posters.push(poster);
+            posters_commands.push(command);
+        }
+        (posters, posters_commands)
     }
 }
 

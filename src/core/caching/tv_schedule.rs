@@ -137,7 +137,7 @@ pub mod full_schedule {
 
     use crate::core::api::deserialize_json;
     use crate::core::api::episodes_information::Episode;
-    use crate::core::api::series_information::SeriesMainInformation;
+    use crate::core::api::series_information::{Genre, SeriesMainInformation};
     use crate::core::api::tv_schedule::get_full_schedule;
     use crate::core::caching::CACHER;
 
@@ -208,6 +208,36 @@ pub mod full_schedule {
             self.get_monthly_series(amount, month, |episode| {
                 episode.number.map(|num| num == 1).unwrap_or(false) && episode.season != 1
             })
+        }
+
+        pub fn get_popular_series_by_genre(
+            &self,
+            amount: usize,
+            genre: Genre,
+        ) -> Vec<SeriesMainInformation> {
+            let series_infos: HashSet<SeriesMainInformation> = self
+                .episodes
+                .iter()
+                .filter_map(|episode| episode.embedded.as_ref())
+                .cloned()
+                .map(|embedded| embedded.show)
+                .filter(|series_info| {
+                    let series_genres: Vec<Genre> = series_info
+                        .genres
+                        .iter()
+                        .map(|genre_str| Genre::from(genre_str.as_str()))
+                        .collect();
+                    series_genres
+                        .into_iter()
+                        .any(|series_genre| series_genre == genre)
+                })
+                .collect();
+
+            let mut series_infos: Vec<SeriesMainInformation> = series_infos.into_iter().collect();
+
+            super::sort_by_rating(&mut series_infos);
+
+            series_infos.into_iter().take(amount).collect()
         }
 
         /// # This is a list of all future series known to TVmaze, regardless of their country sorted by rating starting from the highest to the lowest
