@@ -40,6 +40,7 @@ image = "0.24.6"
 webbrowser = "0.8.10"
 notify-rust = "4.8.0"
 notify = "6.0.1"
+num-traits = "0.2.16"
 
 [build-dependencies]
 built = { version = "0.6.1", features = ["git2", "chrono"] }

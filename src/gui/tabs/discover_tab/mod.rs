@@ -2,6 +2,7 @@ use std::sync::mpsc;
 
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::api::updates::show_updates::*;
+use crate::core::caching;
 use crate::core::caching::tv_schedule::{get_series_with_country, get_series_with_date};
 use crate::core::settings_config::locale_settings;
 use crate::gui::assets::icons::BINOCULARS_FILL;
@@ -30,6 +31,9 @@ enum LoadState {
 struct LoadStatus {
     global_series: LoadState,
     local_series: LoadState,
+    monthly_new_series: LoadState,
+    monthly_returning_series: LoadState,
+    popular_series: LoadState,
     shows_update: LoadState,
 }
 
@@ -41,12 +45,16 @@ pub enum Message {
     SeriesUpdatesLoaded(Vec<SeriesMainInformation>),
     GlobalSeries(SeriesPosterMessage),
     LocalSeries(SeriesPosterMessage),
+    PopularSeries(SeriesPosterMessage),
+    MonthlyNewSeries(SeriesPosterMessage),
+    MonthlyReturningSeries(SeriesPosterMessage),
     SeriesUpdates(SeriesPosterMessage),
     Search(SearchMessage),
     SeriesSelected(Box<SeriesMainInformation>),
     ShowSearchResults,
     HideSearchResults,
     EscapeKeyPressed,
+    FullScheduleLoaded(caching::tv_schedule::full_schedule::FullSchedule),
 }
 
 pub struct DiscoverTab {
@@ -55,6 +63,9 @@ pub struct DiscoverTab {
     search_state: searching::Search,
     new_global_series: Vec<SeriesPoster>,
     new_local_series: Vec<SeriesPoster>,
+    popular_series: Vec<SeriesPoster>,
+    monthly_new_series: Vec<SeriesPoster>,
+    monthly_returning_series: Vec<SeriesPoster>,
     series_updates: Vec<SeriesPoster>,
     series_page_sender: mpsc::Sender<(series_page::Series, Command<series_page::Message>)>,
     country_name: String,
@@ -71,6 +82,9 @@ impl DiscoverTab {
                 search_state: searching::Search::default(),
                 new_global_series: vec![],
                 new_local_series: vec![],
+                popular_series: vec![],
+                monthly_new_series: vec![],
+                monthly_returning_series: vec![],
                 series_updates: vec![],
                 series_page_sender,
                 country_name: locale_settings::get_country_name_from_settings(),
@@ -111,7 +125,12 @@ impl DiscoverTab {
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Reload => {
-                let mut load_commands = [Command::none(), Command::none(), Command::none()];
+                let mut load_commands = [
+                    Command::none(),
+                    Command::none(),
+                    Command::none(),
+                    Command::none(),
+                ];
 
                 if let LoadState::Loaded = &self.load_status.local_series {
                     self.load_status.local_series = LoadState::Loading;
@@ -124,6 +143,16 @@ impl DiscoverTab {
                 if let LoadState::Loaded = &self.load_status.shows_update {
                     self.load_status.shows_update = LoadState::Loading;
                     load_commands[2] = load_series_updates();
+                }
+
+                // `monthly new series` will represent others that obtain information
+                // from `FullSchedule` since when one is loaded, all are guaranteed to be
+                // loaded and vice-versa is true
+                if let LoadState::Loaded = &self.load_status.monthly_new_series {
+                    self.load_status.monthly_new_series = LoadState::Loading;
+                    self.load_status.monthly_returning_series = LoadState::Loading;
+                    self.load_status.popular_series = LoadState::Loading;
+                    load_commands[3] = load_full_schedule();
                 }
 
                 Command::batch(load_commands)
@@ -230,6 +259,93 @@ impl DiscoverTab {
                 self.show_search_results = false;
                 Command::none()
             }
+            Message::MonthlyNewSeries(message) => {
+                if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
+                    self.show_search_results = false;
+                    return Command::perform(async {}, |_| {
+                        Message::SeriesSelected(series_information)
+                    });
+                }
+                self.monthly_new_series[message.get_index().expect("message should have an index")]
+                    .update(message)
+                    .map(Message::LocalSeries)
+            }
+            Message::MonthlyReturningSeries(message) => {
+                if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
+                    self.show_search_results = false;
+                    return Command::perform(async {}, |_| {
+                        Message::SeriesSelected(series_information)
+                    });
+                }
+                self.monthly_returning_series
+                    [message.get_index().expect("message should have an index")]
+                .update(message)
+                .map(Message::LocalSeries)
+            }
+            Message::PopularSeries(message) => {
+                if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
+                    self.show_search_results = false;
+                    return Command::perform(async {}, |_| {
+                        Message::SeriesSelected(series_information)
+                    });
+                }
+                self.popular_series[message.get_index().expect("message should have an index")]
+                    .update(message)
+                    .map(Message::LocalSeries)
+            }
+            Message::FullScheduleLoaded(full_schedule) => {
+                // Generating appropriate series
+                let monthly_new_series_infos =
+                    full_schedule.get_monthly_new_series(20, get_current_month());
+                let monthly_returning_series_infos =
+                    full_schedule.get_monthly_returning_series(20, get_current_month());
+                let popular_series_infos = full_schedule.get_popular_series(20);
+
+                // Dealing with monthly new shows
+                let mut monthly_new_posters = Vec::with_capacity(monthly_new_series_infos.len());
+                let mut monthly_new_posters_commands =
+                    Vec::with_capacity(monthly_new_series_infos.len());
+                for (index, series_info) in monthly_new_series_infos.into_iter().enumerate() {
+                    let (poster, command) = SeriesPoster::new(index, series_info);
+                    monthly_new_posters.push(poster);
+                    monthly_new_posters_commands.push(command);
+                }
+
+                // Dealing with monthly returning shows
+                let mut monthly_returning_posters =
+                    Vec::with_capacity(monthly_returning_series_infos.len());
+                let mut monthly_returning_posters_commands =
+                    Vec::with_capacity(monthly_returning_series_infos.len());
+                for (index, series_info) in monthly_returning_series_infos.into_iter().enumerate() {
+                    let (poster, command) = SeriesPoster::new(index, series_info);
+                    monthly_returning_posters.push(poster);
+                    monthly_returning_posters_commands.push(command);
+                }
+
+                // Dealing with popular shows
+                let mut popular_posters = Vec::with_capacity(popular_series_infos.len());
+                let mut popular_posters_commands = Vec::with_capacity(popular_series_infos.len());
+                for (index, series_info) in popular_series_infos.into_iter().enumerate() {
+                    let (poster, command) = SeriesPoster::new(index, series_info);
+                    popular_posters.push(poster);
+                    popular_posters_commands.push(command);
+                }
+
+                // Finishing setting up
+                self.monthly_new_series = monthly_new_posters;
+                self.monthly_returning_series = monthly_returning_posters;
+                self.popular_series = popular_posters;
+                self.load_status.monthly_new_series = LoadState::Loaded;
+                self.load_status.monthly_returning_series = LoadState::Loaded;
+                self.load_status.popular_series = LoadState::Loaded;
+
+                Command::batch([
+                    Command::batch(monthly_new_posters_commands).map(Message::MonthlyNewSeries),
+                    Command::batch(popular_posters_commands).map(Message::PopularSeries),
+                    Command::batch(monthly_returning_posters_commands)
+                        .map(Message::MonthlyReturningSeries),
+                ])
+            }
         }
     }
 
@@ -248,6 +364,24 @@ impl DiscoverTab {
                     &self.new_local_series
                 )
                 .map(Message::LocalSeries),
+                series_posters_loader(
+                    "Popular Shows",
+                    &self.load_status.popular_series,
+                    &self.popular_series,
+                )
+                .map(Message::PopularSeries),
+                series_posters_loader(
+                    &format!("New Shows Airing in {} ", get_current_month().name()),
+                    &self.load_status.monthly_new_series,
+                    &self.monthly_new_series
+                )
+                .map(Message::MonthlyNewSeries),
+                series_posters_loader(
+                    &format!("Shows Returning in {}", get_current_month().name()),
+                    &self.load_status.monthly_returning_series,
+                    &self.monthly_returning_series
+                )
+                .map(Message::MonthlyReturningSeries),
                 series_posters_loader(
                     "Shows Updates",
                     &self.load_status.shows_update,
@@ -284,6 +418,14 @@ impl DiscoverTab {
     }
 }
 
+fn get_current_month() -> chrono::Month {
+    use chrono::{Datelike, Local, Month};
+    use num_traits::FromPrimitive;
+
+    let current_month = Local::now().month();
+    Month::from_u32(current_month).expect("current month should be valid!")
+}
+
 /// Loads the locally aired series picking up the country set from the settings
 fn load_local_aired_series() -> Command<Message> {
     Command::perform(
@@ -309,12 +451,20 @@ fn load_global_aired_series() -> Command<Message> {
     })
 }
 
+fn load_full_schedule() -> Command<Message> {
+    Command::perform(
+        caching::tv_schedule::full_schedule::FullSchedule::new(),
+        |series| Message::FullScheduleLoaded(series.expect("failed to load series schedule")),
+    )
+}
+
 /// Loads series updates, globally and locally aired series all at once
 fn load_discover_schedule_command() -> Command<Message> {
     Command::batch([
         load_series_updates(),
         load_global_aired_series(),
         load_local_aired_series(),
+        load_full_schedule(),
     ])
 }
 

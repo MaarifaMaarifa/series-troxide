@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::core::api::episodes_information::Episode;
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::api::tv_schedule::{get_episodes_with_country, get_episodes_with_date};
@@ -77,4 +79,194 @@ async fn get_series_infos_from_episodes(
     all_series_infos.append(&mut series_infos);
 
     Ok(all_series_infos)
+}
+
+/// # Remove duplicates from a `SeriesMainInformation` collection
+///
+/// Expect slightly different results for the same provided collection, this is
+/// because this function uses a `HashSet` for deduplication since duplicates
+/// can appear and any random indices(not necessarily consecutive)
+fn deduplicate_series_infos(
+    series_infos: Vec<SeriesMainInformation>,
+) -> Vec<SeriesMainInformation> {
+    let unique_set: HashSet<SeriesMainInformation> = series_infos.into_iter().collect();
+    unique_set.into_iter().collect()
+}
+
+/// Sorts the given slice of `SeriesMainInformation` starting from the one with highest rating to the lowest
+fn sort_by_rating(series_infos: &mut [SeriesMainInformation]) {
+    series_infos.sort_unstable_by(|series_a, series_b| {
+        series_b
+            .rating
+            .average
+            .map(|rating| rating as u32)
+            .unwrap_or(0)
+            .cmp(
+                &series_a
+                    .rating
+                    .average
+                    .map(|rating| rating as u32)
+                    .unwrap_or(0),
+            )
+    });
+}
+
+pub mod full_schedule {
+    use std::collections::HashSet;
+
+    use chrono::{Datelike, Local, NaiveDate};
+    use tokio::fs;
+
+    use crate::core::api::deserialize_json;
+    use crate::core::api::episodes_information::Episode;
+    use crate::core::api::series_information::SeriesMainInformation;
+    use crate::core::api::tv_schedule::get_full_schedule;
+    use crate::core::caching::CACHER;
+
+    const FULL_SCHEDULE_CACHE_FILENAME: &str = "full-schedule";
+
+    /// `FullSchedule` is a list of all future episodes known to TVmaze, regardless of their country.
+    #[derive(Clone, Debug)]
+    pub struct FullSchedule {
+        episodes: Vec<Episode>,
+    }
+
+    impl FullSchedule {
+        /// Constructs `FullSchedule`
+        pub async fn new() -> anyhow::Result<Self> {
+            let mut cache_path = CACHER.get_project_path().to_owned();
+            cache_path.push(FULL_SCHEDULE_CACHE_FILENAME);
+
+            let json_string = match fs::read_to_string(&cache_path).await {
+                Ok(json_string) => json_string,
+                Err(_) => {
+                    let cache_str = get_full_schedule().await?;
+                    fs::write(cache_path, &cache_str).await.unwrap();
+                    cache_str
+                }
+            };
+
+            let episodes = deserialize_json::<Vec<Episode>>(&json_string)?;
+            Ok(Self { episodes })
+        }
+
+        /// # Returns new series aired in the given month
+        ///
+        /// These are series premieres airing for the first time.
+        /// takes in an amount describing how many of `SeriesMainInformation` to return since they can
+        /// be alot
+        ///
+        /// ## Note
+        /// - the returned collection is automatically sorted starting from series with highest rating.
+        /// - Expect slightly different results for the same provided collection, this is
+        ///   because this function uses a `HashSet` for deduplication since duplicates
+        ///   can appear and any random indices(not necessarily consecutive)
+        pub fn get_monthly_new_series(
+            &self,
+            amount: usize,
+            month: chrono::Month,
+        ) -> Vec<SeriesMainInformation> {
+            self.get_monthly_series(amount, month, |episode| {
+                episode.number.map(|num| num == 1).unwrap_or(false) && episode.season == 1
+            })
+        }
+
+        /// # Returns returning series aired in the given month
+        ///
+        /// These are series premieres starting from the second season.
+        /// takes in an amount describing how many of `SeriesMainInformation` to return since they can
+        /// be alot
+        ///
+        /// ## Note
+        /// - the returned collection is automatically sorted starting from series with highest rating.
+        /// - Expect slightly different results for the same provided collection, this is
+        ///   because this function uses a `HashSet` for deduplication since duplicates
+        ///   can appear and any random indices(not necessarily consecutive)
+        pub fn get_monthly_returning_series(
+            &self,
+            amount: usize,
+            month: chrono::Month,
+        ) -> Vec<SeriesMainInformation> {
+            self.get_monthly_series(amount, month, |episode| {
+                episode.number.map(|num| num == 1).unwrap_or(false) && episode.season != 1
+            })
+        }
+
+        /// # This is a list of all future series known to TVmaze, regardless of their country sorted by rating starting from the highest to the lowest
+        ///
+        /// takes in an amount describing how many of `SeriesMainInformation` to return since they can
+        /// be alot
+        ///
+        /// ## Note
+        /// - the returned collection is automatically sorted starting from series with highest rating.
+        /// - Expect slightly different results for the same provided collection, this is
+        ///   because this function uses a `HashSet` for deduplication since duplicates
+        ///   can appear and any random indices(not necessarily consecutive)
+        pub fn get_popular_series(&self, amount: usize) -> Vec<SeriesMainInformation> {
+            let series_infos: HashSet<SeriesMainInformation> = self
+                .episodes
+                .iter()
+                .filter_map(|episode| episode.embedded.as_ref())
+                .cloned()
+                .map(|embedded| embedded.show)
+                .collect();
+
+            let mut series_infos: Vec<SeriesMainInformation> = series_infos.into_iter().collect();
+
+            super::sort_by_rating(&mut series_infos);
+
+            series_infos.into_iter().take(amount).collect()
+        }
+
+        /// # Returns series aired in the given month with a given condition to be applied to episodes
+        ///
+        /// This condition filters out the aired episodes based on how it is described as the series
+        /// are constructed from the aired episodes.
+        /// Also takes in an amount describing how many of `SeriesMainInformation` to return since they can
+        /// be alot
+        ///
+        /// ## Note
+        /// - the returned collection is automatically sorted starting from series with highest rating.
+        /// - Expect slightly different results for the same provided collection, this is
+        ///   because this function uses a `HashSet` for deduplication since duplicates
+        ///   can appear and any random indices(not necessarily consecutive)
+        fn get_monthly_series(
+            &self,
+            amount: usize,
+            month: chrono::Month,
+            filter_condition: fn(&Episode) -> bool,
+        ) -> Vec<SeriesMainInformation> {
+            let current_year = Local::now().year();
+            let month = month.number_from_month();
+            let first_date_of_current_month =
+                NaiveDate::from_ymd_opt(current_year, month, 1).expect("the date should be valid!");
+
+            let all_dates_of_month: Vec<NaiveDate> =
+                first_date_of_current_month.iter_days().take(30).collect();
+
+            let episodes: Vec<Episode> = self
+                .episodes
+                .iter()
+                .filter(|episode| filter_condition(episode))
+                .take_while(|episode| {
+                    all_dates_of_month
+                        .iter()
+                        .any(|date| *date == episode.get_naive_date().unwrap())
+                })
+                .cloned()
+                .collect();
+
+            let mut series_infos: Vec<SeriesMainInformation> = super::deduplicate_series_infos(
+                episodes
+                    .into_iter()
+                    .filter_map(|episode| episode.embedded)
+                    .map(|embedded| embedded.show)
+                    .collect(),
+            );
+
+            super::sort_by_rating(&mut series_infos);
+
+            series_infos.into_iter().take(amount).collect()
+        }
+    }
 }

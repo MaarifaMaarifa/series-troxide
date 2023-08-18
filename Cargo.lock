@@ -3827,6 +3827,7 @@ dependencies = [
  "lazy_static",
  "notify",
  "notify-rust",
+ "num-traits",
  "rand",
  "reqwest",
  "rfd",

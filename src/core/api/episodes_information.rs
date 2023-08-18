@@ -60,6 +60,22 @@ pub struct Show {
     pub href: String,
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum EpisodeDateError {
+    #[error("no date was found in the episode")]
+    NotFound,
+
+    #[error("failed to parse the date")]
+    Parse(chrono::ParseError),
+}
+
+impl Episode {
+    pub fn get_naive_date(&self) -> Result<chrono::NaiveDate, EpisodeDateError> {
+        let date = self.airdate.as_ref().ok_or(EpisodeDateError::NotFound)?;
+        chrono::NaiveDate::parse_from_str(date, "%Y-%m-%d").map_err(EpisodeDateError::Parse)
+    }
+}
+
 pub async fn get_episode_information(
     series_id: u32,
     season: u32,
