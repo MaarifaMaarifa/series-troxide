@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Discover page` refresh using F5 key. [ff543bf](https://github.com/MaarifaMaarifa/series-troxide/commit/ff543bffbcfe04e35a3f3ec037380ff0c6ab6e83)
 - Auto-refresh for the `My Shows page` to get accurate episode release time. [8206d82](https://github.com/MaarifaMaarifa/series-troxide/commit/8206d8214d63d2bbb7d6ac9dbb80f4b40a6a058a)
 - Average time required to complete watching remaining episodes for a series in `Watchlist page`. [1ee6a8c](https://github.com/MaarifaMaarifa/series-troxide/commit/1ee6a8ca660154a7a2416c26d6b36cf3b6b5b1b6)
+- Monthly Airing Series(for new and returning series) sections in `Discover page`. [03d56b5](https://github.com/MaarifaMaarifa/series-troxide/commit/03d56b50869c58cf6e4c9f18536172b88d9af03a)
+- Genre sections(Family, Action, Sci-Fi etc) in `Discover page`.[1f2e9b4](https://github.com/MaarifaMaarifa/series-troxide/commit/1f2e9b4b741290226c87ef54329c6fce0f16aa33)
 
 ### Changed
 
@@ -28,9 +30,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improve series searching response when loading images. [42c824d](https://github.com/MaarifaMaarifa/series-troxide/commit/42c824d55b3daafd4f21bf691dbcf1fba341b01d)
 - Improve speed when getting upcoming episode releases. [ea31d51](https://github.com/MaarifaMaarifa/series-troxide/commit/ea31d51acfc05f4cdc9b7fab63b0c798685ca788)
 
+### Removed
+
+- Shows updates sections in `Discover page`. [08b4b0d](https://github.com/MaarifaMaarifa/series-troxide/commit/08b4b0d6c41c4587ad8c6c0ecf28d57b557c9f88)
+
 ### Fixed
 
 - Crash in `My Shows page` when reaching the time for an episode release. [1d1a25e](https://github.com/MaarifaMaarifa/series-troxide/commit/1d1a25ed12a3489ea926c08225568a3944f93da2)
+- Duplicate Series Posters in `Discover page`. [a73a9f3](https://github.com/MaarifaMaarifa/series-troxide/commit/a73a9f33ae0c1d3d9f8679bbe78792de168a8730)
 
 ## [0.2.0] - 2023-07-27
 
