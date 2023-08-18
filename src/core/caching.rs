@@ -83,9 +83,8 @@ impl Cacher {
         Self { cache_path }
     }
 
-    /// Return the root path where all series troxide data resides including
-    /// the cache
-    pub fn get_project_path(&self) -> &path::Path {
+    /// Returns the root path where all series troxide cache resides
+    pub fn get_root_cache_path(&self) -> &path::Path {
         &self.cache_path
     }
 

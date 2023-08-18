@@ -152,7 +152,7 @@ pub mod full_schedule {
     impl FullSchedule {
         /// Constructs `FullSchedule`
         pub async fn new() -> anyhow::Result<Self> {
-            let mut cache_path = CACHER.get_project_path().to_owned();
+            let mut cache_path = CACHER.get_root_cache_path().to_owned();
             cache_path.push(FULL_SCHEDULE_CACHE_FILENAME);
 
             let json_string = match fs::read_to_string(&cache_path).await {
