@@ -1,10 +1,29 @@
-use super::*;
+use super::{series_information::SeriesMainInformation, *};
 
 const EPISODE_INFORMATION_ADDRESS: &str =
     "https://api.tvmaze.com/shows/SERIES-ID/episodebynumber?season=SEASON&number=EPISODE";
 
 const EPISODE_LIST_ADDRESS: &str = "https://api.tvmaze.com/shows/SERIES-ID/episodes";
 
+/// # An `Episode` data according to the TVmaze api
+///
+/// This data discribes an episode found in a season of a particular series
+///
+/// ## Note
+
+/// There are two important fields to pay attention to
+///
+/// ### show
+///
+/// This field carries an `Option<SeriesMainInformation>`. This field becomes the `Some`
+/// variant when the episode is retrieved as an local aired episode which are country
+/// specific. [link](https://www.tvmaze.com/api#schedule)
+///
+/// ### embedded
+///
+/// This field carries an `Option<Embedded>` where `Embedded` field carries `SeriesInformation`.
+/// This field becomes the `Some` variant when the episode is retrieved as a global aired episode.
+/// [link](https://www.tvmaze.com/api#web-schedule)
 #[derive(Debug, Deserialize, Clone)]
 pub struct Episode {
     pub name: String,
@@ -17,8 +36,18 @@ pub struct Episode {
     pub rating: Rating,
     pub image: Option<Image>,
     pub summary: Option<String>,
+    /// Local aired episodes normally have this field as `Some`
+    pub show: Option<SeriesMainInformation>,
     #[serde(rename = "_links")]
     pub links: Links,
+    /// Global aired episodes normally have this field as `Some`
+    #[serde(rename = "_embedded")]
+    pub embedded: Option<Embedded>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct Embedded {
+    pub show: SeriesMainInformation,
 }
 
 #[derive(Debug, Deserialize, Clone)]
