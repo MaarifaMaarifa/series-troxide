@@ -1,7 +1,6 @@
 use std::sync::mpsc;
 
 use crate::core::api::series_information::{Genre, SeriesMainInformation};
-use crate::core::api::updates::show_updates::*;
 use crate::core::caching;
 use crate::core::caching::tv_schedule::{get_series_with_country, get_series_with_date};
 use crate::core::settings_config::locale_settings;
@@ -31,7 +30,6 @@ enum LoadState {
 struct LoadStatus {
     global_series: LoadState,
     local_series: LoadState,
-    shows_update: LoadState,
     // series which depend on `FullSchedule`
     schedule_series: LoadState,
 }
@@ -41,13 +39,11 @@ pub enum Message {
     Reload,
     GlobalSeriesLoaded(Vec<SeriesMainInformation>),
     LocalSeriesLoaded(Vec<SeriesMainInformation>),
-    SeriesUpdatesLoaded(Vec<SeriesMainInformation>),
     GlobalSeries(SeriesPosterMessage),
     LocalSeries(SeriesPosterMessage),
     PopularSeries(SeriesPosterMessage),
     MonthlyNewSeries(SeriesPosterMessage),
     MonthlyReturningSeries(SeriesPosterMessage),
-    SeriesUpdates(SeriesPosterMessage),
     RomanceSeries(SeriesPosterMessage),
     DramaSeries(SeriesPosterMessage),
     ActionSeries(SeriesPosterMessage),
@@ -86,7 +82,6 @@ pub struct DiscoverTab {
     adventure_series: Vec<SeriesPoster>,
     crime_series: Vec<SeriesPoster>,
     anime_series: Vec<SeriesPoster>,
-    series_updates: Vec<SeriesPoster>,
 }
 
 impl DiscoverTab {
@@ -112,7 +107,6 @@ impl DiscoverTab {
                 anime_series: vec![],
                 monthly_new_series: vec![],
                 monthly_returning_series: vec![],
-                series_updates: vec![],
                 series_page_sender,
                 country_name: locale_settings::get_country_name_from_settings(),
             },
@@ -167,10 +161,6 @@ impl DiscoverTab {
                     self.load_status.global_series = LoadState::Loading;
                     load_commands[1] = load_global_aired_series();
                 }
-                if let LoadState::Loaded = &self.load_status.shows_update {
-                    self.load_status.shows_update = LoadState::Loading;
-                    load_commands[2] = load_series_updates();
-                }
 
                 // `monthly new series` will represent others that obtain information
                 // from `FullSchedule` since when one is loaded, all are guaranteed to be
@@ -206,31 +196,6 @@ impl DiscoverTab {
                 self.new_global_series[message.get_index().expect("message should have an index")]
                     .update(message)
                     .map(Message::GlobalSeries)
-            }
-            Message::SeriesUpdatesLoaded(series) => {
-                self.load_status.shows_update = LoadState::Loaded;
-                let mut series_posters = Vec::with_capacity(series.len());
-                let mut series_poster_commands = Vec::with_capacity(series.len());
-                for (index, series_info) in series.into_iter().enumerate() {
-                    let (series_poster, series_poster_command) =
-                        SeriesPoster::new(index, series_info);
-                    series_posters.push(series_poster);
-                    series_poster_commands.push(series_poster_command);
-                }
-                self.series_updates = series_posters;
-
-                Command::batch(series_poster_commands).map(Message::SeriesUpdates)
-            }
-            Message::SeriesUpdates(message) => {
-                if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
-                    self.show_search_results = false;
-                    return Command::perform(async {}, |_| {
-                        Message::SeriesSelected(series_information)
-                    });
-                }
-                self.series_updates[message.get_index().expect("message should have an index")]
-                    .update(message)
-                    .map(Message::SeriesUpdates)
             }
             Message::Search(message) => {
                 if let SearchMessage::SeriesResultPressed(series_info) = message {
@@ -601,12 +566,6 @@ impl DiscoverTab {
                     &self.anime_series,
                 )
                 .map(Message::AnimeSeries),
-                series_posters_loader(
-                    "Shows Updates",
-                    &self.load_status.shows_update,
-                    &self.series_updates
-                )
-                .map(Message::SeriesUpdates),
             )
             .spacing(20),
         )
@@ -669,13 +628,6 @@ fn load_local_aired_series() -> Command<Message> {
     )
 }
 
-/// Loads series updates
-fn load_series_updates() -> Command<Message> {
-    Command::perform(get_show_updates(UpdateTimestamp::Day, Some(20)), |series| {
-        Message::SeriesUpdatesLoaded(series.expect("failed to load series updates"))
-    })
-}
-
 /// Loads the globally aired series
 fn load_global_aired_series() -> Command<Message> {
     Command::perform(get_series_with_date(None), |series| {
@@ -693,7 +645,6 @@ fn load_full_schedule() -> Command<Message> {
 /// Loads series updates, globally and locally aired series all at once
 fn load_discover_schedule_command() -> Command<Message> {
     Command::batch([
-        load_series_updates(),
         load_global_aired_series(),
         load_local_aired_series(),
         load_full_schedule(),
