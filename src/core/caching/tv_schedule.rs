@@ -6,19 +6,37 @@ use crate::core::api::tv_schedule::{get_episodes_with_country, get_episodes_with
 
 /// Retrieves series aired on a specific date through the provided optional &str
 /// If None is supplied, it will default the the current day
+///
+/// ## Note
+/// Expect slightly different results for the when calling multiple times with very small time gap,
+/// this is because this function uses a `HashSet` for deduplication since duplicates
+/// can appear and any random indices(not necessarily consecutive).
+/// Sorts the collection from the one with highest rating to the lowest.
 pub async fn get_series_with_date(
     date: Option<&str>,
 ) -> anyhow::Result<Vec<SeriesMainInformation>> {
     let episodes = get_episodes_with_date(date).await?;
-    get_series_infos_from_episodes(episodes).await
+    let series_infos = get_series_infos_from_episodes(episodes).await?;
+    let mut series_infos = deduplicate_series_infos(series_infos);
+    sort_by_rating(&mut series_infos);
+    Ok(series_infos)
 }
 
-/// Retrieves series aired on the current day at a particular country provided in ISO 3166-1
+/// # Retrieves series aired on the current day at a particular country provided in ISO 3166-1
+///
+/// ## Note
+/// Expect slightly different results for the when calling multiple times with very small time gap,
+/// this is because this function uses a `HashSet` for deduplication since duplicates
+/// can appear and any random indices(not necessarily consecutive).
+/// Sorts the collection from the one with highest rating to the lowest.
 pub async fn get_series_with_country(
     country_iso: &str,
 ) -> anyhow::Result<Vec<SeriesMainInformation>> {
     let episodes = get_episodes_with_country(country_iso).await?;
-    get_series_infos_from_episodes(episodes).await
+    let series_infos = get_series_infos_from_episodes(episodes).await?;
+    let mut series_infos = deduplicate_series_infos(series_infos);
+    sort_by_rating(&mut series_infos);
+    Ok(series_infos)
 }
 
 /// # Get `SeriesInformation`s from `Episode`s
