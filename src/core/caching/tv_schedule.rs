@@ -137,11 +137,22 @@ pub mod full_schedule {
 
     use crate::core::api::deserialize_json;
     use crate::core::api::episodes_information::Episode;
-    use crate::core::api::series_information::{Genre, SeriesMainInformation};
+    use crate::core::api::series_information::{
+        Genre, SeriesMainInformation, ShowNetwork, ShowWebChannel,
+    };
     use crate::core::api::tv_schedule::get_full_schedule;
     use crate::core::caching::CACHER;
 
     const FULL_SCHEDULE_CACHE_FILENAME: &str = "full-schedule";
+
+    struct Filter(ScheduleFilter);
+
+    enum ScheduleFilter {
+        Network(ShowNetwork),
+        WebChannel(ShowWebChannel),
+        Genre(Genre),
+        None,
+    }
 
     /// `FullSchedule` is a list of all future episodes known to TVmaze, regardless of their country.
     #[derive(Clone, Debug)]
@@ -210,34 +221,55 @@ pub mod full_schedule {
             })
         }
 
+        /// # Returns popular series filtered out using the provided genre
+        ///
+        /// ## Note
+        /// - the returned collection is automatically sorted starting from series with highest rating.
+        /// - Expect slightly different results for the same provided collection, this is
+        ///   because this function uses a `HashSet` for deduplication since duplicates
+        ///   can appear and any random indices(not necessarily consecutive)
         pub fn get_popular_series_by_genre(
             &self,
             amount: usize,
             genre: Genre,
         ) -> Vec<SeriesMainInformation> {
-            let series_infos: HashSet<SeriesMainInformation> = self
-                .episodes
-                .iter()
-                .filter_map(|episode| episode.embedded.as_ref())
-                .cloned()
-                .map(|embedded| embedded.show)
-                .filter(|series_info| {
-                    let series_genres: Vec<Genre> = series_info
-                        .genres
-                        .iter()
-                        .map(|genre_str| Genre::from(genre_str.as_str()))
-                        .collect();
-                    series_genres
-                        .into_iter()
-                        .any(|series_genre| series_genre == genre)
-                })
-                .collect();
+            self.get_popular_series_by_schedule_filter(amount, Filter(ScheduleFilter::Genre(genre)))
+        }
 
-            let mut series_infos: Vec<SeriesMainInformation> = series_infos.into_iter().collect();
+        /// # Returns popular series filtered out using the provided network
+        ///
+        /// ## Note
+        /// - the returned collection is automatically sorted starting from series with highest rating.
+        /// - Expect slightly different results for the same provided collection, this is
+        ///   because this function uses a `HashSet` for deduplication since duplicates
+        ///   can appear and any random indices(not necessarily consecutive)
+        pub fn get_popular_series_by_network(
+            &self,
+            amount: usize,
+            network: ShowNetwork,
+        ) -> Vec<SeriesMainInformation> {
+            self.get_popular_series_by_schedule_filter(
+                amount,
+                Filter(ScheduleFilter::Network(network)),
+            )
+        }
 
-            super::sort_by_rating(&mut series_infos);
-
-            series_infos.into_iter().take(amount).collect()
+        /// # Returns popular series filtered out using the provided webchannel
+        ///
+        /// ## Note
+        /// - the returned collection is automatically sorted starting from series with highest rating.
+        /// - Expect slightly different results for the same provided collection, this is
+        ///   because this function uses a `HashSet` for deduplication since duplicates
+        ///   can appear and any random indices(not necessarily consecutive)
+        pub fn get_popular_series_by_webchannel(
+            &self,
+            amount: usize,
+            webchannel: ShowWebChannel,
+        ) -> Vec<SeriesMainInformation> {
+            self.get_popular_series_by_schedule_filter(
+                amount,
+                Filter(ScheduleFilter::WebChannel(webchannel)),
+            )
         }
 
         /// # This is a list of all future series known to TVmaze, regardless of their country sorted by rating starting from the highest to the lowest
@@ -251,12 +283,80 @@ pub mod full_schedule {
         ///   because this function uses a `HashSet` for deduplication since duplicates
         ///   can appear and any random indices(not necessarily consecutive)
         pub fn get_popular_series(&self, amount: usize) -> Vec<SeriesMainInformation> {
+            self.get_popular_series_by_schedule_filter(amount, Filter(ScheduleFilter::None))
+        }
+
+        /// # This is a list of all future series known to TVmaze, regardless of their country sorted by rating starting from the highest to the lowest
+        ///
+        /// takes in an amount describing how many of `SeriesMainInformation` to return since they can
+        /// be alot. Also takes a Filter for filtering what `SeriesMainInformation` are requied
+        ///
+        /// ## Note
+        /// - the returned collection is automatically sorted starting from series with highest rating.
+        /// - Expect slightly different results for the same provided collection, this is
+        ///   because this function uses a `HashSet` for deduplication since duplicates
+        ///   can appear and any random indices(not necessarily consecutive)
+        fn get_popular_series_by_schedule_filter(
+            &self,
+            amount: usize,
+            filter: Filter,
+        ) -> Vec<SeriesMainInformation> {
+            self.get_popular_series_with_condition(
+                amount,
+                filter,
+                |series_info, schedule_filter| match schedule_filter {
+                    ScheduleFilter::Network(network) => series_info
+                        .network
+                        .as_ref()
+                        .map(|show_network| {
+                            ShowNetwork::from(show_network.name.as_str()) == *network
+                        })
+                        .unwrap_or(false),
+                    ScheduleFilter::WebChannel(webchannel) => series_info
+                        .web_channel
+                        .as_ref()
+                        .map(|show_webchannel| {
+                            ShowWebChannel::from(show_webchannel.name.as_str()) == *webchannel
+                        })
+                        .unwrap_or(false),
+                    ScheduleFilter::Genre(genre) => {
+                        let series_genres: Vec<Genre> = series_info
+                            .genres
+                            .iter()
+                            .map(|genre_str| Genre::from(genre_str.as_str()))
+                            .collect();
+                        series_genres
+                            .into_iter()
+                            .any(|series_genre| series_genre == *genre)
+                    }
+                    ScheduleFilter::None => true,
+                },
+            )
+        }
+
+        /// # This is a list of all future series known to TVmaze, regardless of their country sorted by rating starting from the highest to the lowest
+        ///
+        /// takes in an amount describing how many of `SeriesMainInformation` to return since they can
+        /// be alot
+        ///
+        /// ## Note
+        /// - the returned collection is automatically sorted starting from series with highest rating.
+        /// - Expect slightly different results for the same provided collection, this is
+        ///   because this function uses a `HashSet` for deduplication since duplicates
+        ///   can appear and any random indices(not necessarily consecutive)
+        fn get_popular_series_with_condition(
+            &self,
+            amount: usize,
+            filter: Filter,
+            filter_condition: fn(&SeriesMainInformation, &ScheduleFilter) -> bool,
+        ) -> Vec<SeriesMainInformation> {
             let series_infos: HashSet<SeriesMainInformation> = self
                 .episodes
                 .iter()
                 .filter_map(|episode| episode.embedded.as_ref())
                 .cloned()
                 .map(|embedded| embedded.show)
+                .filter(|series_info| filter_condition(series_info, &filter.0))
                 .collect();
 
             let mut series_infos: Vec<SeriesMainInformation> = series_infos.into_iter().collect();

@@ -1,6 +1,8 @@
 use std::sync::mpsc;
 
-use crate::core::api::series_information::{Genre, SeriesMainInformation};
+use crate::core::api::series_information::{
+    Genre, SeriesMainInformation, ShowNetwork, ShowWebChannel,
+};
 use crate::core::caching;
 use crate::core::caching::tv_schedule::{get_series_with_country, get_series_with_date};
 use crate::core::settings_config::locale_settings;
@@ -44,6 +46,14 @@ pub enum Message {
     PopularSeries(SeriesPosterMessage),
     MonthlyNewSeries(SeriesPosterMessage),
     MonthlyReturningSeries(SeriesPosterMessage),
+    BbcOneSeries(SeriesPosterMessage),
+    HboSeries(SeriesPosterMessage),
+    NetflixSeries(SeriesPosterMessage),
+    NbcSeries(SeriesPosterMessage),
+    FoxSeries(SeriesPosterMessage),
+    CbsSeries(SeriesPosterMessage),
+    AbcSeries(SeriesPosterMessage),
+    TheCwSeries(SeriesPosterMessage),
     RomanceSeries(SeriesPosterMessage),
     DramaSeries(SeriesPosterMessage),
     ActionSeries(SeriesPosterMessage),
@@ -73,6 +83,14 @@ pub struct DiscoverTab {
     popular_series: Vec<SeriesPoster>,
     monthly_new_series: Vec<SeriesPoster>,
     monthly_returning_series: Vec<SeriesPoster>,
+    fox_series: Vec<SeriesPoster>,
+    abc_series: Vec<SeriesPoster>,
+    cbs_series: Vec<SeriesPoster>,
+    nbc_series: Vec<SeriesPoster>,
+    netflix_series: Vec<SeriesPoster>,
+    the_cw_series: Vec<SeriesPoster>,
+    hbo_series: Vec<SeriesPoster>,
+    bbc_one_series: Vec<SeriesPoster>,
     romance_series: Vec<SeriesPoster>,
     action_series: Vec<SeriesPoster>,
     scifi_series: Vec<SeriesPoster>,
@@ -96,6 +114,14 @@ impl DiscoverTab {
                 new_global_series: vec![],
                 new_local_series: vec![],
                 popular_series: vec![],
+                netflix_series: vec![],
+                fox_series: vec![],
+                abc_series: vec![],
+                cbs_series: vec![],
+                nbc_series: vec![],
+                the_cw_series: vec![],
+                hbo_series: vec![],
+                bbc_one_series: vec![],
                 romance_series: vec![],
                 scifi_series: vec![],
                 drama_series: vec![],
@@ -161,10 +187,6 @@ impl DiscoverTab {
                     self.load_status.global_series = LoadState::Loading;
                     load_commands[1] = load_global_aired_series();
                 }
-
-                // `monthly new series` will represent others that obtain information
-                // from `FullSchedule` since when one is loaded, all are guaranteed to be
-                // loaded and vice-versa is true
                 if let LoadState::Loaded = &self.load_status.schedule_series {
                     self.load_status.schedule_series = LoadState::Loading;
                     load_commands[3] = load_full_schedule();
@@ -295,6 +317,46 @@ impl DiscoverTab {
                         full_schedule.get_monthly_returning_series(20, get_current_month()),
                     );
 
+                let (hbo_posters, hbo_posters_commands) =
+                    Self::generate_posters_and_commands_from_series_infos(
+                        full_schedule.get_popular_series_by_network(20, ShowNetwork::Hbo),
+                    );
+
+                let (the_cw_posters, the_cw_posters_commands) =
+                    Self::generate_posters_and_commands_from_series_infos(
+                        full_schedule.get_popular_series_by_network(20, ShowNetwork::TheCW),
+                    );
+
+                let (netflix_posters, netflix_posters_commands) =
+                    Self::generate_posters_and_commands_from_series_infos(
+                        full_schedule.get_popular_series_by_webchannel(20, ShowWebChannel::Netflix),
+                    );
+
+                let (abc_posters, abc_posters_commands) =
+                    Self::generate_posters_and_commands_from_series_infos(
+                        full_schedule.get_popular_series_by_network(20, ShowNetwork::Abc),
+                    );
+
+                let (fox_posters, fox_posters_commands) =
+                    Self::generate_posters_and_commands_from_series_infos(
+                        full_schedule.get_popular_series_by_network(20, ShowNetwork::Fox),
+                    );
+
+                let (cbs_posters, cbs_posters_commands) =
+                    Self::generate_posters_and_commands_from_series_infos(
+                        full_schedule.get_popular_series_by_network(20, ShowNetwork::Cbs),
+                    );
+
+                let (nbc_posters, nbc_posters_commands) =
+                    Self::generate_posters_and_commands_from_series_infos(
+                        full_schedule.get_popular_series_by_network(20, ShowNetwork::Nbc),
+                    );
+
+                let (bbc_one_posters, bbc_one_posters_commands) =
+                    Self::generate_posters_and_commands_from_series_infos(
+                        full_schedule.get_popular_series_by_network(20, ShowNetwork::BbcOne),
+                    );
+
                 let (popular_posters, popular_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
                         full_schedule.get_popular_series(20),
@@ -358,6 +420,14 @@ impl DiscoverTab {
                 self.comedy_series = comedy_posters;
                 self.crime_series = crime_posters;
                 self.anime_series = anime_posters;
+                self.bbc_one_series = bbc_one_posters;
+                self.netflix_series = netflix_posters;
+                self.the_cw_series = the_cw_posters;
+                self.hbo_series = hbo_posters;
+                self.abc_series = abc_posters;
+                self.fox_series = fox_posters;
+                self.cbs_series = cbs_posters;
+                self.nbc_series = nbc_posters;
 
                 self.load_status.schedule_series = LoadState::Loaded;
 
@@ -375,6 +445,14 @@ impl DiscoverTab {
                     Command::batch(comedy_posters_commands).map(Message::ComedySeries),
                     Command::batch(crime_posters_commands).map(Message::CrimeSeries),
                     Command::batch(anime_posters_commands).map(Message::AnimeSeries),
+                    Command::batch(bbc_one_posters_commands).map(Message::BbcOneSeries),
+                    Command::batch(netflix_posters_commands).map(Message::NetflixSeries),
+                    Command::batch(the_cw_posters_commands).map(Message::TheCwSeries),
+                    Command::batch(hbo_posters_commands).map(Message::HboSeries),
+                    Command::batch(abc_posters_commands).map(Message::AbcSeries),
+                    Command::batch(fox_posters_commands).map(Message::FoxSeries),
+                    Command::batch(cbs_posters_commands).map(Message::CbsSeries),
+                    Command::batch(nbc_posters_commands).map(Message::NbcSeries),
                 ])
             }
             Message::RomanceSeries(message) => {
@@ -476,6 +554,94 @@ impl DiscoverTab {
                     .update(message)
                     .map(Message::AnimeSeries)
             }
+            Message::NetflixSeries(message) => {
+                if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
+                    self.show_search_results = false;
+                    return Command::perform(async {}, |_| {
+                        Message::SeriesSelected(series_information)
+                    });
+                }
+                self.netflix_series[message.get_index().expect("message should have an index")]
+                    .update(message)
+                    .map(Message::NetflixSeries)
+            }
+            Message::BbcOneSeries(message) => {
+                if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
+                    self.show_search_results = false;
+                    return Command::perform(async {}, |_| {
+                        Message::SeriesSelected(series_information)
+                    });
+                }
+                self.bbc_one_series[message.get_index().expect("message should have an index")]
+                    .update(message)
+                    .map(Message::BbcOneSeries)
+            }
+            Message::TheCwSeries(message) => {
+                if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
+                    self.show_search_results = false;
+                    return Command::perform(async {}, |_| {
+                        Message::SeriesSelected(series_information)
+                    });
+                }
+                self.the_cw_series[message.get_index().expect("message should have an index")]
+                    .update(message)
+                    .map(Message::TheCwSeries)
+            }
+            Message::HboSeries(message) => {
+                if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
+                    self.show_search_results = false;
+                    return Command::perform(async {}, |_| {
+                        Message::SeriesSelected(series_information)
+                    });
+                }
+                self.hbo_series[message.get_index().expect("message should have an index")]
+                    .update(message)
+                    .map(Message::HboSeries)
+            }
+            Message::NbcSeries(message) => {
+                if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
+                    self.show_search_results = false;
+                    return Command::perform(async {}, |_| {
+                        Message::SeriesSelected(series_information)
+                    });
+                }
+                self.nbc_series[message.get_index().expect("message should have an index")]
+                    .update(message)
+                    .map(Message::NbcSeries)
+            }
+            Message::FoxSeries(message) => {
+                if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
+                    self.show_search_results = false;
+                    return Command::perform(async {}, |_| {
+                        Message::SeriesSelected(series_information)
+                    });
+                }
+                self.fox_series[message.get_index().expect("message should have an index")]
+                    .update(message)
+                    .map(Message::FoxSeries)
+            }
+            Message::CbsSeries(message) => {
+                if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
+                    self.show_search_results = false;
+                    return Command::perform(async {}, |_| {
+                        Message::SeriesSelected(series_information)
+                    });
+                }
+                self.cbs_series[message.get_index().expect("message should have an index")]
+                    .update(message)
+                    .map(Message::CbsSeries)
+            }
+            Message::AbcSeries(message) => {
+                if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
+                    self.show_search_results = false;
+                    return Command::perform(async {}, |_| {
+                        Message::SeriesSelected(series_information)
+                    });
+                }
+                self.abc_series[message.get_index().expect("message should have an index")]
+                    .update(message)
+                    .map(Message::AbcSeries)
+            }
         }
     }
 
@@ -512,6 +678,34 @@ impl DiscoverTab {
                     &self.monthly_returning_series
                 )
                 .map(Message::MonthlyReturningSeries),
+                series_posters_loader(
+                    "The CW",
+                    &self.load_status.schedule_series,
+                    &self.the_cw_series,
+                )
+                .map(Message::TheCwSeries),
+                series_posters_loader("NBC", &self.load_status.schedule_series, &self.nbc_series,)
+                    .map(Message::NbcSeries),
+                series_posters_loader("FOX", &self.load_status.schedule_series, &self.fox_series,)
+                    .map(Message::FoxSeries),
+                series_posters_loader("CBS", &self.load_status.schedule_series, &self.cbs_series,)
+                    .map(Message::CbsSeries),
+                series_posters_loader("ABC", &self.load_status.schedule_series, &self.abc_series,)
+                    .map(Message::AbcSeries),
+                series_posters_loader("HBO", &self.load_status.schedule_series, &self.hbo_series,)
+                    .map(Message::HboSeries),
+                series_posters_loader(
+                    "BBC One",
+                    &self.load_status.schedule_series,
+                    &self.bbc_one_series,
+                )
+                .map(Message::BbcOneSeries),
+                series_posters_loader(
+                    "Netflix",
+                    &self.load_status.schedule_series,
+                    &self.netflix_series,
+                )
+                .map(Message::NetflixSeries),
                 series_posters_loader(
                     "Action",
                     &self.load_status.schedule_series,

@@ -89,6 +89,74 @@ impl std::fmt::Display for Genre {
     }
 }
 
+#[derive(Debug, Eq, PartialEq)]
+pub enum ShowNetwork {
+    Fox,
+    TheCW,
+    BbcOne,
+    Nbc,
+    Abc,
+    Hbo,
+    Cbs,
+    Other,
+}
+
+impl From<&str> for ShowNetwork {
+    fn from(value: &str) -> Self {
+        match value {
+            "FOX" => Self::Fox,
+            "The CW" => Self::TheCW,
+            "BBC One" => Self::BbcOne,
+            "MSNBC" => Self::Nbc,
+            "ABC" => Self::Abc,
+            "HBO" => Self::Hbo,
+            "CBS" => Self::Cbs,
+            _ => Self::Other,
+        }
+    }
+}
+
+impl std::fmt::Display for ShowNetwork {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let network_str = match self {
+            ShowNetwork::Fox => "FOX",
+            ShowNetwork::TheCW => "The CW",
+            ShowNetwork::BbcOne => "BBC One",
+            ShowNetwork::Nbc => "MSNBC",
+            ShowNetwork::Abc => "ABC",
+            ShowNetwork::Hbo => "HBO",
+            ShowNetwork::Cbs => "CBS",
+            ShowNetwork::Other => "Other",
+        };
+        write!(f, "{}", network_str)
+    }
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum ShowWebChannel {
+    Netflix,
+    Other,
+}
+
+impl From<&str> for ShowWebChannel {
+    fn from(value: &str) -> Self {
+        match value {
+            "Netflix" => Self::Netflix,
+            _ => Self::Other,
+        }
+    }
+}
+
+impl std::fmt::Display for ShowWebChannel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let channel_str = match self {
+            ShowWebChannel::Netflix => "Netflix",
+            ShowWebChannel::Other => "Other",
+        };
+        write!(f, "{}", channel_str)
+    }
+}
+
 #[derive(Debug, Deserialize, Clone)]
 pub struct SeriesMainInformation {
     pub id: u32,
