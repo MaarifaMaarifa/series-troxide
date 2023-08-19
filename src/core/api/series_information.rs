@@ -1,4 +1,5 @@
 use super::*;
+use serde::Serialize;
 use std::hash::{Hash, Hasher};
 
 // The series id goes after the last slash(append at the end of the string)
@@ -157,7 +158,7 @@ impl std::fmt::Display for ShowWebChannel {
     }
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SeriesMainInformation {
     pub id: u32,
     pub name: String,
@@ -190,14 +191,14 @@ impl Hash for SeriesMainInformation {
     }
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct WebChannel {
     pub name: String,
     #[serde(rename = "officialSite")]
     pub official_site: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Network {
     pub name: String,
     pub country: Country,
@@ -205,7 +206,7 @@ pub struct Network {
     pub official_site_url: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Country {
     pub name: String,
 }

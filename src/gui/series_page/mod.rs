@@ -284,6 +284,10 @@ impl Series {
         self.series_id
     }
 
+    pub fn get_series_main_information(&self) -> &SeriesMainInformation {
+        &self.series_information
+    }
+
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::SeriesImageLoaded(image) => {

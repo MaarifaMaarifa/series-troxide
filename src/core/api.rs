@@ -1,5 +1,5 @@
 use bytes::Bytes;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 pub mod episodes_information;
@@ -29,12 +29,12 @@ struct BadResponse {
     // status: u32,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Rating {
     pub average: Option<f32>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Image {
     #[serde(rename = "original")]
     pub original_image_url: String,
