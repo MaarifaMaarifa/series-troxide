@@ -46,7 +46,7 @@ pub mod show_updates {
 
     /// # Get shows updates
     ///
-    /// This function takes update timestamp when the shows were last updated and an Option<usize>
+    /// This function takes update timestamp when the shows were last updated and an `Option<usize>`
     /// which specifies the amount of shows to be returned, supply None if you want all of them
     /// but be aware that they can be alot especially if you provide big timestamps.
     pub async fn get_show_updates(
