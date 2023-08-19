@@ -107,7 +107,8 @@ impl TabsController {
                 my_shows_command.map(Message::MyShows)
             }
             Tab::Statistics => {
-                let (statistics_tab, statistics_command) = StatisticsTab::new();
+                let (statistics_tab, statistics_command) =
+                    StatisticsTab::new(self.series_page_sender.clone());
                 self.reloadable_tab = Some(ReloadableTab::Statistics(statistics_tab));
                 statistics_command.map(Message::Statistics)
             }

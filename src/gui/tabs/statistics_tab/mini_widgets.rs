@@ -113,24 +113,29 @@ pub fn time_count(
 }
 
 pub mod series_banner {
+    use std::sync::mpsc;
+
     use bytes::Bytes;
-    use iced::widget::{column, container, image, row, text, Row, Space};
+    use iced::widget::{column, container, image, mouse_area, row, text, Row, Space};
     use iced::{Alignment, Command, Element, Length, Renderer};
 
     use crate::core::caching;
     use crate::core::{api::series_information::SeriesMainInformation, database};
+    use crate::gui::series_page;
     use crate::gui::{helpers, styles};
 
     #[derive(Debug, Clone)]
     pub enum Message {
         #[allow(dead_code)]
         BannerReceived(usize, Option<Bytes>),
+        Selected(usize),
     }
 
     impl Message {
         pub fn get_id(&self) -> usize {
             match self {
                 Message::BannerReceived(id, _) => *id,
+                Message::Selected(id) => *id,
             }
         }
     }
@@ -139,12 +144,14 @@ pub mod series_banner {
         id: usize,
         series_info_and_time: (SeriesMainInformation, Option<u32>),
         banner: Option<Bytes>,
+        series_page_sender: mpsc::Sender<(series_page::Series, Command<series_page::Message>)>,
     }
 
     impl SeriesBanner {
         pub fn new(
             id: usize,
             series_info_and_time: (SeriesMainInformation, Option<u32>),
+            series_page_sender: mpsc::Sender<(series_page::Series, Command<series_page::Message>)>,
         ) -> (Self, Command<Message>) {
             let image_url = series_info_and_time
                 .0
@@ -156,6 +163,7 @@ pub mod series_banner {
                     id,
                     series_info_and_time,
                     banner: None,
+                    series_page_sender,
                 },
                 image_url
                     .map(|image_url| {
@@ -170,6 +178,13 @@ pub mod series_banner {
         pub fn update(&mut self, message: Message) {
             match message {
                 Message::BannerReceived(_, banner) => self.banner = banner,
+                Message::Selected(_) => self
+                    .series_page_sender
+                    .send(series_page::Series::new(
+                        self.series_info_and_time.0.clone(),
+                        self.series_page_sender.clone(),
+                    ))
+                    .expect("failed to send series page"),
             }
         }
 
@@ -247,13 +262,16 @@ pub mod series_banner {
                 .padding(5)
                 .width(Length::Fill);
 
-            container(content)
-                .width(300)
-                .style(styles::container_styles::first_class_container_rounded_theme())
-                .padding(10)
-                .center_x()
-                .center_y()
-                .into()
+            mouse_area(
+                container(content)
+                    .width(300)
+                    .style(styles::container_styles::first_class_container_rounded_theme())
+                    .padding(10)
+                    .center_x()
+                    .center_y(),
+            )
+            .on_press(Message::Selected(self.id))
+            .into()
         }
     }
 }
