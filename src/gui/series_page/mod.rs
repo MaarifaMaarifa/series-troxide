@@ -1,3 +1,5 @@
+use std::sync::mpsc;
+
 use crate::core::api::episodes_information::Episode;
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::api::Image;
@@ -12,6 +14,7 @@ use cast_widget::{CastWidget, Message as CastWidgetMessage};
 use image;
 use mini_widgets::*;
 use season_widget::Message as SeasonMessage;
+use series_suggestion_widget::{Message as SeriesSuggestionMessage, SeriesSuggestion};
 
 use iced::widget::{
     button, column, container, horizontal_rule, horizontal_space, row, scrollable, text, Button,
@@ -24,6 +27,7 @@ use iced_aw::{Grid, Spinner};
 mod cast_widget;
 mod mini_widgets;
 mod season_widget;
+mod series_suggestion_widget;
 
 #[derive(PartialEq)]
 pub enum SeriesStatus {
@@ -233,6 +237,7 @@ pub enum Message {
     EpisodeListLoaded(caching::episode_list::EpisodeList),
     SeasonAction(usize, Box<SeasonMessage>),
     CastWidgetAction(CastWidgetMessage),
+    SeriesSuggestion(SeriesSuggestionMessage),
     TrackSeries,
     UntrackSeries,
 }
@@ -252,13 +257,23 @@ pub struct Series {
     next_episode_release_time: Option<(Episode, EpisodeReleaseTime)>,
     season_widgets: Vec<season_widget::Season>,
     cast_widget: CastWidget,
+    series_suggestion_widget: SeriesSuggestion,
 }
 
 impl Series {
     /// Counstruct the series page by providing it with SeriesMainInformation
-    pub fn new(series_information: SeriesMainInformation) -> (Self, Command<Message>) {
+    pub fn new(
+        series_information: SeriesMainInformation,
+        series_page_sender: mpsc::Sender<(Self, Command<Message>)>,
+    ) -> (Self, Command<Message>) {
         let series_id = series_information.id;
         let (cast_widget, cast_widget_command) = CastWidget::new(series_id);
+        let (series_suggestion_widget, series_suggestion_widget_command) = SeriesSuggestion::new(
+            series_id,
+            series_information.get_genres(),
+            series_page_sender,
+        );
+
         let series_image = series_information.image.clone();
         let series = Self {
             series_id,
@@ -270,11 +285,13 @@ impl Series {
             series_background: None,
             season_widgets: vec![],
             cast_widget,
+            series_suggestion_widget,
         };
 
         let commands = [
             Command::batch(get_images_and_episode_list(series_image, series_id)),
             cast_widget_command.map(Message::CastWidgetAction),
+            series_suggestion_widget_command.map(Message::SeriesSuggestion),
         ];
 
         (series, Command::batch(commands))
@@ -366,6 +383,12 @@ impl Series {
                     .map(|(episode, release_time)| (episode.clone(), release_time))
             }
             Message::SeriesBackgroundLoaded(background) => self.series_background = background,
+            Message::SeriesSuggestion(message) => {
+                return self
+                    .series_suggestion_widget
+                    .update(message)
+                    .map(Message::SeriesSuggestion)
+            }
         }
         Command::none()
     }
@@ -385,6 +408,10 @@ impl Series {
         let seasons_widget = self.seasons_view();
 
         let cast_widget = self.cast_widget.view().map(Message::CastWidgetAction);
+        let series_suggestion_widget = self
+            .series_suggestion_widget
+            .view()
+            .map(Message::SeriesSuggestion);
 
         let content = column![
             background,
@@ -392,6 +419,7 @@ impl Series {
             vertical_space(10),
             seasons_widget,
             cast_widget,
+            series_suggestion_widget
         ];
 
         scrollable(content).into()

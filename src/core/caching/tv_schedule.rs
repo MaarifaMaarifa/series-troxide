@@ -151,6 +151,7 @@ pub mod full_schedule {
         Network(ShowNetwork),
         WebChannel(ShowWebChannel),
         Genre(Genre),
+        Genres(Vec<Genre>),
         None,
     }
 
@@ -234,6 +235,24 @@ pub mod full_schedule {
             genre: Genre,
         ) -> Vec<SeriesMainInformation> {
             self.get_popular_series_by_schedule_filter(amount, Filter(ScheduleFilter::Genre(genre)))
+        }
+
+        /// # Returns popular series filtered out using the provided list of genres
+        ///
+        /// ## Note
+        /// - the returned collection is automatically sorted starting from series with highest rating.
+        /// - Expect slightly different results for the same provided collection, this is
+        ///   because this function uses a `HashSet` for deduplication since duplicates
+        ///   can appear and any random indices(not necessarily consecutive)
+        pub fn get_popular_series_by_genres(
+            &self,
+            amount: usize,
+            genres: Vec<Genre>,
+        ) -> Vec<SeriesMainInformation> {
+            self.get_popular_series_by_schedule_filter(
+                amount,
+                Filter(ScheduleFilter::Genres(genres)),
+            )
         }
 
         /// # Returns popular series filtered out using the provided network
@@ -328,6 +347,16 @@ pub mod full_schedule {
                         series_genres
                             .into_iter()
                             .any(|series_genre| series_genre == *genre)
+                    }
+                    ScheduleFilter::Genres(genres) => {
+                        let series_genres: Vec<Genre> = series_info
+                            .genres
+                            .iter()
+                            .map(|genre_str| Genre::from(genre_str.as_str()))
+                            .collect();
+                        series_genres
+                            .into_iter()
+                            .any(|series_genre| genres.iter().any(|genre| *genre == series_genre))
                     }
                     ScheduleFilter::None => true,
                 },

@@ -5,7 +5,7 @@ use std::hash::{Hash, Hasher};
 // The series id goes after the last slash(append at the end of the string)
 const SERIES_INFORMATION_ADDRESS: &str = "https://api.tvmaze.com/shows/";
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub enum Genre {
     Romance,
     Drama,
@@ -175,6 +175,15 @@ pub struct SeriesMainInformation {
     pub web_channel: Option<WebChannel>,
     pub summary: Option<String>,
     pub image: Option<Image>,
+}
+
+impl SeriesMainInformation {
+    pub fn get_genres(&self) -> Vec<Genre> {
+        self.genres
+            .iter()
+            .map(|genre| Genre::from(genre.as_str()))
+            .collect()
+    }
 }
 
 impl PartialEq for SeriesMainInformation {

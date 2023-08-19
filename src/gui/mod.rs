@@ -110,13 +110,15 @@ impl Application for TroxideGui {
 
                 let series_id = series_page.get_series_id();
 
-                if message.matches(series_id) {
+                let command = if message.matches(series_id) {
                     series_page.update(message.message).map(move |message| {
                         Message::Series(IdentifiableSeriesMessage::new(series_id, message))
                     })
                 } else {
                     Command::none()
-                }
+                };
+
+                Command::batch([command, self.try_series_page_switch()])
             }
 
             Message::FontLoaded(res) => {
