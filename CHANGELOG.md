@@ -14,7 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Auto-refresh for the `My Shows page` to get accurate episode release time. [8206d82](https://github.com/MaarifaMaarifa/series-troxide/commit/8206d8214d63d2bbb7d6ac9dbb80f4b40a6a058a)
 - Average time required to complete watching remaining episodes for a series in `Watchlist page`. [1ee6a8c](https://github.com/MaarifaMaarifa/series-troxide/commit/1ee6a8ca660154a7a2416c26d6b36cf3b6b5b1b6)
 - Monthly Airing Series(for new and returning series) sections in `Discover page`. [03d56b5](https://github.com/MaarifaMaarifa/series-troxide/commit/03d56b50869c58cf6e4c9f18536172b88d9af03a)
-- Genre sections(Family, Action, Sci-Fi etc) in `Discover page`.[1f2e9b4](https://github.com/MaarifaMaarifa/series-troxide/commit/1f2e9b4b741290226c87ef54329c6fce0f16aa33)
+- Network and web-channel sections(The CW, Netflix, HBO etc) in `Discover page`. [b8ad79b](https://github.com/MaarifaMaarifa/series-troxide/commit/b8ad79bfba3e41ca393049c33913c7964d835e5b)
+- Genre sections(Family, Action, Sci-Fi etc) in `Discover page`. [1f2e9b4](https://github.com/MaarifaMaarifa/series-troxide/commit/1f2e9b4b741290226c87ef54329c6fce0f16aa33)
+- Suggested Shows(Based on the one currently opened) in `Series page`. [32f8b90](https://github.com/MaarifaMaarifa/series-troxide/commit/32f8b90657fa6319be34b736c693f90e5ca06482)
 
 ### Changed
 
