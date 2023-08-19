@@ -21,6 +21,8 @@ use iced_aw::Spinner;
 
 mod searching;
 
+const SECTIONS_POSTERS_AMOUNT: usize = 20;
+
 #[derive(Default, PartialEq)]
 enum LoadState {
     #[default]
@@ -309,102 +311,141 @@ impl DiscoverTab {
                 // Generating appropriate series posters and their commands
                 let (monthly_new_posters, monthly_new_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        full_schedule.get_monthly_new_series(20, get_current_month()),
+                        full_schedule
+                            .get_monthly_new_series(SECTIONS_POSTERS_AMOUNT, get_current_month()),
                     );
 
                 let (monthly_returning_posters, monthly_returning_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        full_schedule.get_monthly_returning_series(20, get_current_month()),
+                        full_schedule.get_monthly_returning_series(
+                            SECTIONS_POSTERS_AMOUNT,
+                            get_current_month(),
+                        ),
                     );
 
                 let (hbo_posters, hbo_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        full_schedule.get_popular_series_by_network(20, ShowNetwork::Hbo),
+                        full_schedule.get_popular_series_by_network(
+                            SECTIONS_POSTERS_AMOUNT,
+                            ShowNetwork::Hbo,
+                        ),
                     );
 
                 let (the_cw_posters, the_cw_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        full_schedule.get_popular_series_by_network(20, ShowNetwork::TheCW),
+                        full_schedule.get_popular_series_by_network(
+                            SECTIONS_POSTERS_AMOUNT,
+                            ShowNetwork::TheCW,
+                        ),
                     );
 
                 let (netflix_posters, netflix_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        full_schedule.get_popular_series_by_webchannel(20, ShowWebChannel::Netflix),
+                        full_schedule.get_popular_series_by_webchannel(
+                            SECTIONS_POSTERS_AMOUNT,
+                            ShowWebChannel::Netflix,
+                        ),
                     );
 
                 let (abc_posters, abc_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        full_schedule.get_popular_series_by_network(20, ShowNetwork::Abc),
+                        full_schedule.get_popular_series_by_network(
+                            SECTIONS_POSTERS_AMOUNT,
+                            ShowNetwork::Abc,
+                        ),
                     );
 
                 let (fox_posters, fox_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        full_schedule.get_popular_series_by_network(20, ShowNetwork::Fox),
+                        full_schedule.get_popular_series_by_network(
+                            SECTIONS_POSTERS_AMOUNT,
+                            ShowNetwork::Fox,
+                        ),
                     );
 
                 let (cbs_posters, cbs_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        full_schedule.get_popular_series_by_network(20, ShowNetwork::Cbs),
+                        full_schedule.get_popular_series_by_network(
+                            SECTIONS_POSTERS_AMOUNT,
+                            ShowNetwork::Cbs,
+                        ),
                     );
 
                 let (nbc_posters, nbc_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        full_schedule.get_popular_series_by_network(20, ShowNetwork::Nbc),
+                        full_schedule.get_popular_series_by_network(
+                            SECTIONS_POSTERS_AMOUNT,
+                            ShowNetwork::Nbc,
+                        ),
                     );
 
                 let (bbc_one_posters, bbc_one_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        full_schedule.get_popular_series_by_network(20, ShowNetwork::BbcOne),
+                        full_schedule.get_popular_series_by_network(
+                            SECTIONS_POSTERS_AMOUNT,
+                            ShowNetwork::BbcOne,
+                        ),
                     );
 
                 let (popular_posters, popular_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        full_schedule.get_popular_series(20),
+                        full_schedule.get_popular_series(SECTIONS_POSTERS_AMOUNT),
                     );
 
                 let (romance_posters, romance_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        full_schedule.get_popular_series_by_genre(20, Genre::Romance),
+                        full_schedule
+                            .get_popular_series_by_genre(SECTIONS_POSTERS_AMOUNT, Genre::Romance),
                     );
 
                 let (scifi_posters, scifi_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        full_schedule.get_popular_series_by_genre(20, Genre::ScienceFiction),
+                        full_schedule.get_popular_series_by_genre(
+                            SECTIONS_POSTERS_AMOUNT,
+                            Genre::ScienceFiction,
+                        ),
                     );
 
                 let (drama_posters, drama_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        full_schedule.get_popular_series_by_genre(20, Genre::Drama),
+                        full_schedule
+                            .get_popular_series_by_genre(SECTIONS_POSTERS_AMOUNT, Genre::Drama),
                     );
 
                 let (horror_posters, horror_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        full_schedule.get_popular_series_by_genre(20, Genre::Horror),
+                        full_schedule
+                            .get_popular_series_by_genre(SECTIONS_POSTERS_AMOUNT, Genre::Horror),
                     );
 
                 let (adventure_posters, adventure_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        full_schedule.get_popular_series_by_genre(20, Genre::Adventure),
+                        full_schedule
+                            .get_popular_series_by_genre(SECTIONS_POSTERS_AMOUNT, Genre::Adventure),
                     );
 
                 let (comedy_posters, comedy_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        full_schedule.get_popular_series_by_genre(20, Genre::Comedy),
+                        full_schedule
+                            .get_popular_series_by_genre(SECTIONS_POSTERS_AMOUNT, Genre::Comedy),
                     );
 
                 let (crime_posters, crime_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        full_schedule.get_popular_series_by_genre(20, Genre::Crime),
+                        full_schedule
+                            .get_popular_series_by_genre(SECTIONS_POSTERS_AMOUNT, Genre::Crime),
                     );
 
                 let (anime_posters, anime_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        full_schedule.get_popular_series_by_genre(20, Genre::Anime),
+                        full_schedule
+                            .get_popular_series_by_genre(SECTIONS_POSTERS_AMOUNT, Genre::Anime),
                     );
 
                 let (action_posters, action_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        full_schedule.get_popular_series_by_genre(20, Genre::Action),
+                        full_schedule
+                            .get_popular_series_by_genre(SECTIONS_POSTERS_AMOUNT, Genre::Action),
                     );
 
                 // Finishing setting up
