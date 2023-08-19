@@ -338,26 +338,14 @@ pub mod full_schedule {
                             ShowWebChannel::from(show_webchannel.name.as_str()) == *webchannel
                         })
                         .unwrap_or(false),
-                    ScheduleFilter::Genre(genre) => {
-                        let series_genres: Vec<Genre> = series_info
-                            .genres
-                            .iter()
-                            .map(|genre_str| Genre::from(genre_str.as_str()))
-                            .collect();
-                        series_genres
-                            .into_iter()
-                            .any(|series_genre| series_genre == *genre)
-                    }
-                    ScheduleFilter::Genres(genres) => {
-                        let series_genres: Vec<Genre> = series_info
-                            .genres
-                            .iter()
-                            .map(|genre_str| Genre::from(genre_str.as_str()))
-                            .collect();
-                        series_genres
-                            .into_iter()
-                            .any(|series_genre| genres.iter().any(|genre| *genre == series_genre))
-                    }
+                    ScheduleFilter::Genre(genre) => series_info
+                        .get_genres()
+                        .into_iter()
+                        .any(|series_genre| series_genre == *genre),
+                    ScheduleFilter::Genres(genres) => series_info
+                        .get_genres()
+                        .into_iter()
+                        .any(|series_genre| genres.iter().any(|genre| *genre == series_genre)),
                     ScheduleFilter::None => true,
                 },
             )
