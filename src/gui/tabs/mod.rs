@@ -8,8 +8,6 @@ use watchlist_tab::{Message as WatchlistMessage, WatchlistTab};
 use iced::{Command, Element, Renderer};
 use std::sync::mpsc;
 
-use super::troxide_widget;
-
 pub mod discover_tab;
 pub mod my_shows_tab;
 pub mod settings_tab;
@@ -47,6 +45,17 @@ impl From<Tab> for usize {
             Tab::Statistics => 3,
             Tab::Settings => 4,
         }
+    }
+}
+
+pub struct TabLabel {
+    pub text: String,
+    pub icon: &'static [u8],
+}
+
+impl TabLabel {
+    pub fn new(text: String, icon: &'static [u8]) -> Self {
+        Self { text, icon }
     }
 }
 
@@ -171,7 +180,7 @@ impl TabsController {
         }
     }
 
-    pub fn get_labels(&self) -> Vec<troxide_widget::tabs::TabLabel> {
+    pub fn get_labels(&self) -> Vec<TabLabel> {
         vec![
             DiscoverTab::tab_label(),
             WatchlistTab::tab_label(),

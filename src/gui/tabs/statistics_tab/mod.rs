@@ -7,7 +7,6 @@ use iced_aw::Wrap;
 use crate::core::{api::series_information::SeriesMainInformation, database};
 use crate::gui::assets::icons::GRAPH_UP_ARROW;
 use crate::gui::series_page;
-use crate::gui::troxide_widget;
 use series_banner::{Message as SeriesBannerMessage, SeriesBanner};
 
 use mini_widgets::*;
@@ -128,7 +127,7 @@ impl StatisticsTab {
         "Statistics".to_owned()
     }
 
-    pub fn tab_label() -> troxide_widget::tabs::TabLabel {
-        troxide_widget::tabs::TabLabel::new(Self::title(), GRAPH_UP_ARROW)
+    pub fn tab_label() -> super::TabLabel {
+        super::TabLabel::new(Self::title(), GRAPH_UP_ARROW)
     }
 }

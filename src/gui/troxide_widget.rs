@@ -291,59 +291,39 @@ pub mod series_poster {
     }
 }
 
-pub mod tabs {
-    use iced::widget::{column, container, horizontal_space, mouse_area, row, svg, text, Row};
-    use iced::{Element, Length, Renderer};
+pub mod title_bar {
+    use iced::widget::{container, horizontal_space, mouse_area, row, svg, text, Row};
+    use iced::{Length, Renderer};
 
     use crate::gui::assets::get_static_cow_from_asset;
     use crate::gui::styles;
+    use crate::gui::tabs::TabLabel;
 
-    pub struct TabLabel {
-        pub text: String,
-        pub icon: &'static [u8],
+    #[derive(Clone, Debug)]
+    pub enum Message {
+        TabSelected(usize),
     }
 
-    impl TabLabel {
-        pub fn new(text: String, icon: &'static [u8]) -> Self {
-            Self { text, icon }
-        }
-    }
-
-    pub struct Tabs<'a, Message> {
+    pub struct TitleBar {
         active_tab: usize,
-        on_select: Box<dyn Fn(usize) -> Message>,
-        tab_labels: Vec<TabLabel>,
-        current_tab_view: Element<'a, Message, Renderer>,
     }
 
-    impl<'a, Message> Tabs<'a, Message>
-    where
-        Message: Clone + 'a,
-    {
-        pub fn with_labels<F>(
-            tab_labels: Vec<TabLabel>,
-            current_tab_view: Element<'a, Message, Renderer>,
-            on_select: F,
-        ) -> Self
-        where
-            F: 'static + Fn(usize) -> Message,
-        {
+    impl TitleBar {
+        pub fn new() -> Self {
             Self {
                 active_tab: usize::default(),
-                tab_labels,
-                on_select: Box::new(on_select),
-                current_tab_view,
             }
         }
 
-        pub fn set_active_tab(mut self, tab_id: usize) -> Self {
-            self.active_tab = tab_id;
-            self
+        pub fn update(&mut self, message: Message) {
+            #[allow(irrefutable_let_patterns)]
+            if let Message::TabSelected(new_active_tab) = message {
+                self.active_tab = new_active_tab
+            }
         }
 
-        fn tab_view(&self) -> iced::Element<'a, Message, Renderer> {
-            let tab_views = self
-                .tab_labels
+        pub fn view(&self, tab_labels: &[TabLabel]) -> iced::Element<'_, Message, Renderer> {
+            let tab_views = tab_labels
                 .iter()
                 .enumerate()
                 .map(|(index, tab_label)| {
@@ -355,7 +335,7 @@ pub mod tabs {
                     let text_label = text(&tab_label.text);
                     let mut tab = container(
                         mouse_area(row![icon, text_label].spacing(5))
-                            .on_press((self.on_select)(index)),
+                            .on_press(Message::TabSelected(index)),
                     )
                     .padding(5);
 
@@ -377,11 +357,6 @@ pub mod tabs {
             ])
             .style(styles::container_styles::first_class_container_square_theme())
             .into()
-        }
-
-        pub fn view(self) -> Element<'a, Message, Renderer> {
-            let tab_view = self.tab_view();
-            column![tab_view, self.current_tab_view].into()
         }
     }
 }

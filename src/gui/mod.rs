@@ -1,4 +1,5 @@
 use crate::core::settings_config::{self, SETTINGS};
+use iced::widget::column;
 use iced::{Application, Command};
 use std::sync::mpsc;
 
@@ -6,6 +7,7 @@ use series_page::{
     IdentifiableMessage as IdentifiableSeriesMessage, Message as SeriesMessage, Series,
 };
 use tabs::{Message as TabsControllerMessage, Tab as TabId, TabsController};
+use troxide_widget::title_bar::{Message as TitleBarMessage, TitleBar};
 
 pub mod assets;
 pub mod helpers;
@@ -16,7 +18,7 @@ mod troxide_widget;
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    TabSelected(usize),
+    Tabs(TitleBarMessage),
     Series(IdentifiableSeriesMessage),
     TabsController(TabsControllerMessage),
     FontLoaded(Result<(), iced::font::Error>),
@@ -24,6 +26,7 @@ pub enum Message {
 
 pub struct TroxideGui {
     active_tab: TabId,
+    title_bar: TitleBar,
     series_view_active: bool,
     tabs_controller: TabsController,
     series_view: Option<Series>,
@@ -47,6 +50,7 @@ impl Application for TroxideGui {
         (
             Self {
                 active_tab: TabId::Discover,
+                title_bar: TitleBar::new(),
                 series_view_active: false,
                 tabs_controller,
                 series_view: None,
@@ -88,14 +92,6 @@ impl Application for TroxideGui {
 
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message::TabSelected(tab_id) => {
-                self.series_view_active = false;
-                let tab_id: TabId = tab_id.into();
-                self.active_tab = tab_id.clone();
-                self.tabs_controller
-                    .switch_to_tab(tab_id)
-                    .map(Message::TabsController)
-            }
             Message::TabsController(message) => Command::batch([
                 self.tabs_controller
                     .update(message)
@@ -127,13 +123,24 @@ impl Application for TroxideGui {
                 }
                 Command::none()
             }
+            Message::Tabs(message) => {
+                self.title_bar.update(message.clone());
+                match message {
+                    TitleBarMessage::TabSelected(tab_id) => {
+                        self.series_view_active = false;
+                        let tab_id: TabId = tab_id.into();
+                        self.active_tab = tab_id.clone();
+                        self.tabs_controller
+                            .switch_to_tab(tab_id)
+                            .map(Message::TabsController)
+                    }
+                }
+            }
         }
     }
 
     fn view(&self) -> iced::Element<'_, Message, iced::Renderer<Self::Theme>> {
         let mut tab_view = self.tabs_controller.view().map(Message::TabsController);
-
-        let active_tab_index: usize = self.active_tab.to_owned().into();
 
         // Hijacking the current tab view when series view is active
         if self.series_view_active {
@@ -144,13 +151,13 @@ impl Application for TroxideGui {
             });
         }
 
-        troxide_widget::tabs::Tabs::with_labels(
-            self.tabs_controller.get_labels(),
-            tab_view,
-            Message::TabSelected,
-        )
-        .set_active_tab(active_tab_index)
-        .view()
+        column![
+            self.title_bar
+                .view(&self.tabs_controller.get_labels())
+                .map(Message::Tabs),
+            tab_view
+        ]
+        .into()
     }
 }
 

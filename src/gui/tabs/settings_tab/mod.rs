@@ -2,7 +2,6 @@ use iced::widget::{column, scrollable};
 use iced::{Alignment, Command, Element, Length, Renderer};
 
 use crate::gui::assets::icons::GEAR_WIDE_CONNECTED;
-use crate::gui::troxide_widget;
 use about_widget::{About, Message as AboutMessage};
 use appearance_widget::{Appearance, Message as AppearanceMessage};
 use caching_widget::{Caching, Message as CachingMessage};
@@ -107,8 +106,8 @@ impl SettingsTab {
         "Settings".to_owned()
     }
 
-    pub fn tab_label() -> troxide_widget::tabs::TabLabel {
-        troxide_widget::tabs::TabLabel::new(Self::title(), GEAR_WIDE_CONNECTED)
+    pub fn tab_label() -> super::TabLabel {
+        super::TabLabel::new(Self::title(), GEAR_WIDE_CONNECTED)
     }
 }
 

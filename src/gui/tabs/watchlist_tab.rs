@@ -11,7 +11,6 @@ use crate::core::caching::series_list;
 use crate::core::{caching, database};
 use crate::gui::assets::icons::CARD_CHECKLIST;
 use crate::gui::series_page;
-use crate::gui::troxide_widget;
 use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
 
 #[derive(Debug, Clone)]
@@ -203,7 +202,7 @@ impl WatchlistTab {
         "Watchlist".to_owned()
     }
 
-    pub fn tab_label() -> troxide_widget::tabs::TabLabel {
-        troxide_widget::tabs::TabLabel::new(Self::title(), CARD_CHECKLIST)
+    pub fn tab_label() -> super::TabLabel {
+        super::TabLabel::new(Self::title(), CARD_CHECKLIST)
     }
 }

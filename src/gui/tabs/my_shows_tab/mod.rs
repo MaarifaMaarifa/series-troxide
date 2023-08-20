@@ -2,7 +2,7 @@ use std::sync::mpsc;
 
 use crate::gui::assets::icons::FILM;
 use crate::gui::series_page;
-use crate::gui::{styles, troxide_widget};
+use crate::gui::styles;
 
 use iced::widget::{column, scrollable, text};
 use iced::{Command, Element, Length, Renderer};
@@ -127,7 +127,7 @@ impl MyShowsTab {
         "My Shows".to_owned()
     }
 
-    pub fn tab_label() -> troxide_widget::tabs::TabLabel {
-        troxide_widget::tabs::TabLabel::new(Self::title(), FILM)
+    pub fn tab_label() -> super::TabLabel {
+        super::TabLabel::new(Self::title(), FILM)
     }
 }

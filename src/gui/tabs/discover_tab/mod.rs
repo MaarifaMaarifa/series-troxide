@@ -8,7 +8,6 @@ use crate::core::caching::tv_schedule::{get_series_with_country, get_series_with
 use crate::core::settings_config::locale_settings;
 use crate::gui::assets::icons::BINOCULARS_FILL;
 use crate::gui::series_page;
-use crate::gui::troxide_widget;
 use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
 use searching::Message as SearchMessage;
 
@@ -832,8 +831,8 @@ impl DiscoverTab {
         "Discover".to_owned()
     }
 
-    pub fn tab_label() -> troxide_widget::tabs::TabLabel {
-        troxide_widget::tabs::TabLabel::new(Self::title(), BINOCULARS_FILL)
+    pub fn tab_label() -> super::TabLabel {
+        super::TabLabel::new(Self::title(), BINOCULARS_FILL)
     }
 
     fn generate_posters_and_commands_from_series_infos(
