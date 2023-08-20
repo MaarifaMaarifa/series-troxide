@@ -7,7 +7,6 @@ use crate::core::caching;
 use crate::core::caching::tv_schedule::{get_series_with_country, get_series_with_date};
 use crate::core::settings_config::locale_settings;
 use crate::gui::assets::icons::BINOCULARS_FILL;
-use crate::gui::series_page;
 use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
 use searching::Message as SearchMessage;
 
@@ -76,7 +75,7 @@ pub struct DiscoverTab {
     load_status: LoadStatus,
     show_search_results: bool,
     search_state: searching::Search,
-    series_page_sender: mpsc::Sender<(series_page::Series, Command<series_page::Message>)>,
+    series_page_sender: mpsc::Sender<SeriesMainInformation>,
     country_name: String,
 
     new_global_series: Vec<SeriesPoster>,
@@ -105,7 +104,7 @@ pub struct DiscoverTab {
 
 impl DiscoverTab {
     pub fn new(
-        series_page_sender: mpsc::Sender<(series_page::Series, Command<series_page::Message>)>,
+        series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (Self, Command<Message>) {
         (
             Self {
@@ -223,10 +222,7 @@ impl DiscoverTab {
             Message::Search(message) => {
                 if let SearchMessage::SeriesResultPressed(series_info) = message {
                     self.series_page_sender
-                        .send(series_page::Series::new(
-                            *series_info,
-                            self.series_page_sender.clone(),
-                        ))
+                        .send(*series_info)
                         .expect("failed to send series page");
                     self.show_search_results = false;
                     return Command::none();
@@ -243,10 +239,7 @@ impl DiscoverTab {
             }
             Message::SeriesSelected(series_info) => {
                 self.series_page_sender
-                    .send(series_page::Series::new(
-                        *series_info,
-                        self.series_page_sender.clone(),
-                    ))
+                    .send(*series_info)
                     .expect("failed to send series page");
                 Command::none()
             }

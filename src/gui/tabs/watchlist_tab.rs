@@ -10,7 +10,6 @@ use crate::core::caching::episode_list::EpisodeList;
 use crate::core::caching::series_list;
 use crate::core::{caching, database};
 use crate::gui::assets::icons::CARD_CHECKLIST;
-use crate::gui::series_page;
 use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
 
 #[derive(Debug, Clone)]
@@ -29,12 +28,12 @@ enum LoadState {
 pub struct WatchlistTab {
     series_posters: Vec<(SeriesPoster, Option<Episode>, usize)>,
     load_state: LoadState,
-    series_page_sender: mpsc::Sender<(series_page::Series, Command<series_page::Message>)>,
+    series_page_sender: mpsc::Sender<SeriesMainInformation>,
 }
 
 impl WatchlistTab {
     pub fn new(
-        series_page_sender: mpsc::Sender<(series_page::Series, Command<series_page::Message>)>,
+        series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (Self, Command<Message>) {
         (
             Self {
@@ -73,10 +72,7 @@ impl WatchlistTab {
             Message::SeriesPoster(index, message) => {
                 if let SeriesPosterMessage::SeriesPosterPressed(series_info) = *message.clone() {
                     self.series_page_sender
-                        .send(series_page::Series::new(
-                            *series_info,
-                            self.series_page_sender.clone(),
-                        ))
+                        .send(*series_info)
                         .expect("failed to send the series page");
                     return Command::none();
                 }

@@ -1,4 +1,4 @@
-use crate::gui::series_page::{Message as SeriesMessage, Series};
+use crate::core::api::series_information::SeriesMainInformation;
 use discover_tab::{DiscoverTab, Message as DiscoverMessage};
 use my_shows_tab::{Message as MyShowsMessage, MyShowsTab};
 use settings_tab::{Message as SettingsMessage, SettingsTab};
@@ -79,12 +79,12 @@ pub struct TabsController {
     current_tab: Tab,
     discover_tab: DiscoverTab,
     reloadable_tab: Option<ReloadableTab>,
-    series_page_sender: mpsc::Sender<(Series, Command<SeriesMessage>)>,
+    series_page_sender: mpsc::Sender<SeriesMainInformation>,
 }
 
 impl TabsController {
     pub fn new(
-        series_page_sender: mpsc::Sender<(Series, Command<SeriesMessage>)>,
+        series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (Self, Command<Message>) {
         let (discover_tab, discover_command) = DiscoverTab::new(series_page_sender.clone());
 

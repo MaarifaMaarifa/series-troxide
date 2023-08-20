@@ -1,7 +1,7 @@
 use std::sync::mpsc;
 
+use crate::core::api::series_information::SeriesMainInformation;
 use crate::gui::assets::icons::FILM;
-use crate::gui::series_page;
 use crate::gui::styles;
 
 use iced::widget::{column, scrollable, text};
@@ -30,7 +30,7 @@ pub struct MyShowsTab {
 
 impl MyShowsTab {
     pub fn new(
-        series_page_sender: mpsc::Sender<(series_page::Series, Command<series_page::Message>)>,
+        series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (Self, Command<Message>) {
         let (untracked_releases, untracked_releases_commands) =
             MyShows::new_as_untracked_series(series_page_sender.clone());

@@ -121,7 +121,6 @@ pub mod series_banner {
 
     use crate::core::caching;
     use crate::core::{api::series_information::SeriesMainInformation, database};
-    use crate::gui::series_page;
     use crate::gui::{helpers, styles};
 
     #[derive(Debug, Clone)]
@@ -144,14 +143,14 @@ pub mod series_banner {
         id: usize,
         series_info_and_time: (SeriesMainInformation, Option<u32>),
         banner: Option<Bytes>,
-        series_page_sender: mpsc::Sender<(series_page::Series, Command<series_page::Message>)>,
+        series_page_sender: mpsc::Sender<SeriesMainInformation>,
     }
 
     impl SeriesBanner {
         pub fn new(
             id: usize,
             series_info_and_time: (SeriesMainInformation, Option<u32>),
-            series_page_sender: mpsc::Sender<(series_page::Series, Command<series_page::Message>)>,
+            series_page_sender: mpsc::Sender<SeriesMainInformation>,
         ) -> (Self, Command<Message>) {
             let image_url = series_info_and_time
                 .0
@@ -180,10 +179,7 @@ pub mod series_banner {
                 Message::BannerReceived(_, banner) => self.banner = banner,
                 Message::Selected(_) => self
                     .series_page_sender
-                    .send(series_page::Series::new(
-                        self.series_info_and_time.0.clone(),
-                        self.series_page_sender.clone(),
-                    ))
+                    .send(self.series_info_and_time.0.clone())
                     .expect("failed to send series page"),
             }
         }

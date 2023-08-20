@@ -1,6 +1,6 @@
 use std::sync::mpsc;
 
-use crate::core::api::series_information::Genre;
+use crate::core::api::series_information::{Genre, SeriesMainInformation};
 use crate::core::caching::tv_schedule::full_schedule;
 use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
 
@@ -23,14 +23,14 @@ pub struct SeriesSuggestion {
     genres: Vec<Genre>,
     load_state: LoadState,
     suggested_series: Vec<SeriesPoster>,
-    series_page_sender: mpsc::Sender<(super::Series, Command<super::Message>)>,
+    series_page_sender: mpsc::Sender<SeriesMainInformation>,
 }
 
 impl SeriesSuggestion {
     pub fn new(
         series_id: u32,
         genres: Vec<Genre>,
-        series_page_sender: mpsc::Sender<(super::Series, Command<super::Message>)>,
+        series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (Self, Command<Message>) {
         (
             Self {
@@ -78,10 +78,7 @@ impl SeriesSuggestion {
             Message::SeriesPoster(message) => {
                 if let SeriesPosterMessage::SeriesPosterPressed(series_info) = message.clone() {
                     self.series_page_sender
-                        .send(super::Series::new(
-                            *series_info,
-                            self.series_page_sender.clone(),
-                        ))
+                        .send(*series_info)
                         .expect("failed to send the series page");
                     return Command::none();
                 }

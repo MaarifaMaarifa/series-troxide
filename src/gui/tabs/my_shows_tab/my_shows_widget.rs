@@ -6,7 +6,6 @@ use iced_aw::{Spinner, Wrap};
 
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::caching;
-use crate::gui::series_page;
 use crate::gui::styles;
 use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
 
@@ -26,12 +25,12 @@ enum LoadState {
 pub struct MyShows {
     load_state: LoadState,
     series_posters: Vec<SeriesPoster>,
-    series_page_sender: mpsc::Sender<(series_page::Series, Command<series_page::Message>)>,
+    series_page_sender: mpsc::Sender<SeriesMainInformation>,
 }
 
 impl MyShows {
     pub fn new_as_ended_tracked_series(
-        series_page_sender: mpsc::Sender<(series_page::Series, Command<series_page::Message>)>,
+        series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (Self, Command<Message>) {
         (
             Self {
@@ -51,7 +50,7 @@ impl MyShows {
     }
 
     pub fn new_as_waiting_release_series(
-        series_page_sender: mpsc::Sender<(series_page::Series, Command<series_page::Message>)>,
+        series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (Self, Command<Message>) {
         (
             Self {
@@ -71,7 +70,7 @@ impl MyShows {
     }
 
     pub fn new_as_untracked_series(
-        series_page_sender: mpsc::Sender<(series_page::Series, Command<series_page::Message>)>,
+        series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (Self, Command<Message>) {
         (
             Self {
@@ -113,10 +112,7 @@ impl MyShows {
             Message::SeriesPosters(message) => {
                 if let SeriesPosterMessage::SeriesPosterPressed(series_info) = message.clone() {
                     self.series_page_sender
-                        .send(series_page::Series::new(
-                            *series_info,
-                            self.series_page_sender.clone(),
-                        ))
+                        .send(*series_info)
                         .expect("failed to send the series page");
                     return Command::none();
                 }

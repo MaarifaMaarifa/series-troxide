@@ -6,7 +6,6 @@ use iced_aw::Wrap;
 
 use crate::core::{api::series_information::SeriesMainInformation, database};
 use crate::gui::assets::icons::GRAPH_UP_ARROW;
-use crate::gui::series_page;
 use series_banner::{Message as SeriesBannerMessage, SeriesBanner};
 
 use mini_widgets::*;
@@ -22,12 +21,12 @@ pub enum Message {
 pub struct StatisticsTab {
     series_infos_and_time: Vec<(SeriesMainInformation, Option<u32>)>,
     series_banners: Vec<SeriesBanner>,
-    series_page_sender: mpsc::Sender<(series_page::Series, Command<series_page::Message>)>,
+    series_page_sender: mpsc::Sender<SeriesMainInformation>,
 }
 
 impl StatisticsTab {
     pub fn new(
-        series_page_sender: mpsc::Sender<(series_page::Series, Command<series_page::Message>)>,
+        series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (Self, Command<Message>) {
         (
             Self {
