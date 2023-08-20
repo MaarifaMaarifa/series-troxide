@@ -29,27 +29,6 @@ mod mini_widgets;
 mod season_widget;
 mod series_suggestion_widget;
 
-#[derive(PartialEq)]
-pub enum SeriesStatus {
-    Running,
-    Ended,
-    ToBeDetermined,
-    InDevelopment,
-    Other,
-}
-
-impl SeriesStatus {
-    pub fn new(series_info: &SeriesMainInformation) -> Self {
-        match series_info.status.as_ref() {
-            "Running" => Self::Running,
-            "Ended" => Self::Ended,
-            "To Be Determined" => Self::ToBeDetermined,
-            "In Development" => Self::InDevelopment,
-            _ => Self::Other,
-        }
-    }
-}
-
 /// Generates the Series Metadata
 pub fn series_metadata<'a>(
     series_information: &'a SeriesMainInformation,

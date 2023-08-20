@@ -372,18 +372,12 @@ pub mod full_schedule {
                 filter,
                 |series_info, schedule_filter| match schedule_filter {
                     ScheduleFilter::Network(network) => series_info
-                        .network
-                        .as_ref()
-                        .map(|show_network| {
-                            ShowNetwork::from(show_network.name.as_str()) == *network
-                        })
+                        .get_network()
+                        .map(|show_network| show_network == *network)
                         .unwrap_or(false),
                     ScheduleFilter::WebChannel(webchannel) => series_info
-                        .web_channel
-                        .as_ref()
-                        .map(|show_webchannel| {
-                            ShowWebChannel::from(show_webchannel.name.as_str()) == *webchannel
-                        })
+                        .get_webchannel()
+                        .map(|show_webchannel| show_webchannel == *webchannel)
                         .unwrap_or(false),
                     ScheduleFilter::Genre(genre) => series_info
                         .get_genres()

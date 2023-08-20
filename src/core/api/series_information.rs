@@ -158,6 +158,40 @@ impl std::fmt::Display for ShowWebChannel {
     }
 }
 
+#[derive(PartialEq)]
+pub enum ShowStatus {
+    Running,
+    Ended,
+    ToBeDetermined,
+    InDevelopment,
+    Other,
+}
+
+impl From<&str> for ShowStatus {
+    fn from(value: &str) -> Self {
+        match value {
+            "Running" => Self::Running,
+            "Ended" => Self::Ended,
+            "To Be Determined" => Self::ToBeDetermined,
+            "In Development" => Self::InDevelopment,
+            _ => Self::Other,
+        }
+    }
+}
+
+impl std::fmt::Display for ShowStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let status_str = match self {
+            ShowStatus::Running => "Running",
+            ShowStatus::Ended => "Ended",
+            ShowStatus::ToBeDetermined => "To Be Determined",
+            ShowStatus::InDevelopment => "In Development",
+            ShowStatus::Other => "Other",
+        };
+        write!(f, "{}", status_str)
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SeriesMainInformation {
     pub id: u32,
@@ -183,6 +217,22 @@ impl SeriesMainInformation {
             .iter()
             .map(|genre| Genre::from(genre.as_str()))
             .collect()
+    }
+
+    pub fn get_status(&self) -> ShowStatus {
+        ShowStatus::from(self.status.as_str())
+    }
+
+    pub fn get_network(&self) -> Option<ShowNetwork> {
+        self.network
+            .as_ref()
+            .map(|network| ShowNetwork::from(network.name.as_str()))
+    }
+
+    pub fn get_webchannel(&self) -> Option<ShowWebChannel> {
+        self.web_channel
+            .as_ref()
+            .map(|webchannel| ShowWebChannel::from(webchannel.name.as_str()))
     }
 }
 

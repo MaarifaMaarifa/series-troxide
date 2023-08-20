@@ -1,6 +1,5 @@
-use super::SeriesStatus;
 use crate::core::api::episodes_information::Episode;
-use crate::core::api::series_information::SeriesMainInformation;
+use crate::core::api::series_information::{SeriesMainInformation, ShowStatus};
 use crate::core::caching::episode_list::EpisodeReleaseTime;
 use crate::gui::assets::get_static_cow_from_asset;
 use crate::gui::assets::icons::{CLOCK_FILL, STAR, STAR_FILL, STAR_HALF};
@@ -18,16 +17,18 @@ pub fn status_widget(
     Element<'_, Message, Renderer>,
     Element<'_, Message, Renderer>,
 ) {
-    let title_text = text("Status");
+    let series_status = series_info.get_status();
 
-    let status_text = match SeriesStatus::new(series_info) {
-        SeriesStatus::Running => text("Running").style(styles::text_styles::green_text_theme()),
-        SeriesStatus::Ended => text("Ended").style(styles::text_styles::red_text_theme()),
-        SeriesStatus::ToBeDetermined => text("To Be Determined"),
-        SeriesStatus::InDevelopment => text("In Development"),
-        SeriesStatus::Other => text(&series_info.status),
-    };
-    (title_text.into(), status_text.into())
+    let mut status_text = text(&series_status);
+
+    if let ShowStatus::Running = series_status {
+        status_text = status_text.style(styles::text_styles::green_text_theme())
+    }
+    if let ShowStatus::Ended = series_status {
+        status_text = status_text.style(styles::text_styles::red_text_theme())
+    }
+
+    (text("Status").into(), status_text.into())
 }
 
 pub fn average_runtime_widget(
@@ -110,10 +111,8 @@ pub fn ended_widget(
     Element<'_, Message, Renderer>,
     Element<'_, Message, Renderer>,
 )> {
-    // Pushing the widget to the grid only when the series has ended
-    match SeriesStatus::new(series_info) {
-        SeriesStatus::Ended => {}
-        _ => return None,
+    if series_info.get_status() != ShowStatus::Ended {
+        return None;
     }
 
     let title_text = text("Ended");
