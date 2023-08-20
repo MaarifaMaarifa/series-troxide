@@ -50,6 +50,9 @@ lto = true
 strip = true
 codegen-units = 1
 
+[profile.dev.package."*"]
+opt-level = 3
+
 # The profile that 'cargo dist' will build with
 [profile.dist]
 inherits = "release"
