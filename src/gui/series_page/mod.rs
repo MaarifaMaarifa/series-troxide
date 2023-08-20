@@ -308,26 +308,18 @@ impl Series {
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::SeriesImageLoaded(image) => {
-                // Since blurring the image in debug build is really slow, so it is only enabled in release build
-                #[cfg(debug_assertions)]
-                fn blur_image(image: Option<&Bytes>) -> Option<image::DynamicImage> {
-                    image.map(|image| image::load_from_memory(image).unwrap())
-                }
-                #[cfg(not(debug_assertions))]
-                fn blur_image(image: Option<&Bytes>) -> Option<image::DynamicImage> {
-                    image.map(|image| {
-                        image::load_from_memory(image)
-                            .unwrap()
-                            /*
-                            creating a thumbnail out of it as this is going to make blurring
-                            process more faster
-                            */
-                            .thumbnail(100, 100)
-                            .blur(5.0)
-                    })
-                }
                 // This blurred series image is going to be used when the background is loading or missing
-                self.series_image_blurred = blur_image(image.as_ref());
+                // self.series_image_blurred = blur_image(image.as_ref());
+                self.series_image_blurred = image.as_ref().map(|image| {
+                    image::load_from_memory(image)
+                        .unwrap()
+                        /*
+                        creating a thumbnail out of it as this is going to make blurring
+                        process more faster
+                        */
+                        .thumbnail(100, 100)
+                        .blur(5.0)
+                });
                 self.series_image = image;
             }
             Message::SeasonAction(index, message) => {
