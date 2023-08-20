@@ -132,8 +132,10 @@ fn sort_by_rating(series_infos: &mut [SeriesMainInformation]) {
 pub mod full_schedule {
     use std::collections::HashSet;
 
+    use anyhow::{bail, Context};
     use chrono::{Datelike, Local, NaiveDate};
     use tokio::fs;
+    use tracing::{error, info};
 
     use crate::core::api::deserialize_json;
     use crate::core::api::episodes_information::Episode;
@@ -167,12 +169,46 @@ pub mod full_schedule {
             let mut cache_path = CACHER.get_root_cache_path().to_owned();
             cache_path.push(FULL_SCHEDULE_CACHE_FILENAME);
 
+            match cache_path.metadata() {
+                Ok(metadata) => match metadata.created() {
+                    Ok(sys_time) => {
+                        let daily_schedule_age = sys_time.elapsed().unwrap_or_else(|err| {
+                            error!("failed to get daily episode schedule age: {}", err);
+                            std::time::Duration::default()
+                        });
+                        if daily_schedule_age > std::time::Duration::from_secs(24 * 60 * 60) {
+                            info!("cleaning outdated daily episode schedule");
+                            fs::remove_file(&cache_path).await.unwrap_or_else(|err| {
+                                error!("failed to clean outdated daily episode schedule: {}", err)
+                            });
+                        }
+                    }
+                    Err(err) => error!(
+                        "failed to get daily episode schedule time of creating: {}",
+                        err
+                    ),
+                },
+                Err(err) => error!("failed to get daily episode schedule metadata: {}", err),
+            }
+
             let json_string = match fs::read_to_string(&cache_path).await {
                 Ok(json_string) => json_string,
-                Err(_) => {
-                    let cache_str = get_full_schedule().await?;
-                    fs::write(cache_path, &cache_str).await.unwrap();
-                    cache_str
+                Err(err) => {
+                    if let std::io::ErrorKind::NotFound = err.kind() {
+                        info!("downloading daily episode schedule");
+                        let cache_str = get_full_schedule()
+                            .await
+                            .context("failed to download daily episode schedule")?;
+                        fs::write(cache_path, &cache_str)
+                            .await
+                            .context("failed to save daily episode schedule")?;
+                        cache_str
+                    } else {
+                        bail!(
+                            "critical error when reading daily episode schedule: {}",
+                            err
+                        )
+                    }
                 }
             };
 
