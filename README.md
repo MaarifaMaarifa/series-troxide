@@ -40,6 +40,16 @@ Pre-built binaries for your specific platform can be obtained from the [release 
 |Arch           |pacman -S gtk3          |
 |Debian & Ubuntu|apt install libgtk-3-dev|
 
+When building the project, Cargo has been configure to use the LLD linker for faster linking. To install LLD, find your OS below and run the given command:
+- **Ubuntu**: `sudo apt-get install lld`
+- **Arch**: `sudo pacman -S lld`
+- **Windows**: Ensure you have the latest [cargo-binutils](https://github.com/rust-embedded/cargo-binutils) as this lets commands like `cargo run` use the LLD linker automatically.
+  ```shell
+  cargo install -f cargo-binutils
+  rustup component add llvm-tools-preview
+  ```
+- **MacOS**: You can follow [these](https://lld.llvm.org/MachO/index.html) instructions to install lld manually or install llvm through brew which includes lld: `brew install llvm`
+
 #### From Cargo ([crates.io](https://crates.io/crates/series-troxide))
 **Series Troxide** is available in crates.io and can be installed using Cargo.
 ```shell
