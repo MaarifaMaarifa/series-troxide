@@ -51,8 +51,7 @@ impl SeriesSuggestion {
             Message::FullScheduleLoaded(full_schedule) => {
                 self.load_state = LoadState::Loaded;
 
-                let mut series_infos =
-                    full_schedule.get_popular_series_by_genres(20, self.genres.clone());
+                let mut series_infos = full_schedule.get_series_by_genres(20, &self.genres);
 
                 let poster_index_to_remove = series_infos
                     .iter()
@@ -62,7 +61,7 @@ impl SeriesSuggestion {
 
                 // preventing the parent series from appearing in the suggestions
                 if let Some(index) = poster_index_to_remove {
-                    series_infos.swap_remove(index);
+                    series_infos.remove(index);
                 }
 
                 let mut posters = Vec::with_capacity(series_infos.len());
