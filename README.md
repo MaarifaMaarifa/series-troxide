@@ -14,17 +14,19 @@
 ![](screenshots/demo.gif)
 
 ## Features
-- **Aired and New Series discovery**. See what's new globally and locally.
-- **Series search**. Search for your favourite Series.
-- **Upcoming releases**. See when your tracked series are being aired.
-- **Series Information**. See general information of any series (Summary, genres, casts, etc).
-- **Series Categorization**. See which of your series are running, ended and untracked.
-- **Series watch progress tracking**. See what season and episode you left off and how many are unwatched.
-- **Series Statistics**. See how many series, seasons and episodes you have watched and how much time you've spent watching them in an ordered way.
-- **Light and Dark themes**. Use **Series Troxide** at any time of the day.
-- **Database export and import**. Carry your series tracking data anywhere.
-- **Caching**. Due to the rate limit of the API, caching makes **Series Troxide** fast when opening previously opened items and be able to perform crazy things like getting the statistics of all watched series. Cache cleaning can be managed both automatically and manually to make sure the program does not have outdated series data.
-- **Notifications for upcoming episodes**. Configure when to get notified before an episode release.
+- [x] **Aired and New Series discovery**. See what's new globally and locally.
+- [x] **Series discovery based on categories**. See series based on Networks, webchannels and genres.
+- [x] **Series search**. Search for your favourite Series.
+- [x] **Upcoming releases**. See when your tracked series are being aired.
+- [x] **Series Information**. See general information of any series (Summary, genres, casts, other suggestions based on the series etc).
+- [x] **Series Categorization**. See which of your series are running, ended and untracked.
+- [x] **Series watch progress tracking**. See what season and episode to continue from, how many episodes are unwatched and how much to required to complete watching all of them.
+- [x] **Series Statistics**. See how many series, seasons and episodes you have watched and how much time you've spent watching them in an ordered way.
+- [x] **Light and Dark themes**. Use **Series Troxide** at any time of the day.
+- [x] **Data export and import**. Carry your series tracking data anywhere.
+- [x] **Caching**. Due to the rate limit of the API, caching makes **Series Troxide** fast when opening previously opened items and be able to perform crazy things like getting the statistics of all watched series. Cache cleaning can be managed both automatically and manually to make sure the program does not have outdated series data.
+- [x] **Notifications for upcoming episodes**. Configure when to get notified before an episode release.
+- [ ] **Trakt integration**.
 
 ## Installation
 
@@ -40,15 +42,12 @@ Pre-built binaries for your specific platform can be obtained from the [release 
 |Arch           |pacman -S gtk3          |
 |Debian & Ubuntu|apt install libgtk-3-dev|
 
-When building the project, Cargo has been configure to use the LLD linker for faster linking. To install LLD, find your OS below and run the given command:
-- **Ubuntu**: `sudo apt-get install lld`
-- **Arch**: `sudo pacman -S lld`
-- **Windows**: Ensure you have the latest [cargo-binutils](https://github.com/rust-embedded/cargo-binutils) as this lets commands like `cargo run` use the LLD linker automatically.
-  ```shell
-  cargo install -f cargo-binutils
-  rustup component add llvm-tools-preview
-  ```
-- **MacOS**: You can follow [these](https://lld.llvm.org/MachO/index.html) instructions to install lld manually or install llvm through brew which includes lld: `brew install llvm`
+When building the project, Cargo has been configure to use the LLD linker for faster linking on linux. To install LLD, find your distro below and run the given command:
+
+|Distribution   | Installation Command   |
+|:--------------|:-----------------------|
+|Arch           |sudo pacman -S lld      |
+|Debian & Ubuntu|sudo apt-get install lld|
 
 #### From Cargo ([crates.io](https://crates.io/crates/series-troxide))
 **Series Troxide** is available in crates.io and can be installed using Cargo.
