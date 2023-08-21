@@ -43,8 +43,17 @@ impl SeriesPageController {
     }
 
     /// Goes to the previous opened series page discarding the current one
-    pub fn go_previous(&mut self) {
+    pub fn go_previous(&mut self) -> Command<Message> {
         self.series_pages.pop();
+        self.series_pages
+            .last()
+            .map(|(id, series_page)| {
+                let id = *id;
+                series_page
+                    .restore_scroller_relative_offset()
+                    .map(move |message| Message::Series(IdentifiableMessage::new(id, message)))
+            })
+            .unwrap_or(Command::none())
     }
 
     /// Tries to switch to series page if any has been received
@@ -85,9 +94,14 @@ impl SeriesPageController {
                 if let Some((series_page_id, series_page)) =
                     self.series_pages.shift_remove_entry(&series_page_id)
                 {
+                    let restore_scroller_command = series_page.set_relative_offset_to_start();
+
                     // Shifting the series page to the front if it already exists in the map
                     self.series_pages.insert(series_page_id, series_page);
-                    Command::none()
+
+                    restore_scroller_command.map(move |message| {
+                        Message::Series(IdentifiableMessage::new(series_page_id, message))
+                    })
                 } else {
                     let (series_page, series_page_command) =
                         Series::new(series_info, self.series_page_sender.clone());

@@ -116,10 +116,10 @@ impl Application for TroxideGui {
                             .switch_to_tab(tab_id)
                             .map(Message::TabsController)
                     }
-                    TitleBarMessage::BackButtonPressed => {
-                        self.series_page_controller.go_previous();
-                        Command::none()
-                    }
+                    TitleBarMessage::BackButtonPressed => self
+                        .series_page_controller
+                        .go_previous()
+                        .map(Message::SeriesPageController),
                 }
             }
         };

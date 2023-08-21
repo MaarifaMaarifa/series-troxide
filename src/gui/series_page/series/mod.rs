@@ -12,6 +12,7 @@ use crate::gui::styles;
 use bytes::Bytes;
 use cast_widget::{CastWidget, Message as CastWidgetMessage};
 use data_widgets::*;
+use iced::widget::scrollable::{Id, RelativeOffset, Viewport};
 use image;
 use season_widget::Message as SeasonMessage;
 use series_suggestion_widget::{Message as SeriesSuggestionMessage, SeriesSuggestion};
@@ -193,6 +194,7 @@ pub enum Message {
     SeasonAction(usize, Box<SeasonMessage>),
     CastWidgetAction(CastWidgetMessage),
     SeriesSuggestion(SeriesSuggestionMessage),
+    PageScrolled(Viewport),
     TrackSeries,
     UntrackSeries,
 }
@@ -213,6 +215,8 @@ pub struct Series {
     season_widgets: Vec<season_widget::Season>,
     cast_widget: CastWidget,
     series_suggestion_widget: SeriesSuggestion,
+    scroll_offset: RelativeOffset,
+    scroller_id: Id,
 }
 
 impl Series {
@@ -228,6 +232,7 @@ impl Series {
             series_information.get_genres(),
             series_page_sender,
         );
+        let scroller_id = Id::new(format!("series-page-scroller-{}", series_id));
 
         let series_image = series_information.image.clone();
         let series = Self {
@@ -241,15 +246,30 @@ impl Series {
             season_widgets: vec![],
             cast_widget,
             series_suggestion_widget,
+            scroll_offset: RelativeOffset::default(),
+            scroller_id: scroller_id.clone(),
         };
+
+        let scroller_command = scrollable::snap_to(scroller_id, RelativeOffset::START);
 
         let commands = [
             Command::batch(get_images_and_episode_list(series_image, series_id)),
             cast_widget_command.map(Message::CastWidgetAction),
             series_suggestion_widget_command.map(Message::SeriesSuggestion),
+            scroller_command,
         ];
 
         (series, Command::batch(commands))
+    }
+
+    /// Restores the last `RelativeOffset` of the series page scroller.
+    pub fn restore_scroller_relative_offset(&self) -> Command<Message> {
+        scrollable::snap_to(self.scroller_id.clone(), self.scroll_offset)
+    }
+
+    /// Sets the `RelativeOffset` of the series page scroller to the start.
+    pub fn set_relative_offset_to_start(&self) -> Command<Message> {
+        scrollable::snap_to(self.scroller_id.clone(), RelativeOffset::START)
     }
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
@@ -330,6 +350,9 @@ impl Series {
                     .update(message)
                     .map(Message::SeriesSuggestion)
             }
+            Message::PageScrolled(view_port) => {
+                self.scroll_offset = view_port.relative_offset();
+            }
         }
         Command::none()
     }
@@ -363,7 +386,10 @@ impl Series {
             series_suggestion_widget
         ];
 
-        scrollable(content).into()
+        scrollable(content)
+            .id(self.scroller_id.clone())
+            .on_scroll(Message::PageScrolled)
+            .into()
     }
 
     fn seasons_view(&self) -> Element<'_, Message, Renderer> {
