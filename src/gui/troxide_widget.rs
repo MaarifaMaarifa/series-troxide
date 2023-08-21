@@ -292,16 +292,20 @@ pub mod series_poster {
 }
 
 pub mod title_bar {
-    use iced::widget::{container, horizontal_space, mouse_area, row, svg, text, Row};
-    use iced::{Length, Renderer};
+    use iced::widget::{
+        button, container, horizontal_space, mouse_area, row, svg, text, Row, Space,
+    };
+    use iced::{Element, Length, Renderer};
 
     use crate::gui::assets::get_static_cow_from_asset;
+    use crate::gui::assets::icons::CARET_LEFT_FILL;
     use crate::gui::styles;
     use crate::gui::tabs::TabLabel;
 
     #[derive(Clone, Debug)]
     pub enum Message {
         TabSelected(usize),
+        BackButtonPressed,
     }
 
     pub struct TitleBar {
@@ -322,7 +326,11 @@ pub mod title_bar {
             }
         }
 
-        pub fn view(&self, tab_labels: &[TabLabel]) -> iced::Element<'_, Message, Renderer> {
+        pub fn view(
+            &self,
+            tab_labels: &[TabLabel],
+            show_back_button: bool,
+        ) -> iced::Element<'_, Message, Renderer> {
             let tab_views = tab_labels
                 .iter()
                 .enumerate()
@@ -350,7 +358,22 @@ pub mod title_bar {
 
             let tab_views = Row::with_children(tab_views).spacing(10);
 
+            let back_button: Element<'_, Message, Renderer> = if show_back_button {
+                let back_button_icon_handle =
+                    svg::Handle::from_memory(get_static_cow_from_asset(CARET_LEFT_FILL));
+                let icon = svg(back_button_icon_handle)
+                    .width(20)
+                    .style(styles::svg_styles::colored_svg_theme());
+                button(icon)
+                    .on_press(Message::BackButtonPressed)
+                    .style(styles::button_styles::transparent_button_theme())
+                    .into()
+            } else {
+                Space::new(0, 0).into()
+            };
+
             container(row![
+                back_button,
                 horizontal_space(Length::Fill),
                 tab_views,
                 horizontal_space(Length::Fill)

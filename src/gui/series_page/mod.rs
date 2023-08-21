@@ -32,10 +32,22 @@ impl SeriesPageController {
         }
     }
 
+    /// Clears all the series pages
     pub fn clear_all_pages(&mut self) {
         self.series_pages.clear();
     }
 
+    /// whether there is a series page
+    pub fn has_a_series_page(&self) -> bool {
+        !self.series_pages.is_empty()
+    }
+
+    /// Goes to the previous opened series page discarding the current one
+    pub fn go_previous(&mut self) {
+        self.series_pages.pop();
+    }
+
+    /// Tries to switch to series page if any has been received
     pub fn try_series_page_switch(&mut self) -> Command<Message> {
         use crate::core::caching::{CacheFilePath, CACHER};
 
@@ -70,13 +82,21 @@ impl SeriesPageController {
                     .expect("failed to save series main information cache");
                 }
 
-                let (series_page, series_page_command) =
-                    Series::new(series_info, self.series_page_sender.clone());
-                self.series_pages.insert(series_page_id, series_page);
+                if let Some((series_page_id, series_page)) =
+                    self.series_pages.shift_remove_entry(&series_page_id)
+                {
+                    // Shifting the series page to the front if it already exists in the map
+                    self.series_pages.insert(series_page_id, series_page);
+                    Command::none()
+                } else {
+                    let (series_page, series_page_command) =
+                        Series::new(series_info, self.series_page_sender.clone());
+                    self.series_pages.insert(series_page_id, series_page);
 
-                series_page_command.map(move |message| {
-                    Message::Series(IdentifiableMessage::new(series_page_id, message))
-                })
+                    series_page_command.map(move |message| {
+                        Message::Series(IdentifiableMessage::new(series_page_id, message))
+                    })
+                }
             }
             Err(err) => match err {
                 mpsc::TryRecvError::Empty => Command::none(),

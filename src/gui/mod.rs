@@ -27,6 +27,7 @@ pub struct TroxideGui {
     title_bar: TitleBar,
     tabs_controller: TabsController,
     series_page_controller: SeriesPageController,
+    show_back_button: bool,
 }
 
 impl Application for TroxideGui {
@@ -48,6 +49,7 @@ impl Application for TroxideGui {
                 title_bar: TitleBar::new(),
                 tabs_controller,
                 series_page_controller: SeriesPageController::new(sender, receiver),
+                show_back_button: false,
             },
             Command::batch([
                 font_command.map(Message::FontLoaded),
@@ -84,7 +86,7 @@ impl Application for TroxideGui {
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
-        match message {
+        let command = match message {
             Message::TabsController(message) => Command::batch([
                 self.tabs_controller
                     .update(message)
@@ -114,9 +116,15 @@ impl Application for TroxideGui {
                             .switch_to_tab(tab_id)
                             .map(Message::TabsController)
                     }
+                    TitleBarMessage::BackButtonPressed => {
+                        self.series_page_controller.go_previous();
+                        Command::none()
+                    }
                 }
             }
-        }
+        };
+        self.show_back_button = self.series_page_controller.has_a_series_page();
+        command
     }
 
     fn view(&self) -> iced::Element<'_, Message, iced::Renderer<Self::Theme>> {
@@ -129,7 +137,7 @@ impl Application for TroxideGui {
 
         column![
             self.title_bar
-                .view(&self.tabs_controller.get_labels())
+                .view(&self.tabs_controller.get_labels(), self.show_back_button)
                 .map(Message::Tabs),
             tab_view
         ]
