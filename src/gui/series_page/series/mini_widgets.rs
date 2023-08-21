@@ -31,6 +31,18 @@ pub fn status_widget(
     (text("Status").into(), status_text.into())
 }
 
+pub fn series_type_widget(
+    series_info: &SeriesMainInformation,
+) -> Option<(
+    Element<'_, Message, Renderer>,
+    Element<'_, Message, Renderer>,
+)> {
+    series_info
+        .kind
+        .as_ref()
+        .map(|kind| (text("Type").into(), text(kind).into()))
+}
+
 pub fn average_runtime_widget(
     series_info: &SeriesMainInformation,
 ) -> (

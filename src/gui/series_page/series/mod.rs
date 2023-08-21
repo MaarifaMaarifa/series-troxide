@@ -49,6 +49,7 @@ pub fn series_metadata<'a>(
     let mut series_data_grid = Grid::with_columns(2);
 
     let status_widget = status_widget(series_information);
+    let series_type = series_type_widget(series_information);
     let genres_widget = genres_widget(series_information);
     let language_widget = language_widget(series_information);
     let average_runtime_widget = average_runtime_widget(series_information);
@@ -61,6 +62,11 @@ pub fn series_metadata<'a>(
 
     series_data_grid.insert(status_widget.0);
     series_data_grid.insert(status_widget.1);
+
+    if let Some(series_type) = series_type {
+        series_data_grid.insert(series_type.0);
+        series_data_grid.insert(series_type.1);
+    };
 
     if let Some(genres_widget) = genres_widget {
         series_data_grid.insert(genres_widget.0);

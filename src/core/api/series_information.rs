@@ -196,6 +196,8 @@ impl std::fmt::Display for ShowStatus {
 pub struct SeriesMainInformation {
     pub id: u32,
     pub name: String,
+    #[serde(rename = "type")]
+    pub kind: Option<String>,
     pub language: Option<String>,
     pub genres: Vec<String>,
     pub status: String,
