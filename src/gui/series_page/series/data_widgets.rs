@@ -8,14 +8,13 @@ use crate::gui::styles;
 
 use iced::widget::{container, horizontal_space, row, svg, text, Space};
 use iced::{Element, Length, Renderer};
+use iced_aw::Grid;
 
 use super::Message;
 
 pub fn status_widget(
     series_info: &SeriesMainInformation,
-) -> (
-    Element<'_, Message, Renderer>,
-    Element<'_, Message, Renderer>,
+    data_grid: &mut Grid<'_, Message, Renderer>,
 ) {
     let series_status = series_info.get_status();
 
@@ -28,26 +27,23 @@ pub fn status_widget(
         status_text = status_text.style(styles::text_styles::red_text_theme())
     }
 
-    (text("Status").into(), status_text.into())
+    data_grid.insert(text("Status"));
+    data_grid.insert(status_text);
 }
 
 pub fn series_type_widget(
     series_info: &SeriesMainInformation,
-) -> Option<(
-    Element<'_, Message, Renderer>,
-    Element<'_, Message, Renderer>,
-)> {
-    series_info
-        .kind
-        .as_ref()
-        .map(|kind| (text("Type").into(), text(kind).into()))
+    data_grid: &mut Grid<'_, Message, Renderer>,
+) {
+    if let Some(kind) = series_info.kind.as_ref() {
+        data_grid.insert(text("Type"));
+        data_grid.insert(text(kind));
+    };
 }
 
 pub fn average_runtime_widget(
     series_info: &SeriesMainInformation,
-) -> (
-    Element<'_, Message, Renderer>,
-    Element<'_, Message, Renderer>,
+    data_grid: &mut Grid<'_, Message, Renderer>,
 ) {
     // since the the title part of this widget is the longest, we gonna add some space
     // infront of it to make the separation of column nicer
@@ -57,15 +53,15 @@ pub fn average_runtime_widget(
     } else {
         text("unavailable")
     };
-    (title_text.into(), body_widget.into())
+
+    data_grid.insert(title_text);
+    data_grid.insert(body_widget);
 }
 
 pub fn genres_widget(
     series_info: &SeriesMainInformation,
-) -> Option<(
-    Element<'_, Message, Renderer>,
-    Element<'_, Message, Renderer>,
-)> {
+    data_grid: &mut Grid<'_, Message, Renderer>,
+) {
     if !series_info.genres.is_empty() {
         let title_text = text("Genres");
         let mut genres = String::new();
@@ -79,17 +75,14 @@ pub fn genres_widget(
         }
         let genres = text(genres);
 
-        Some((title_text.into(), genres.into()))
-    } else {
-        None
+        data_grid.insert(title_text);
+        data_grid.insert(genres);
     }
 }
 
 pub fn language_widget(
     series_info: &SeriesMainInformation,
-) -> (
-    Element<'_, Message, Renderer>,
-    Element<'_, Message, Renderer>,
+    data_grid: &mut Grid<'_, Message, Renderer>,
 ) {
     let title_text = text("Language");
     let language = if let Some(language) = &series_info.language {
@@ -98,14 +91,13 @@ pub fn language_widget(
         text("unavailable")
     };
 
-    (title_text.into(), language.into())
+    data_grid.insert(title_text);
+    data_grid.insert(language);
 }
 
 pub fn premiered_widget(
     series_info: &SeriesMainInformation,
-) -> (
-    Element<'_, Message, Renderer>,
-    Element<'_, Message, Renderer>,
+    data_grid: &mut Grid<'_, Message, Renderer>,
 ) {
     let title_text = text("Premiered");
     let body_text = if let Some(premier) = &series_info.premiered {
@@ -114,27 +106,25 @@ pub fn premiered_widget(
         text("unavailable")
     };
 
-    (title_text.into(), body_text.into())
+    data_grid.insert(title_text);
+    data_grid.insert(body_text);
 }
 
 pub fn ended_widget(
     series_info: &SeriesMainInformation,
-) -> Option<(
-    Element<'_, Message, Renderer>,
-    Element<'_, Message, Renderer>,
-)> {
-    if series_info.get_status() != ShowStatus::Ended {
-        return None;
+    data_grid: &mut Grid<'_, Message, Renderer>,
+) {
+    if let ShowStatus::Ended = series_info.get_status() {
+        let title_text = text("Ended");
+        let body_text = if let Some(ended) = &series_info.ended {
+            text(ended)
+        } else {
+            text("unavailable")
+        };
+
+        data_grid.insert(title_text);
+        data_grid.insert(body_text);
     }
-
-    let title_text = text("Ended");
-    let body_text = if let Some(ended) = &series_info.ended {
-        text(ended)
-    } else {
-        text("unavailable")
-    };
-
-    Some((title_text.into(), body_text.into()))
 }
 
 pub fn summary_widget(series_info: &SeriesMainInformation) -> iced::Element<'_, Message, Renderer> {
@@ -199,29 +189,27 @@ pub fn rating_widget(series_info: &SeriesMainInformation) -> Element<'_, Message
 
 pub fn network_widget(
     series_info: &SeriesMainInformation,
-) -> Option<(
-    Element<'_, Message, Renderer>,
-    Element<'_, Message, Renderer>,
-)> {
-    series_info.network.as_ref().map(|network| {
+    data_grid: &mut Grid<'_, Message, Renderer>,
+) {
+    if let Some(network) = series_info.network.as_ref() {
         // TODO: Add a clickable link
-        (
-            text("Network").into(),
-            text(format!("{} ({})", &network.name, &network.country.name)).into(),
-        )
-    })
+        data_grid.insert(text("Network"));
+        data_grid.insert(text(format!(
+            "{} ({})",
+            &network.name, &network.country.name
+        )));
+    };
 }
 
 pub fn webchannel_widget(
     series_info: &SeriesMainInformation,
-) -> Option<(
-    Element<'_, Message, Renderer>,
-    Element<'_, Message, Renderer>,
-)> {
-    series_info.web_channel.as_ref().map(|webchannel| {
+    data_grid: &mut Grid<'_, Message, Renderer>,
+) {
+    if let Some(webchannel) = series_info.web_channel.as_ref() {
         // TODO: Add a clickable link
-        (text("Webchannel").into(), text(&webchannel.name).into())
-    })
+        data_grid.insert(text("Webchannel"));
+        data_grid.insert(text(&webchannel.name));
+    };
 }
 
 pub fn next_episode_release_time_widget(

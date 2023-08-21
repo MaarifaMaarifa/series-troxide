@@ -11,8 +11,8 @@ use crate::gui::styles;
 
 use bytes::Bytes;
 use cast_widget::{CastWidget, Message as CastWidgetMessage};
+use data_widgets::*;
 use image;
-use mini_widgets::*;
 use season_widget::Message as SeasonMessage;
 use series_suggestion_widget::{Message as SeriesSuggestionMessage, SeriesSuggestion};
 
@@ -25,7 +25,7 @@ use iced::{Alignment, Command, Element, Length, Renderer};
 use iced_aw::{Grid, Spinner};
 
 mod cast_widget;
-mod mini_widgets;
+mod data_widgets;
 mod season_widget;
 mod series_suggestion_widget;
 
@@ -48,52 +48,18 @@ pub fn series_metadata<'a>(
 
     let mut series_data_grid = Grid::with_columns(2);
 
-    let status_widget = status_widget(series_information);
-    let series_type = series_type_widget(series_information);
-    let genres_widget = genres_widget(series_information);
-    let language_widget = language_widget(series_information);
-    let average_runtime_widget = average_runtime_widget(series_information);
+    status_widget(series_information, &mut series_data_grid);
+    series_type_widget(series_information, &mut series_data_grid);
+    genres_widget(series_information, &mut series_data_grid);
+    language_widget(series_information, &mut series_data_grid);
+    average_runtime_widget(series_information, &mut series_data_grid);
+    network_widget(series_information, &mut series_data_grid);
+    webchannel_widget(series_information, &mut series_data_grid);
+    premiered_widget(series_information, &mut series_data_grid);
+    ended_widget(series_information, &mut series_data_grid);
+
     let rating_widget = rating_widget(series_information);
-    let network_widget = network_widget(series_information);
-    let webchannel_widget = webchannel_widget(series_information);
-    let premiered_widget = premiered_widget(series_information);
-    let ended_widget = ended_widget(series_information);
     let summary = summary_widget(series_information);
-
-    series_data_grid.insert(status_widget.0);
-    series_data_grid.insert(status_widget.1);
-
-    if let Some(series_type) = series_type {
-        series_data_grid.insert(series_type.0);
-        series_data_grid.insert(series_type.1);
-    };
-
-    if let Some(genres_widget) = genres_widget {
-        series_data_grid.insert(genres_widget.0);
-        series_data_grid.insert(genres_widget.1);
-    };
-    series_data_grid.insert(language_widget.0);
-    series_data_grid.insert(language_widget.1);
-    series_data_grid.insert(average_runtime_widget.0);
-    series_data_grid.insert(average_runtime_widget.1);
-
-    if let Some(network_widget) = network_widget {
-        series_data_grid.insert(network_widget.0);
-        series_data_grid.insert(network_widget.1);
-    };
-
-    if let Some(webchannel_widget) = webchannel_widget {
-        series_data_grid.insert(webchannel_widget.0);
-        series_data_grid.insert(webchannel_widget.1);
-    };
-
-    series_data_grid.insert(premiered_widget.0);
-    series_data_grid.insert(premiered_widget.1);
-
-    if let Some(ended_widget) = ended_widget {
-        series_data_grid.insert(ended_widget.0);
-        series_data_grid.insert(ended_widget.1);
-    };
 
     let series_name = text(series_information.name.clone())
         .size(31)
