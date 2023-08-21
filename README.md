@@ -20,7 +20,7 @@
 - [x] **Upcoming releases**. See when your tracked series are being aired.
 - [x] **Series Information**. See general information of any series (Summary, genres, casts, other suggestions based on the series etc).
 - [x] **Series Categorization**. See which of your series are running, ended and untracked.
-- [x] **Series watch progress tracking**. See what season and episode to continue from, how many episodes are unwatched and how much to required to complete watching all of them.
+- [x] **Series watch progress tracking**. See what season and episode to continue from, how many episodes are unwatched and how much time required to complete watching all of them.
 - [x] **Series Statistics**. See how many series, seasons and episodes you have watched and how much time you've spent watching them in an ordered way.
 - [x] **Light and Dark themes**. Use **Series Troxide** at any time of the day.
 - [x] **Data export and import**. Carry your series tracking data anywhere.
