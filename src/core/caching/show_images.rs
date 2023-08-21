@@ -37,7 +37,7 @@ pub async fn get_recent_banner(series_id: u32) -> Option<bytes::Bytes> {
     // Trying to take a background first if any
     if let Some(recent_background) = images
         .iter()
-        .filter(|image| ImageType::new(image) == ImageType::Background)
+        .filter(|image| image.get_image_type() == Some(ImageType::Background))
         .last()
     {
         return load_image(recent_background.resolutions.original.url.clone()).await;
@@ -46,7 +46,7 @@ pub async fn get_recent_banner(series_id: u32) -> Option<bytes::Bytes> {
     // Falling to anything that is not a poster as poster dimensions don't look great as a background
     let recent_banner = images
         .into_iter()
-        .filter(|image| ImageType::new(image) != ImageType::Poster)
+        .filter(|image| image.get_image_type() != Some(ImageType::Poster))
         .last()?;
 
     load_image(recent_banner.resolutions.original.url).await

@@ -11,18 +11,14 @@ pub enum ImageType {
     Other,
 }
 
-impl ImageType {
-    pub fn new(image: &Image) -> Self {
-        if let Some(image_type) = image.kind.as_ref() {
-            match image_type.as_str() {
-                "poster" => Self::Poster,
-                "banner" => Self::Banner,
-                "typography" => Self::Typography,
-                "background" => Self::Background,
-                _ => Self::Other,
-            }
-        } else {
-            Self::Other
+impl From<&str> for ImageType {
+    fn from(value: &str) -> Self {
+        match value {
+            "poster" => Self::Poster,
+            "banner" => Self::Banner,
+            "typography" => Self::Typography,
+            "background" => Self::Background,
+            _ => Self::Other,
         }
     }
 }
@@ -33,6 +29,14 @@ pub struct Image {
     #[serde(rename = "type")]
     pub kind: Option<String>,
     pub resolutions: Resolutions,
+}
+
+impl Image {
+    pub fn get_image_type(&self) -> Option<ImageType> {
+        self.kind
+            .as_ref()
+            .map(|kind| ImageType::from(kind.as_str()))
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
