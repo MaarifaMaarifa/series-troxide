@@ -128,18 +128,17 @@ impl Application for TroxideGui {
     }
 
     fn view(&self) -> iced::Element<'_, Message, iced::Renderer<Self::Theme>> {
-        let mut tab_view = self.tabs_controller.view().map(Message::TabsController);
-
-        // Hijacking the current tab view when series view is active
-        if let Some(series_page_view) = self.series_page_controller.view() {
-            tab_view = series_page_view.map(Message::SeriesPageController)
-        }
+        let view = if let Some(series_page_view) = self.series_page_controller.view() {
+            series_page_view.map(Message::SeriesPageController)
+        } else {
+            self.tabs_controller.view().map(Message::TabsController)
+        };
 
         column![
             self.title_bar
                 .view(&self.tabs_controller.get_labels(), self.show_back_button)
                 .map(Message::Tabs),
-            tab_view
+            view
         ]
         .into()
     }
