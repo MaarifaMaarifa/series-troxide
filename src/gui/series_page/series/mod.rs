@@ -285,16 +285,18 @@ impl Series {
             Message::SeriesImageLoaded(image) => {
                 // This blurred series image is going to be used when the background is loading or missing
                 // self.series_image_blurred = blur_image(image.as_ref());
-                self.series_image_blurred = image.as_ref().map(|image| {
-                    image::load_from_memory(image)
-                        .unwrap()
-                        /*
-                        creating a thumbnail out of it as this is going to make blurring
-                        process more faster
-                        */
-                        .thumbnail(100, 100)
-                        .blur(5.0)
-                });
+                if self.series_background.is_none() {
+                    self.series_image_blurred = image.as_ref().map(|image| {
+                        image::load_from_memory(image)
+                            .unwrap()
+                            /*
+                            creating a thumbnail out of it as this is going to make blurring
+                            process more faster
+                            */
+                            .thumbnail(100, 100)
+                            .blur(5.0)
+                    });
+                }
                 self.series_image = image;
             }
             Message::SeasonAction(index, message) => {
