@@ -12,6 +12,7 @@ mod series;
 #[derive(Debug, Clone)]
 pub enum Message {
     Series(IdentifiableMessage),
+    SeriesCacheFileWritten,
 }
 
 pub struct SeriesPageController {
@@ -59,39 +60,14 @@ impl SeriesPageController {
     /// Tries to switch to series page if any has been received
     pub fn try_series_page_switch(&mut self) -> Command<Message> {
         use crate::core::caching::{CacheFilePath, CACHER};
+        use tokio::fs;
+        use tracing::error;
 
         match self.series_page_receiver.try_recv() {
             Ok(series_info) => {
                 let series_page_id = series_info.id;
 
-                // let series_id = series_page.get_series_id();
-                // let series_info = series_page.get_series_main_information();
-
-                // Caching SeriesMainInformation if it is not cached already
-                //
-                // Since discover poster's SeriesInformation are mostly taken online directly and hence don't
-                // use the caching version of api to be obtained. This makes their cache folder lack their
-                // SeriesMainInformation cache after being clicked. This cause their folders to be skipped
-                // during cache cleaning making the show have same old episode and cast cache forever! unless
-                // when it's tracked. So we fix this by caching it if it does not exists when switching to a series page.
-                let series_main_info_cache_path = CACHER
-                    .get_cache_file_path(CacheFilePath::SeriesMainInformation(series_page_id));
-                if !series_main_info_cache_path.exists() {
-                    // TODO: Asynchronously write the cache.
-                    let mut folder_path = series_main_info_cache_path.to_owned();
-                    folder_path.pop();
-
-                    std::fs::create_dir_all(folder_path)
-                        .expect("failed to create series cache folder");
-
-                    std::fs::write(
-                        series_main_info_cache_path,
-                        serde_json::to_string_pretty(&series_info).expect("fail to serialize json"),
-                    )
-                    .expect("failed to save series main information cache");
-                }
-
-                if let Some((series_page_id, series_page)) =
+                let series_page_command = if let Some((series_page_id, series_page)) =
                     self.series_pages.shift_remove_entry(&series_page_id)
                 {
                     let restore_scroller_command = series_page.set_relative_offset_to_start();
@@ -104,13 +80,60 @@ impl SeriesPageController {
                     })
                 } else {
                     let (series_page, series_page_command) =
-                        Series::new(series_info, self.series_page_sender.clone());
+                        Series::new(series_info.clone(), self.series_page_sender.clone());
                     self.series_pages.insert(series_page_id, series_page);
 
                     series_page_command.map(move |message| {
                         Message::Series(IdentifiableMessage::new(series_page_id, message))
                     })
-                }
+                };
+
+                // Caching SeriesMainInformation if it is not cached already
+                //
+                // Since discover poster's SeriesInformation are mostly taken online directly and hence don't
+                // use the caching version of api to be obtained. This makes their cache folder lack their
+                // SeriesMainInformation cache after being clicked. This cause their folders to be skipped
+                // during cache cleaning making the show have same old episode and cast cache forever! unless
+                // when it's tracked. So we fix this by caching it if it does not exists when switching to a series page.
+                let series_main_info_cache_path = CACHER
+                    .get_cache_file_path(CacheFilePath::SeriesMainInformation(series_page_id));
+
+                let cache_file_creation_future = async move {
+                    if !fs::try_exists(&series_main_info_cache_path)
+                        .await
+                        .unwrap_or(false)
+                    {
+                        let mut folder_path = series_main_info_cache_path.to_owned();
+                        folder_path.pop();
+
+                        fs::create_dir_all(folder_path).await.unwrap_or_else(|err| {
+                            error!(
+                                "failed to create series cache folder for series id {}: {}",
+                                series_page_id, err
+                            )
+                        });
+
+                        fs::write(
+                            series_main_info_cache_path,
+                            serde_json::to_string_pretty(&series_info)
+                                .expect("fail to serialize series info to json"),
+                        )
+                        .await
+                        .unwrap_or_else(|err| {
+                            error!(
+                                "failed to save series main information cache for series id {}: {}",
+                                series_page_id, err
+                            )
+                        });
+                    }
+                };
+
+                Command::batch([
+                    series_page_command,
+                    Command::perform(cache_file_creation_future, |_| {
+                        Message::SeriesCacheFileWritten
+                    }),
+                ])
             }
             Err(err) => match err {
                 mpsc::TryRecvError::Empty => Command::none(),
@@ -137,6 +160,7 @@ impl SeriesPageController {
 
                 Command::batch([command, self.try_series_page_switch()])
             }
+            Message::SeriesCacheFileWritten => Command::none(),
         }
     }
 
