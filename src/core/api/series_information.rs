@@ -235,6 +235,10 @@ impl SeriesMainInformation {
         ShowStatus::from(self.status.as_str())
     }
 
+    pub fn has_ended(&self) -> bool {
+        self.get_status() == ShowStatus::Ended
+    }
+
     pub fn get_network(&self) -> Option<ShowNetwork> {
         self.network
             .as_ref()

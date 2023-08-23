@@ -140,7 +140,7 @@ async fn clean_ended_series_cache(
 
         let series_main_info = deserialize_json::<SeriesMainInformation>(&main_info_str)?;
 
-        if series_main_info.status == "Ended" {
+        if series_main_info.has_ended() {
             clean_directory_if_old(&dir_entry.path(), expiration_duration).await?;
         }
     }
@@ -186,7 +186,7 @@ async fn clean_running_cache(
 
         let series_main_info = deserialize_json::<SeriesMainInformation>(&main_info_str)?;
 
-        if series_main_info.status != "Ended" {
+        if !series_main_info.has_ended() {
             let mut series_episode_list_path = dir_entry.path();
             series_episode_list_path.push(EPISODE_LIST_FILENAME);
 
