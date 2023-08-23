@@ -43,7 +43,7 @@ pub struct Image {
 }
 
 /// Loads the image from the provided url
-pub async fn lload_image(image_url: String) -> Option<Bytes> {
+pub async fn load_image(image_url: String) -> Option<Bytes> {
     loop {
         match reqwest::get(&image_url).await {
             Ok(response) => {

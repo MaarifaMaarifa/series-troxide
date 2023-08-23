@@ -149,7 +149,7 @@ pub async fn load_image(image_url: String) -> Option<Bytes> {
         Err(err) => {
             if err.kind() == ErrorKind::NotFound {
                 info!("falling back online for image with link {}", image_url);
-                if let Some(image_bytes) = api::lload_image(image_url).await {
+                if let Some(image_bytes) = api::load_image(image_url).await {
                     write_cache(&image_bytes, &image_path).await;
                     Some(image_bytes)
                 } else {
