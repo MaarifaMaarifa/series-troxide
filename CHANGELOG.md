@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improve country selection widget in `Settings page`. [4af4e66](https://github.com/MaarifaMaarifa/series-troxide/commit/4af4e66c5fd16872c7736c4ff9c3fa486b95252b)
 - Improve series searching response when loading images. [42c824d](https://github.com/MaarifaMaarifa/series-troxide/commit/42c824d55b3daafd4f21bf691dbcf1fba341b01d)
 - Improve speed when getting upcoming episode releases. [ea31d51](https://github.com/MaarifaMaarifa/series-troxide/commit/ea31d51acfc05f4cdc9b7fab63b0c798685ca788)
+- Improve cache cleaning. Cache expiration will now be determined using the filesystem. [be4141d](https://github.com/MaarifaMaarifa/series-troxide/commit/be4141d1ab239fc89074af4143a60c13cbe0398d)
 
 ### Removed
 
