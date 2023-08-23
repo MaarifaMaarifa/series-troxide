@@ -104,12 +104,21 @@ impl Database {
     }
 
     pub fn view(&self) -> Element<'_, Message, Renderer> {
-        let import_progress_bar: Element<'_, Message, Renderer> = if self.importing {
-            progress_bar(
-                0.0..=self.import_progress.1 as f32,
-                self.import_progress.0 as f32,
-            )
-            .height(10)
+        let import_progress: Element<'_, Message, Renderer> = if self.importing {
+            row![
+                text("caching the import").size(11),
+                progress_bar(
+                    0.0..=self.import_progress.1 as f32,
+                    self.import_progress.0 as f32,
+                )
+                .height(13),
+                text(format!(
+                    "{} / {}",
+                    self.import_progress.0, self.import_progress.1
+                ))
+                .size(11)
+            ]
+            .spacing(10)
             .into()
         } else {
             Space::new(0, 0).into()
@@ -131,7 +140,7 @@ impl Database {
             ]
             .spacing(5),
             vertical_space(5),
-            import_progress_bar,
+            import_progress,
         ];
 
         let export_widget = column![
