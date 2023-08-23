@@ -73,7 +73,7 @@ pub fn time_count(
     ]
     .align_items(Alignment::Center);
 
-    let times = helpers::time::SaneTime::new(total_average_minutes).get_time();
+    let times = helpers::time::SaneTime::new(total_average_minutes).get_time_plurized();
 
     let time_values: Vec<_> = times
         .into_iter()
@@ -192,7 +192,7 @@ pub mod series_banner {
             let times = self
                 .series_info_and_time
                 .1
-                .map(|time| helpers::time::SaneTime::new(time).get_time())
+                .map(|time| helpers::time::SaneTime::new(time).get_time_plurized())
                 .unwrap_or_default();
 
             let seasons = series.get_total_seasons();

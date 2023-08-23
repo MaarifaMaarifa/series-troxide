@@ -166,7 +166,8 @@ pub mod series_poster {
             metadata = metadata.push(text(format!("{} episodes left", episodes_left)));
 
             if let Some(runtime) = self.series_information.average_runtime {
-                let time = helpers::time::SaneTime::new(runtime * episodes_left as u32).get_time();
+                let time = helpers::time::SaneTime::new(runtime * episodes_left as u32)
+                    .get_time_plurized();
                 let watchtime: String = time
                     .into_iter()
                     .rev()
@@ -244,7 +245,7 @@ pub mod series_poster {
                             .get_remaining_release_duration()
                             .num_minutes() as u32,
                     )
-                    .get_time()
+                    .get_time_plurized()
                     .into_iter()
                     .last()
                     .map(|(time_text, time_value)| {

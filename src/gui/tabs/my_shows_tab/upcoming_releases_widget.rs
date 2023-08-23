@@ -8,8 +8,8 @@ use crate::core::api::episodes_information::Episode;
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::caching;
 use crate::core::caching::episode_list::EpisodeReleaseTime;
-use crate::gui::styles;
 use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
+use crate::gui::{helpers, styles};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -46,9 +46,25 @@ impl UpcomingReleases {
     }
 
     pub fn subscription(&self) -> iced::Subscription<Message> {
-        // Refreshing the widget every one minute so as to avoid having outdated
+        // Refreshing the widget so as to avoid having outdated
         // episodes release time
-        iced::time::every(std::time::Duration::from_secs(60)).map(|_| Message::Refresh)
+        self.series_posters
+            .first()
+            .map(|(_, _, episode_release_time)| {
+                let num_minutes = episode_release_time
+                    .get_remaining_release_duration()
+                    .num_minutes();
+                let duration =
+                    helpers::time::SaneTime::new(num_minutes as u32).get_longest_unit_duration();
+
+                if let Some(duration) = duration {
+                    iced::time::every(std::time::Duration::from_secs(duration.num_seconds() as u64))
+                        .map(|_| Message::Refresh)
+                } else {
+                    iced::Subscription::none()
+                }
+            })
+            .unwrap_or(iced::Subscription::none())
     }
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
