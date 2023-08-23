@@ -39,6 +39,7 @@ use tracing::{error, info};
 
 pub mod cache_cleaning;
 pub mod episode_list;
+pub mod series_info_and_episode_list;
 pub mod series_information;
 pub mod series_list;
 pub mod show_cast;

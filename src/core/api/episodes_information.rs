@@ -24,7 +24,7 @@ const EPISODE_LIST_ADDRESS: &str = "https://api.tvmaze.com/shows/SERIES-ID/episo
 /// This field carries an `Option<Embedded>` where `Embedded` field carries `SeriesInformation`.
 /// This field becomes the `Some` variant when the episode is retrieved as a global aired episode.
 /// [link](https://www.tvmaze.com/api#web-schedule)
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Episode {
     pub name: String,
     pub season: u32,
@@ -45,17 +45,17 @@ pub struct Episode {
     pub embedded: Option<Embedded>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Embedded {
     pub show: SeriesMainInformation,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Links {
     pub show: Show,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Show {
     pub href: String,
 }

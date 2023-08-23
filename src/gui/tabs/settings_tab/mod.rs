@@ -53,6 +53,10 @@ impl SettingsTab {
         }
     }
 
+    pub fn subscription(&self) -> iced::Subscription<Message> {
+        self.database_settings.subscription().map(Message::Database)
+    }
+
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Caching(message) => {

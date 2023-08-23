@@ -72,12 +72,12 @@ enum ReloadableTab {
     Watchlist(WatchlistTab),
     MyShows(MyShowsTab),
     Statistics(StatisticsTab),
-    Settings(SettingsTab),
 }
 
 pub struct TabsController {
     current_tab: Tab,
     discover_tab: DiscoverTab,
+    settings_tab: SettingsTab,
     reloadable_tab: Option<ReloadableTab>,
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
 }
@@ -93,6 +93,7 @@ impl TabsController {
                 current_tab: Tab::Discover,
                 discover_tab,
                 reloadable_tab: None,
+                settings_tab: SettingsTab::new(),
                 series_page_sender,
             },
             discover_command.map(Message::Discover),
@@ -121,15 +122,12 @@ impl TabsController {
                 self.reloadable_tab = Some(ReloadableTab::Statistics(statistics_tab));
                 statistics_command.map(Message::Statistics)
             }
-            Tab::Settings => {
-                self.reloadable_tab = Some(ReloadableTab::Settings(SettingsTab::new()));
-                Command::none()
-            }
+            Tab::Settings => Command::none(),
         }
     }
 
     pub fn subscription(&self) -> iced::Subscription<Message> {
-        match self.current_tab {
+        let tab_subscription = match self.current_tab {
             Tab::Discover => self.discover_tab.subscription().map(Message::Discover),
             _ => {
                 if let Some(reloadable_tab) = &self.reloadable_tab {
@@ -143,7 +141,11 @@ impl TabsController {
                     iced::subscription::Subscription::none()
                 }
             }
-        }
+        };
+        iced::Subscription::batch([
+            tab_subscription,
+            self.settings_tab.subscription().map(Message::Settings),
+        ])
     }
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
@@ -170,13 +172,7 @@ impl TabsController {
                     Command::none()
                 }
             }
-            Message::Settings(message) => {
-                if let Some(ReloadableTab::Settings(ref mut settings)) = self.reloadable_tab {
-                    settings.update(message).map(Message::Settings)
-                } else {
-                    Command::none()
-                }
-            }
+            Message::Settings(message) => self.settings_tab.update(message).map(Message::Settings),
         }
     }
 
@@ -191,15 +187,18 @@ impl TabsController {
     }
 
     pub fn view(&self) -> Element<'_, Message, Renderer> {
-        if let Tab::Discover = self.current_tab {
-            self.discover_tab.view().map(Message::Discover)
-        } else {
-            let reloadable_tab = self.reloadable_tab.as_ref().expect("there must be a tab");
-            match reloadable_tab {
-                ReloadableTab::Watchlist(watchlist) => watchlist.view().map(Message::Watchlist),
-                ReloadableTab::MyShows(my_shows) => my_shows.view().map(Message::MyShows),
-                ReloadableTab::Statistics(statistics) => statistics.view().map(Message::Statistics),
-                ReloadableTab::Settings(settings) => settings.view().map(Message::Settings),
+        match self.current_tab {
+            Tab::Discover => self.discover_tab.view().map(Message::Discover),
+            Tab::Settings => self.settings_tab.view().map(Message::Settings),
+            _ => {
+                let reloadable_tab = self.reloadable_tab.as_ref().expect("there must be a tab");
+                match reloadable_tab {
+                    ReloadableTab::Watchlist(watchlist) => watchlist.view().map(Message::Watchlist),
+                    ReloadableTab::MyShows(my_shows) => my_shows.view().map(Message::MyShows),
+                    ReloadableTab::Statistics(statistics) => {
+                        statistics.view().map(Message::Statistics)
+                    }
+                }
             }
         }
     }

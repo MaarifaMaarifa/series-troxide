@@ -1,9 +1,13 @@
+use super::episodes_information::Episode;
 use super::*;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::hash::{Hash, Hasher};
 
 // The series id goes after the last slash(append at the end of the string)
 const SERIES_INFORMATION_ADDRESS: &str = "https://api.tvmaze.com/shows/";
+
+// Replace ID with the actual series id
+const SERIES_INFO_AND_EPISODE_LIST: &str = "https://api.tvmaze.com/shows/ID?embed=episodes";
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum Genre {
@@ -208,6 +212,15 @@ pub struct SeriesMainInformation {
     pub web_channel: Option<WebChannel>,
     pub summary: Option<String>,
     pub image: Option<Image>,
+    /// This field will be `Some` variant when we request the series info
+    /// with an embedded list of series' episodes.
+    #[serde(rename = "_embedded")]
+    pub embedded_episode_list: Option<EmbeddedEpisodeList>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct EmbeddedEpisodeList {
+    pub episodes: Vec<Episode>,
 }
 
 impl SeriesMainInformation {
@@ -232,6 +245,12 @@ impl SeriesMainInformation {
         self.web_channel
             .as_ref()
             .map(|webchannel| ShowWebChannel::from(webchannel.name.as_str()))
+    }
+
+    pub fn get_episode_list(&self) -> Option<&[Episode]> {
+        self.embedded_episode_list
+            .as_ref()
+            .map(|embedded| &embedded.episodes[..])
     }
 }
 
@@ -277,4 +296,15 @@ pub async fn get_series_main_info_with_url(url: String) -> Result<String, ApiErr
 
 pub async fn get_series_main_info_with_id(series_id: u32) -> Result<String, ApiError> {
     get_series_main_info_with_url(format!("{}{}", SERIES_INFORMATION_ADDRESS, series_id)).await
+}
+
+pub async fn get_series_info_and_episode_list(
+    series_id: u32,
+) -> Result<SeriesMainInformation, ApiError> {
+    let url = SERIES_INFO_AND_EPISODE_LIST.replace("ID", &series_id.to_string());
+    let pretty_json = get_pretty_json_from_url(url)
+        .await
+        .map_err(ApiError::Network)?;
+
+    deserialize_json(&pretty_json)
 }

@@ -18,7 +18,16 @@ lazy_static! {
 
 /// This is a `Vec` containing keys corresponding to their values in the database
 /// in their bytes form usefull for importing and exporting database data
-type KeysValuesVec = Vec<(Vec<u8>, Vec<u8>)>;
+pub type KeysValuesVec = Vec<(Vec<u8>, Vec<u8>)>;
+
+pub fn get_ids_from_keys_values_vec(keys_values_vec: KeysValuesVec) -> Vec<String> {
+    let mut series_ids = Vec::with_capacity(keys_values_vec.len());
+    for (series_id, _) in keys_values_vec {
+        let series_id = String::from_utf8_lossy(&series_id).to_string();
+        series_ids.push(series_id)
+    }
+    series_ids
+}
 
 pub struct Database {
     db: Db,
@@ -148,7 +157,10 @@ impl Database {
     /// i.e io problems, and when database fails to flush.
     pub fn import(&self, data: &[u8]) -> anyhow::Result<()> {
         let data: KeysValuesVec = bincode::deserialize(data)?;
+        self.import_keys_value_vec(data)
+    }
 
+    pub fn import_keys_value_vec(&self, data: KeysValuesVec) -> anyhow::Result<()> {
         data.into_iter()
             .try_for_each(|(key, value)| self.db.insert(key, value).map(|_| ()))?;
 
@@ -440,10 +452,22 @@ pub mod database_transfer {
     const MAGIC: &[u8; 14] = b"series-troxide";
     const DEFAULT_DATABASE_EXPORT_NAME: &str = "series-troxide-export";
 
-    /// Reads series tracking data from the provided path
+    /// # Reads series tracking data from the provided path
+    ///
+    /// This will directly import the data into the database
     pub fn read_database_from_path(database_read_path: &path::Path) -> anyhow::Result<()> {
         DB.import(&remove_magic_from_read_data(fs::read(database_read_path)?)?)?;
         Ok(())
+    }
+
+    /// # Reads series tracking data from the provided path and returns the `KeysValuesVec`
+    ///
+    /// This can be usefull when you want to cache the series data first before importing it to the database.
+    pub fn read_database_from_path_as_keys_value_vec(
+        database_read_path: &path::Path,
+    ) -> anyhow::Result<super::KeysValuesVec> {
+        let data = &remove_magic_from_read_data(fs::read(database_read_path)?)?;
+        Ok(bincode::deserialize(data)?)
     }
 
     /// Writes series tracking data from the provided directory path
