@@ -75,8 +75,6 @@ pub struct Cacher {
 
 impl Cacher {
     pub fn init() -> Self {
-        info!("opening cache");
-
         let proj_dir = ProjectDirs::from("", "", env!("CARGO_PKG_NAME"))
             .expect("could not get the cache path");
 

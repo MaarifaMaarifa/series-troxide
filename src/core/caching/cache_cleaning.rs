@@ -4,7 +4,9 @@
 //! we need some form of cache cleaning so that we don't compromise the
 //! ability of getting up to date information.
 
+use anyhow::Context;
 use std::path;
+use std::time;
 
 use crate::core::{
     api::{deserialize_json, series_information::SeriesMainInformation},
@@ -16,13 +18,8 @@ use super::{
     SERIES_MAIN_INFORMATION_FILENAME,
 };
 use anyhow::bail;
-use chrono::{DateTime, Duration, Local, Utc};
-use directories::ProjectDirs;
-use serde::{Deserialize, Serialize};
 use tokio::fs;
 use tracing::{error, info};
-
-const CLEANING_RECORD_FILENAME: &str = "cache-cleaning-record.toml";
 
 /// A type of cleaning to be performed by cache cleaner
 pub enum CleanType {
@@ -41,120 +38,60 @@ pub enum RunningStatus {
     WaitingRelease,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
-struct CacheCleaningRecord {
-    pub last_aired_cache_clean: DateTime<Local>,
-    pub last_waiting_release_cache_clean: DateTime<Local>,
-    pub last_ended_cache_clean: DateTime<Local>,
-}
-
-pub struct CacheCleaner {
-    cache_cleaning_record: CacheCleaningRecord,
-}
+pub struct CacheCleaner;
 
 impl CacheCleaner {
-    fn get_cache_cleaning_record_path() -> path::PathBuf {
-        let proj_dir = ProjectDirs::from("", "", env!("CARGO_PKG_NAME"))
-            .expect("could not get the project path");
-        let mut cache_path = path::PathBuf::from(proj_dir.data_dir());
-        cache_path.push(CLEANING_RECORD_FILENAME);
-        cache_path
-    }
-
-    fn open_cleaning_record() -> anyhow::Result<CacheCleaningRecord> {
-        let cache_cleaning_record_path = Self::get_cache_cleaning_record_path();
-
-        let content = match std::fs::read_to_string(&cache_cleaning_record_path) {
-            Ok(content) => content,
-            Err(err) => {
-                if err.kind() == std::io::ErrorKind::NotFound {
-                    let mut cache_cleaning_record_directory = cache_cleaning_record_path.clone();
-                    cache_cleaning_record_directory.pop();
-
-                    let cache_cleaning_record = CacheCleaningRecord::default();
-                    let content = toml::to_string(&cache_cleaning_record)?;
-
-                    std::fs::create_dir_all(cache_cleaning_record_directory)?;
-                    std::fs::write(cache_cleaning_record_path, content)?;
-
-                    return Ok(cache_cleaning_record);
-                } else {
-                    bail!(err)
-                }
-            }
-        };
-        Ok(toml::from_str(&content)?)
-    }
-
-    pub fn new() -> anyhow::Result<Self> {
-        Ok(Self {
-            cache_cleaning_record: Self::open_cleaning_record()?,
-        })
-    }
-
-    pub async fn clean_cache(&mut self, clean_type: CleanType) -> anyhow::Result<()> {
+    /// Cleans the cache based on the expiration duration
+    ///
+    /// If `None `is supplied, the directory is going to be cleaned immediately
+    /// If 'Some' is supplied, the directory duration is going to be compared and
+    /// if it exceeds the expiration time, it's going to be cleaned
+    pub async fn clean_cache(
+        &mut self,
+        clean_type: CleanType,
+        expiration_duration: Option<time::Duration>,
+    ) -> anyhow::Result<()> {
         match clean_type {
             CleanType::Running(running_status) => {
-                clean_running_cache(&running_status).await?;
-                match running_status {
-                    RunningStatus::Aired => {
-                        self.cache_cleaning_record.last_aired_cache_clean =
-                            Utc::now().with_timezone(&Local)
-                    }
-
-                    RunningStatus::WaitingRelease => {
-                        self.cache_cleaning_record.last_waiting_release_cache_clean =
-                            Utc::now().with_timezone(&Local)
-                    }
-                }
+                clean_running_cache(&running_status, expiration_duration).await?;
             }
             CleanType::Ended => {
-                clean_ended_series_cache().await?;
-                self.cache_cleaning_record.last_ended_cache_clean =
-                    Utc::now().with_timezone(&Local);
+                clean_ended_series_cache(expiration_duration).await?;
             }
         }
-
-        std::fs::write(
-            Self::get_cache_cleaning_record_path(),
-            toml::to_string(&self.cache_cleaning_record)?,
-        )?;
-
         Ok(())
     }
 
+    /// Cleans all the cache based on the expiration duration set by the `CacheSettings`
     pub async fn auto_clean(&mut self, cache_settings: &CacheSettings) -> anyhow::Result<()> {
-        info!("running cache autoclean");
+        info!("running cache autoclean...");
 
-        let local_time = Utc::now().with_timezone(&Local);
+        info!("cleaning expired aired series cache");
+        self.clean_cache(
+            CleanType::Running(RunningStatus::Aired),
+            Some(time::Duration::from_secs(
+                cache_settings.aired_cache_clean_frequency as u64 * 24 * 60 * 60,
+            )),
+        )
+        .await?;
 
-        // Getting how many days have lasted since each type of clean was performed
-        let last_aired_clean_days = local_time - self.cache_cleaning_record.last_aired_cache_clean;
-        let last_ended_clean_days = local_time - self.cache_cleaning_record.last_ended_cache_clean;
-        let last_waiting_release_clean_days =
-            local_time - self.cache_cleaning_record.last_waiting_release_cache_clean;
+        info!("cleaning expired waiting for release date series cache");
+        self.clean_cache(
+            CleanType::Running(RunningStatus::WaitingRelease),
+            Some(time::Duration::from_secs(
+                cache_settings.waiting_release_cache_clean_frequency as u64 * 24 * 60 * 60,
+            )),
+        )
+        .await?;
 
-        // Checking if those lasted days exceeded the required time as set by CacheSetting and perform a clean
-        if last_aired_clean_days > Duration::days(cache_settings.aired_cache_clean_frequency as i64)
-        {
-            info!("cleaning 'airing series cache'");
-            self.clean_cache(CleanType::Running(RunningStatus::Aired))
-                .await?;
-        }
-
-        if last_ended_clean_days > Duration::days(cache_settings.ended_cache_clean_frequency as i64)
-        {
-            info!("cleaning 'ended series cache'");
-            self.clean_cache(CleanType::Ended).await?;
-        }
-
-        if last_waiting_release_clean_days
-            > Duration::days(cache_settings.waiting_release_cache_clean_frequency as i64)
-        {
-            info!("cleaning 'waiting release series cache'");
-            self.clean_cache(CleanType::Running(RunningStatus::WaitingRelease))
-                .await?;
-        }
+        info!("cleaning expired ended series cache");
+        self.clean_cache(
+            CleanType::Ended,
+            Some(time::Duration::from_secs(
+                cache_settings.ended_cache_clean_frequency as u64 * 24 * 60 * 60,
+            )),
+        )
+        .await?;
 
         Ok(())
     }
@@ -178,7 +115,16 @@ async fn get_series_cache_directory_path() -> anyhow::Result<fs::ReadDir> {
 }
 
 /// Cleans the cache of all ended series
-async fn clean_ended_series_cache() -> anyhow::Result<()> {
+///
+/// # Note
+/// Cleans the cache based on the expiration duration
+///
+/// If `None `is supplied, the directory is going to be cleaned immediately
+/// If 'Some' is supplied, the directory duration is going to be compared and
+/// if it exceeds the expiration time, it's going to be cleaned
+async fn clean_ended_series_cache(
+    expiration_duration: Option<time::Duration>,
+) -> anyhow::Result<()> {
     let mut read_dir = get_series_cache_directory_path().await?;
 
     while let Some(dir_entry) = read_dir.next_entry().await? {
@@ -195,7 +141,7 @@ async fn clean_ended_series_cache() -> anyhow::Result<()> {
         let series_main_info = deserialize_json::<SeriesMainInformation>(&main_info_str)?;
 
         if series_main_info.status == "Ended" {
-            clean_cache(&dir_entry.path()).await?;
+            clean_directory_if_old(&dir_entry.path(), expiration_duration).await?;
         }
     }
 
@@ -204,7 +150,17 @@ async fn clean_ended_series_cache() -> anyhow::Result<()> {
 
 /// Cleans the cache of all running series depending on whether they are currently being aired or waiting for
 /// their release dates
-async fn clean_running_cache(running_status: &RunningStatus) -> anyhow::Result<()> {
+///
+/// # Note
+/// Cleans the cache based on the expiration duration
+///
+/// If `None `is supplied, the directory is going to be cleaned immediately
+/// If 'Some' is supplied, the directory duration is going to be compared and
+/// if it exceeds the expiration time, it's going to be cleaned
+async fn clean_running_cache(
+    running_status: &RunningStatus,
+    expiration_duration: Option<time::Duration>,
+) -> anyhow::Result<()> {
     let mut read_dir = get_series_cache_directory_path().await?;
 
     while let Some(dir_entry) = read_dir.next_entry().await? {
@@ -224,13 +180,6 @@ async fn clean_running_cache(running_status: &RunningStatus) -> anyhow::Result<(
         let episode_list_cache_str = match read_cache(&series_episode_list_path).await {
             Ok(cache_string) => cache_string,
             Err(_) => {
-                /* For Series to have no episode-list cache file, it's mostly because the series was loaded in the discover
-                   page and thus episode-list were never loaded because it was not clicked. This will be treated as a aired
-                   series since it was aired that's why it was in the discover page
-                */
-                if let RunningStatus::Aired = running_status {
-                    clean_cache(&dir_entry.path()).await?;
-                }
                 continue;
             }
         };
@@ -246,12 +195,12 @@ async fn clean_running_cache(running_status: &RunningStatus) -> anyhow::Result<(
             match running_status {
                 RunningStatus::Aired => {
                     if episode_list.get_next_episode().is_some() {
-                        clean_cache(&dir_entry.path()).await?;
+                        clean_directory_if_old(&dir_entry.path(), expiration_duration).await?;
                     }
                 }
                 RunningStatus::WaitingRelease => {
                     if episode_list.get_next_episode().is_none() {
-                        clean_cache(&dir_entry.path()).await?;
+                        clean_directory_if_old(&dir_entry.path(), expiration_duration).await?;
                     }
                 }
             }
@@ -259,6 +208,36 @@ async fn clean_running_cache(running_status: &RunningStatus) -> anyhow::Result<(
     }
 
     Ok(())
+}
+
+/// Cleans the directory based on the expiration duration
+///
+/// If `None `is supplied, the directory is going to be cleaned immediately
+/// If 'Some' is supplied, the directory duration is going to be compared and
+/// if it exceeds the expiration time, it's going to be cleaned
+async fn clean_directory_if_old(
+    directory_path: &path::Path,
+    expiration_duration: Option<time::Duration>,
+) -> anyhow::Result<()> {
+    if let Some(expiration_duration) = expiration_duration {
+        if get_directory_age(directory_path)? > expiration_duration {
+            clean_cache(directory_path).await?;
+        }
+    } else {
+        clean_cache(directory_path).await?;
+    }
+
+    Ok(())
+}
+
+fn get_directory_age(directory_path: &path::Path) -> anyhow::Result<time::Duration> {
+    directory_path
+        .metadata()
+        .context("failed to get directory metadata")?
+        .created()
+        .context("failed to get directory creation time")?
+        .elapsed()
+        .context("failed to get directory age")
 }
 
 /// Removes the directory and it's contents at the given path

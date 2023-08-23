@@ -211,21 +211,18 @@ mod cache_cleaning {
     use crate::core::caching::cache_cleaning::{CacheCleaner, CleanType, RunningStatus};
 
     pub async fn clean_ended_cache() -> anyhow::Result<()> {
-        let mut cleaner = CacheCleaner::new()?;
-        cleaner.clean_cache(CleanType::Ended).await
+        CacheCleaner.clean_cache(CleanType::Ended, None).await
     }
 
     pub async fn cleaning_waiting_release_cache() -> anyhow::Result<()> {
-        let mut cleaner = CacheCleaner::new()?;
-        cleaner
-            .clean_cache(CleanType::Running(RunningStatus::WaitingRelease))
+        CacheCleaner
+            .clean_cache(CleanType::Running(RunningStatus::WaitingRelease), None)
             .await
     }
 
     pub async fn clean_aired_cache() -> anyhow::Result<()> {
-        let mut cleaner = CacheCleaner::new()?;
-        cleaner
-            .clean_cache(CleanType::Running(RunningStatus::Aired))
+        CacheCleaner
+            .clean_cache(CleanType::Running(RunningStatus::Aired), None)
             .await
     }
 }
