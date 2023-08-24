@@ -235,7 +235,7 @@ mod full_caching {
 
                             let handle = tokio::spawn(async move {
                                 let series_info_and_episode_list = series_info_and_episode_list;
-                                series_info_and_episode_list.run_full_caching().await
+                                series_info_and_episode_list.run_full_caching(true).await
                             });
 
                             while let Some(result) = progress_receiver.recv().await {

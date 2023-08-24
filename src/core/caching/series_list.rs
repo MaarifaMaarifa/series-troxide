@@ -42,13 +42,23 @@ impl SeriesList {
     pub async fn get_untracked_series_informations(
         &self,
     ) -> anyhow::Result<Vec<SeriesMainInformation>> {
-        let handles: Vec<_> = self
+        let untracked_ids: Vec<u32> = self
             .get_untracked_series_ids()
+            .into_iter()
+            .map(|id| id.parse().expect("could not parse series id"))
+            .collect();
+
+        let (series_info_and_episode_list, _) =
+            super::series_info_and_episode_list::SeriesInfoAndEpisodeList::new(
+                untracked_ids.clone(),
+            );
+
+        // Fetching cache more efficiently if they dont exist
+        series_info_and_episode_list.run_full_caching(false).await?;
+
+        let handles: Vec<_> = untracked_ids
             .iter()
-            .map(|id| {
-                let id = id.parse().expect("could not parse series id");
-                tokio::spawn(series_information::get_series_main_info_with_id(id))
-            })
+            .map(|id| tokio::spawn(series_information::get_series_main_info_with_id(*id)))
             .collect();
 
         let mut series_informations = Vec::with_capacity(handles.len());
@@ -68,13 +78,21 @@ impl SeriesList {
         // read from the cache
         let _ = TRACKED_SERIES_INFORMATIONS_REQUEST_LOCK.lock().await;
 
-        let handles: Vec<_> = self
+        let tracked_ids: Vec<u32> = self
             .get_tracked_series_ids()
+            .into_iter()
+            .map(|id| id.parse().expect("could not parse series id"))
+            .collect();
+
+        let (series_info_and_episode_list, _) =
+            super::series_info_and_episode_list::SeriesInfoAndEpisodeList::new(tracked_ids.clone());
+
+        // Fetching cache more efficiently if they dont exist
+        series_info_and_episode_list.run_full_caching(false).await?;
+
+        let handles: Vec<_> = tracked_ids
             .iter()
-            .map(|id| {
-                let id = id.parse().expect("could not parse series id");
-                tokio::spawn(series_information::get_series_main_info_with_id(id))
-            })
+            .map(|id| tokio::spawn(series_information::get_series_main_info_with_id(*id)))
             .collect();
 
         let mut series_informations = Vec::with_capacity(handles.len());

@@ -33,7 +33,7 @@ impl SeriesInfoAndEpisodeList {
     }
 
     /// Caches `SeriesMainInformation` and `EpisodeList` for all the series supplied via their ids
-    pub async fn run_full_caching(&self) -> anyhow::Result<()> {
+    pub async fn run_full_caching(&self, report_progress: bool) -> anyhow::Result<()> {
         let handles: Vec<_> = self
             .series_ids
             .iter()
@@ -42,10 +42,12 @@ impl SeriesInfoAndEpisodeList {
                 let sender = self.completion_signal_sender.clone();
                 tokio::spawn(async move {
                     let res = Self::run_caching(series_id).await;
-                    sender
-                        .send(res)
-                        .await
-                        .expect("failed to send completion signal to the receiver");
+                    if report_progress {
+                        sender
+                            .send(res)
+                            .await
+                            .expect("failed to send completion signal to the receiver");
+                    }
                 })
             })
             .collect();
