@@ -64,7 +64,7 @@ impl SeriesInfoAndEpisodeList {
             MissingCache::Series => Self::cache_series_information(series_id).await?,
             MissingCache::EpisodeList => Self::cache_episode_list(series_id).await?,
             MissingCache::Both => {
-                let series_info = get_series_info_and_episode_list(series_id).await?;
+                let mut series_info = get_series_info_and_episode_list(series_id).await?;
                 let episode_list = series_info
                     .get_episode_list()
                     .expect("series info should have embedded episode list");

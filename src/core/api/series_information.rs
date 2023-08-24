@@ -254,10 +254,10 @@ impl SeriesMainInformation {
             .map(|webchannel| ShowWebChannel::from(webchannel.name.as_str()))
     }
 
-    pub fn get_episode_list(&self) -> Option<&[Episode]> {
+    pub fn get_episode_list(&mut self) -> Option<Vec<Episode>> {
         self.embedded_episode_list
-            .as_ref()
-            .map(|embedded| &embedded.episodes[..])
+            .take()
+            .map(|embedded| embedded.episodes)
     }
 }
 
