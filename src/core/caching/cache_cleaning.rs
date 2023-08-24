@@ -38,63 +38,58 @@ pub enum RunningStatus {
     WaitingRelease,
 }
 
-pub struct CacheCleaner;
-
-impl CacheCleaner {
-    /// Cleans the cache based on the expiration duration
-    ///
-    /// If `None `is supplied, the directory is going to be cleaned immediately
-    /// If 'Some' is supplied, the directory duration is going to be compared and
-    /// if it exceeds the expiration time, it's going to be cleaned
-    pub async fn clean_cache(
-        &mut self,
-        clean_type: CleanType,
-        expiration_duration: Option<time::Duration>,
-    ) -> anyhow::Result<()> {
-        match clean_type {
-            CleanType::Running(running_status) => {
-                clean_running_cache(&running_status, expiration_duration).await?;
-            }
-            CleanType::Ended => {
-                clean_ended_series_cache(expiration_duration).await?;
-            }
+/// Cleans the cache based on the expiration duration
+///
+/// If `None `is supplied, the directory is going to be cleaned immediately
+/// If 'Some' is supplied, the directory duration is going to be compared and
+/// if it exceeds the expiration time, it's going to be cleaned
+pub async fn clean_cache(
+    clean_type: CleanType,
+    expiration_duration: Option<time::Duration>,
+) -> anyhow::Result<()> {
+    match clean_type {
+        CleanType::Running(running_status) => {
+            clean_running_cache(&running_status, expiration_duration).await?;
         }
-        Ok(())
+        CleanType::Ended => {
+            clean_ended_series_cache(expiration_duration).await?;
+        }
     }
+    Ok(())
+}
 
-    /// Cleans all the cache based on the expiration duration set by the `CacheSettings`
-    pub async fn auto_clean(&mut self, cache_settings: &CacheSettings) -> anyhow::Result<()> {
-        info!("running cache autoclean...");
+/// Cleans all the cache based on the expiration duration set by the `CacheSettings`
+pub async fn auto_clean(cache_settings: &CacheSettings) -> anyhow::Result<()> {
+    info!("running cache autoclean...");
 
-        info!("cleaning expired aired series cache");
-        self.clean_cache(
-            CleanType::Running(RunningStatus::Aired),
-            Some(time::Duration::from_secs(
-                cache_settings.aired_cache_clean_frequency as u64 * 24 * 60 * 60,
-            )),
-        )
-        .await?;
+    info!("cleaning expired aired series cache");
+    clean_cache(
+        CleanType::Running(RunningStatus::Aired),
+        Some(time::Duration::from_secs(
+            cache_settings.aired_cache_clean_frequency as u64 * 24 * 60 * 60,
+        )),
+    )
+    .await?;
 
-        info!("cleaning expired waiting for release date series cache");
-        self.clean_cache(
-            CleanType::Running(RunningStatus::WaitingRelease),
-            Some(time::Duration::from_secs(
-                cache_settings.waiting_release_cache_clean_frequency as u64 * 24 * 60 * 60,
-            )),
-        )
-        .await?;
+    info!("cleaning expired waiting for release date series cache");
+    clean_cache(
+        CleanType::Running(RunningStatus::WaitingRelease),
+        Some(time::Duration::from_secs(
+            cache_settings.waiting_release_cache_clean_frequency as u64 * 24 * 60 * 60,
+        )),
+    )
+    .await?;
 
-        info!("cleaning expired ended series cache");
-        self.clean_cache(
-            CleanType::Ended,
-            Some(time::Duration::from_secs(
-                cache_settings.ended_cache_clean_frequency as u64 * 24 * 60 * 60,
-            )),
-        )
-        .await?;
+    info!("cleaning expired ended series cache");
+    clean_cache(
+        CleanType::Ended,
+        Some(time::Duration::from_secs(
+            cache_settings.ended_cache_clean_frequency as u64 * 24 * 60 * 60,
+        )),
+    )
+    .await?;
 
-        Ok(())
-    }
+    Ok(())
 }
 
 // get `tokio::fs::ReadDir` of the series cache directory, creating the directory on the process if it does not exist
@@ -221,10 +216,10 @@ async fn clean_directory_if_old(
 ) -> anyhow::Result<()> {
     if let Some(expiration_duration) = expiration_duration {
         if get_directory_age(directory_path)? > expiration_duration {
-            clean_cache(directory_path).await?;
+            clean_cache_directory(directory_path).await?;
         }
     } else {
-        clean_cache(directory_path).await?;
+        clean_cache_directory(directory_path).await?;
     }
 
     Ok(())
@@ -241,7 +236,7 @@ fn get_directory_age(directory_path: &path::Path) -> anyhow::Result<time::Durati
 }
 
 /// Removes the directory and it's contents at the given path
-async fn clean_cache(path: &path::Path) -> anyhow::Result<()> {
+async fn clean_cache_directory(path: &path::Path) -> anyhow::Result<()> {
     info!("cleaning cache: {}", path.display());
     fs::remove_dir_all(path)
         .await

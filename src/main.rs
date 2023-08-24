@@ -26,7 +26,7 @@ fn main() -> anyhow::Result<()> {
         .clone();
 
     tokio::runtime::Runtime::new()?
-        .block_on(core::caching::cache_cleaning::CacheCleaner.auto_clean(&cache_settings))?;
+        .block_on(core::caching::cache_cleaning::auto_clean(&cache_settings))?;
 
     std::thread::spawn(|| core::notifications::TroxideNotify::new()?.run());
 

@@ -208,22 +208,18 @@ fn status_and_button_gen(
 }
 
 mod cache_cleaning {
-    use crate::core::caching::cache_cleaning::{CacheCleaner, CleanType, RunningStatus};
+    use crate::core::caching::cache_cleaning::{self, CleanType, RunningStatus};
 
     pub async fn clean_ended_cache() -> anyhow::Result<()> {
-        CacheCleaner.clean_cache(CleanType::Ended, None).await
+        cache_cleaning::clean_cache(CleanType::Ended, None).await
     }
 
     pub async fn cleaning_waiting_release_cache() -> anyhow::Result<()> {
-        CacheCleaner
-            .clean_cache(CleanType::Running(RunningStatus::WaitingRelease), None)
-            .await
+        cache_cleaning::clean_cache(CleanType::Running(RunningStatus::WaitingRelease), None).await
     }
 
     pub async fn clean_aired_cache() -> anyhow::Result<()> {
-        CacheCleaner
-            .clean_cache(CleanType::Running(RunningStatus::Aired), None)
-            .await
+        cache_cleaning::clean_cache(CleanType::Running(RunningStatus::Aired), None).await
     }
 }
 
