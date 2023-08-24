@@ -10,7 +10,12 @@ use tracing::info;
 
 use super::{api::series_information::SeriesMainInformation, caching};
 
-const DATABASE_FOLDER_NAME: &str = "series-troxide-db";
+/*
+The last digit represents the version of the database.
+This should correspond to the version of the file magic
+of the exportation and importation file.
+*/
+const DATABASE_FOLDER_NAME: &str = "series-troxide-db-1";
 
 lazy_static! {
     pub static ref DB: Database = Database::init();
@@ -449,7 +454,13 @@ pub mod database_transfer {
     use std::fs;
     use std::path;
 
-    const MAGIC: &[u8; 14] = b"series-troxide";
+    /*
+    The first 4 bytes "sro2" represent "seriestroxide"
+    The last 4 bytes represent the version, "0001" will be version 1
+    */
+    const MAGIC: &[u8; 8] = b"sro20001";
+    const CURRENT_DATA_VERSION: u16 = 1;
+
     const DEFAULT_DATABASE_EXPORT_NAME: &str = "series-troxide-export";
 
     /// # Reads series tracking data from the provided path
@@ -495,15 +506,33 @@ pub mod database_transfer {
         Ok(())
     }
 
-    // /// Reads data from the path, checks magic if it's series troxide's and returns data
-    // /// that follow after the magic
-    fn remove_magic_from_read_data(data: Vec<u8>) -> anyhow::Result<Vec<u8>> {
-        let magic = &data[..MAGIC.len()];
+    #[derive(Debug, thiserror::Error, PartialEq)]
+    enum DataFormatError {
+        #[error("invalid file")]
+        InvalidMagic,
 
-        if magic == MAGIC {
+        #[error("invalid file version")]
+        InvalidVersion,
+
+        #[error("wrong version. expected version {0}, found version {0}")]
+        WrongVersion(u16, u16),
+    }
+
+    /// Reads data from the path, checks magic if it's series troxide's and returns data
+    /// that follow after the magic
+    fn remove_magic_from_read_data(data: Vec<u8>) -> Result<Vec<u8>, DataFormatError> {
+        if data[..MAGIC.len()] == MAGIC[..] {
             Ok(data[MAGIC.len()..].into())
+        } else if data[..4] == MAGIC[..4] {
+            match dbg!(String::from_utf8_lossy(&data[4..MAGIC.len()]).parse::<u16>()) {
+                Ok(wrong_version) => Err(DataFormatError::WrongVersion(
+                    CURRENT_DATA_VERSION,
+                    wrong_version,
+                )),
+                Err(_) => Err(DataFormatError::InvalidVersion),
+            }
         } else {
-            anyhow::bail!("invalid file")
+            Err(DataFormatError::InvalidMagic)
         }
     }
 
@@ -537,6 +566,35 @@ pub mod database_transfer {
             data.append(&mut raw_data);
 
             assert_eq!(magicfied_data, data);
+        }
+
+        #[test]
+        fn valid_file_test() {
+            assert!(remove_magic_from_read_data(b"sro20001".to_vec()).is_ok())
+        }
+
+        #[test]
+        fn invalid_file_test() {
+            assert_eq!(
+                remove_magic_from_read_data(b"helloworld".to_vec()),
+                Err(DataFormatError::InvalidMagic)
+            )
+        }
+
+        #[test]
+        fn invalid_version_test() {
+            assert_eq!(
+                remove_magic_from_read_data(b"sro2hello".to_vec()),
+                Err(DataFormatError::InvalidVersion)
+            )
+        }
+
+        #[test]
+        fn wrong_version_test() {
+            assert_eq!(
+                remove_magic_from_read_data(b"sro29000".to_vec()),
+                Err(DataFormatError::WrongVersion(CURRENT_DATA_VERSION, 9000))
+            )
         }
     }
 }
