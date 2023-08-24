@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Network and web-channel sections(The CW, Netflix, HBO etc) in `Discover page`. [b8ad79b](https://github.com/MaarifaMaarifa/series-troxide/commit/b8ad79bfba3e41ca393049c33913c7964d835e5b)
 - Genre sections(Family, Action, Sci-Fi etc) in `Discover page`. [1f2e9b4](https://github.com/MaarifaMaarifa/series-troxide/commit/1f2e9b4b741290226c87ef54329c6fce0f16aa33)
 - Suggested Shows(Based on the one currently opened) in `Series page`. [32f8b90](https://github.com/MaarifaMaarifa/series-troxide/commit/32f8b90657fa6319be34b736c693f90e5ca06482)
+- Implement proper export file header(magic) with it's version information. [b4518c2](https://github.com/MaarifaMaarifa/series-troxide/commit/b4518c2d2433fe7e51f9271ffe3601dece94c43d)
 
 ### Changed
 
