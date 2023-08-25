@@ -11,7 +11,14 @@
   </p>
 </div>
 
-![](screenshots/demo.gif)
+<p align="center">
+    <img src="screenshots/discover-page.png" alt="discover-page" width="49%"/>
+    <img src="screenshots/watchlist-page.png" alt="watchlist-page" width="49%"/>
+</p>
+<p align="center">
+    <img src="screenshots/my-shows-page.png" alt="my-shows-page.png" width="49%"/>
+    <img src="screenshots/statistics-page.png" alt="statistics-page" width="49%"/>
+</p>
 
 ## Features
 - [x] **Aired and New Series discovery**. See what's new globally and locally.
