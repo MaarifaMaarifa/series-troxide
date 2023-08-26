@@ -1,14 +1,21 @@
 use cast_poster::{CastPoster, Message as CastMessage};
-use iced::widget::{column, container, text, Space};
+use iced::widget::{button, column, container, horizontal_space, row, svg, text, Space};
 use iced::{Command, Element, Length, Renderer};
 use iced_aw::{Spinner, Wrap};
 
 use crate::core::{api::show_cast::Cast, caching};
+use crate::gui::assets::get_static_cow_from_asset;
+use crate::gui::assets::icons::{CHEVRON_DOWN, CHEVRON_UP};
+use crate::gui::styles;
+
+const INITIAL_CAST_NUMBER: usize = 20;
 
 #[derive(Clone, Debug)]
 pub enum Message {
     CastReceived(Vec<Cast>),
     CastAction(usize, CastMessage),
+    Expand,
+    Shrink,
 }
 
 enum LoadState {
@@ -19,6 +26,7 @@ enum LoadState {
 pub struct CastWidget {
     load_state: LoadState,
     cast: Vec<CastPoster>,
+    is_expanded: bool,
 }
 
 impl CastWidget {
@@ -26,6 +34,7 @@ impl CastWidget {
         let cast_widget = Self {
             load_state: LoadState::Loading,
             cast: vec![],
+            is_expanded: false,
         };
 
         let cast_command = Command::perform(caching::show_cast::get_show_cast(series_id), |cast| {
@@ -54,6 +63,14 @@ impl CastWidget {
                 self.cast[index].update(message);
                 Command::none()
             }
+            Message::Expand => {
+                self.is_expanded = true;
+                Command::none()
+            }
+            Message::Shrink => {
+                self.is_expanded = false;
+                Command::none()
+            }
         }
     }
 
@@ -71,21 +88,25 @@ impl CastWidget {
                 if self.cast.is_empty() {
                     Space::new(0, 0).into()
                 } else {
+                    let cast_posters: Vec<_> = self
+                        .cast
+                        .iter()
+                        .enumerate()
+                        .take_while(|(index, _)| self.is_expanded || *index < INITIAL_CAST_NUMBER)
+                        .map(|(_, poster)| {
+                            poster
+                                .view()
+                                .map(|message| Message::CastAction(message.get_id(), message))
+                        })
+                        .collect();
+
                     column![
                         text("Top Cast").size(21),
-                        Wrap::with_elements(
-                            self.cast
-                                .iter()
-                                .map(|poster| {
-                                    poster.view().map(|message| {
-                                        Message::CastAction(message.get_id(), message)
-                                    })
-                                })
-                                .collect(),
-                        )
-                        .padding(5.0)
-                        .line_spacing(5.0)
-                        .spacing(5.0)
+                        Wrap::with_elements(cast_posters)
+                            .padding(5.0)
+                            .line_spacing(5.0)
+                            .spacing(5.0),
+                        self.expansion_widget(),
                     ]
                     .padding(5)
                     .into()
@@ -93,7 +114,49 @@ impl CastWidget {
             }
         }
     }
+
+    fn expansion_widget(&self) -> Element<'_, Message, Renderer> {
+        if self.cast.len() > INITIAL_CAST_NUMBER {
+            let (info, expansion_button) = if self.is_expanded {
+                let svg_handle = svg::Handle::from_memory(get_static_cow_from_asset(CHEVRON_UP));
+                let up_icon = svg(svg_handle)
+                    .width(Length::Shrink)
+                    .style(styles::svg_styles::colored_svg_theme());
+                (text("less cast"), button(up_icon).on_press(Message::Shrink))
+            } else {
+                let svg_handle = svg::Handle::from_memory(get_static_cow_from_asset(CHEVRON_DOWN));
+                let down_icon = svg(svg_handle)
+                    .width(Length::Shrink)
+                    .style(styles::svg_styles::colored_svg_theme());
+                (
+                    text("more cast"),
+                    button(down_icon).on_press(Message::Expand),
+                )
+            };
+
+            let content = row![
+                horizontal_space(5),
+                info,
+                expansion_button.style(styles::button_styles::transparent_button_theme()),
+                horizontal_space(5),
+            ]
+            .spacing(10)
+            .align_items(iced::Alignment::Center);
+
+            container(
+                container(content)
+                    .style(styles::container_styles::first_class_container_square_theme()),
+            )
+            .center_x()
+            .width(Length::Fill)
+            .padding(20)
+            .into()
+        } else {
+            Space::new(0, 0).into()
+        }
+    }
 }
+
 mod cast_poster {
     use bytes::Bytes;
     use iced::{
