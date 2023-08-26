@@ -101,7 +101,7 @@ impl CastWidget {
                         .collect();
 
                     column![
-                        text("Top Cast").size(21),
+                        text("Top Casts").size(21),
                         Wrap::with_elements(cast_posters)
                             .padding(5.0)
                             .line_spacing(10.0)
@@ -117,31 +117,32 @@ impl CastWidget {
 
     fn expansion_widget(&self) -> Element<'_, Message, Renderer> {
         if self.cast.len() > INITIAL_CAST_NUMBER {
-            let (info, expansion_button) = if self.is_expanded {
+            let (info, expansion_icon, message) = if self.is_expanded {
                 let svg_handle = svg::Handle::from_memory(get_static_cow_from_asset(CHEVRON_UP));
                 let up_icon = svg(svg_handle)
                     .width(Length::Shrink)
                     .style(styles::svg_styles::colored_svg_theme());
-                (text("less cast"), button(up_icon).on_press(Message::Shrink))
+                (text("less casts"), up_icon, Message::Shrink)
             } else {
                 let svg_handle = svg::Handle::from_memory(get_static_cow_from_asset(CHEVRON_DOWN));
                 let down_icon = svg(svg_handle)
                     .width(Length::Shrink)
                     .style(styles::svg_styles::colored_svg_theme());
-                (
-                    text("more cast"),
-                    button(down_icon).on_press(Message::Expand),
-                )
+                (text("more casts"), down_icon, Message::Expand)
             };
 
             let content = row![
                 horizontal_space(5),
                 info,
-                expansion_button.style(styles::button_styles::transparent_button_theme()),
+                expansion_icon,
                 horizontal_space(5),
             ]
             .spacing(10)
             .align_items(iced::Alignment::Center);
+
+            let content = button(content)
+                .on_press(message)
+                .style(styles::button_styles::transparent_button_theme());
 
             container(
                 container(content)
