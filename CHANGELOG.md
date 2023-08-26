@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Genre sections(Family, Action, Sci-Fi etc) in `Discover page`. [1f2e9b4](https://github.com/MaarifaMaarifa/series-troxide/commit/1f2e9b4b741290226c87ef54329c6fce0f16aa33)
 - Suggested Shows(Based on the one currently opened) in `Series page`. [32f8b90](https://github.com/MaarifaMaarifa/series-troxide/commit/32f8b90657fa6319be34b736c693f90e5ca06482)
 - Implement proper export file header(magic) with it's version information. [b4518c2](https://github.com/MaarifaMaarifa/series-troxide/commit/b4518c2d2433fe7e51f9271ffe3601dece94c43d)
+- More information for each cast in `Series page`. [1c27c8c](https://github.com/MaarifaMaarifa/series-troxide/commit/1c27c8c9f1a14abb3615c4eec27ce8c742cc3750) 
 
 ### Changed
 
@@ -33,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improve series searching response when loading images. [42c824d](https://github.com/MaarifaMaarifa/series-troxide/commit/42c824d55b3daafd4f21bf691dbcf1fba341b01d)
 - Improve speed when getting upcoming episode releases. [ea31d51](https://github.com/MaarifaMaarifa/series-troxide/commit/ea31d51acfc05f4cdc9b7fab63b0c798685ca788)
 - Improve cache cleaning. Cache expiration will now be determined using the filesystem. [be4141d](https://github.com/MaarifaMaarifa/series-troxide/commit/be4141d1ab239fc89074af4143a60c13cbe0398d)
+- Made casts section expandable in `Series page`. [6a8aa36](https://github.com/MaarifaMaarifa/series-troxide/commit/6a8aa36d5c25e57baad915de62a72092e458aa75)
 
 ### Removed
 
