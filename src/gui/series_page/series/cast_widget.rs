@@ -104,8 +104,8 @@ impl CastWidget {
                         text("Top Cast").size(21),
                         Wrap::with_elements(cast_posters)
                             .padding(5.0)
-                            .line_spacing(5.0)
-                            .spacing(5.0),
+                            .line_spacing(10.0)
+                            .spacing(10.0),
                         self.expansion_widget(),
                     ]
                     .padding(5)
@@ -160,14 +160,14 @@ impl CastWidget {
 mod cast_poster {
     use bytes::Bytes;
     use iced::{
-        alignment,
-        widget::{container, image, text, Column, Space},
-        Command, Element, Renderer,
+        font::Weight,
+        widget::{column, container, horizontal_space, image, row, text, Column, Row, Space},
+        Command, Element, Font, Renderer,
     };
 
     use crate::{
         core::{api::show_cast::Cast, caching},
-        gui::styles,
+        gui::{helpers, styles},
     };
 
     #[derive(Debug, Clone)]
@@ -211,7 +211,7 @@ mod cast_poster {
         }
 
         pub fn view(&self) -> Element<'_, Message, Renderer> {
-            let mut content = Column::new();
+            let mut content = Row::new().spacing(10);
 
             if let Some(image_bytes) = self.image.clone() {
                 let image_handle = image::Handle::from_memory(image_bytes);
@@ -222,22 +222,71 @@ mod cast_poster {
                 content = content.push(Space::new(100, 140));
             };
 
-            let name = text(format!(
-                "{}\nas {}",
-                self.cast.person.name, self.cast.character.name
-            ))
-            .horizontal_alignment(alignment::Horizontal::Center)
-            .vertical_alignment(iced::alignment::Vertical::Center)
-            .width(100)
-            .height(45)
-            .size(11);
+            let mut cast_info = Column::new().width(150).spacing(3);
 
-            let content = content.push(name);
+            cast_info = cast_info.push(column![
+                text(&self.cast.person.name)
+                    .style(styles::text_styles::purple_text_theme())
+                    .size(15),
+                text(format!("as {}", &self.cast.character.name)).size(11)
+            ]);
+
+            // A little bit of space between cast name and other informations
+            cast_info = cast_info.push(horizontal_space(20));
+
+            if let Some(gender) = self.cast.person.gender.as_ref() {
+                cast_info = cast_info.push(cast_info_field("Gender: ", gender));
+            }
+
+            if self.cast.person.deathday.is_none() {
+                if let Ok(duration_since_birth) = self.cast.duration_since_birth() {
+                    if let Some(age) =
+                        helpers::time::SaneTime::new(duration_since_birth.num_minutes() as u32)
+                            .get_time_plurized()
+                            .last()
+                    {
+                        cast_info = cast_info
+                            .push(cast_info_field("Age: ", format!("{} {}", age.1, age.0)));
+                    } else {
+                        cast_info = cast_info.push(text("Just born"));
+                    }
+                }
+            }
+
+            if let Some(birthday) = self.cast.person.birthday.as_ref() {
+                cast_info = cast_info.push(cast_info_field("Birthday: ", birthday));
+            }
+
+            if let Some(deathday) = self.cast.person.deathday.as_ref() {
+                cast_info = cast_info.push(cast_info_field("Deathday: ", deathday));
+            }
+
+            if let Some(country) = self.cast.person.country.as_ref() {
+                cast_info = cast_info.push(cast_info_field("Born in: ", &country.name));
+            }
+
+            let content = content.push(cast_info);
 
             container(content)
-                .style(styles::container_styles::second_class_container_rounded_theme())
+                .style(styles::container_styles::first_class_container_square_theme())
                 .padding(7)
                 .into()
         }
+    }
+
+    fn cast_info_field(
+        title: &str,
+        value: impl std::fmt::Display,
+    ) -> Element<'_, Message, Renderer> {
+        row![
+            text(title)
+                .font(Font {
+                    weight: Weight::Bold,
+                    ..Default::default()
+                })
+                .size(12),
+            text(value).size(12)
+        ]
+        .into()
     }
 }
