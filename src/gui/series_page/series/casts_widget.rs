@@ -23,17 +23,17 @@ enum LoadState {
     Loaded,
 }
 
-pub struct CastWidget {
+pub struct CastsWidget {
     load_state: LoadState,
-    cast: Vec<CastPoster>,
+    casts: Vec<CastPoster>,
     is_expanded: bool,
 }
 
-impl CastWidget {
+impl CastsWidget {
     pub fn new(series_id: u32) -> (Self, Command<Message>) {
         let cast_widget = Self {
             load_state: LoadState::Loading,
-            cast: vec![],
+            casts: vec![],
             is_expanded: false,
         };
 
@@ -55,12 +55,12 @@ impl CastWidget {
                     cast_posters.push(cast_poster);
                     posters_commands.push(poster_command);
                 }
-                self.cast = cast_posters;
+                self.casts = cast_posters;
                 Command::batch(posters_commands)
                     .map(|message| Message::CastAction(message.get_id(), message))
             }
             Message::CastAction(index, message) => {
-                self.cast[index].update(message);
+                self.casts[index].update(message);
                 Command::none()
             }
             Message::Expand => {
@@ -85,11 +85,11 @@ impl CastWidget {
                     .into()
             }
             LoadState::Loaded => {
-                if self.cast.is_empty() {
+                if self.casts.is_empty() {
                     Space::new(0, 0).into()
                 } else {
                     let cast_posters: Vec<_> = self
-                        .cast
+                        .casts
                         .iter()
                         .enumerate()
                         .take_while(|(index, _)| self.is_expanded || *index < INITIAL_CAST_NUMBER)
@@ -116,7 +116,7 @@ impl CastWidget {
     }
 
     fn expansion_widget(&self) -> Element<'_, Message, Renderer> {
-        if self.cast.len() > INITIAL_CAST_NUMBER {
+        if self.casts.len() > INITIAL_CAST_NUMBER {
             let (info, expansion_icon, message) = if self.is_expanded {
                 let svg_handle = svg::Handle::from_memory(get_static_cow_from_asset(CHEVRON_UP));
                 let up_icon = svg(svg_handle)

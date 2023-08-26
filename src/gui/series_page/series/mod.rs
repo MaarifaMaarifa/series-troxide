@@ -10,7 +10,7 @@ use crate::gui::assets::icons::{PATCH_PLUS, PATCH_PLUS_FILL};
 use crate::gui::styles;
 
 use bytes::Bytes;
-use cast_widget::{CastWidget, Message as CastWidgetMessage};
+use casts_widget::{CastsWidget, Message as CastWidgetMessage};
 use data_widgets::*;
 use iced::widget::scrollable::{Id, RelativeOffset, Viewport};
 use image;
@@ -25,7 +25,7 @@ use iced::widget::{svg, vertical_space, Column};
 use iced::{Alignment, Command, Element, Length, Renderer};
 use iced_aw::{Grid, Spinner};
 
-mod cast_widget;
+mod casts_widget;
 mod data_widgets;
 mod season_widget;
 mod series_suggestion_widget;
@@ -213,7 +213,7 @@ pub struct Series {
     series_background: Option<Bytes>,
     next_episode_release_time: Option<(Episode, EpisodeReleaseTime)>,
     season_widgets: Vec<season_widget::Season>,
-    cast_widget: CastWidget,
+    casts_widget: CastsWidget,
     series_suggestion_widget: SeriesSuggestion,
     scroll_offset: RelativeOffset,
     scroller_id: Id,
@@ -226,7 +226,7 @@ impl Series {
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (Self, Command<Message>) {
         let series_id = series_information.id;
-        let (cast_widget, cast_widget_command) = CastWidget::new(series_id);
+        let (casts_widget, casts_widget_command) = CastsWidget::new(series_id);
         let (series_suggestion_widget, series_suggestion_widget_command) = SeriesSuggestion::new(
             series_id,
             series_information.get_genres(),
@@ -244,7 +244,7 @@ impl Series {
             series_image_blurred: None,
             series_background: None,
             season_widgets: vec![],
-            cast_widget,
+            casts_widget,
             series_suggestion_widget,
             scroll_offset: RelativeOffset::default(),
             scroller_id: scroller_id.clone(),
@@ -254,7 +254,7 @@ impl Series {
 
         let commands = [
             Command::batch(get_images_and_episode_list(series_image, series_id)),
-            cast_widget_command.map(Message::CastWidgetAction),
+            casts_widget_command.map(Message::CastWidgetAction),
             series_suggestion_widget_command.map(Message::SeriesSuggestion),
             scroller_command,
         ];
@@ -316,7 +316,7 @@ impl Series {
             }
             Message::CastWidgetAction(message) => {
                 return self
-                    .cast_widget
+                    .casts_widget
                     .update(message)
                     .map(Message::CastWidgetAction)
             }
@@ -371,7 +371,7 @@ impl Series {
 
         let seasons_widget = self.seasons_view();
 
-        let cast_widget = self.cast_widget.view().map(Message::CastWidgetAction);
+        let casts_widget = self.casts_widget.view().map(Message::CastWidgetAction);
         let series_suggestion_widget = self
             .series_suggestion_widget
             .view()
@@ -382,7 +382,7 @@ impl Series {
             series_metadata,
             vertical_space(10),
             seasons_widget,
-            cast_widget,
+            casts_widget,
             series_suggestion_widget
         ];
 
