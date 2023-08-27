@@ -101,8 +101,7 @@ impl Caching {
     pub fn view(&self) -> Element<'_, Message, Renderer> {
         let manual_cleaning_heading_text = text("Manual Cache Cleaning").size(18);
         let manual_cleaning_explaination_text = text("Sometimes, you may want to perform manual cache clean up for some reasons. \
-            All of the cache type can be cleaned up manually. When their individual clean buttons are pressed, a clean will be performed immediately and the last clean \
-            record for that type of clean will be update.").size(11);
+            All of the cache type can be cleaned up manually. When their individual clean buttons are pressed, a clean will be performed immediately.").size(11);
 
         let content = column![
             text("Series Troxide Cache")
