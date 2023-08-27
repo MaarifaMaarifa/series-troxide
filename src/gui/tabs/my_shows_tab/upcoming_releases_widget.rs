@@ -61,7 +61,7 @@ impl UpcomingReleases {
                     iced::time::every(std::time::Duration::from_secs(duration.num_seconds() as u64))
                         .map(|_| Message::Refresh)
                 } else {
-                    iced::Subscription::none()
+                    iced::time::every(std::time::Duration::from_secs(60)).map(|_| Message::Refresh)
                 }
             })
             .unwrap_or(iced::Subscription::none())
