@@ -1,4 +1,4 @@
-use cast_poster::{CastPoster, Message as CastMessage};
+use cast_poster::{CastPoster, IndexedMessage as IndexedCastMessage, Message as CastMessage};
 use iced::widget::{button, column, container, horizontal_space, row, svg, text, Space};
 use iced::{Command, Element, Length, Renderer};
 use iced_aw::{Spinner, Wrap};
@@ -13,7 +13,7 @@ const INITIAL_CAST_NUMBER: usize = 20;
 #[derive(Clone, Debug)]
 pub enum Message {
     CastReceived(Vec<Cast>),
-    CastAction(usize, CastMessage),
+    Cast(IndexedCastMessage<CastMessage>),
     Expand,
     Shrink,
 }
@@ -56,12 +56,11 @@ impl CastsWidget {
                     posters_commands.push(poster_command);
                 }
                 self.casts = cast_posters;
-                Command::batch(posters_commands)
-                    .map(|message| Message::CastAction(message.get_id(), message))
+                Command::batch(posters_commands).map(Message::Cast)
             }
-            Message::CastAction(index, message) => self.casts[index]
+            Message::Cast(message) => self.casts[message.index()]
                 .update(message)
-                .map(move |message| Message::CastAction(index, message)),
+                .map(Message::Cast),
             Message::Expand => {
                 self.is_expanded = true;
                 Command::none()
@@ -92,11 +91,7 @@ impl CastsWidget {
                         .iter()
                         .enumerate()
                         .take_while(|(index, _)| self.is_expanded || *index < INITIAL_CAST_NUMBER)
-                        .map(|(_, poster)| {
-                            poster
-                                .view()
-                                .map(|message| Message::CastAction(message.get_id(), message))
-                        })
+                        .map(|(_, poster)| poster.view().map(Message::Cast))
                         .collect();
 
                     column![
@@ -167,6 +162,7 @@ mod cast_poster {
         Command, Element, Font, Renderer,
     };
 
+    pub use crate::gui::message::IndexedMessage;
     use crate::{
         core::{
             api::{show_cast::Cast, Image},
@@ -180,19 +176,9 @@ mod cast_poster {
 
     #[derive(Debug, Clone)]
     pub enum Message {
-        PersonImageLoaded(usize, Option<Bytes>),
-        CharacterImageLoaded(usize, Option<Bytes>),
-        SwitchDisplayImage(usize),
-    }
-
-    impl Message {
-        pub fn get_id(&self) -> usize {
-            match self {
-                Message::PersonImageLoaded(id, _) => *id,
-                Message::CharacterImageLoaded(id, _) => *id,
-                Message::SwitchDisplayImage(id) => *id,
-            }
-        }
+        PersonImageLoaded(Option<Bytes>),
+        CharacterImageLoaded(Option<Bytes>),
+        SwitchDisplayImage,
     }
 
     enum DisplayImage {
@@ -201,7 +187,7 @@ mod cast_poster {
     }
 
     pub struct CastPoster {
-        id: usize,
+        index: usize,
         cast: Cast,
         person_image: Option<Bytes>,
         character_image: Option<Bytes>,
@@ -210,48 +196,59 @@ mod cast_poster {
     }
 
     impl CastPoster {
-        pub fn new(id: usize, cast: Cast) -> (Self, Command<Message>) {
+        pub fn new(id: usize, cast: Cast) -> (Self, Command<IndexedMessage<Message>>) {
             let image = cast.person.image.clone();
             let poster = Self {
-                id,
+                index: id,
                 cast,
                 person_image: None,
                 character_image: None,
                 character_image_loading: false,
                 current_display_image: DisplayImage::Person,
             };
-            let poster_command = Self::load_person_image(id, image);
-            (poster, poster_command)
+            let poster_command = Self::load_person_image(image);
+            (
+                poster,
+                poster_command.map(move |message| IndexedMessage::new(id, message)),
+            )
         }
 
-        pub fn update(&mut self, message: Message) -> Command<Message> {
-            match message {
-                Message::PersonImageLoaded(_, image) => self.person_image = image,
-                Message::CharacterImageLoaded(_, image) => {
+        pub fn update(
+            &mut self,
+            message: IndexedMessage<Message>,
+        ) -> Command<IndexedMessage<Message>> {
+            let command = match message.message() {
+                Message::PersonImageLoaded(image) => {
+                    self.person_image = image;
+                    Command::none()
+                }
+                Message::CharacterImageLoaded(image) => {
                     self.character_image = image;
                     self.character_image_loading = false;
+                    Command::none()
                 }
-                Message::SwitchDisplayImage(_) => match self.current_display_image {
+                Message::SwitchDisplayImage => match self.current_display_image {
                     DisplayImage::Person => {
                         if self.character_image.is_none() && !self.character_image_loading {
                             self.current_display_image = DisplayImage::Character;
                             self.character_image_loading = true;
-                            return Self::load_character_image(
-                                self.id,
-                                self.cast.character.image.clone(),
-                            );
+                            Self::load_character_image(self.cast.character.image.clone())
+                        } else {
+                            self.current_display_image = DisplayImage::Character;
+                            Command::none()
                         }
-                        self.current_display_image = DisplayImage::Character;
                     }
                     DisplayImage::Character => {
                         self.current_display_image = DisplayImage::Person;
+                        Command::none()
                     }
                 },
-            }
-            Command::none()
+            };
+            let index = self.index;
+            command.map(move |message| IndexedMessage::new(index, message))
         }
 
-        pub fn view(&self) -> Element<'_, Message, Renderer> {
+        pub fn view(&self) -> Element<'_, IndexedMessage<Message>, Renderer> {
             let mut content = Row::new().spacing(10);
 
             match self.current_display_image {
@@ -324,10 +321,11 @@ mod cast_poster {
 
             let content = content.push(cast_info);
 
-            container(content)
+            let element: Element<'_, Message, Renderer> = container(content)
                 .style(styles::container_styles::first_class_container_square_theme())
                 .padding(7)
-                .into()
+                .into();
+            element.map(|message| IndexedMessage::new(self.index, message))
         }
 
         fn image_switch_button(&self) -> Element<'_, Message, Renderer> {
@@ -341,7 +339,7 @@ mod cast_poster {
                     button(icon).style(styles::button_styles::transparent_button_theme());
 
                 if !self.character_image_loading {
-                    button = button.on_press(Message::SwitchDisplayImage(self.id));
+                    button = button.on_press(Message::SwitchDisplayImage);
                 }
                 button.into()
             } else {
@@ -349,22 +347,22 @@ mod cast_poster {
             }
         }
 
-        fn load_person_image(id: usize, image: Option<Image>) -> Command<Message> {
+        fn load_person_image(image: Option<Image>) -> Command<Message> {
             if let Some(image) = image {
                 Command::perform(
                     caching::load_image(image.medium_image_url),
-                    move |image_bytes| Message::PersonImageLoaded(id, image_bytes),
+                    Message::PersonImageLoaded,
                 )
             } else {
                 Command::none()
             }
         }
 
-        fn load_character_image(id: usize, image: Option<Image>) -> Command<Message> {
+        fn load_character_image(image: Option<Image>) -> Command<Message> {
             if let Some(image) = image {
                 Command::perform(
                     caching::load_image(image.medium_image_url),
-                    move |image_bytes| Message::CharacterImageLoaded(id, image_bytes),
+                    Message::CharacterImageLoaded,
                 )
             } else {
                 Command::none()

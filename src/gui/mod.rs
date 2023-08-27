@@ -9,6 +9,7 @@ use troxide_widget::title_bar::{Message as TitleBarMessage, TitleBar};
 
 pub mod assets;
 pub mod helpers;
+pub mod message;
 pub mod series_page;
 mod styles;
 mod tabs;
