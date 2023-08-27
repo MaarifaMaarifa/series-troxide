@@ -59,10 +59,9 @@ impl CastsWidget {
                 Command::batch(posters_commands)
                     .map(|message| Message::CastAction(message.get_id(), message))
             }
-            Message::CastAction(index, message) => {
-                self.casts[index].update(message);
-                Command::none()
-            }
+            Message::CastAction(index, message) => self.casts[index]
+                .update(message)
+                .map(move |message| Message::CastAction(index, message)),
             Message::Expand => {
                 self.is_expanded = true;
                 Command::none()
@@ -162,66 +161,121 @@ mod cast_poster {
     use bytes::Bytes;
     use iced::{
         font::Weight,
-        widget::{column, container, horizontal_space, image, row, text, Column, Row, Space},
+        widget::{
+            button, column, container, horizontal_space, image, row, svg, text, Column, Row, Space,
+        },
         Command, Element, Font, Renderer,
     };
 
     use crate::{
-        core::{api::show_cast::Cast, caching},
-        gui::{helpers, styles},
+        core::{
+            api::{show_cast::Cast, Image},
+            caching,
+        },
+        gui::{
+            assets::{get_static_cow_from_asset, icons::ARROW_REPEAT},
+            helpers, styles,
+        },
     };
 
     #[derive(Debug, Clone)]
     pub enum Message {
-        ImageReceived(usize, Option<Bytes>),
+        PersonImageLoaded(usize, Option<Bytes>),
+        CharacterImageLoaded(usize, Option<Bytes>),
+        SwitchDisplayImage(usize),
     }
 
     impl Message {
         pub fn get_id(&self) -> usize {
             match self {
-                Message::ImageReceived(id, _) => id.to_owned(),
+                Message::PersonImageLoaded(id, _) => *id,
+                Message::CharacterImageLoaded(id, _) => *id,
+                Message::SwitchDisplayImage(id) => *id,
             }
         }
     }
 
+    enum DisplayImage {
+        Person,
+        Character,
+    }
+
     pub struct CastPoster {
+        id: usize,
         cast: Cast,
-        image: Option<Bytes>,
+        person_image: Option<Bytes>,
+        character_image: Option<Bytes>,
+        character_image_loading: bool,
+        current_display_image: DisplayImage,
     }
 
     impl CastPoster {
         pub fn new(id: usize, cast: Cast) -> (Self, Command<Message>) {
             let image = cast.person.image.clone();
-            let poster = Self { cast, image: None };
-            let poster_command = if let Some(image) = image {
-                Command::perform(
-                    caching::load_image(image.medium_image_url),
-                    move |image_bytes| Message::ImageReceived(id, image_bytes),
-                )
-            } else {
-                Command::none()
+            let poster = Self {
+                id,
+                cast,
+                person_image: None,
+                character_image: None,
+                character_image_loading: false,
+                current_display_image: DisplayImage::Person,
             };
-
+            let poster_command = Self::load_person_image(id, image);
             (poster, poster_command)
         }
 
-        pub fn update(&mut self, message: Message) {
+        pub fn update(&mut self, message: Message) -> Command<Message> {
             match message {
-                Message::ImageReceived(_, image) => self.image = image,
+                Message::PersonImageLoaded(_, image) => self.person_image = image,
+                Message::CharacterImageLoaded(_, image) => {
+                    self.character_image = image;
+                    self.character_image_loading = false;
+                }
+                Message::SwitchDisplayImage(_) => match self.current_display_image {
+                    DisplayImage::Person => {
+                        if self.character_image.is_none() && !self.character_image_loading {
+                            self.current_display_image = DisplayImage::Character;
+                            self.character_image_loading = true;
+                            return Self::load_character_image(
+                                self.id,
+                                self.cast.character.image.clone(),
+                            );
+                        }
+                        self.current_display_image = DisplayImage::Character;
+                    }
+                    DisplayImage::Character => {
+                        self.current_display_image = DisplayImage::Person;
+                    }
+                },
             }
+            Command::none()
         }
 
         pub fn view(&self) -> Element<'_, Message, Renderer> {
             let mut content = Row::new().spacing(10);
 
-            if let Some(image_bytes) = self.image.clone() {
-                let image_handle = image::Handle::from_memory(image_bytes);
+            match self.current_display_image {
+                DisplayImage::Person => {
+                    if let Some(image_bytes) = self.person_image.clone() {
+                        let image_handle = image::Handle::from_memory(image_bytes);
 
-                let image = image(image_handle).width(100);
-                content = content.push(image);
-            } else {
-                content = content.push(Space::new(100, 140));
-            };
+                        let image = image(image_handle).width(100);
+                        content = content.push(image);
+                    } else {
+                        content = content.push(Space::new(100, 140));
+                    };
+                }
+                DisplayImage::Character => {
+                    if let Some(image_bytes) = self.character_image.clone() {
+                        let image_handle = image::Handle::from_memory(image_bytes);
+
+                        let image = image(image_handle).width(100);
+                        content = content.push(image);
+                    } else {
+                        content = content.push(Space::new(100, 140));
+                    };
+                }
+            }
 
             let mut cast_info = Column::new().width(150).spacing(3);
 
@@ -266,12 +320,55 @@ mod cast_poster {
                 cast_info = cast_info.push(cast_info_field("Born in: ", &country.name));
             }
 
+            cast_info = cast_info.push(self.image_switch_button());
+
             let content = content.push(cast_info);
 
             container(content)
                 .style(styles::container_styles::first_class_container_square_theme())
                 .padding(7)
                 .into()
+        }
+
+        fn image_switch_button(&self) -> Element<'_, Message, Renderer> {
+            if self.cast.character.image.is_some() {
+                let image_switch_button_handle =
+                    svg::Handle::from_memory(get_static_cow_from_asset(ARROW_REPEAT));
+                let icon =
+                    svg(image_switch_button_handle).style(styles::svg_styles::colored_svg_theme());
+
+                let mut button =
+                    button(icon).style(styles::button_styles::transparent_button_theme());
+
+                if !self.character_image_loading {
+                    button = button.on_press(Message::SwitchDisplayImage(self.id));
+                }
+                button.into()
+            } else {
+                Space::new(0, 0).into()
+            }
+        }
+
+        fn load_person_image(id: usize, image: Option<Image>) -> Command<Message> {
+            if let Some(image) = image {
+                Command::perform(
+                    caching::load_image(image.medium_image_url),
+                    move |image_bytes| Message::PersonImageLoaded(id, image_bytes),
+                )
+            } else {
+                Command::none()
+            }
+        }
+
+        fn load_character_image(id: usize, image: Option<Image>) -> Command<Message> {
+            if let Some(image) = image {
+                Command::perform(
+                    caching::load_image(image.medium_image_url),
+                    move |image_bytes| Message::CharacterImageLoaded(id, image_bytes),
+                )
+            } else {
+                Command::none()
+            }
         }
     }
 

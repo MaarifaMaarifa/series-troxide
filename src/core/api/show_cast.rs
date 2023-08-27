@@ -47,6 +47,7 @@ pub struct Country {
 #[derive(Deserialize, Debug, Clone)]
 pub struct Character {
     pub name: String,
+    pub image: Option<Image>,
 }
 
 // replace ID with the actual show id
