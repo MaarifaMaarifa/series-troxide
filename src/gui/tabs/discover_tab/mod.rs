@@ -120,8 +120,12 @@ impl DiscoverTab {
                     self.load_status.global_series = LoadState::Loading;
                     load_commands[1] = load_global_aired_series();
                 }
+                let full_schedule_command = self
+                    .full_schedule_series
+                    .reload()
+                    .map(Message::FullSchedulePosters);
 
-                Command::batch(load_commands)
+                Command::batch([Command::batch(load_commands), full_schedule_command])
             }
             Message::GlobalSeriesLoaded(series_infos) => {
                 self.load_status.global_series = LoadState::Loaded;
@@ -359,12 +363,6 @@ mod full_schedule_posters {
         pub fn new(
             series_page_sender: mpsc::Sender<SeriesMainInformation>,
         ) -> (Self, Command<Message>) {
-            let command = Command::perform(
-                caching::tv_schedule::full_schedule::FullSchedule::new(),
-                |series| {
-                    Message::FullScheduleLoaded(series.expect("failed to load series schedule"))
-                },
-            );
             (
                 Self {
                     load_state: LoadState::Loading,
@@ -376,8 +374,17 @@ mod full_schedule_posters {
                     genre_posters: Posters::new(series_page_sender.clone()),
                     series_page_sender,
                 },
-                command,
+                Self::load_full_schedule(),
             )
+        }
+
+        pub fn reload(&mut self) -> Command<Message> {
+            if let LoadState::Loaded = self.load_state {
+                self.load_state = LoadState::Loading;
+                Self::load_full_schedule()
+            } else {
+                Command::none()
+            }
         }
 
         pub fn update(&mut self, message: Message) -> Command<Message> {
@@ -591,6 +598,15 @@ mod full_schedule_posters {
                     .into()
                 }
             }
+        }
+
+        fn load_full_schedule() -> Command<Message> {
+            Command::perform(
+                caching::tv_schedule::full_schedule::FullSchedule::new(),
+                |series| {
+                    Message::FullScheduleLoaded(series.expect("failed to load series schedule"))
+                },
+            )
         }
 
         fn generate_posters_and_commands_from_series_infos(
