@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Suggested Shows(Based on the one currently opened) in `Series page`. [32f8b90](https://github.com/MaarifaMaarifa/series-troxide/commit/32f8b90657fa6319be34b736c693f90e5ca06482)
 - Implement proper export file header(magic) with it's version information. [b4518c2](https://github.com/MaarifaMaarifa/series-troxide/commit/b4518c2d2433fe7e51f9271ffe3601dece94c43d)
 - More information for each cast in `Series page`. [1c27c8c](https://github.com/MaarifaMaarifa/series-troxide/commit/1c27c8c9f1a14abb3615c4eec27ce8c742cc3750) 
+- Ability to switch between `Character` and `Actual Person` image in `CastWidget`s. [702f05b](https://github.com/MaarifaMaarifa/series-troxide/commit/702f05b894395b8bafacf7f03154cc8ae772e7a7)
 
 ### Changed
 
