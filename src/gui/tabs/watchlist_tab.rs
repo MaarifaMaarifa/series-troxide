@@ -10,12 +10,14 @@ use crate::core::caching::episode_list::EpisodeList;
 use crate::core::caching::series_list;
 use crate::core::{caching, database};
 use crate::gui::assets::icons::CARD_CHECKLIST;
-use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
+use crate::gui::troxide_widget::series_poster::{
+    IndexedMessage as SeriesPosterIndexedMessage, Message as SeriesPosterMessage, SeriesPoster,
+};
 
 #[derive(Debug, Clone)]
 pub enum Message {
     SeriesInformationLoaded(Vec<(SeriesMainInformation, Option<Episode>, usize)>),
-    SeriesPoster(usize, Box<SeriesPosterMessage>),
+    SeriesPoster(SeriesPosterIndexedMessage<SeriesPosterMessage>),
 }
 
 #[derive(Default)]
@@ -60,29 +62,18 @@ impl WatchlistTab {
                 let mut commands = Vec::with_capacity(series_infos.len());
                 for (index, (info, episode, total_episodes)) in series_infos.into_iter().enumerate()
                 {
-                    let (poster, command) = SeriesPoster::new(index, info);
+                    let (poster, command) =
+                        SeriesPoster::new(index, info, self.series_page_sender.clone());
                     posters.push((poster, episode, total_episodes));
                     commands.push(command);
                 }
                 self.series_posters = posters;
-                Command::batch(commands).map(|message| {
-                    Message::SeriesPoster(message.get_index().unwrap_or(0), Box::new(message))
-                })
+                Command::batch(commands).map(Message::SeriesPoster)
             }
-            Message::SeriesPoster(index, message) => {
-                if let SeriesPosterMessage::SeriesPosterPressed(series_info) = *message.clone() {
-                    self.series_page_sender
-                        .send(*series_info)
-                        .expect("failed to send the series page");
-                    return Command::none();
-                }
-                self.series_posters[index]
-                    .0
-                    .update(*message)
-                    .map(|message| {
-                        Message::SeriesPoster(message.get_index().unwrap_or(0), Box::new(message))
-                    })
-            }
+            Message::SeriesPoster(message) => self.series_posters[message.index()]
+                .0
+                .update(message)
+                .map(Message::SeriesPoster),
         }
     }
     pub fn view(&self) -> Element<Message, Renderer> {
@@ -111,12 +102,7 @@ impl WatchlistTab {
                         .map(|(poster, last_watched_episode, total_episodes)| {
                             poster
                                 .watchlist_view(last_watched_episode.as_ref(), *total_episodes)
-                                .map(|message| {
-                                    Message::SeriesPoster(
-                                        message.get_index().unwrap_or(0),
-                                        Box::new(message),
-                                    )
-                                })
+                                .map(Message::SeriesPoster)
                         })
                         .collect();
 

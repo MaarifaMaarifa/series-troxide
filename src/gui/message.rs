@@ -1,4 +1,4 @@
-/// Usefull message to be used for items stored in a collection like `Vec`
+/// Usefull message to be used for widgets stored in an ordered collection like `Vec`
 #[derive(Debug, Clone)]
 pub struct IndexedMessage<T> {
     index: usize,

@@ -14,7 +14,7 @@ use casts_widget::{CastsWidget, Message as CastWidgetMessage};
 use data_widgets::*;
 use iced::widget::scrollable::{Id, RelativeOffset, Viewport};
 use image;
-use season_widget::Message as SeasonMessage;
+use season_widget::{IndexedMessage as SeasonIndexedMessage, Message as SeasonMessage};
 use series_suggestion_widget::{Message as SeriesSuggestionMessage, SeriesSuggestion};
 
 use iced::widget::{
@@ -191,7 +191,7 @@ pub enum Message {
     SeriesImageLoaded(Option<Bytes>),
     SeriesBackgroundLoaded(Option<Bytes>),
     EpisodeListLoaded(caching::episode_list::EpisodeList),
-    SeasonAction(usize, Box<SeasonMessage>),
+    Season(SeasonIndexedMessage<SeasonMessage>),
     CastWidgetAction(CastWidgetMessage),
     SeriesSuggestion(SeriesSuggestionMessage),
     PageScrolled(Viewport),
@@ -291,8 +291,10 @@ impl Series {
                 }
                 self.series_image = image;
             }
-            Message::SeasonAction(index, message) => {
-                return self.season_widgets[index].update(*message);
+            Message::Season(message) => {
+                return self.season_widgets[message.index()]
+                    .update(message)
+                    .map(Message::Season);
             }
             Message::TrackSeries => {
                 let series_id = self.series_information.id;
@@ -411,12 +413,7 @@ impl Series {
                     Column::with_children(
                         self.season_widgets
                             .iter()
-                            .enumerate()
-                            .map(|(index, widget)| {
-                                widget
-                                    .view()
-                                    .map(move |m| Message::SeasonAction(index, Box::new(m)))
-                            })
+                            .map(|widget| widget.view().map(Message::Season))
                             .collect(),
                     )
                     .padding(5)

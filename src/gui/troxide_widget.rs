@@ -1,11 +1,14 @@
 pub mod series_poster {
 
+    use std::sync::mpsc;
+
     use crate::core::api::episodes_information::Episode;
     use crate::core::api::series_information::SeriesMainInformation;
     use crate::core::api::Image;
     use crate::core::caching::episode_list::EpisodeReleaseTime;
     use crate::core::{caching, database};
     use crate::gui::helpers::{self, season_episode_str_gen};
+    pub use crate::gui::message::IndexedMessage;
     use crate::gui::styles;
 
     use bytes::Bytes;
@@ -18,51 +21,49 @@ pub mod series_poster {
     #[derive(Clone, Debug)]
     pub enum Message {
         ImageLoaded(usize, Option<Bytes>),
-        SeriesPosterPressed(Box<SeriesMainInformation>),
+        SeriesPosterPressed,
     }
 
-    impl Message {
-        /// Returns the index given to the `Series Poster` when it was created
-        ///
-        /// Since `Series Posters` are normaly stored in a `Vec` and run Commands
-        /// this method provide a simple way of sending back the Command Message
-        /// to the appropriate `Series Poster` in a `Vec`
-        pub fn get_index(&self) -> Option<usize> {
-            if let Self::ImageLoaded(id, _) = self {
-                return Some(id.to_owned());
-            }
-            None
-        }
-    }
-
-    #[derive(PartialEq, Eq, Hash)]
     pub struct SeriesPoster {
+        index: usize,
         series_information: SeriesMainInformation,
         image: Option<Bytes>,
+        series_page_sender: mpsc::Sender<SeriesMainInformation>,
     }
 
     impl SeriesPoster {
         pub fn new(
             index: usize,
             series_information: SeriesMainInformation,
-        ) -> (Self, Command<Message>) {
+            series_page_sender: mpsc::Sender<SeriesMainInformation>,
+        ) -> (Self, Command<IndexedMessage<Message>>) {
             let image_url = series_information.image.clone();
 
             let poster = Self {
+                index,
                 series_information,
                 image: None,
+                series_page_sender,
             };
 
             let series_image_command = poster_image_command(index, image_url);
 
-            (poster, series_image_command)
+            (
+                poster,
+                series_image_command.map(move |message| IndexedMessage::new(index, message)),
+            )
         }
 
-        pub fn update(&mut self, message: Message) -> Command<Message> {
-            match message {
+        pub fn update(
+            &mut self,
+            message: IndexedMessage<Message>,
+        ) -> Command<IndexedMessage<Message>> {
+            match message.message() {
                 Message::ImageLoaded(_, image) => self.image = image,
-                Message::SeriesPosterPressed(_) => {
-                    unreachable!("the series poster should not handle being pressed")
+                Message::SeriesPosterPressed => {
+                    self.series_page_sender
+                        .send(self.series_information.clone())
+                        .expect("failed to send series page info");
                 }
             }
             Command::none()
@@ -72,7 +73,7 @@ pub mod series_poster {
         ///
         /// This is the normal view of the poster, just having the image of the
         /// of the series and it's name below it
-        pub fn normal_view(&self) -> Element<'_, Message, Renderer> {
+        pub fn normal_view(&self) -> Element<'_, IndexedMessage<Message>, Renderer> {
             let mut content = column!().padding(2).spacing(1);
             if let Some(image_bytes) = self.image.clone() {
                 let image_handle = image::Handle::from_memory(image_bytes);
@@ -95,11 +96,10 @@ pub mod series_poster {
                 .padding(5)
                 .style(styles::container_styles::second_class_container_rounded_theme());
 
-            mouse_area(content)
-                .on_press(Message::SeriesPosterPressed(Box::new(
-                    self.series_information.clone(),
-                )))
-                .into()
+            let element: Element<'_, Message, Renderer> = mouse_area(content)
+                .on_press(Message::SeriesPosterPressed)
+                .into();
+            element.map(|message| IndexedMessage::new(self.index, message))
         }
 
         /// View intended for the watchlist tab
@@ -110,7 +110,7 @@ pub mod series_poster {
             &self,
             next_episode_to_watch: Option<&Episode>,
             total_episodes: usize,
-        ) -> Element<'_, Message, Renderer> {
+        ) -> Element<'_, IndexedMessage<Message>, Renderer> {
             let mut content = row!().padding(2).spacing(5);
             if let Some(image_bytes) = self.image.clone() {
                 let image_handle = image::Handle::from_memory(image_bytes);
@@ -183,11 +183,10 @@ pub mod series_poster {
                 .style(styles::container_styles::first_class_container_rounded_theme())
                 .width(1000);
 
-            mouse_area(content)
-                .on_press(Message::SeriesPosterPressed(Box::new(
-                    self.series_information.clone(),
-                )))
-                .into()
+            let element: Element<'_, Message, Renderer> = mouse_area(content)
+                .on_press(Message::SeriesPosterPressed)
+                .into();
+            element.map(|message| IndexedMessage::new(self.index, message))
         }
 
         /// View intended for the upcoming releases
@@ -197,7 +196,7 @@ pub mod series_poster {
         pub fn release_series_posters_view(
             &self,
             episode_and_release_time: (&Episode, &EpisodeReleaseTime),
-        ) -> Element<'_, Message, Renderer> {
+        ) -> Element<'_, IndexedMessage<Message>, Renderer> {
             let mut content = row!().padding(2).spacing(7);
             if let Some(image_bytes) = self.image.clone() {
                 let image_handle = image::Handle::from_memory(image_bytes);
@@ -272,11 +271,10 @@ pub mod series_poster {
                 .style(styles::container_styles::first_class_container_rounded_theme())
                 .width(1000);
 
-            mouse_area(content)
-                .on_press(Message::SeriesPosterPressed(Box::new(
-                    self.series_information.clone(),
-                )))
-                .into()
+            let element: Element<'_, Message, Renderer> = mouse_area(content)
+                .on_press(Message::SeriesPosterPressed)
+                .into();
+            element.map(|message| IndexedMessage::new(self.index, message))
         }
     }
 

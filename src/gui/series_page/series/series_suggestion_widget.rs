@@ -2,7 +2,9 @@ use std::sync::mpsc;
 
 use crate::core::api::series_information::{Genre, SeriesMainInformation};
 use crate::core::caching::tv_schedule::full_schedule;
-use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
+use crate::gui::troxide_widget::series_poster::{
+    IndexedMessage as SeriesPosterIndexedMessage, Message as SeriesPosterMessage, SeriesPoster,
+};
 
 use iced::widget::{column, container, text, Space};
 use iced::{Command, Element, Length, Renderer};
@@ -11,7 +13,7 @@ use iced_aw::{Spinner, Wrap};
 #[derive(Debug, Clone)]
 pub enum Message {
     FullScheduleLoaded(full_schedule::FullSchedule),
-    SeriesPoster(SeriesPosterMessage),
+    SeriesPoster(SeriesPosterIndexedMessage<SeriesPosterMessage>),
 }
 
 enum LoadState {
@@ -67,7 +69,8 @@ impl SeriesSuggestion {
                 let mut posters = Vec::with_capacity(series_infos.len());
                 let mut posters_commands = Vec::with_capacity(series_infos.len());
                 for (index, series_info) in series_infos.into_iter().enumerate() {
-                    let (poster, poster_command) = SeriesPoster::new(index, series_info);
+                    let (poster, poster_command) =
+                        SeriesPoster::new(index, series_info, self.series_page_sender.clone());
                     posters.push(poster);
                     posters_commands.push(poster_command);
                 }
@@ -75,17 +78,9 @@ impl SeriesSuggestion {
                 self.suggested_series = posters;
                 Command::batch(posters_commands).map(Message::SeriesPoster)
             }
-            Message::SeriesPoster(message) => {
-                if let SeriesPosterMessage::SeriesPosterPressed(series_info) = message.clone() {
-                    self.series_page_sender
-                        .send(*series_info)
-                        .expect("failed to send the series page");
-                    return Command::none();
-                }
-                self.suggested_series[message.get_index().expect("message should have an index")]
-                    .update(message)
-                    .map(Message::SeriesPoster)
-            }
+            Message::SeriesPoster(message) => self.suggested_series[message.index()]
+                .update(message)
+                .map(Message::SeriesPoster),
         }
     }
 

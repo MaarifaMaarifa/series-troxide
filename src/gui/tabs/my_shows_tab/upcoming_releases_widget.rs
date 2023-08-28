@@ -8,12 +8,14 @@ use crate::core::api::episodes_information::Episode;
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::caching;
 use crate::core::caching::episode_list::EpisodeReleaseTime;
-use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
+use crate::gui::troxide_widget::series_poster::{
+    IndexedMessage as SeriesPosterIndexedMessage, Message as SeriesPosterMessage, SeriesPoster,
+};
 use crate::gui::{helpers, styles};
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    SeriesPosters(SeriesPosterMessage),
+    SeriesPosters(SeriesPosterIndexedMessage<SeriesPosterMessage>),
     SeriesInformationReceived(Option<Vec<(SeriesMainInformation, Episode, EpisodeReleaseTime)>>),
     Refresh,
 }
@@ -82,25 +84,18 @@ impl UpcomingReleases {
                 for (index, (series_info, episode, release_time)) in
                     series_infos.into_iter().enumerate()
                 {
-                    let (poster, command) = SeriesPoster::new(index, series_info);
+                    let (poster, command) =
+                        SeriesPoster::new(index, series_info, self.series_page_sender.clone());
                     series_posters.push((poster, episode, release_time));
                     series_posters_commands.push(command);
                 }
                 self.series_posters = series_posters;
                 Command::batch(series_posters_commands).map(Message::SeriesPosters)
             }
-            Message::SeriesPosters(message) => {
-                if let SeriesPosterMessage::SeriesPosterPressed(series_info) = message.clone() {
-                    self.series_page_sender
-                        .send(*series_info)
-                        .expect("failed to send the series page");
-                    return Command::none();
-                }
-                self.series_posters[message.get_index().expect("message should have and index")]
-                    .0
-                    .update(message)
-                    .map(Message::SeriesPosters)
-            }
+            Message::SeriesPosters(message) => self.series_posters[message.index()]
+                .0
+                .update(message)
+                .map(Message::SeriesPosters),
             Message::Refresh => load_upcoming_releases(),
         }
     }

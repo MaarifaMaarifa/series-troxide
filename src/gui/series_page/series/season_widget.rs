@@ -2,17 +2,17 @@ use iced::widget::{button, checkbox, column, container, progress_bar, row, svg, 
 use iced::{Command, Element, Length, Renderer};
 use iced_aw::Spinner;
 
-use self::episode_widget::Episode;
+use episode_widget::Episode;
 
-use super::Message as SeriesMessage;
 use crate::core::api::episodes_information::Episode as EpisodeInfo;
 use crate::core::caching::episode_list::TotalEpisodes;
 use crate::core::database::AddResult;
 use crate::core::{caching, database};
 use crate::gui::assets::get_static_cow_from_asset;
 use crate::gui::assets::icons::{CHEVRON_DOWN, CHEVRON_UP};
+pub use crate::gui::message::IndexedMessage;
 use crate::gui::styles;
-use episode_widget::Message as EpisodeMessage;
+use episode_widget::{IndexedMessage as EpisodeIndexedMessage, Message as EpisodeMessage};
 
 #[derive(Clone, Debug)]
 pub enum Message {
@@ -20,7 +20,7 @@ pub enum Message {
     TrackCommandComplete(AddResult),
     Expand,
     EpisodesLoaded(Vec<EpisodeInfo>),
-    EpisodeAction(usize, EpisodeMessage),
+    Episode(EpisodeIndexedMessage<EpisodeMessage>),
 }
 
 #[derive(Clone)]
@@ -52,8 +52,8 @@ impl Season {
             is_expanded: false,
         }
     }
-    pub fn update(&mut self, message: Message) -> Command<SeriesMessage> {
-        match message {
+    pub fn update(&mut self, message: IndexedMessage<Message>) -> Command<IndexedMessage<Message>> {
+        match message.message() {
             Message::CheckboxPressed => {
                 let series_id = self.series_id;
                 let series_name = self.series_name.clone();
@@ -74,13 +74,9 @@ impl Season {
                                 .await
                         }
                     },
-                    move |all_newly_added| {
-                        SeriesMessage::SeasonAction(
-                            index,
-                            Box::new(Message::TrackCommandComplete(all_newly_added)),
-                        )
-                    },
-                );
+                    Message::TrackCommandComplete,
+                )
+                .map(move |message| IndexedMessage::new(index, message));
             }
             Message::Expand => {
                 self.is_expanded = !self.is_expanded;
@@ -96,46 +92,44 @@ impl Season {
                 let series_index = self.index;
                 return Command::perform(
                     async move { load_episode_infos(series_id, season_number).await },
-                    move |episode_infos| {
-                        SeriesMessage::SeasonAction(
-                            series_index,
-                            Box::new(Message::EpisodesLoaded(episode_infos)),
-                        )
-                    },
-                );
+                    Message::EpisodesLoaded,
+                )
+                .map(move |message| IndexedMessage::new(series_index, message));
             }
             Message::EpisodesLoaded(episode_infos) => {
-                let epis: Vec<(Episode, Command<Message>)> = episode_infos
-                    .into_iter()
-                    .enumerate()
-                    .map(|(index, info)| {
-                        episode_widget::Episode::new(
-                            index,
-                            self.series_id,
-                            self.series_name.clone(),
-                            info,
-                        )
-                    })
-                    .collect();
+                let epis: Vec<(Episode, Command<EpisodeIndexedMessage<EpisodeMessage>>)> =
+                    episode_infos
+                        .into_iter()
+                        .enumerate()
+                        .map(|(index, info)| {
+                            episode_widget::Episode::new(
+                                index,
+                                self.series_id,
+                                self.series_name.clone(),
+                                info,
+                            )
+                        })
+                        .collect();
 
+                let index = self.index;
                 let mut commands = Vec::with_capacity(epis.len());
                 let mut episodes = Vec::with_capacity(epis.len());
                 for (episode, command) in epis {
                     episodes.push(episode);
-                    let index = self.index;
-                    commands.push(
-                        command.map(move |m| SeriesMessage::SeasonAction(index, Box::new(m))),
-                    );
+                    commands.push(command);
                 }
 
                 self.episodes = episodes;
-                return Command::batch(commands);
+                return Command::batch(commands)
+                    .map(Message::Episode)
+                    .map(move |message| IndexedMessage::new(index, message));
             }
-            Message::EpisodeAction(index, message) => {
+            Message::Episode(message) => {
                 let season_index = self.index;
-                return self.episodes[index]
+                return self.episodes[message.index()]
                     .update(message)
-                    .map(move |m| SeriesMessage::SeasonAction(season_index, Box::new(m)));
+                    .map(Message::Episode)
+                    .map(move |message| IndexedMessage::new(season_index, message));
             }
             Message::TrackCommandComplete(add_result) => {
                 if let AddResult::None = add_result {
@@ -148,7 +142,7 @@ impl Season {
         Command::none()
     }
 
-    pub fn view(&self) -> Element<'_, Message, Renderer> {
+    pub fn view(&self) -> Element<'_, IndexedMessage<Message>, Renderer> {
         let tracked_episodes = database::DB
             .get_series(self.series_id)
             .map(|series| {
@@ -217,12 +211,7 @@ impl Season {
                     Column::with_children(
                         self.episodes
                             .iter()
-                            .enumerate()
-                            .map(|(index, episode)| {
-                                episode
-                                    .view()
-                                    .map(move |m| Message::EpisodeAction(index, m))
-                            })
+                            .map(|episode| episode.view().map(Message::Episode))
                             .collect(),
                     )
                     .spacing(3),
@@ -230,7 +219,8 @@ impl Season {
             }
         }
 
-        content.into()
+        let element: Element<'_, Message, Renderer> = content.into();
+        element.map(|message| IndexedMessage::new(self.index, message))
     }
 }
 
@@ -247,7 +237,7 @@ async fn load_episode_infos(series_id: u32, season_number: u32) -> Vec<EpisodeIn
 }
 
 mod episode_widget {
-    use super::Message as SeasonMessage;
+    pub use crate::gui::message::IndexedMessage;
     use crate::{
         core::{api::episodes_information::Episode as EpisodeInfo, caching, database},
         gui::{helpers::season_episode_str_gen, styles},
@@ -283,7 +273,7 @@ mod episode_widget {
             series_id: u32,
             series_name: String,
             episode_information: EpisodeInfo,
-        ) -> (Self, Command<SeasonMessage>) {
+        ) -> (Self, Command<IndexedMessage<Message>>) {
             let episode_image = episode_information.image.clone();
             let episode = Self {
                 index,
@@ -294,9 +284,11 @@ mod episode_widget {
             };
 
             let command = if let Some(image) = episode_image {
-                Command::perform(caching::load_image(image.medium_image_url), move |image| {
-                    SeasonMessage::EpisodeAction(index, Message::ImageLoaded(image))
-                })
+                Command::perform(
+                    caching::load_image(image.medium_image_url),
+                    Message::ImageLoaded,
+                )
+                .map(move |message| IndexedMessage::new(index, message))
             } else {
                 Command::none()
             };
@@ -304,8 +296,11 @@ mod episode_widget {
             (episode, command)
         }
 
-        pub fn update(&mut self, message: Message) -> Command<SeasonMessage> {
-            match message {
+        pub fn update(
+            &mut self,
+            message: IndexedMessage<Message>,
+        ) -> Command<IndexedMessage<Message>> {
+            match message.message() {
                 Message::ImageLoaded(image) => self.episode_image = image,
                 Message::TrackCheckboxPressed => {
                     let season_number = self.episode_information.season;
@@ -323,13 +318,9 @@ mod episode_widget {
                                 series.add_episode(season_number, episode_number).await
                             }
                         },
-                        move |is_newly_added| {
-                            SeasonMessage::EpisodeAction(
-                                episode_index,
-                                Message::TrackCommandComplete(is_newly_added),
-                            )
-                        },
-                    );
+                        Message::TrackCommandComplete,
+                    )
+                    .map(move |message| IndexedMessage::new(episode_index, message));
                 }
                 Message::TrackCommandComplete(is_newly_added) => {
                     if !is_newly_added {
@@ -345,7 +336,7 @@ mod episode_widget {
             Command::none()
         }
 
-        pub fn view(&self) -> Element<'_, Message, Renderer> {
+        pub fn view(&self) -> Element<'_, IndexedMessage<Message>, Renderer> {
             let mut content = row!().padding(5).width(700);
             if let Some(image_bytes) = self.episode_image.clone() {
                 let image_handle = image::Handle::from_memory(image_bytes);
@@ -365,9 +356,10 @@ mod episode_widget {
 
             let content = content.push(info);
 
-            container(content)
+            let element: Element<'_, Message, Renderer> = container(content)
                 .style(styles::container_styles::second_class_container_rounded_theme())
-                .into()
+                .into();
+            element.map(|message| IndexedMessage::new(self.index, message))
         }
     }
 

@@ -121,26 +121,18 @@ pub mod series_banner {
 
     use crate::core::caching;
     use crate::core::{api::series_information::SeriesMainInformation, database};
+    pub use crate::gui::message::IndexedMessage;
     use crate::gui::{helpers, styles};
 
     #[derive(Debug, Clone)]
     pub enum Message {
         #[allow(dead_code)]
-        BannerReceived(usize, Option<Bytes>),
-        Selected(usize),
-    }
-
-    impl Message {
-        pub fn get_id(&self) -> usize {
-            match self {
-                Message::BannerReceived(id, _) => *id,
-                Message::Selected(id) => *id,
-            }
-        }
+        BannerReceived(Option<Bytes>),
+        Selected,
     }
 
     pub struct SeriesBanner {
-        id: usize,
+        index: usize,
         series_info_and_time: (SeriesMainInformation, Option<u32>),
         banner: Option<Bytes>,
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
@@ -148,10 +140,10 @@ pub mod series_banner {
 
     impl SeriesBanner {
         pub fn new(
-            id: usize,
+            index: usize,
             series_info_and_time: (SeriesMainInformation, Option<u32>),
             series_page_sender: mpsc::Sender<SeriesMainInformation>,
-        ) -> (Self, Command<Message>) {
+        ) -> (Self, Command<IndexedMessage<Message>>) {
             let image_url = series_info_and_time
                 .0
                 .clone()
@@ -159,36 +151,35 @@ pub mod series_banner {
                 .map(|image| image.medium_image_url);
             (
                 Self {
-                    id,
+                    index,
                     series_info_and_time,
                     banner: None,
                     series_page_sender,
                 },
                 image_url
                     .map(|image_url| {
-                        Command::perform(caching::load_image(image_url), move |message| {
-                            Message::BannerReceived(id, message)
-                        })
+                        Command::perform(caching::load_image(image_url), Message::BannerReceived)
+                            .map(move |message| IndexedMessage::new(index, message))
                     })
                     .unwrap_or(Command::none()),
             )
         }
 
-        pub fn update(&mut self, message: Message) {
-            match message {
-                Message::BannerReceived(_, banner) => self.banner = banner,
-                Message::Selected(_) => self
+        pub fn update(&mut self, message: IndexedMessage<Message>) {
+            match message.message() {
+                Message::BannerReceived(banner) => self.banner = banner,
+                Message::Selected => self
                     .series_page_sender
                     .send(self.series_info_and_time.0.clone())
                     .expect("failed to send series page"),
             }
         }
 
-        pub fn view(&self) -> Element<'_, Message, Renderer> {
+        pub fn view(&self) -> Element<'_, IndexedMessage<Message>, Renderer> {
             let series_id = self.series_info_and_time.0.id;
             let series = database::DB.get_series(series_id).unwrap();
 
-            let series_name = format!("{}: {}", self.id + 1, &self.series_info_and_time.0.name);
+            let series_name = format!("{}: {}", self.index + 1, &self.series_info_and_time.0.name);
             let times = self
                 .series_info_and_time
                 .1
@@ -258,7 +249,7 @@ pub mod series_banner {
                 .padding(5)
                 .width(Length::Fill);
 
-            mouse_area(
+            let element: Element<'_, Message, Renderer> = mouse_area(
                 container(content)
                     .width(300)
                     .style(styles::container_styles::first_class_container_rounded_theme())
@@ -266,8 +257,9 @@ pub mod series_banner {
                     .center_x()
                     .center_y(),
             )
-            .on_press(Message::Selected(self.id))
-            .into()
+            .on_press(Message::Selected)
+            .into();
+            element.map(|message| IndexedMessage::new(self.index, message))
         }
     }
 }

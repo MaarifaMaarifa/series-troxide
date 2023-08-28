@@ -4,11 +4,13 @@ use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::caching::tv_schedule::{get_series_with_country, get_series_with_date};
 use crate::core::settings_config::locale_settings;
 use crate::gui::assets::icons::BINOCULARS_FILL;
-use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
+use crate::gui::troxide_widget::series_poster::{
+    IndexedMessage as SeriesPosterIndexedMessage, Message as SeriesPosterMessage, SeriesPoster,
+};
 use full_schedule_posters::{FullSchedulePosters, Message as FullSchedulePostersMessage};
 use searching::Message as SearchMessage;
 
-use iced::widget::{column, container, scrollable, text, vertical_space};
+use iced::widget::{column, container, scrollable, text, vertical_space, Space};
 use iced::{Command, Element, Length, Renderer};
 
 use iced_aw::floating_element;
@@ -35,19 +37,14 @@ pub enum Message {
     Reload,
     GlobalSeriesLoaded(Vec<SeriesMainInformation>),
     LocalSeriesLoaded(Vec<SeriesMainInformation>),
-    GlobalSeries(SeriesPosterMessage),
-    LocalSeries(SeriesPosterMessage),
+    GlobalSeries(SeriesPosterIndexedMessage<SeriesPosterMessage>),
+    LocalSeries(SeriesPosterIndexedMessage<SeriesPosterMessage>),
     FullSchedulePosters(FullSchedulePostersMessage),
     Search(SearchMessage),
-    SeriesSelected(Box<SeriesMainInformation>),
-    ShowSearchResults,
-    HideSearchResults,
-    EscapeKeyPressed,
 }
 
 pub struct DiscoverTab {
     load_status: LoadStatus,
-    show_search_results: bool,
     search_state: searching::Search,
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
     country_name: String,
@@ -67,8 +64,7 @@ impl DiscoverTab {
         (
             Self {
                 load_status: LoadStatus::default(),
-                show_search_results: false,
-                search_state: searching::Search::default(),
+                search_state: searching::Search::new(series_page_sender.clone()),
                 new_global_series: vec![],
                 new_local_series: vec![],
                 full_schedule_series,
@@ -94,21 +90,21 @@ impl DiscoverTab {
     }
 
     pub fn subscription(&self) -> iced::Subscription<Message> {
-        iced::subscription::events_with(|event, _| {
-            if let iced::Event::Keyboard(iced::keyboard::Event::KeyPressed {
-                key_code,
-                modifiers,
-            }) = event
-            {
-                if key_code == iced::keyboard::KeyCode::Escape && modifiers.is_empty() {
-                    return Some(Message::EscapeKeyPressed);
+        iced::Subscription::batch([
+            iced::subscription::events_with(|event, _| {
+                if let iced::Event::Keyboard(iced::keyboard::Event::KeyPressed {
+                    key_code,
+                    modifiers,
+                }) = event
+                {
+                    if key_code == iced::keyboard::KeyCode::F5 && modifiers.is_empty() {
+                        return Some(Message::Reload);
+                    }
                 }
-                if key_code == iced::keyboard::KeyCode::F5 && modifiers.is_empty() {
-                    return Some(Message::Reload);
-                }
-            }
-            None
-        })
+                None
+            }),
+            self.search_state.subscription().map(Message::Search),
+        ])
     }
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
@@ -133,7 +129,8 @@ impl DiscoverTab {
                 let mut series_posters = Vec::with_capacity(series_infos.len());
                 let mut commands = Vec::with_capacity(series_infos.len());
                 for (index, series_info) in series_infos.into_iter().enumerate() {
-                    let (poster, command) = SeriesPoster::new(index, series_info);
+                    let (poster, command) =
+                        SeriesPoster::new(index, series_info, self.series_page_sender.clone());
                     series_posters.push(poster);
                     commands.push(command);
                 }
@@ -141,69 +138,27 @@ impl DiscoverTab {
                 self.new_global_series = series_posters;
                 Command::batch(commands).map(Message::GlobalSeries)
             }
-            Message::GlobalSeries(message) => {
-                if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
-                    self.show_search_results = false;
-                    return Command::perform(async {}, |_| {
-                        Message::SeriesSelected(series_information)
-                    });
-                }
-                self.new_global_series[message.get_index().expect("message should have an index")]
-                    .update(message)
-                    .map(Message::GlobalSeries)
-            }
-            Message::Search(message) => {
-                if let SearchMessage::SeriesResultPressed(series_info) = message {
-                    self.series_page_sender
-                        .send(*series_info)
-                        .expect("failed to send series page");
-                    self.show_search_results = false;
-                    return Command::none();
-                };
-                self.search_state.update(message)
-            }
-            Message::ShowSearchResults => {
-                self.show_search_results = true;
-                Command::none()
-            }
-            Message::HideSearchResults => {
-                self.show_search_results = false;
-                Command::none()
-            }
-            Message::SeriesSelected(series_info) => {
-                self.series_page_sender
-                    .send(*series_info)
-                    .expect("failed to send series page");
-                Command::none()
-            }
+            Message::GlobalSeries(message) => self.new_global_series[message.index()]
+                .update(message)
+                .map(Message::GlobalSeries),
+            Message::Search(message) => self.search_state.update(message).map(Message::Search),
             Message::LocalSeriesLoaded(series_infos) => {
                 self.load_status.local_series = LoadState::Loaded;
 
                 let mut series_posters = Vec::with_capacity(series_infos.len());
                 let mut commands = Vec::with_capacity(series_infos.len());
                 for (index, series_info) in series_infos.into_iter().enumerate() {
-                    let (poster, command) = SeriesPoster::new(index, series_info);
+                    let (poster, command) =
+                        SeriesPoster::new(index, series_info, self.series_page_sender.clone());
                     series_posters.push(poster);
                     commands.push(command);
                 }
                 self.new_local_series = series_posters;
                 Command::batch(commands).map(Message::LocalSeries)
             }
-            Message::LocalSeries(message) => {
-                if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
-                    self.show_search_results = false;
-                    return Command::perform(async {}, |_| {
-                        Message::SeriesSelected(series_information)
-                    });
-                }
-                self.new_local_series[message.get_index().expect("message should have an index")]
-                    .update(message)
-                    .map(Message::LocalSeries)
-            }
-            Message::EscapeKeyPressed => {
-                self.show_search_results = false;
-                Command::none()
-            }
+            Message::LocalSeries(message) => self.new_local_series[message.index()]
+                .update(message)
+                .map(Message::LocalSeries),
             Message::FullSchedulePosters(message) => self
                 .full_schedule_series
                 .update(message)
@@ -237,10 +192,13 @@ impl DiscoverTab {
 
         let content = floating_element::FloatingElement::new(
             underlay,
-            self.search_state.view().1.map(Message::Search),
+            self.search_state
+                .view()
+                .1
+                .map(|element| element.map(Message::Search))
+                .unwrap_or(Space::new(0, 0).into()),
         )
-        .anchor(floating_element::Anchor::North)
-        .hide(!self.show_search_results);
+        .anchor(floating_element::Anchor::North);
 
         column![self.search_state.view().0.map(Message::Search), content]
             .spacing(2)
@@ -287,7 +245,7 @@ fn series_posters_loader<'a>(
     title: &str,
     load_state: &LoadState,
     posters: &'a [SeriesPoster],
-) -> Element<'a, SeriesPosterMessage, Renderer> {
+) -> Element<'a, SeriesPosterIndexedMessage<SeriesPosterMessage>, Renderer> {
     let title = text(title).size(21);
 
     if let LoadState::Loading = load_state {
@@ -341,7 +299,9 @@ mod full_schedule_posters {
         Genre, SeriesMainInformation, ShowNetwork, ShowWebChannel,
     };
     use crate::core::caching;
-    use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
+    use crate::gui::troxide_widget::series_poster::{
+        IndexedMessage as SeriesPosterIndexedMessage, Message as SeriesPosterMessage, SeriesPoster,
+    };
 
     const SECTIONS_POSTERS_AMOUNT: usize = 20;
 
@@ -371,13 +331,12 @@ mod full_schedule_posters {
     #[derive(Debug, Clone)]
     pub enum Message {
         FullScheduleLoaded(caching::tv_schedule::full_schedule::FullSchedule),
-        MonthlyNewPosters(SeriesPosterMessage),
-        MonthlyReturningPosters(SeriesPosterMessage),
-        PopularPosters(SeriesPosterMessage),
-        NetworkPosters(SeriesPosterMessage),
-        WebChannelPosters(SeriesPosterMessage),
-        GenrePosters(SeriesPosterMessage),
-        PosterSelected(Box<SeriesMainInformation>),
+        MonthlyNewPosters(SeriesPosterIndexedMessage<SeriesPosterMessage>),
+        MonthlyReturningPosters(SeriesPosterIndexedMessage<SeriesPosterMessage>),
+        PopularPosters(SeriesPosterIndexedMessage<SeriesPosterMessage>),
+        NetworkPosters(SeriesPosterIndexedMessage<SeriesPosterMessage>),
+        WebChannelPosters(SeriesPosterIndexedMessage<SeriesPosterMessage>),
+        GenrePosters(SeriesPosterIndexedMessage<SeriesPosterMessage>),
     }
 
     enum LoadState {
@@ -412,9 +371,9 @@ mod full_schedule_posters {
                     monthly_new_poster: vec![],
                     monthly_returning_posters: vec![],
                     popular_posters: vec![],
-                    network_posters: Posters::new(),
-                    web_channel_posters: Posters::new(),
-                    genre_posters: Posters::new(),
+                    network_posters: Posters::new(series_page_sender.clone()),
+                    web_channel_posters: Posters::new(series_page_sender.clone()),
+                    genre_posters: Posters::new(series_page_sender.clone()),
                     series_page_sender,
                 },
                 command,
@@ -432,6 +391,7 @@ mod full_schedule_posters {
                                 SECTIONS_POSTERS_AMOUNT,
                                 get_current_month(),
                             ),
+                            self.series_page_sender.clone(),
                         );
 
                     let (monthly_returning_posters, monthly_returning_posters_commands) =
@@ -440,11 +400,13 @@ mod full_schedule_posters {
                                 SECTIONS_POSTERS_AMOUNT,
                                 get_current_month(),
                             ),
+                            self.series_page_sender.clone(),
                         );
 
                     let (popular_posters, popular_posters_commands) =
                         Self::generate_posters_and_commands_from_series_infos(
                             full_schedule.get_popular_series(SECTIONS_POSTERS_AMOUNT),
+                            self.series_page_sender.clone(),
                         );
 
                     self.monthly_new_poster = monthly_new_posters;
@@ -503,84 +465,31 @@ mod full_schedule_posters {
                             .map(Message::MonthlyNewPosters),
                     ])
                 }
-                Message::MonthlyNewPosters(message) => {
-                    if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
-                        return Command::perform(async {}, |_| {
-                            Message::PosterSelected(series_information)
-                        });
-                    }
-                    self.monthly_new_poster
-                        [message.get_index().expect("message should have an index")]
+                Message::MonthlyNewPosters(message) => self.monthly_new_poster[message.index()]
                     .update(message)
-                    .map(Message::MonthlyNewPosters)
-                }
-                Message::PopularPosters(message) => {
-                    if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
-                        return Command::perform(async {}, |_| {
-                            Message::PosterSelected(series_information)
-                        });
-                    }
-                    self.popular_posters[message.get_index().expect("message should have an index")]
-                        .update(message)
-                        .map(Message::PopularPosters)
-                }
-                Message::MonthlyReturningPosters(message) => {
-                    if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
-                        return Command::perform(async {}, |_| {
-                            Message::PosterSelected(series_information)
-                        });
-                    }
-                    self.monthly_returning_posters
-                        [message.get_index().expect("message should have an index")]
+                    .map(Message::MonthlyNewPosters),
+                Message::PopularPosters(message) => self.popular_posters[message.index()]
                     .update(message)
-                    .map(Message::MonthlyReturningPosters)
-                }
-                Message::NetworkPosters(message) => {
-                    if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
-                        return Command::perform(async {}, |_| {
-                            Message::PosterSelected(series_information)
-                        });
-                    }
-
-                    self.network_posters
-                        .get_series_poster_mut(
-                            message.get_index().expect("message should have an index"),
-                        )
-                        .update(message)
-                        .map(Message::NetworkPosters)
-                }
-                Message::WebChannelPosters(message) => {
-                    if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
-                        return Command::perform(async {}, |_| {
-                            Message::PosterSelected(series_information)
-                        });
-                    }
-                    self.web_channel_posters
-                        .get_series_poster_mut(
-                            message.get_index().expect("message should have an index"),
-                        )
-                        .update(message)
-                        .map(Message::WebChannelPosters)
-                }
-                Message::GenrePosters(message) => {
-                    if let SeriesPosterMessage::SeriesPosterPressed(series_information) = message {
-                        return Command::perform(async {}, |_| {
-                            Message::PosterSelected(series_information)
-                        });
-                    }
-                    self.genre_posters
-                        .get_series_poster_mut(
-                            message.get_index().expect("message should have and index"),
-                        )
-                        .update(message)
-                        .map(Message::GenrePosters)
-                }
-                Message::PosterSelected(series_info) => {
-                    self.series_page_sender
-                        .send(*series_info)
-                        .expect("series page receiver disconnected");
-                    Command::none()
-                }
+                    .map(Message::PopularPosters),
+                Message::MonthlyReturningPosters(message) => self.monthly_returning_posters
+                    [message.index()]
+                .update(message)
+                .map(Message::MonthlyReturningPosters),
+                Message::NetworkPosters(message) => self
+                    .network_posters
+                    .get_series_poster_mut(message.index())
+                    .update(message)
+                    .map(Message::NetworkPosters),
+                Message::WebChannelPosters(message) => self
+                    .web_channel_posters
+                    .get_series_poster_mut(message.index())
+                    .update(message)
+                    .map(Message::WebChannelPosters),
+                Message::GenrePosters(message) => self
+                    .genre_posters
+                    .get_series_poster_mut(message.index())
+                    .update(message)
+                    .map(Message::GenrePosters),
             }
         }
 
@@ -686,11 +595,16 @@ mod full_schedule_posters {
 
         fn generate_posters_and_commands_from_series_infos(
             series_infos: Vec<SeriesMainInformation>,
-        ) -> (Vec<SeriesPoster>, Vec<Command<SeriesPosterMessage>>) {
+            series_page_sender: mpsc::Sender<SeriesMainInformation>,
+        ) -> (
+            Vec<SeriesPoster>,
+            Vec<Command<SeriesPosterIndexedMessage<SeriesPosterMessage>>>,
+        ) {
             let mut posters = Vec::with_capacity(series_infos.len());
             let mut posters_commands = Vec::with_capacity(series_infos.len());
             for (index, series_info) in series_infos.into_iter().enumerate() {
-                let (poster, command) = SeriesPoster::new(index, series_info);
+                let (poster, command) =
+                    SeriesPoster::new(index, series_info, series_page_sender.clone());
                 posters.push(poster);
                 posters_commands.push(command);
             }
@@ -709,35 +623,46 @@ mod full_schedule_posters {
     struct Posters<T> {
         index: HashMap<T, RangeInclusive<usize>>,
         posters: Vec<SeriesPoster>,
+
+        series_page_sender: mpsc::Sender<SeriesMainInformation>,
     }
 
     impl<T> Posters<T>
     where
         T: Eq + std::hash::Hash + std::fmt::Display,
     {
-        pub fn new() -> Self {
+        pub fn new(series_page_sender: mpsc::Sender<SeriesMainInformation>) -> Self {
             Self {
                 index: HashMap::new(),
                 posters: vec![],
+                series_page_sender,
             }
         }
         pub fn push_section_posters(
             &mut self,
             section_id: T,
             series_infos: Vec<SeriesMainInformation>,
-            message: fn(SeriesPosterMessage) -> Message,
+            message: fn(SeriesPosterIndexedMessage<SeriesPosterMessage>) -> Message,
         ) -> Command<Message> {
             if self.posters.is_empty() {
                 let range = 0..=(series_infos.len() - 1);
                 let (posters, poster_commands) =
-                    Self::generate_posters_and_commands_from_series_infos(&range, series_infos);
+                    Self::generate_posters_and_commands_from_series_infos(
+                        &range,
+                        series_infos,
+                        self.series_page_sender.clone(),
+                    );
                 self.index.insert(section_id, range);
                 self.posters = posters;
                 Command::batch(poster_commands).map(message)
             } else {
                 let range = self.posters.len()..=(self.posters.len() + series_infos.len() - 1);
                 let (mut posters, poster_commands) =
-                    Self::generate_posters_and_commands_from_series_infos(&range, series_infos);
+                    Self::generate_posters_and_commands_from_series_infos(
+                        &range,
+                        series_infos,
+                        self.series_page_sender.clone(),
+                    );
                 self.index.insert(section_id, range);
                 self.posters.append(&mut posters);
                 Command::batch(poster_commands).map(message)
@@ -747,14 +672,19 @@ mod full_schedule_posters {
         fn generate_posters_and_commands_from_series_infos(
             range: &RangeInclusive<usize>,
             series_infos: Vec<SeriesMainInformation>,
-        ) -> (Vec<SeriesPoster>, Vec<Command<SeriesPosterMessage>>) {
+            series_page_sender: mpsc::Sender<SeriesMainInformation>,
+        ) -> (
+            Vec<SeriesPoster>,
+            Vec<Command<SeriesPosterIndexedMessage<SeriesPosterMessage>>>,
+        ) {
             assert_eq!(range.clone().count(), series_infos.len());
 
             let mut posters = Vec::with_capacity(series_infos.len());
             let mut posters_commands = Vec::with_capacity(series_infos.len());
 
             for (index, series_info) in range.clone().zip(series_infos.into_iter()) {
-                let (poster, command) = SeriesPoster::new(index, series_info);
+                let (poster, command) =
+                    SeriesPoster::new(index, series_info, series_page_sender.clone());
                 posters.push(poster);
                 posters_commands.push(command);
             }
@@ -773,7 +703,7 @@ mod full_schedule_posters {
         pub fn get_section_view(
             &self,
             section_id: &T,
-            message: fn(SeriesPosterMessage) -> Message,
+            message: fn(SeriesPosterIndexedMessage<SeriesPosterMessage>) -> Message,
         ) -> Element<'_, Message, Renderer> {
             let series_posters = self.get_section(section_id);
 

@@ -6,7 +6,9 @@ use iced_aw::Wrap;
 
 use crate::core::{api::series_information::SeriesMainInformation, database};
 use crate::gui::assets::icons::GRAPH_UP_ARROW;
-use series_banner::{Message as SeriesBannerMessage, SeriesBanner};
+use series_banner::{
+    IndexedMessage as SeriesBannerIndexedMessage, Message as SeriesBannerMessage, SeriesBanner,
+};
 
 use mini_widgets::*;
 
@@ -15,7 +17,7 @@ mod mini_widgets;
 #[derive(Clone, Debug)]
 pub enum Message {
     SeriesInfosAndTimeReceived(Vec<(SeriesMainInformation, Option<u32>)>),
-    SeriesBanner(usize, SeriesBannerMessage),
+    SeriesBanner(SeriesBannerIndexedMessage<SeriesBannerMessage>),
 }
 
 pub struct StatisticsTab {
@@ -62,11 +64,10 @@ impl StatisticsTab {
                     banners_commands.push(banner_command);
                 }
                 self.series_banners = banners;
-                Command::batch(banners_commands)
-                    .map(|message| Message::SeriesBanner(message.get_id(), message))
+                Command::batch(banners_commands).map(Message::SeriesBanner)
             }
-            Message::SeriesBanner(index, message) => {
-                self.series_banners[index].update(message);
+            Message::SeriesBanner(message) => {
+                self.series_banners[message.index()].update(message);
                 Command::none()
             }
         }
@@ -75,11 +76,7 @@ impl StatisticsTab {
         let series_list = Wrap::with_elements(
             self.series_banners
                 .iter()
-                .map(|banner| {
-                    banner
-                        .view()
-                        .map(|message| Message::SeriesBanner(message.get_id(), message))
-                })
+                .map(|banner| banner.view().map(Message::SeriesBanner))
                 .collect(),
         )
         .spacing(5.0)

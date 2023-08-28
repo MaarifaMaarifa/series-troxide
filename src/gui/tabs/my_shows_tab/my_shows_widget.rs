@@ -7,11 +7,13 @@ use iced_aw::{Spinner, Wrap};
 use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::caching;
 use crate::gui::styles;
-use crate::gui::troxide_widget::series_poster::{Message as SeriesPosterMessage, SeriesPoster};
+use crate::gui::troxide_widget::series_poster::{
+    IndexedMessage as SeriesPosterIndexedMessage, Message as SeriesPosterMessage, SeriesPoster,
+};
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    SeriesPosters(SeriesPosterMessage),
+    SeriesPosters(SeriesPosterIndexedMessage<SeriesPosterMessage>),
     SeriesInformationReceived(Option<Vec<SeriesMainInformation>>),
 }
 
@@ -102,24 +104,17 @@ impl MyShows {
                 let mut series_posters = Vec::with_capacity(series_infos.len());
 
                 for (index, series_info) in series_infos.into_iter().enumerate() {
-                    let (poster, command) = SeriesPoster::new(index, series_info);
+                    let (poster, command) =
+                        SeriesPoster::new(index, series_info, self.series_page_sender.clone());
                     series_posters.push(poster);
                     series_posters_commands.push(command);
                 }
                 self.series_posters = series_posters;
                 Command::batch(series_posters_commands).map(Message::SeriesPosters)
             }
-            Message::SeriesPosters(message) => {
-                if let SeriesPosterMessage::SeriesPosterPressed(series_info) = message.clone() {
-                    self.series_page_sender
-                        .send(*series_info)
-                        .expect("failed to send the series page");
-                    return Command::none();
-                }
-                self.series_posters[message.get_index().expect("message should have an index")]
-                    .update(message)
-                    .map(Message::SeriesPosters)
-            }
+            Message::SeriesPosters(message) => self.series_posters[message.index()]
+                .update(message)
+                .map(Message::SeriesPosters),
         }
     }
 
