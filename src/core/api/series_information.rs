@@ -9,7 +9,7 @@ const SERIES_INFORMATION_ADDRESS: &str = "https://api.tvmaze.com/shows/";
 // Replace ID with the actual series id
 const SERIES_INFO_AND_EPISODE_LIST: &str = "https://api.tvmaze.com/shows/ID?embed=episodes";
 
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone, Hash)]
 pub enum Genre {
     Romance,
     Drama,
@@ -72,7 +72,7 @@ impl std::fmt::Display for Genre {
             Self::Music => "Music",
             Self::Action => "Action",
             Self::Fantasy => "Fantasy",
-            Self::ScienceFiction => "Science-Fiction",
+            Self::ScienceFiction => "Science Fiction",
             Self::Horror => "Horror",
             Self::Thriller => "Thriller",
             Self::Crime => "Crime",
@@ -94,7 +94,7 @@ impl std::fmt::Display for Genre {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Hash)]
 pub enum ShowNetwork {
     Fox,
     TheCW,
@@ -127,7 +127,7 @@ impl std::fmt::Display for ShowNetwork {
             ShowNetwork::Fox => "FOX",
             ShowNetwork::TheCW => "The CW",
             ShowNetwork::BbcOne => "BBC One",
-            ShowNetwork::Nbc => "MSNBC",
+            ShowNetwork::Nbc => "NBC",
             ShowNetwork::Abc => "ABC",
             ShowNetwork::Hbo => "HBO",
             ShowNetwork::Cbs => "CBS",
@@ -137,7 +137,7 @@ impl std::fmt::Display for ShowNetwork {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Hash)]
 pub enum ShowWebChannel {
     Netflix,
     Other,

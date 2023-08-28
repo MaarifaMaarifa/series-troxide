@@ -147,12 +147,12 @@ pub mod full_schedule {
 
     const FULL_SCHEDULE_CACHE_FILENAME: &str = "full-schedule";
 
-    struct Filter(ScheduleFilter);
+    struct Filter<'a>(ScheduleFilter<'a>);
 
-    enum ScheduleFilter {
-        Network(ShowNetwork),
-        WebChannel(ShowWebChannel),
-        Genre(Genre),
+    enum ScheduleFilter<'a> {
+        Network(&'a ShowNetwork),
+        WebChannel(&'a ShowWebChannel),
+        Genre(&'a Genre),
         Genres(Vec<Genre>),
         None,
     }
@@ -269,7 +269,7 @@ pub mod full_schedule {
         pub fn get_popular_series_by_genre(
             &self,
             amount: usize,
-            genre: Genre,
+            genre: &Genre,
         ) -> Vec<SeriesMainInformation> {
             self.get_popular_series_by_schedule_filter(amount, Filter(ScheduleFilter::Genre(genre)))
         }
@@ -348,7 +348,7 @@ pub mod full_schedule {
         pub fn get_popular_series_by_network(
             &self,
             amount: usize,
-            network: ShowNetwork,
+            network: &ShowNetwork,
         ) -> Vec<SeriesMainInformation> {
             self.get_popular_series_by_schedule_filter(
                 amount,
@@ -366,7 +366,7 @@ pub mod full_schedule {
         pub fn get_popular_series_by_webchannel(
             &self,
             amount: usize,
-            webchannel: ShowWebChannel,
+            webchannel: &ShowWebChannel,
         ) -> Vec<SeriesMainInformation> {
             self.get_popular_series_by_schedule_filter(
                 amount,
@@ -409,16 +409,16 @@ pub mod full_schedule {
                 |series_info, schedule_filter| match schedule_filter {
                     ScheduleFilter::Network(network) => series_info
                         .get_network()
-                        .map(|show_network| show_network == *network)
+                        .map(|show_network| show_network == **network)
                         .unwrap_or(false),
                     ScheduleFilter::WebChannel(webchannel) => series_info
                         .get_webchannel()
-                        .map(|show_webchannel| show_webchannel == *webchannel)
+                        .map(|show_webchannel| show_webchannel == **webchannel)
                         .unwrap_or(false),
                     ScheduleFilter::Genre(genre) => series_info
                         .get_genres()
                         .into_iter()
-                        .any(|series_genre| series_genre == *genre),
+                        .any(|series_genre| series_genre == **genre),
                     ScheduleFilter::Genres(genres) => series_info
                         .get_genres()
                         .into_iter()
