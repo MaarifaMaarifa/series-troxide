@@ -57,8 +57,8 @@ pub enum OriginalType {
 
 /// Loads the image from the provided url
 ///
-/// Since Original images from TvMaze may have extremly high resultion up to 4k which can cause `wgpu` to crash,
-/// this function will thumbnail the original image to size that are good enough to be displayed.
+/// Since Original images from TvMaze may have extremely high resultion up to 4k which can cause `wgpu` to crash,
+/// this function will thumbnail the original image to the size that is good enough to be displayed in the GUI.
 pub async fn load_image(image_url: String, image_type: ImageType) -> Option<Bytes> {
     loop {
         match reqwest::get(&image_url).await {
