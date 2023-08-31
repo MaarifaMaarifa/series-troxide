@@ -285,7 +285,7 @@ mod episode_widget {
 
             let command = if let Some(image) = episode_image {
                 Command::perform(
-                    caching::load_image(image.medium_image_url),
+                    caching::load_image(image.medium_image_url, caching::ImageType::Medium),
                     Message::ImageLoaded,
                 )
                 .map(move |message| IndexedMessage::new(index, message))

@@ -158,8 +158,11 @@ pub mod series_banner {
                 },
                 image_url
                     .map(|image_url| {
-                        Command::perform(caching::load_image(image_url), Message::BannerReceived)
-                            .map(move |message| IndexedMessage::new(index, message))
+                        Command::perform(
+                            caching::load_image(image_url, caching::ImageType::Medium),
+                            Message::BannerReceived,
+                        )
+                        .map(move |message| IndexedMessage::new(index, message))
                     })
                     .unwrap_or(Command::none()),
             )

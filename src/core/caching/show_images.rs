@@ -1,6 +1,9 @@
 use std::io::ErrorKind;
 
-use super::{load_image, read_cache, write_cache, CacheFilePath, CACHER};
+use super::{
+    load_image, read_cache, write_cache, CacheFilePath, ImageType as ImageKind, OriginalType,
+    CACHER,
+};
 use crate::core::api::{
     deserialize_json,
     show_images::{get_show_images as get_show_images_api, Image, ImageType},
@@ -40,7 +43,11 @@ pub async fn get_recent_banner(series_id: u32) -> Option<bytes::Bytes> {
         .filter(|image| image.get_image_type() == Some(ImageType::Background))
         .last()
     {
-        return load_image(recent_background.resolutions.original.url.clone()).await;
+        return load_image(
+            recent_background.resolutions.original.url.clone(),
+            ImageKind::Original(OriginalType::Background),
+        )
+        .await;
     };
 
     // Falling to anything that is not a poster as poster dimensions don't look great as a background
@@ -49,5 +56,9 @@ pub async fn get_recent_banner(series_id: u32) -> Option<bytes::Bytes> {
         .filter(|image| image.get_image_type() != Some(ImageType::Poster))
         .last()?;
 
-    load_image(recent_banner.resolutions.original.url).await
+    load_image(
+        recent_banner.resolutions.original.url,
+        ImageKind::Original(OriginalType::Background),
+    )
+    .await
 }

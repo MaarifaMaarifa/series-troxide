@@ -202,7 +202,7 @@ mod search_result {
                 image_url
                     .map(|url| {
                         Command::perform(
-                            caching::load_image(url.medium_image_url),
+                            caching::load_image(url.medium_image_url, caching::ImageType::Medium),
                             Message::ImageLoaded,
                         )
                         .map(move |message| IndexedMessage::new(index, message))

@@ -281,7 +281,9 @@ pub mod series_poster {
     fn poster_image_command(id: usize, image: Option<Image>) -> Command<Message> {
         if let Some(image) = image {
             Command::perform(
-                async move { caching::load_image(image.medium_image_url).await },
+                async move {
+                    caching::load_image(image.medium_image_url, caching::ImageType::Medium).await
+                },
                 move |image| Message::ImageLoaded(id, image),
             )
         } else {

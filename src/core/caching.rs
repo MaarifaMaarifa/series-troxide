@@ -32,6 +32,7 @@ use std::path;
 use crate::core::api::{self, deserialize_json};
 
 use super::api::{series_information::SeriesMainInformation, ApiError};
+pub use super::api::{ImageType, OriginalType};
 use directories::ProjectDirs;
 use lazy_static::lazy_static;
 use tokio::fs;
@@ -132,7 +133,7 @@ impl Cacher {
 }
 
 /// Loads the image from the provided url
-pub async fn load_image(image_url: String) -> Option<Bytes> {
+pub async fn load_image(image_url: String, image_type: ImageType) -> Option<Bytes> {
     // Hashing the image url as a file name as the forward slashes in web urls
     // mimic paths
     use sha2::{Digest, Sha256};
@@ -149,7 +150,7 @@ pub async fn load_image(image_url: String) -> Option<Bytes> {
         Err(err) => {
             if err.kind() == ErrorKind::NotFound {
                 info!("falling back online for image with link {}", image_url);
-                if let Some(image_bytes) = api::load_image(image_url).await {
+                if let Some(image_bytes) = api::load_image(image_url, image_type).await {
                     write_cache(&image_bytes, &image_path).await;
                     Some(image_bytes)
                 } else {
