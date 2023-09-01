@@ -1,4 +1,4 @@
-use iced::widget::{column, container, horizontal_space, row, text, Row};
+use iced::widget::{column, container, horizontal_space, row, text, Row, Space};
 use iced::{Alignment, Element, Length, Renderer};
 
 use crate::core::api::series_information::SeriesMainInformation;
@@ -50,6 +50,7 @@ pub fn watch_count() -> Element<'static, Message, Renderer> {
 
     container(content)
         .width(Length::Fill)
+        .height(Length::Fill)
         .padding(10)
         .center_x()
         .center_y()
@@ -75,29 +76,37 @@ pub fn time_count(
 
     let times = helpers::time::SaneTime::new(total_average_minutes).get_time_plurized();
 
-    let time_values: Vec<_> = times
-        .into_iter()
-        .rev()
-        .map(|(time_text, time_value)| {
-            column![
-                text(time_value)
-                    .size(31)
-                    .style(styles::text_styles::purple_text_theme()),
-                text(time_text).size(11)
-            ]
+    let complete_time_count: Element<'_, Message, Renderer> = if times.is_empty() {
+        Space::new(0, 0).into()
+    } else {
+        let time_values: Vec<_> = times
+            .into_iter()
+            .rev()
+            .map(|(time_text, time_value)| {
+                column![
+                    text(time_value)
+                        .size(31)
+                        .style(styles::text_styles::purple_text_theme()),
+                    text(time_text).size(11)
+                ]
+                .align_items(Alignment::Center)
+                .into()
+            })
+            .collect();
+
+        let time_row = Row::with_children(time_values)
+            .align_items(Alignment::Center)
+            .spacing(10);
+
+        column![text("Which is exactly"), time_row]
+            .spacing(5)
             .align_items(Alignment::Center)
             .into()
-        })
-        .collect();
-
-    let complete_time_count = Row::with_children(time_values)
-        .align_items(Alignment::Center)
-        .spacing(10);
+    };
 
     let content = column![
         text("Total average time spent watching Series"),
         total_minutes_count,
-        text("Which is exactly"),
         complete_time_count,
     ]
     .align_items(Alignment::Center)
@@ -105,6 +114,7 @@ pub fn time_count(
 
     container(content)
         .width(Length::Fill)
+        .height(Length::Fill)
         .padding(10)
         .center_x()
         .center_y()

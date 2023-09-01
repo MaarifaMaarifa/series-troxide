@@ -1,6 +1,6 @@
 use std::sync::mpsc;
 
-use iced::widget::{column, container, row, scrollable};
+use iced::widget::{column, container, row, scrollable, text};
 use iced::{Command, Element, Length, Renderer};
 use iced_aw::Wrap;
 
@@ -73,19 +73,26 @@ impl StatisticsTab {
         }
     }
     pub fn view(&self) -> Element<Message, Renderer> {
-        let series_list = Wrap::with_elements(
-            self.series_banners
-                .iter()
-                .map(|banner| banner.view().map(Message::SeriesBanner))
-                .collect(),
-        )
-        .spacing(5.0)
-        .line_spacing(5.0);
+        let series_list: Element<'_, Message, Renderer> = if self.series_banners.is_empty() {
+            text("Your watched series will appear here").into()
+        } else {
+            Wrap::with_elements(
+                self.series_banners
+                    .iter()
+                    .map(|banner| banner.view().map(Message::SeriesBanner))
+                    .collect(),
+            )
+            .spacing(5.0)
+            .line_spacing(5.0)
+            .into()
+        };
 
         let series_list = container(series_list).width(Length::Fill).center_x();
 
         let content = column![
-            row![watch_count(), time_count(&self.series_infos_and_time)].spacing(10),
+            row![watch_count(), time_count(&self.series_infos_and_time)]
+                .height(200)
+                .spacing(10),
             series_list
         ]
         .spacing(10)
