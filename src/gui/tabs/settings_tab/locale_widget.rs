@@ -1,5 +1,5 @@
-use iced::widget::{column, combo_box, container, horizontal_space, row, text};
-use iced::{Element, Length, Renderer};
+use iced::widget::{column, combo_box, container, row, text};
+use iced::{Element, Renderer};
 use locale_settings::{get_country_code_from_settings, get_country_name_from_country_code};
 use rust_iso3166::ALL;
 
@@ -56,7 +56,7 @@ impl Locale {
 
         let country_setting_info = column![
         text("Country").size(18),
-        text("The chosen country will be used by the discover page to provide locally aired series.").size(11)];
+        text("The \"local aired series section\" of the discover page will display locally aired series from the selected country if available.").size(11)];
 
         let country_combo_box = combo_box(
             &self.country_combo_box_state,
@@ -66,13 +66,9 @@ impl Locale {
         );
 
         let content = content.push(
-            row!(
-                country_setting_info,
-                horizontal_space(Length::Fill),
-                country_combo_box
-            )
-            .padding(5)
-            .spacing(5),
+            row!(country_setting_info, country_combo_box)
+                .padding(5)
+                .spacing(40),
         );
 
         container(content)
