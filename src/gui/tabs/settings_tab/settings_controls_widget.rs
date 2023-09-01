@@ -7,7 +7,7 @@ use crate::core::settings_config::SETTINGS;
 pub enum Message {
     Save,
     Reset,
-    RestoreDefault,
+    RestoreDefaults,
 }
 
 #[derive(Default)]
@@ -18,13 +18,13 @@ impl SettingsControls {
         match message {
             Message::Save => SETTINGS.write().unwrap().save_settings(),
             Message::Reset => SETTINGS.write().unwrap().reset_settings(),
-            Message::RestoreDefault => SETTINGS.write().unwrap().set_default_settings(),
+            Message::RestoreDefaults => SETTINGS.write().unwrap().set_default_settings(),
         }
     }
     pub fn view(&self) -> Element<'_, Message, Renderer> {
-        let mut save_settings_button = button("Save Settings");
-        let mut reset_settings_button = button("Reset Settings");
-        let mut restore_default_settings_button = button("Restore Default Settings");
+        let mut save_settings_button = button("Save");
+        let mut reset_settings_button = button("Reset");
+        let mut restore_defaults_settings_button = button("Restore Defaults");
 
         if SETTINGS.read().unwrap().has_pending_save() {
             save_settings_button = save_settings_button.on_press(Message::Save);
@@ -32,13 +32,13 @@ impl SettingsControls {
         }
 
         if !SETTINGS.read().unwrap().has_default_settings() {
-            restore_default_settings_button =
-                restore_default_settings_button.on_press(Message::RestoreDefault);
+            restore_defaults_settings_button =
+                restore_defaults_settings_button.on_press(Message::RestoreDefaults);
         }
 
         row![
             horizontal_space(Length::Fill),
-            restore_default_settings_button,
+            restore_defaults_settings_button,
             reset_settings_button,
             save_settings_button
         ]
