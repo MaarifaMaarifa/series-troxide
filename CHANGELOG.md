@@ -45,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Crash in `My Shows page` when reaching the time for an episode release. [1d1a25e](https://github.com/MaarifaMaarifa/series-troxide/commit/1d1a25ed12a3489ea926c08225568a3944f93da2)
 - Duplicate Series Posters in `Discover page`. [a73a9f3](https://github.com/MaarifaMaarifa/series-troxide/commit/a73a9f33ae0c1d3d9f8679bbe78792de168a8730)
+- Crashing when loading high quality images. [3df44dd](https://github.com/MaarifaMaarifa/series-troxide/commit/3df44ddc34cde036dcff9eea5cc061e72b1baee7)
 
 ## [0.2.0] - 2023-07-27
 
