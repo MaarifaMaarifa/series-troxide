@@ -100,8 +100,9 @@ impl Caching {
 
     pub fn view(&self) -> Element<'_, Message, Renderer> {
         let manual_cleaning_heading_text = text("Manual Cache Cleaning").size(18);
-        let manual_cleaning_explaination_text = text("Sometimes, you may want to perform manual cache clean up for some reasons. \
-            All of the cache type can be cleaned up manually. When their individual clean buttons are pressed, a clean will be performed immediately.").size(11);
+        let manual_cleaning_explaination_text = text("Despite the fact that automated cache cleaning \
+            can be configured, manual cleaning is still an option if you choose. All cache types can be manually cleaned up. \
+            They will each execute a clean as soon as their separate clean buttons are pressed.").size(11);
 
         let content = column![
             text("Series Troxide Cache")
@@ -115,6 +116,7 @@ impl Caching {
             vertical_space(10),
             manual_cleaning_heading_text,
             manual_cleaning_explaination_text,
+            vertical_space(5),
             self.clean_aired_cache_widget(),
             self.clean_waiting_release_cache_widget(),
             self.clean_ended_cache_widget(),
@@ -131,16 +133,13 @@ impl Caching {
     fn clean_ended_cache_widget(&self) -> Element<'_, Message, Renderer> {
         let (status_text, button) =
             status_and_button_gen(&self.ended_series_cache_cleaning, Message::CleanEndedCache);
-        column![
-            text("Ended Cache Cleaning"),
-            row![
-                text("clean cache for the series that have ended").size(11),
-                horizontal_space(Length::Fill),
-                status_text,
-                button,
-            ]
-            .spacing(5)
+        row![
+            text("Clean cache for the series that have ended"),
+            horizontal_space(Length::Fill),
+            status_text,
+            button,
         ]
+        .spacing(5)
         .into()
     }
 
@@ -148,16 +147,13 @@ impl Caching {
         let (status_text, button) =
             status_and_button_gen(&self.aired_series_cache_cleaning, Message::CleanAiredCache);
 
-        column![
-            text("Aired Cache Cleaning"),
-            row![
-                text("clean cache for the series that are currently being aired").size(11),
-                horizontal_space(Length::Fill),
-                status_text,
-                button,
-            ]
-            .spacing(5)
+        row![
+            text("Clean cache for the series that are currently being aired"),
+            horizontal_space(Length::Fill),
+            status_text,
+            button,
         ]
+        .spacing(5)
         .into()
     }
 
@@ -167,16 +163,13 @@ impl Caching {
             Message::CleanWaitingReleaseCache,
         );
 
-        column![
-            text("Waiting Release Cache Cleaning"),
-            row![
-                text("clean cache for the series waiting for their release date").size(11),
-                horizontal_space(Length::Fill),
-                status_text,
-                button,
-            ]
-            .spacing(5)
+        row![
+            text("Clean cache for the series waiting for release date"),
+            horizontal_space(Length::Fill),
+            status_text,
+            button,
         ]
+        .spacing(5)
         .into()
     }
 }
