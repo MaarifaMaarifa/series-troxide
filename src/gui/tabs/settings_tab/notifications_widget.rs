@@ -36,7 +36,11 @@ impl Notifications {
 
         let notifications_info = column![
             text("When to notify"),
-            text("The amount of duration to notify before an episode release(minutes)").size(11)
+            text(format!(
+                "System notification will be sent {} minutes before an episode release",
+                current_time_to_notify
+            ))
+            .size(11)
         ];
 
         let time_to_notify =
