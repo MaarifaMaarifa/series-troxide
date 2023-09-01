@@ -21,7 +21,7 @@
 </p>
 <p align="center">
     <img src="screenshots/series-page.png" alt="series-page.png" width="49%"/>
-    <img src="screenshots/casts-section.png" alt="casts-section" width="49%"/>
+    <img src="screenshots/cast-section.png" alt="casts-section" width="49%"/>
 </p>
 
 ## Features
