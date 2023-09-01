@@ -23,13 +23,13 @@ enum LoadState {
     Loaded,
 }
 
-pub struct CastsWidget {
+pub struct CastWidget {
     load_state: LoadState,
     casts: Vec<CastPoster>,
     is_expanded: bool,
 }
 
-impl CastsWidget {
+impl CastWidget {
     pub fn new(series_id: u32) -> (Self, Command<Message>) {
         let cast_widget = Self {
             load_state: LoadState::Loading,
@@ -95,7 +95,7 @@ impl CastsWidget {
                         .collect();
 
                     column![
-                        text("Top Casts").size(21),
+                        text("Cast").size(21),
                         Wrap::with_elements(cast_posters)
                             .padding(5.0)
                             .line_spacing(10.0)
@@ -116,13 +116,13 @@ impl CastsWidget {
                 let up_icon = svg(svg_handle)
                     .width(Length::Shrink)
                     .style(styles::svg_styles::colored_svg_theme());
-                (text("less casts"), up_icon, Message::Shrink)
+                (text("show less"), up_icon, Message::Shrink)
             } else {
                 let svg_handle = svg::Handle::from_memory(get_static_cow_from_asset(CHEVRON_DOWN));
                 let down_icon = svg(svg_handle)
                     .width(Length::Shrink)
                     .style(styles::svg_styles::colored_svg_theme());
-                (text("more casts"), down_icon, Message::Expand)
+                (text("show more"), down_icon, Message::Expand)
             };
 
             let content = row![

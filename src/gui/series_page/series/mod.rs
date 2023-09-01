@@ -10,7 +10,7 @@ use crate::gui::assets::icons::{PATCH_PLUS, PATCH_PLUS_FILL};
 use crate::gui::styles;
 
 use bytes::Bytes;
-use casts_widget::{CastsWidget, Message as CastWidgetMessage};
+use cast_widget::{CastWidget, Message as CastWidgetMessage};
 use data_widgets::*;
 use iced::widget::scrollable::{Id, RelativeOffset, Viewport};
 use image;
@@ -25,7 +25,7 @@ use iced::widget::{svg, vertical_space, Column};
 use iced::{Alignment, Command, Element, Length, Renderer};
 use iced_aw::{Grid, Spinner};
 
-mod casts_widget;
+mod cast_widget;
 mod data_widgets;
 mod season_widget;
 mod series_suggestion_widget;
@@ -213,7 +213,7 @@ pub struct Series {
     series_background: Option<Bytes>,
     next_episode_release_time: Option<(Episode, EpisodeReleaseTime)>,
     season_widgets: Vec<season_widget::Season>,
-    casts_widget: CastsWidget,
+    casts_widget: CastWidget,
     series_suggestion_widget: SeriesSuggestion,
     scroll_offset: RelativeOffset,
     scroller_id: Id,
@@ -226,7 +226,7 @@ impl Series {
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (Self, Command<Message>) {
         let series_id = series_information.id;
-        let (casts_widget, casts_widget_command) = CastsWidget::new(series_id);
+        let (casts_widget, casts_widget_command) = CastWidget::new(series_id);
         let (series_suggestion_widget, series_suggestion_widget_command) = SeriesSuggestion::new(
             series_id,
             series_information.get_genres(),
