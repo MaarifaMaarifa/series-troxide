@@ -22,7 +22,11 @@ pub struct SeriesInfoAndEpisodeList {
 
 impl SeriesInfoAndEpisodeList {
     pub fn new(series_ids: Vec<u32>) -> (Self, mpsc::Receiver<anyhow::Result<()>>) {
-        let (tx, rx) = mpsc::channel(series_ids.len());
+        let (tx, rx) = mpsc::channel(if series_ids.is_empty() {
+            1
+        } else {
+            series_ids.len()
+        });
         (
             Self {
                 series_ids,
