@@ -1,4 +1,4 @@
-use iced::widget::{column, container, horizontal_space, pick_list, row, text};
+use iced::widget::{column, container, horizontal_space, radio, text, Column};
 use iced::{Element, Renderer};
 
 use crate::core::settings_config::{Theme, ALL_THEMES, SETTINGS};
@@ -28,23 +28,35 @@ impl Appearance {
         .padding(5)
         .spacing(5);
 
-        let theme_text = text("Theme");
-        let theme_picklist = pick_list(
-            &ALL_THEMES[..],
-            Some(
-                SETTINGS
-                    .read()
-                    .unwrap()
-                    .get_current_settings()
-                    .appearance
-                    .theme
-                    .clone(),
-            ),
-            Message::ThemeSelected,
+        let theme_text = text("Theme").size(18);
+
+        let current_theme = Some(
+            SETTINGS
+                .read()
+                .unwrap()
+                .get_current_settings()
+                .appearance
+                .theme
+                .clone(),
         );
 
+        let theme_list = Column::with_children(
+            ALL_THEMES
+                .iter()
+                .map(|theme| {
+                    let elem: Element<'_, Message, Renderer> =
+                        radio(theme.to_string(), theme, current_theme.as_ref(), |theme| {
+                            Message::ThemeSelected(theme.clone())
+                        })
+                        .into();
+                    elem
+                })
+                .collect(),
+        )
+        .spacing(5);
+
         let content = content.push(
-            row!(theme_text, horizontal_space(20), theme_picklist)
+            column!(theme_text, horizontal_space(20), theme_list)
                 .padding(5)
                 .spacing(5),
         );
