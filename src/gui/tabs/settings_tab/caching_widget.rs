@@ -223,9 +223,8 @@ mod cache_cleaning {
 }
 
 mod cache_cleaning_frequency_widget {
-    use iced::widget::{column, text, vertical_space};
-    use iced::{Element, Renderer};
-    use iced_aw::{Grid, NumberInput};
+    use iced::widget::{column, container, slider, text, vertical_space};
+    use iced::{Element, Length, Renderer};
 
     use crate::core::settings_config::SETTINGS;
 
@@ -255,45 +254,83 @@ mod cache_cleaning_frequency_widget {
 
         pub fn view(&self) -> Element<'_, Message, Renderer> {
             let settings = SETTINGS.read().unwrap();
-            let cache_settigns = &settings.get_current_settings().cache;
+            let cache_settings = &settings.get_current_settings().cache;
 
-            let aired_clean_frequency = NumberInput::new(
-                cache_settigns.aired_cache_clean_frequency,
-                u32::MAX,
-                Message::Aired,
-            );
-            let ended_clean_frequency = NumberInput::new(
-                cache_settigns.ended_cache_clean_frequency,
-                u32::MAX,
-                Message::Ended,
-            );
-            let waiting_release_frequency = NumberInput::new(
-                cache_settigns.waiting_release_cache_clean_frequency,
-                u32::MAX,
-                Message::WaitingRelease,
-            );
+            let aired_clean_frequency = container(
+                slider(
+                    1..=7,
+                    cache_settings.aired_cache_clean_frequency,
+                    Message::Aired,
+                )
+                .width(800),
+            )
+            .width(Length::Fill)
+            .center_x();
 
-            let mut grid = Grid::with_columns(2);
+            let ended_clean_frequency = container(
+                slider(
+                    1..=30,
+                    cache_settings.ended_cache_clean_frequency,
+                    Message::Ended,
+                )
+                .width(800),
+            )
+            .width(Length::Fill)
+            .center_x();
 
-            grid.insert(text("Aired series cache cleaning frequency(days)"));
-            grid.insert(aired_clean_frequency);
+            let waiting_release_frequency = container(
+                slider(
+                    1..=14,
+                    cache_settings.waiting_release_cache_clean_frequency,
+                    Message::WaitingRelease,
+                )
+                .width(800),
+            )
+            .width(Length::Fill)
+            .center_x();
 
-            grid.insert(text(
-                "Waiting release series cache cleaning frequency(days)    ",
-            )); // This being the longest text, a tab is added at the end to keep spacing between columns in the grid
-            grid.insert(waiting_release_frequency);
+            let aired_clean_frequency = column![
+                text(format!(
+                    "Cache cleaning frequency for aired series: {} days",
+                    cache_settings.aired_cache_clean_frequency
+                )),
+                aired_clean_frequency
+            ]
+            .spacing(5);
 
-            grid.insert(text("Ended series cache cleaning frequency(days)"));
-            grid.insert(ended_clean_frequency);
+            let waiting_release_frequency = column![
+                text(format!(
+                    "Cache cleaning frequency for series waiting for release date: {} days",
+                    cache_settings.waiting_release_cache_clean_frequency
+                )),
+                waiting_release_frequency
+            ]
+            .spacing(5);
+
+            let ended_clean_frequency = column![
+                text(format!(
+                    "Cache cleaning frequency for ended series: {} days",
+                    cache_settings.ended_cache_clean_frequency
+                )),
+                ended_clean_frequency
+            ]
+            .spacing(5);
 
             let heading_text = text("Automatic Cache Cleaning").size(18);
-            let explaination_text = text("Outdated cache are cleaned up automatically during \
-                program startup based on the settings, this makes the program have the latest series data from the API. \
-                You can manage cache auto-clean frequency by setting after how many days each cache clean should be performed.").size(11);
+            let explaination_text = text("According to the settings, outdated cache is automatically \
+                cleared on program starting, ensuring that the program has access to the most recent series data from the API. \
+                Cache auto-clean frequency can be controlled by defining the number of days between each cache clean.").size(11);
 
-            column![heading_text, explaination_text, vertical_space(10), grid,]
-                .spacing(5)
-                .into()
+            column![
+                heading_text,
+                explaination_text,
+                vertical_space(10),
+                aired_clean_frequency,
+                waiting_release_frequency,
+                ended_clean_frequency,
+            ]
+            .spacing(5)
+            .into()
         }
     }
 }
