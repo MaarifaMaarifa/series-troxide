@@ -71,8 +71,10 @@ pub enum EpisodeDateError {
 
 impl Episode {
     pub fn get_naive_date(&self) -> Result<chrono::NaiveDate, EpisodeDateError> {
-        let date = self.airdate.as_ref().ok_or(EpisodeDateError::NotFound)?;
-        chrono::NaiveDate::parse_from_str(date, "%Y-%m-%d").map_err(EpisodeDateError::Parse)
+        let date_time_str = self.airstamp.as_ref().ok_or(EpisodeDateError::NotFound)?;
+        Ok(chrono::DateTime::parse_from_rfc3339(date_time_str)
+            .map_err(EpisodeDateError::Parse)?
+            .date_naive())
     }
 }
 

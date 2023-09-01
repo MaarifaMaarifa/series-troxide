@@ -520,7 +520,7 @@ pub mod full_schedule {
                 .episodes
                 .iter()
                 .filter(|episode| filter_condition(episode))
-                .take_while(|episode| {
+                .filter(|episode| {
                     all_dates_of_month
                         .iter()
                         .any(|date| *date == episode.get_naive_date().unwrap())
