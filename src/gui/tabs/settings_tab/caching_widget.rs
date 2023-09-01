@@ -311,7 +311,7 @@ mod cache_cleaning_frequency_widget {
 
             let heading_text = text("Automatic Cache Cleaning").size(18);
             let explaination_text = text("According to the settings, outdated cache is automatically \
-                cleared on program starting, ensuring that the program has access to the most recent series data from the API. \
+                cleared on program startup, ensuring that the program has access to the most recent series data from the API. \
                 Cache auto-clean frequency can be controlled by defining the number of days between each cache clean.").size(11);
 
             column![
