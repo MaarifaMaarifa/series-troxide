@@ -513,29 +513,41 @@ mod full_schedule_posters {
                             get_current_month().name()
                         ))
                         .size(21),
-                        Wrap::with_elements(
-                            self.monthly_new_poster
-                                .iter()
-                                .map(|poster| poster.normal_view().map(Message::MonthlyNewPosters))
-                                .collect(),
-                        )
-                        .spacing(5.0)
-                        .line_spacing(5.0)
+                        if self.monthly_new_poster.is_empty() {
+                            no_series_found()
+                        } else {
+                            Wrap::with_elements(
+                                self.monthly_new_poster
+                                    .iter()
+                                    .map(|poster| {
+                                        poster.normal_view().map(Message::MonthlyNewPosters)
+                                    })
+                                    .collect(),
+                            )
+                            .spacing(5.0)
+                            .line_spacing(5.0)
+                            .into()
+                        }
                     ]
                     .spacing(5);
 
                     let monthly_returning_posters = column![
                         text(format!("Shows Returning in {}", get_current_month().name())).size(21),
-                        Wrap::with_elements(
-                            self.monthly_returning_posters
-                                .iter()
-                                .map(|poster| {
-                                    poster.normal_view().map(Message::MonthlyReturningPosters)
-                                })
-                                .collect(),
-                        )
-                        .spacing(5.0)
-                        .line_spacing(5.0)
+                        if self.monthly_returning_posters.is_empty() {
+                            no_series_found()
+                        } else {
+                            Wrap::with_elements(
+                                self.monthly_returning_posters
+                                    .iter()
+                                    .map(|poster| {
+                                        poster.normal_view().map(Message::MonthlyReturningPosters)
+                                    })
+                                    .collect(),
+                            )
+                            .spacing(5.0)
+                            .line_spacing(5.0)
+                            .into()
+                        }
                     ]
                     .spacing(5);
 
@@ -636,6 +648,16 @@ mod full_schedule_posters {
         Month::from_u32(current_month).expect("current month should be valid!")
     }
 
+    /// Show `No Series Found` information in a discover section
+    fn no_series_found() -> Element<'static, Message, Renderer> {
+        container(text("No Series Found"))
+            .center_x()
+            .center_y()
+            .height(100)
+            .width(Length::Fill)
+            .into()
+    }
+
     struct Posters<T> {
         index: HashMap<T, RangeInclusive<usize>>,
         posters: Vec<SeriesPoster>,
@@ -723,14 +745,19 @@ mod full_schedule_posters {
         ) -> Element<'_, Message, Renderer> {
             let series_posters = self.get_section(section_id);
 
-            let posters = Wrap::with_elements(
-                series_posters
-                    .iter()
-                    .map(|series_poster| series_poster.normal_view().map(message))
-                    .collect(),
-            )
-            .spacing(5.0)
-            .line_spacing(5.0);
+            let posters: Element<'_, Message, Renderer> = if series_posters.is_empty() {
+                no_series_found()
+            } else {
+                Wrap::with_elements(
+                    series_posters
+                        .iter()
+                        .map(|series_poster| series_poster.normal_view().map(message))
+                        .collect(),
+                )
+                .spacing(5.0)
+                .line_spacing(5.0)
+                .into()
+            };
 
             column![text(section_id).size(21), posters]
                 .spacing(5)
