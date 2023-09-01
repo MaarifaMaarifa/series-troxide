@@ -88,7 +88,7 @@ impl SettingsTab {
                 self.locale_settings.view().map(Message::Locale),
                 self.about.view().map(Message::About),
             ]
-            .spacing(5)
+            .spacing(10)
             .width(Length::Fill)
             .align_items(Alignment::Center)
             .padding(5),
