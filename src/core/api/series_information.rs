@@ -32,6 +32,11 @@ pub enum Genre {
     Espionage,
     Mystery,
     Legal,
+    Travel,
+    History,
+    DIY,
+    Sports,
+    Medical,
     Other,
 }
 
@@ -59,6 +64,11 @@ impl From<&str> for Genre {
             "Espionage" => Self::Espionage,
             "Mystery" => Self::Mystery,
             "Legal" => Self::Legal,
+            "Travel" => Self::Travel,
+            "History" => Self::History,
+            "DIY" => Self::DIY,
+            "Sports" => Self::Sports,
+            "Medical" => Self::Medical,
             _ => Self::Other,
         }
     }
@@ -88,6 +98,11 @@ impl std::fmt::Display for Genre {
             Self::Espionage => "Espionage",
             Self::Mystery => "Mystery",
             Self::Legal => "Legal",
+            Self::Travel => "Travel",
+            Self::History => "History",
+            Self::DIY => "DIY",
+            Self::Sports => "Sports",
+            Self::Medical => "Medical",
             Self::Other => "Other",
         };
         write!(f, "{}", str)
