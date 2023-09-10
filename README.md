@@ -73,6 +73,14 @@ cd series-troxide
 cargo install --path .
 ```
 
+#### Building docker image.
+```shell
+docker build --tag series-troxide:latest https://github.com/MaarifaMaarifa/series-troxide.git#main:/
+mkdir /opt/appdata/series-troxide
+docker run -v /opt/appdata/series-troxide:/config --rm -it -p 3000:3000 series-troxide bash
+```
+Hop into [http://localhost:3000](http://localhost:3000) and you will be presented with a ``Series Troxide`` window.
+
 ## Credits
 - The API used has been provided by TVmaze, you can check out the site [here](https://www.tvmaze.com/).
 - The Icons used have been provided by boostrap icons, you can check out the site [here](https://icons.getbootstrap.com/).
