@@ -1,4 +1,5 @@
 <div align="center">
+  <img src="assets/logos/series-troxide.svg" width="140px" />
   <h1><strong>Series Troxide</strong></h1>
   <p>
     <strong>A Simple and Modern Series Tracker</strong>
