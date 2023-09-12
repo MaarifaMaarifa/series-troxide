@@ -29,10 +29,10 @@ use bytes::Bytes;
 use std::io::{self, ErrorKind};
 use std::path;
 
-use crate::core::api::{self, deserialize_json};
+use crate::core::api::tv_maze::{self, deserialize_json};
 
-use super::api::{series_information::SeriesMainInformation, ApiError};
-pub use super::api::{ImageType, OriginalType};
+use super::api::tv_maze::{series_information::SeriesMainInformation, ApiError};
+pub use super::api::tv_maze::{ImageType, OriginalType};
 use directories::ProjectDirs;
 use lazy_static::lazy_static;
 use tokio::fs;
@@ -150,7 +150,7 @@ pub async fn load_image(image_url: String, image_type: ImageType) -> Option<Byte
         Err(err) => {
             if err.kind() == ErrorKind::NotFound {
                 info!("falling back online for image with link {}", image_url);
-                if let Some(image_bytes) = api::load_image(image_url, image_type).await {
+                if let Some(image_bytes) = tv_maze::load_image(image_url, image_type).await {
                     write_cache(&image_bytes, &image_path).await;
                     Some(image_bytes)
                 } else {

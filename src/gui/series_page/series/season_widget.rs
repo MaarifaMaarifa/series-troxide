@@ -4,7 +4,7 @@ use iced_aw::Spinner;
 
 use episode_widget::Episode;
 
-use crate::core::api::episodes_information::Episode as EpisodeInfo;
+use crate::core::api::tv_maze::episodes_information::Episode as EpisodeInfo;
 use crate::core::caching::episode_list::TotalEpisodes;
 use crate::core::database::AddResult;
 use crate::core::{caching, database};
@@ -239,7 +239,7 @@ async fn load_episode_infos(series_id: u32, season_number: u32) -> Vec<EpisodeIn
 mod episode_widget {
     pub use crate::gui::message::IndexedMessage;
     use crate::{
-        core::{api::episodes_information::Episode as EpisodeInfo, caching, database},
+        core::{api::tv_maze::episodes_information::Episode as EpisodeInfo, caching, database},
         gui::{helpers::season_episode_str_gen, styles},
     };
     use bytes::Bytes;

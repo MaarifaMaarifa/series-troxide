@@ -4,7 +4,7 @@ use tracing::info;
 
 use super::{CacheFilePath, CACHER};
 use crate::core::{
-    api::{
+    api::tv_maze::{
         deserialize_json,
         show_cast::{self, Cast},
         ApiError,

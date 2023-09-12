@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
-use crate::core::api::episodes_information::Episode;
-use crate::core::api::series_information::SeriesMainInformation;
-use crate::core::api::tv_schedule::{get_episodes_with_country, get_episodes_with_date};
+use crate::core::api::tv_maze::episodes_information::Episode;
+use crate::core::api::tv_maze::series_information::SeriesMainInformation;
+use crate::core::api::tv_maze::tv_schedule::{get_episodes_with_country, get_episodes_with_date};
 
 /// Retrieves series aired on a specific date through the provided optional &str
 /// If None is supplied, it will default the the current day
@@ -137,12 +137,12 @@ pub mod full_schedule {
     use tokio::fs;
     use tracing::{error, info};
 
-    use crate::core::api::deserialize_json;
-    use crate::core::api::episodes_information::Episode;
-    use crate::core::api::series_information::{
+    use crate::core::api::tv_maze::deserialize_json;
+    use crate::core::api::tv_maze::episodes_information::Episode;
+    use crate::core::api::tv_maze::series_information::{
         Genre, SeriesMainInformation, ShowNetwork, ShowWebChannel,
     };
-    use crate::core::api::tv_schedule::get_full_schedule;
+    use crate::core::api::tv_maze::tv_schedule::get_full_schedule;
     use crate::core::caching::CACHER;
 
     const FULL_SCHEDULE_CACHE_FILENAME: &str = "full-schedule";

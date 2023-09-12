@@ -1,7 +1,7 @@
 use iced::widget::{column, container, horizontal_space, row, text, Row, Space};
 use iced::{Alignment, Element, Length, Renderer};
 
-use crate::core::api::series_information::SeriesMainInformation;
+use crate::core::api::tv_maze::series_information::SeriesMainInformation;
 use crate::core::database;
 use crate::gui::{helpers, styles};
 
@@ -130,7 +130,7 @@ pub mod series_banner {
     use iced::{Alignment, Command, Element, Length, Renderer};
 
     use crate::core::caching;
-    use crate::core::{api::series_information::SeriesMainInformation, database};
+    use crate::core::{api::tv_maze::series_information::SeriesMainInformation, database};
     pub use crate::gui::message::IndexedMessage;
     use crate::gui::{helpers, styles};
 

@@ -5,7 +5,7 @@ use tracing::info;
 use super::episode_list::EpisodeList;
 use super::series_information::get_series_main_info_with_id;
 use super::CACHER;
-use crate::core::api::series_information::get_series_info_and_episode_list;
+use crate::core::api::tv_maze::series_information::get_series_info_and_episode_list;
 
 #[derive(Copy, Clone)]
 enum MissingCache {

@@ -1,5 +1,5 @@
 use super::{
-    api::{episodes_information::Episode, series_information::SeriesMainInformation},
+    api::tv_maze::{episodes_information::Episode, series_information::SeriesMainInformation},
     caching::series_list,
     settings_config,
 };

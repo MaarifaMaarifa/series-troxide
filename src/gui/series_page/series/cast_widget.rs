@@ -3,7 +3,7 @@ use iced::widget::{button, column, container, horizontal_space, row, svg, text, 
 use iced::{Command, Element, Length, Renderer};
 use iced_aw::{Spinner, Wrap};
 
-use crate::core::{api::show_cast::Cast, caching};
+use crate::core::{api::tv_maze::show_cast::Cast, caching};
 use crate::gui::assets::get_static_cow_from_asset;
 use crate::gui::assets::icons::{CHEVRON_DOWN, CHEVRON_UP};
 use crate::gui::styles;
@@ -165,7 +165,7 @@ mod cast_poster {
     pub use crate::gui::message::IndexedMessage;
     use crate::{
         core::{
-            api::{show_cast::Cast, Image},
+            api::tv_maze::{show_cast::Cast, Image},
             caching,
         },
         gui::{

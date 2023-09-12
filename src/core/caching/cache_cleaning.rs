@@ -9,7 +9,7 @@ use std::path;
 use std::time;
 
 use crate::core::{
-    api::{deserialize_json, series_information::SeriesMainInformation},
+    api::tv_maze::{deserialize_json, series_information::SeriesMainInformation},
     settings_config::CacheSettings,
 };
 

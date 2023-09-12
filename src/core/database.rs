@@ -8,7 +8,7 @@ use std::{
 };
 use tracing::info;
 
-use super::{api::series_information::SeriesMainInformation, caching};
+use super::{api::tv_maze::series_information::SeriesMainInformation, caching};
 
 /*
 The last digit represents the version of the database.

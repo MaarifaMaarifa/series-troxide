@@ -2,7 +2,7 @@
 
 use super::{episode_list::EpisodeReleaseTime, series_information};
 use crate::core::{
-    api::{episodes_information::Episode, series_information::SeriesMainInformation},
+    api::tv_maze::{episodes_information::Episode, series_information::SeriesMainInformation},
     database::{self, Series},
 };
 use lazy_static::lazy_static;

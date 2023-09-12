@@ -1,4 +1,4 @@
-use super::api::series_information;
+use super::tv_maze::series_information;
 use super::*;
 
 use std::io::ErrorKind;
