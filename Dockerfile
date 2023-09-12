@@ -8,7 +8,8 @@ ENV TITLE=series-troxide
 
 RUN apt update && apt install libgtk-3-dev mesa-vulkan-drivers -y
 COPY --from=builder /usr/local/cargo/bin/series-troxide /series-troxide
-RUN mkdir -p /defaults/ && echo "/series-troxide" > /defaults/autostart
+RUN mkdir -p /defaults/ && echo "/series-troxide" > /defaults/autostart && \
+    sed -i 's|</applications>|  <application title="Series Troxide" type="normal">\n    <maximized>yes</maximized>\n  </application>\n</applications>|' /etc/xdg/openbox/rc.xml 
 
 EXPOSE 3000
 
