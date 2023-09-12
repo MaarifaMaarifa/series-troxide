@@ -35,3 +35,7 @@ pub mod fonts {
     pub static NOTOSANS_REGULAR_STATIC: &[u8; 556216] =
         include_bytes!("../../assets/fonts/NotoSans-Regular.ttf");
 }
+
+pub mod logos {
+    pub static IMG_LOGO: &[u8; 33071] = include_bytes!("../../assets/logos/series-troxide.png");
+}
