@@ -17,7 +17,7 @@ mod troxide_widget;
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    Tabs(TitleBarMessage),
+    TitleBar(TitleBarMessage),
     SeriesPageController(SeriesPageControllerMessage),
     TabsController(TabsControllerMessage),
     FontLoaded(Result<(), iced::font::Error>),
@@ -106,7 +106,7 @@ impl Application for TroxideGui {
                 }
                 Command::none()
             }
-            Message::Tabs(message) => {
+            Message::TitleBar(message) => {
                 self.title_bar.update(message.clone());
                 match message {
                     TitleBarMessage::TabSelected(tab_id) => {
@@ -138,7 +138,7 @@ impl Application for TroxideGui {
         column![
             self.title_bar
                 .view(&self.tabs_controller.get_labels(), self.show_back_button)
-                .map(Message::Tabs),
+                .map(Message::TitleBar),
             view
         ]
         .into()
