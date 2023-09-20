@@ -244,10 +244,31 @@ impl Series {
     /// adds an episode into the series
     ///
     /// returns a true if the episode is newly added into the series and vice versa is true
+    ///
+    /// # None
+    /// tracks only when the supplied episode is watchable preventing allowing watched episodes that
+    /// are released into the future.
     pub async fn add_episode(&mut self, season_number: u32, episode: Episode) -> bool {
         loop {
             if let Some(season) = self.seasons.get_mut(&season_number) {
                 break season.track_episode(self.id, season_number, episode).await;
+            } else {
+                self.add_season(season_number);
+            }
+        }
+    }
+
+    /// adds an episode into the series
+    ///
+    /// returns a true if the episode is newly added into the series and vice versa is true
+    ///
+    /// # Note
+    /// Does not check if the episode is watchable which is useful when importing episodes
+    pub fn add_episode_unchecked(&mut self, season_number: u32, episode: Episode) {
+        loop {
+            if let Some(season) = self.seasons.get_mut(&season_number) {
+                season.track_episode_unchecked(episode);
+                break;
             } else {
                 self.add_season(season_number);
             }
@@ -373,6 +394,14 @@ impl Season {
             }
         }
         false
+    }
+
+    /// adds the given episode to tracking
+    ///
+    /// # Note
+    /// Does not check if the episode is watchable which is useful when importing episodes
+    pub fn track_episode_unchecked(&mut self, episode_number: Episode) {
+        self.episodes.insert(episode_number);
     }
 
     /// adds a range of episode to be tracked
