@@ -29,6 +29,8 @@ pub mod icons {
     pub static PATCH_PLUS: &[u8; 1039] = include_bytes!("../../assets/icons/patch-plus.svg");
     pub static PATCH_PLUS_FILL: &[u8; 607] =
         include_bytes!("../../assets/icons/patch-plus-fill.svg");
+    pub static TRAKT_ICON_RED: &[u8; 1393] =
+        include_bytes!("../../assets/logos/trakt-icon-red.svg");
 }
 
 pub mod fonts {

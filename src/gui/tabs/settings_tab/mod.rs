@@ -29,7 +29,6 @@ pub enum Message {
     Controls(SettingsControlsMessage),
 }
 
-#[derive(Default)]
 pub struct SettingsTab {
     appearance_settings: Appearance,
     caching_settings: Caching,
@@ -45,7 +44,7 @@ impl SettingsTab {
         Self {
             appearance_settings: Appearance,
             caching_settings: Caching::default(),
-            database_settings: Database::default(),
+            database_settings: Database::new(),
             notifications_settings: Notifications,
             locale_settings: Locale::default(),
             about: About,

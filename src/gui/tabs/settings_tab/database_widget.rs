@@ -16,9 +16,9 @@ pub enum Message {
     ImportTimeoutComplete,
     ExportTimeoutComplete,
     ImportCachingEvent(full_caching::Event),
+    TraktIntegration(trakt_integration::Message),
 }
 
-#[derive(Default)]
 pub struct Database {
     import_status: Option<anyhow::Result<()>>,
     export_status: Option<anyhow::Result<()>>,
@@ -26,9 +26,21 @@ pub struct Database {
     importing: bool,
     keys_values_vec: Option<database::KeysValuesVec>,
     sender: Option<iced::futures::channel::mpsc::Sender<full_caching::Input>>,
+    trakt_widget: trakt_integration::TraktIntegration,
 }
 
 impl Database {
+    pub fn new() -> Self {
+        Self {
+            import_status: None,
+            export_status: None,
+            import_progress: (0, 0),
+            importing: false,
+            keys_values_vec: None,
+            sender: None,
+            trakt_widget: trakt_integration::TraktIntegration::new(),
+        }
+    }
     pub fn subscription(&self) -> iced::Subscription<Message> {
         full_caching::import_data_cacher().map(Message::ImportCachingEvent)
     }
@@ -100,6 +112,10 @@ impl Database {
                 }
                 Command::none()
             }
+            Message::TraktIntegration(message) => self
+                .trakt_widget
+                .update(message)
+                .map(Message::TraktIntegration),
         }
     }
 
@@ -154,15 +170,27 @@ impl Database {
             .spacing(5)
         ];
 
-        let content = column![
-            text("Series Troxide Data")
-                .size(21)
-                .style(styles::text_styles::purple_text_theme()),
+        let series_troxide_data = column![
+            text("Series Troxide Data").size(18),
             import_widget,
             export_widget,
         ]
-        .padding(5)
         .spacing(5);
+
+        let trakt_data = column![
+            text("Trakt Data").size(18),
+            self.trakt_widget.view().map(Message::TraktIntegration)
+        ]
+        .spacing(5);
+
+        let content = column![
+            text("Series Tracking Data")
+                .size(21)
+                .style(styles::text_styles::purple_text_theme()),
+            series_troxide_data,
+            trakt_data
+        ]
+        .padding(5);
 
         container(content)
             .style(styles::container_styles::first_class_container_rounded_theme())
@@ -318,5 +346,315 @@ mod database_transfer {
     pub fn get_home_directory() -> anyhow::Result<path::PathBuf> {
         let user_dirs = UserDirs::new().ok_or(anyhow::anyhow!("could not get user directory"))?;
         Ok(user_dirs.home_dir().to_path_buf())
+    }
+}
+
+mod trakt_integration {
+    use iced::widget::{button, column, horizontal_space, row, svg, text, text_input};
+    use iced::{Alignment, Command, Element, Length, Renderer};
+    use iced_aw::Spinner;
+
+    use crate::core::api::trakt::authenication::{self, CodeResponse, TokenResponse};
+    use crate::core::api::trakt::user_credentials::{self, Client, Credentials, CredentialsError};
+    use crate::gui::assets::{get_static_cow_from_asset, icons::TRAKT_ICON_RED};
+
+    #[derive(Debug, Clone)]
+    pub enum Message {
+        StartPage(StartPageMessage),
+        ClientPage(ClientPageMessage),
+        ProgramAuthenticationPage(ProgramAuthenticationPageMessage),
+        LoadCredentials,
+        CredentialsLoaded(Credentials),
+        Cancel,
+    }
+
+    pub struct TraktIntegration {
+        setup_page: Option<SetupPage>,
+    }
+
+    impl TraktIntegration {
+        pub fn new() -> Self {
+            Self { setup_page: None }
+        }
+
+        pub fn update(&mut self, message: Message) -> Command<Message> {
+            let mut next_page = None;
+            let command = match message {
+                Message::LoadCredentials => Command::perform(Credentials::new(), |res| {
+                    Message::CredentialsLoaded(res.expect("failed to load the client"))
+                }),
+                Message::CredentialsLoaded(credentials) => {
+                    self.setup_page = Some(SetupPage::StartPage(StartPage::new(credentials)));
+                    Command::none()
+                }
+                Message::Cancel => {
+                    self.setup_page = None;
+                    Command::none()
+                }
+                Message::StartPage(message) => {
+                    if let Some(SetupPage::StartPage(start_page)) = self.setup_page.as_mut() {
+                        start_page
+                            .update(message, &mut next_page)
+                            .map(Message::StartPage)
+                    } else {
+                        Command::none()
+                    }
+                }
+                Message::ClientPage(message) => {
+                    if let Some(SetupPage::ClientPage(client_page)) = self.setup_page.as_mut() {
+                        client_page
+                            .update(message, &mut next_page)
+                            .map(Message::ClientPage)
+                    } else {
+                        Command::none()
+                    }
+                }
+                Message::ProgramAuthenticationPage(message) => {
+                    if let Some(SetupPage::ProgramAuthenticationPage(program_authenication_page)) =
+                        self.setup_page.as_mut()
+                    {
+                        program_authenication_page
+                            .update(message, &mut next_page)
+                            .map(Message::ProgramAuthenticationPage)
+                    } else {
+                        Command::none()
+                    }
+                }
+            };
+
+            if let Some(next_page) = next_page {
+                self.setup_page = Some(next_page)
+            };
+
+            command
+        }
+
+        pub fn view(&self) -> Element<'_, Message, Renderer> {
+            if let Some(setup_page) = self.setup_page.as_ref() {
+                let setup_page = match setup_page {
+                    SetupPage::StartPage(start_page) => start_page.view().map(Message::StartPage),
+                    SetupPage::ClientPage(client_page) => {
+                        client_page.view().map(Message::ClientPage)
+                    }
+                    SetupPage::ProgramAuthenticationPage(program_authentication_page) => {
+                        program_authentication_page
+                            .view()
+                            .map(Message::ProgramAuthenticationPage)
+                    }
+                    SetupPage::Confirmation(_) => todo!(),
+                };
+                column![setup_page, button("cancel").on_press(Message::Cancel),]
+                    .spacing(5)
+                    .width(Length::Fill)
+                    .align_items(Alignment::Center)
+                    .into()
+            } else {
+                row![
+                    text("Import series data from your Trakt account"),
+                    horizontal_space(Length::Fill),
+                    button("Configure Trakt integration").on_press(Message::LoadCredentials),
+                ]
+                .into()
+            }
+        }
+    }
+
+    enum SetupPage {
+        StartPage(StartPage),
+        ClientPage(ClientPage),
+        ProgramAuthenticationPage(ProgramAuthenticationPage),
+        Confirmation(TokenResponse),
+    }
+
+    #[derive(Debug, Clone)]
+    pub enum StartPageMessage {
+        ConnectAccount,
+    }
+
+    struct StartPage {
+        credentials: Credentials,
+    }
+
+    impl StartPage {
+        pub fn new(credentials: Credentials) -> Self {
+            Self { credentials }
+        }
+
+        pub fn update(
+            &mut self,
+            message: StartPageMessage,
+            next_page: &mut Option<SetupPage>,
+        ) -> Command<StartPageMessage> {
+            match message {
+                StartPageMessage::ConnectAccount => {
+                    let client_page = ClientPage::new();
+                    *next_page = Some(SetupPage::ClientPage(client_page));
+                    Command::none()
+                }
+            }
+        }
+
+        pub fn view(&self) -> Element<'_, StartPageMessage, Renderer> {
+            let content = if let Some((user, token)) = self.credentials.payload() {
+                column![
+                    text("Current Authentication Status"),
+                    row![text("Username: "), text(&user.username)],
+                    row![
+                        text("Token Status: "),
+                        text(match token.get_access_token() {
+                            Ok(_) => "Valid",
+                            Err(_) => "Expired",
+                        })
+                    ],
+                    button("Reconnect Trakt Account").on_press(StartPageMessage::ConnectAccount),
+                ]
+            } else {
+                column![
+                    text("Trakt Account has not been connected yet"),
+                    button("Connect Trakt Account").on_press(StartPageMessage::ConnectAccount),
+                ]
+                .spacing(2)
+                .align_items(Alignment::Center)
+            };
+
+            let trakt_icon_handle =
+                svg::Handle::from_memory(get_static_cow_from_asset(TRAKT_ICON_RED));
+            let trakt_icon = svg(trakt_icon_handle).height(50);
+
+            column![trakt_icon, content]
+                .align_items(Alignment::Center)
+                .spacing(5)
+                .into()
+        }
+    }
+
+    #[derive(Debug, Clone)]
+    pub enum ClientPageMessage {
+        ClientIdChanged(String),
+        ClientSecretChanged(String),
+        CodeReceived(CodeResponse),
+        Submit,
+    }
+
+    struct ClientPage {
+        client: Result<Client, CredentialsError>,
+        client_id: String,
+        client_secret: String,
+        can_submit: bool,
+        code_loading: bool,
+    }
+
+    impl ClientPage {
+        fn new() -> Self {
+            let client = user_credentials::load_client();
+            let can_submit = client.is_ok();
+            Self {
+                client,
+                client_id: String::new(),
+                client_secret: String::new(),
+                can_submit,
+                code_loading: false,
+            }
+        }
+
+        fn update(
+            &mut self,
+            message: ClientPageMessage,
+            next_page: &mut Option<SetupPage>,
+        ) -> Command<ClientPageMessage> {
+            let command = match message {
+                ClientPageMessage::ClientIdChanged(text) => {
+                    self.client_id = text;
+                    Command::none()
+                }
+                ClientPageMessage::ClientSecretChanged(text) => {
+                    self.client_secret = text;
+                    Command::none()
+                }
+                ClientPageMessage::Submit => {
+                    self.code_loading = true;
+                    match &self.client {
+                        Ok(client) => Command::perform(
+                            authenication::get_device_code_response(client.client_id.clone()),
+                            ClientPageMessage::CodeReceived,
+                        ),
+                        Err(_) => Command::perform(
+                            authenication::get_device_code_response(self.client_id.clone()),
+                            ClientPageMessage::CodeReceived,
+                        ),
+                    }
+                }
+                ClientPageMessage::CodeReceived(code_response) => {
+                    *next_page = Some(SetupPage::ProgramAuthenticationPage(
+                        ProgramAuthenticationPage::new(code_response),
+                    ));
+                    Command::none()
+                }
+            };
+
+            self.can_submit = !self.client_id.is_empty() && !self.client_secret.is_empty();
+
+            command
+        }
+
+        fn view(&self) -> Element<'_, ClientPageMessage, Renderer> {
+            if self.code_loading {
+                Spinner::new().into()
+            } else {
+                let mut submit_button = button("Submit");
+                if self.can_submit {
+                    submit_button = submit_button.on_press(ClientPageMessage::Submit)
+                };
+
+                let content = match &self.client {
+                    Ok(client) => column![
+                        text("Current client information"),
+                        row![text("Client ID: "), text(client.client_id.as_str())],
+                        row![text("Client Secret: "), text(client.client_secret.as_str())],
+                    ],
+                    Err(_) => column![
+                        text("Enter your Trakt client information"),
+                        text_input("Client ID", &self.client_id)
+                            .on_input(ClientPageMessage::ClientIdChanged),
+                        text_input("Client Secret", &self.client_secret)
+                            .on_input(ClientPageMessage::ClientSecretChanged),
+                    ]
+                    .width(500)
+                    .spacing(5)
+                    .align_items(Alignment::Center),
+                };
+
+                column![content, submit_button]
+                    .align_items(Alignment::Center)
+                    .spacing(5)
+                    .into()
+            }
+        }
+    }
+
+    #[derive(Debug, Clone)]
+    pub enum ProgramAuthenticationPageMessage {}
+
+    struct ProgramAuthenticationPage {
+        code: CodeResponse,
+    }
+    impl ProgramAuthenticationPage {
+        fn new(code_response: CodeResponse) -> Self {
+            Self {
+                code: code_response,
+            }
+        }
+
+        fn update(
+            &mut self,
+            message: ProgramAuthenticationPageMessage,
+            next_page: &mut Option<SetupPage>,
+        ) -> Command<ProgramAuthenticationPageMessage> {
+            Command::none()
+        }
+
+        fn view(&self) -> Element<'_, ProgramAuthenticationPageMessage, Renderer> {
+            text(format!("{:#?}", self.code)).into()
+        }
     }
 }
