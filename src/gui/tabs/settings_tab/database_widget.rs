@@ -42,7 +42,12 @@ impl Database {
         }
     }
     pub fn subscription(&self) -> iced::Subscription<Message> {
-        full_caching::import_data_cacher().map(Message::ImportCachingEvent)
+        iced::Subscription::batch([
+            full_caching::import_data_cacher().map(Message::ImportCachingEvent),
+            self.trakt_widget
+                .subscription()
+                .map(Message::TraktIntegration),
+        ])
     }
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
@@ -186,7 +191,7 @@ impl Database {
         let content = column![
             text("Series Tracking Data")
                 .size(21)
-                .style(styles::text_styles::purple_text_theme()),
+                .style(styles::text_styles::accent_color_theme()),
             series_troxide_data,
             trakt_data
         ]
@@ -356,20 +361,23 @@ mod trakt_integration {
 
     use crate::core::api::trakt::authenication::{self, CodeResponse, TokenResponse};
     use crate::core::api::trakt::user_credentials::{self, Client, Credentials, CredentialsError};
+    use crate::core::api::trakt::user_settings::{self, UserSettings};
     use crate::gui::assets::{get_static_cow_from_asset, icons::TRAKT_ICON_RED};
+    use crate::gui::styles;
 
     #[derive(Debug, Clone)]
     pub enum Message {
         StartPage(StartPageMessage),
         ClientPage(ClientPageMessage),
         ProgramAuthenticationPage(ProgramAuthenticationPageMessage),
+        ConfirmationPage(ConfirmationPageMessage),
         LoadCredentials,
         CredentialsLoaded(Credentials),
         Cancel,
     }
 
     pub struct TraktIntegration {
-        setup_page: Option<SetupPage>,
+        setup_page: Option<SetupStep>,
     }
 
     impl TraktIntegration {
@@ -377,14 +385,29 @@ mod trakt_integration {
             Self { setup_page: None }
         }
 
+        pub fn subscription(&self) -> iced::Subscription<Message> {
+            if let Some(SetupStep::ProgramAuthentication(page)) = self.setup_page.as_ref() {
+                page.subscription().map(Message::ProgramAuthenticationPage)
+            } else {
+                iced::Subscription::none()
+            }
+        }
+
         pub fn update(&mut self, message: Message) -> Command<Message> {
             let mut next_page = None;
+
             let command = match message {
-                Message::LoadCredentials => Command::perform(Credentials::new(), |res| {
-                    Message::CredentialsLoaded(res.expect("failed to load the client"))
-                }),
+                Message::LoadCredentials => {
+                    Command::perform(Credentials::load_from_file(), |res| {
+                        let credentials = res.unwrap_or_else(|err| {
+                            tracing::warn!("failed to load the credentials from the file: {}", err);
+                            Credentials::default()
+                        });
+                        Message::CredentialsLoaded(credentials)
+                    })
+                }
                 Message::CredentialsLoaded(credentials) => {
-                    self.setup_page = Some(SetupPage::StartPage(StartPage::new(credentials)));
+                    self.setup_page = Some(SetupStep::Start(StartPage::new(credentials)));
                     Command::none()
                 }
                 Message::Cancel => {
@@ -392,7 +415,7 @@ mod trakt_integration {
                     Command::none()
                 }
                 Message::StartPage(message) => {
-                    if let Some(SetupPage::StartPage(start_page)) = self.setup_page.as_mut() {
+                    if let Some(SetupStep::Start(start_page)) = self.setup_page.as_mut() {
                         start_page
                             .update(message, &mut next_page)
                             .map(Message::StartPage)
@@ -401,7 +424,7 @@ mod trakt_integration {
                     }
                 }
                 Message::ClientPage(message) => {
-                    if let Some(SetupPage::ClientPage(client_page)) = self.setup_page.as_mut() {
+                    if let Some(SetupStep::Client(client_page)) = self.setup_page.as_mut() {
                         client_page
                             .update(message, &mut next_page)
                             .map(Message::ClientPage)
@@ -410,12 +433,27 @@ mod trakt_integration {
                     }
                 }
                 Message::ProgramAuthenticationPage(message) => {
-                    if let Some(SetupPage::ProgramAuthenticationPage(program_authenication_page)) =
+                    if let Some(SetupStep::ProgramAuthentication(program_authenication_page)) =
                         self.setup_page.as_mut()
                     {
                         program_authenication_page
                             .update(message, &mut next_page)
                             .map(Message::ProgramAuthenticationPage)
+                    } else {
+                        Command::none()
+                    }
+                }
+                Message::ConfirmationPage(message) => {
+                    if let Some(SetupStep::Confirmation(confirmation_page)) =
+                        self.setup_page.as_mut()
+                    {
+                        // Avoiding the check for the next page as the confirmation page
+                        // can set the next page with None implying account setup completion
+                        let command = confirmation_page
+                            .update(message, &mut next_page)
+                            .map(Message::ConfirmationPage);
+                        self.setup_page = next_page;
+                        return command;
                     } else {
                         Command::none()
                     }
@@ -432,16 +470,16 @@ mod trakt_integration {
         pub fn view(&self) -> Element<'_, Message, Renderer> {
             if let Some(setup_page) = self.setup_page.as_ref() {
                 let setup_page = match setup_page {
-                    SetupPage::StartPage(start_page) => start_page.view().map(Message::StartPage),
-                    SetupPage::ClientPage(client_page) => {
-                        client_page.view().map(Message::ClientPage)
-                    }
-                    SetupPage::ProgramAuthenticationPage(program_authentication_page) => {
+                    SetupStep::Start(start_page) => start_page.view().map(Message::StartPage),
+                    SetupStep::Client(client_page) => client_page.view().map(Message::ClientPage),
+                    SetupStep::ProgramAuthentication(program_authentication_page) => {
                         program_authentication_page
                             .view()
                             .map(Message::ProgramAuthenticationPage)
                     }
-                    SetupPage::Confirmation(_) => todo!(),
+                    SetupStep::Confirmation(confirmation_page) => {
+                        confirmation_page.view().map(Message::ConfirmationPage)
+                    }
                 };
                 column![setup_page, button("cancel").on_press(Message::Cancel),]
                     .spacing(5)
@@ -459,11 +497,11 @@ mod trakt_integration {
         }
     }
 
-    enum SetupPage {
-        StartPage(StartPage),
-        ClientPage(ClientPage),
-        ProgramAuthenticationPage(ProgramAuthenticationPage),
-        Confirmation(TokenResponse),
+    enum SetupStep {
+        Start(StartPage),
+        Client(ClientPage),
+        ProgramAuthentication(ProgramAuthenticationPage),
+        Confirmation(ConfirmationPage),
     }
 
     #[derive(Debug, Clone)]
@@ -483,31 +521,38 @@ mod trakt_integration {
         pub fn update(
             &mut self,
             message: StartPageMessage,
-            next_page: &mut Option<SetupPage>,
+            next_page: &mut Option<SetupStep>,
         ) -> Command<StartPageMessage> {
             match message {
                 StartPageMessage::ConnectAccount => {
                     let client_page = ClientPage::new();
-                    *next_page = Some(SetupPage::ClientPage(client_page));
+                    *next_page = Some(SetupStep::Client(client_page));
                     Command::none()
                 }
             }
         }
 
         pub fn view(&self) -> Element<'_, StartPageMessage, Renderer> {
-            let content = if let Some((user, token)) = self.credentials.payload() {
+            let content = if let Some((user, token)) = self.credentials.get_data() {
                 column![
-                    text("Current Authentication Status"),
-                    row![text("Username: "), text(&user.username)],
+                    text("Trakt Account Status").size(18),
                     row![
-                        text("Token Status: "),
-                        text(match token.get_access_token() {
-                            Ok(_) => "Valid",
-                            Err(_) => "Expired",
-                        })
-                    ],
+                        text("Username:"),
+                        text(&user.username).style(styles::text_styles::accent_color_theme())
+                    ]
+                    .spacing(10),
+                    row![
+                        text("Token Status:"),
+                        match token.get_access_token() {
+                            Ok(_) => text("Valid").style(styles::text_styles::green_text_theme()),
+                            Err(_) => text("Expired").style(styles::text_styles::red_text_theme()),
+                        }
+                    ]
+                    .spacing(10),
                     button("Reconnect Trakt Account").on_press(StartPageMessage::ConnectAccount),
                 ]
+                .spacing(5)
+                .align_items(Alignment::Center)
             } else {
                 column![
                     text("Trakt Account has not been connected yet"),
@@ -546,7 +591,7 @@ mod trakt_integration {
 
     impl ClientPage {
         fn new() -> Self {
-            let client = user_credentials::load_client();
+            let client = user_credentials::Client::new();
             let can_submit = client.is_ok();
             Self {
                 client,
@@ -560,7 +605,7 @@ mod trakt_integration {
         fn update(
             &mut self,
             message: ClientPageMessage,
-            next_page: &mut Option<SetupPage>,
+            next_page: &mut Option<SetupStep>,
         ) -> Command<ClientPageMessage> {
             let command = match message {
                 ClientPageMessage::ClientIdChanged(text) => {
@@ -585,8 +630,17 @@ mod trakt_integration {
                     }
                 }
                 ClientPageMessage::CodeReceived(code_response) => {
-                    *next_page = Some(SetupPage::ProgramAuthenticationPage(
-                        ProgramAuthenticationPage::new(code_response),
+                    let client = if let Ok(client) = self.client.as_ref() {
+                        client.clone()
+                    } else {
+                        Client {
+                            client_id: self.client_id.clone(),
+                            client_secret: self.client_secret.clone(),
+                        }
+                    };
+
+                    *next_page = Some(SetupStep::ProgramAuthentication(
+                        ProgramAuthenticationPage::new(code_response, client),
                     ));
                     Command::none()
                 }
@@ -608,10 +662,21 @@ mod trakt_integration {
 
                 let content = match &self.client {
                     Ok(client) => column![
-                        text("Current client information"),
-                        row![text("Client ID: "), text(client.client_id.as_str())],
-                        row![text("Client Secret: "), text(client.client_secret.as_str())],
-                    ],
+                        text("Current client information").size(18),
+                        row![
+                            text("Client ID: "),
+                            text(client.client_id.as_str())
+                                .style(styles::text_styles::accent_color_theme())
+                        ]
+                        .spacing(5),
+                        row![
+                            text("Client Secret: "),
+                            text(client.client_secret.as_str())
+                                .style(styles::text_styles::accent_color_theme())
+                        ]
+                        .spacing(5),
+                    ]
+                    .align_items(Alignment::Center),
                     Err(_) => column![
                         text("Enter your Trakt client information"),
                         text_input("Client ID", &self.client_id)
@@ -633,28 +698,289 @@ mod trakt_integration {
     }
 
     #[derive(Debug, Clone)]
-    pub enum ProgramAuthenticationPageMessage {}
+    pub enum ProgramAuthenticationPageMessage {
+        AuthenticationEvent(code_authentication::Event),
+        UserSettingsLoaded(UserSettings),
+        CopyCodeToClipboard,
+        OpenVerificationUrl,
+    }
 
     struct ProgramAuthenticationPage {
         code: CodeResponse,
+        client: Client,
+        count_down: u32,
+        token_response: Option<TokenResponse>,
+        token_response_loaded: bool,
     }
     impl ProgramAuthenticationPage {
-        fn new(code_response: CodeResponse) -> Self {
+        fn new(code_response: CodeResponse, client: Client) -> Self {
+            let count_down = code_response.expires_in;
             Self {
                 code: code_response,
+                client,
+                count_down,
+                token_response: None,
+                token_response_loaded: false,
             }
+        }
+
+        fn subscription(&self) -> iced::Subscription<ProgramAuthenticationPageMessage> {
+            code_authentication::authenticate_code()
+                .map(ProgramAuthenticationPageMessage::AuthenticationEvent)
         }
 
         fn update(
             &mut self,
             message: ProgramAuthenticationPageMessage,
-            next_page: &mut Option<SetupPage>,
+            next_page: &mut Option<SetupStep>,
         ) -> Command<ProgramAuthenticationPageMessage> {
+            match message {
+                ProgramAuthenticationPageMessage::AuthenticationEvent(event) => match event {
+                    code_authentication::Event::Ready(mut work_sender) => {
+                        if !self.token_response_loaded {
+                            work_sender
+                                .try_send(code_authentication::Input::AuthenticateCode(
+                                    self.code.clone(),
+                                    self.client.clone(),
+                                ))
+                                .expect("failed to send code to the authenticator");
+                        }
+                    }
+                    code_authentication::Event::WorkFinished(token) => {
+                        self.token_response_loaded = true;
+                        if let Some(token) = token {
+                            let access_token = token.access_token.clone();
+                            let client_id = self.client.client_id.clone();
+                            self.token_response = Some(token);
+                            return Command::perform(
+                                user_settings::get_user_settings(client_id.leak(), access_token),
+                                |res| {
+                                    ProgramAuthenticationPageMessage::UserSettingsLoaded(
+                                        res.expect("failed to load user settings"),
+                                    )
+                                },
+                            );
+                        }
+                    }
+                    code_authentication::Event::Progressing => {
+                        self.count_down -= self.code.interval
+                    }
+                },
+                ProgramAuthenticationPageMessage::CopyCodeToClipboard => {
+                    return iced::clipboard::write(self.code.user_code.clone())
+                }
+                ProgramAuthenticationPageMessage::OpenVerificationUrl => {
+                    webbrowser::open(&self.code.verification_url).unwrap_or_else(|err| {
+                        tracing::error!("failed to open trakt verification url: {}", err)
+                    });
+                }
+                ProgramAuthenticationPageMessage::UserSettingsLoaded(user_settings) => {
+                    *next_page = Some(SetupStep::Confirmation(ConfirmationPage::new(
+                        self.token_response
+                            .clone()
+                            .expect("there should be token response at this point!"),
+                        user_settings,
+                    )))
+                }
+            }
             Command::none()
         }
 
         fn view(&self) -> Element<'_, ProgramAuthenticationPageMessage, Renderer> {
-            text(format!("{:#?}", self.code)).into()
+            if self.token_response_loaded {
+                if self.token_response.is_some() {
+                    column![Spinner::new(), text("Loading account settings"),]
+                        .spacing(5)
+                        .align_items(Alignment::Center)
+                        .into()
+                } else {
+                    text("could not retrieve authentication token")
+                        .style(styles::text_styles::red_text_theme())
+                        .into()
+                }
+            } else {
+                column![
+                    row![
+                        text("verification code:"),
+                        text(&self.code.user_code),
+                        button("copy to clipboard")
+                            .style(
+                                styles::button_styles::transparent_button_with_rounded_border_theme(
+                                )
+                            )
+                            .on_press(ProgramAuthenticationPageMessage::CopyCodeToClipboard)
+                    ]
+                    .spacing(10),
+                    row![
+                        text("visit this url to authenticate"),
+                        button(text(&self.code.verification_url))
+                            .style(
+                                styles::button_styles::transparent_button_with_rounded_border_theme(
+                                )
+                            )
+                            .on_press(ProgramAuthenticationPageMessage::OpenVerificationUrl)
+                    ]
+                    .spacing(10),
+                    text(format!("{} seconds to expiration", self.count_down))
+                ]
+                .spacing(5)
+                .align_items(Alignment::Center)
+                .into()
+            }
+        }
+    }
+
+    #[derive(Debug, Clone)]
+    pub enum ConfirmationPageMessage {
+        SaveCredentials,
+        CredentialsSaved,
+    }
+
+    struct ConfirmationPage {
+        token_response: TokenResponse,
+        user_settings: UserSettings,
+    }
+
+    impl ConfirmationPage {
+        fn new(token_response: TokenResponse, user_settings: UserSettings) -> Self {
+            Self {
+                token_response,
+                user_settings,
+            }
+        }
+
+        fn update(
+            &mut self,
+            message: ConfirmationPageMessage,
+            next_page: &mut Option<SetupStep>,
+        ) -> Command<ConfirmationPageMessage> {
+            match message {
+                ConfirmationPageMessage::SaveCredentials => {
+                    let credentials = Credentials::new(
+                        self.token_response.clone().into(),
+                        self.user_settings.clone().into(),
+                    );
+
+                    Command::perform(async move { credentials.save_credentials().await }, |res| {
+                        if let Err(err) = res {
+                            tracing::error!("failed to save credentials file: {}", err)
+                        };
+                        ConfirmationPageMessage::CredentialsSaved
+                    })
+                }
+                ConfirmationPageMessage::CredentialsSaved => {
+                    *next_page = None;
+                    println!("Setting Setup page to None");
+                    Command::none()
+                }
+            }
+        }
+
+        fn view(&self) -> Element<'_, ConfirmationPageMessage, Renderer> {
+            column![
+                text("Connected Trakt Account"),
+                row![
+                    text("Username:"),
+                    text(&self.user_settings.user.username)
+                        .style(styles::text_styles::accent_color_theme())
+                ]
+                .spacing(10),
+                button("Confirm and Save Account Information")
+                    .on_press(ConfirmationPageMessage::SaveCredentials)
+            ]
+            .align_items(Alignment::Center)
+            .spacing(5)
+            .into()
+        }
+    }
+
+    mod code_authentication {
+        use crate::core::api::trakt::authenication::{
+            get_token_response, CodeResponse, TokenResponse,
+        };
+        use crate::core::api::trakt::user_credentials::Client;
+
+        use iced::futures::channel::mpsc;
+        use iced::futures::sink::SinkExt;
+        use iced::subscription::{self, Subscription};
+
+        #[derive(Debug, Clone)]
+        pub enum Event {
+            Ready(mpsc::Sender<Input>),
+            WorkFinished(Option<TokenResponse>),
+            Progressing,
+        }
+
+        #[derive(Debug, Clone)]
+        pub enum Input {
+            AuthenticateCode(CodeResponse, Client),
+        }
+
+        enum State {
+            Starting,
+            Ready(mpsc::Receiver<Input>),
+        }
+
+        pub fn authenticate_code() -> Subscription<Event> {
+            subscription::channel("code-authenticator", 100, |mut output| async move {
+                let mut state = State::Starting;
+
+                loop {
+                    match &mut state {
+                        State::Starting => {
+                            let (sender, receiver) = mpsc::channel(100);
+
+                            output
+                                .send(Event::Ready(sender))
+                                .await
+                                .expect("failed to send input sender");
+
+                            state = State::Ready(receiver);
+                        }
+                        State::Ready(receiver) => {
+                            use iced::futures::StreamExt;
+
+                            let input = receiver.select_next_some().await;
+
+                            #[allow(irrefutable_let_patterns)]
+                            if let Input::AuthenticateCode(code_response, client) = input {
+                                let (countdown_sender, mut countdown_receiver) =
+                                    tokio::sync::mpsc::channel(code_response.expires_in as usize);
+
+                                let handle = tokio::spawn(async move {
+                                    get_token_response(
+                                        code_response.device_code,
+                                        code_response.interval,
+                                        code_response.expires_in,
+                                        client.client_id,
+                                        client.client_secret,
+                                        countdown_sender,
+                                    )
+                                    .await
+                                });
+
+                                while (countdown_receiver.recv().await).is_some() {
+                                    output
+                                        .send(Event::Progressing)
+                                        .await
+                                        .expect("failed to send the progress");
+                                }
+
+                                let token_response = handle
+                                    .await
+                                    .expect("failed to await progress handle")
+                                    .expect("failed to get token response");
+
+                                output
+                                    .send(Event::WorkFinished(token_response))
+                                    .await
+                                    .expect("failed to send work completion");
+                                state = State::Starting;
+                            }
+                        }
+                    }
+                }
+            })
         }
     }
 }

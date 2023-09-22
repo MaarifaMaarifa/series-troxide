@@ -107,7 +107,7 @@ impl Caching {
         let content = column![
             text("Series Troxide Cache")
                 .size(21)
-                .style(styles::text_styles::purple_text_theme()),
+                .style(styles::text_styles::accent_color_theme()),
             self.caching_frequency_settings_widget
                 .view()
                 .map(Message::CacheCleaningFrequency),

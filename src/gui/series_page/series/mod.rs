@@ -64,7 +64,7 @@ pub fn series_metadata<'a>(
 
     let series_name = text(series_information.name.clone())
         .size(31)
-        .style(styles::text_styles::purple_text_theme());
+        .style(styles::text_styles::accent_color_theme());
 
     let title_bar = row![
         series_name.width(Length::FillPortion(10)),

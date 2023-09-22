@@ -103,18 +103,18 @@ pub mod user_settings {
 
     const USER_SETTINGS_ADDRESS: &str = "https://api.trakt.tv/users/settings";
 
-    #[derive(Debug, Deserialize)]
+    #[derive(Debug, Deserialize, Clone)]
     pub struct UserSettings {
         pub user: User,
     }
 
-    #[derive(Debug, Deserialize)]
+    #[derive(Debug, Deserialize, Clone)]
     pub struct User {
         pub username: String,
         pub ids: Ids,
     }
 
-    #[derive(Debug, Deserialize)]
+    #[derive(Debug, Deserialize, Clone)]
     pub struct Ids {
         pub slug: String,
         pub uuid: String,
@@ -153,7 +153,7 @@ pub mod user_credentials {
     use thiserror::Error;
     use tokio::fs;
 
-    use super::ApiError;
+    use super::{authenication::TokenResponse, user_settings::UserSettings, ApiError};
 
     const CREDENTIALS_FILENAME: &str = "credentials";
 
@@ -184,7 +184,6 @@ pub mod user_credentials {
     #[derive(Debug, Clone, Default, Serialize, Deserialize)]
     pub struct Credentials {
         user: Option<User>,
-        // client: Option<Client>,
         token: Option<Token>,
     }
 
@@ -194,10 +193,36 @@ pub mod user_credentials {
         pub slug: String,
     }
 
+    impl From<UserSettings> for User {
+        fn from(value: UserSettings) -> Self {
+            Self {
+                username: value.user.username,
+                slug: value.user.ids.slug,
+            }
+        }
+    }
+
     #[derive(Debug, Clone, Default, Serialize, Deserialize)]
     pub struct Client {
         pub client_id: String,
         pub client_secret: String,
+    }
+
+    impl Client {
+        /// Loads the `Client` from the Environment Variables
+        pub fn new() -> Result<Self, CredentialsError> {
+            use std::env;
+
+            let client_id = env::var("CLIENT-ID")
+                .map_err(|err| CredentialsError::EnvironmentVariable("CLIENT-ID", err))?;
+            let client_secret = env::var("CLIENT-SECRET")
+                .map_err(|err| CredentialsError::EnvironmentVariable("CLIENT-SECRET", err))?;
+
+            Ok(Self {
+                client_id,
+                client_secret,
+            })
+        }
     }
 
     #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -211,11 +236,11 @@ pub mod user_credentials {
     impl Token {
         pub fn get_access_token(&self) -> Result<&str, CredentialsError> {
             let current_time = chrono::Local::now();
-            let duration = current_time - self.creation_time;
+            let duration_since_creation = current_time - self.creation_time;
 
             let token_expiration_duration = chrono::Duration::seconds(self.token_expiration_secs);
 
-            if duration < token_expiration_duration {
+            if duration_since_creation > token_expiration_duration {
                 Err(CredentialsError::ExpiredAccessToken)
             } else {
                 Ok(&self.access_token)
@@ -223,110 +248,65 @@ pub mod user_credentials {
         }
     }
 
-    impl Credentials {
-        pub async fn new() -> Result<Self, CredentialsError> {
-            if let Some(proj_dir) = ProjectDirs::from("", "", env!("CARGO_PKG_NAME")) {
-                let mut credentials_filepath = std::path::PathBuf::from(&proj_dir.data_dir());
-                credentials_filepath.push(CREDENTIALS_FILENAME);
-
-                match fs::read_to_string(&credentials_filepath).await {
-                    Ok(file_content) => {
-                        return Ok(serde_json::from_str(&file_content)
-                            .expect("file content should be a valid json"));
-                    }
-                    Err(err) => {
-                        if let std::io::ErrorKind::NotFound = err.kind() {
-                            let credentials = Credentials::default();
-                            fs::write(
-                                credentials_filepath,
-                                serde_json::to_string_pretty(&credentials)
-                                    .expect("credentials should be serializable"),
-                            )
-                            .await
-                            .map_err(CredentialsError::Io)?;
-                            return Ok(credentials);
-                        } else {
-                            return Err(CredentialsError::Io(err));
-                        }
-                    }
-                }
+    impl From<TokenResponse> for Token {
+        fn from(value: TokenResponse) -> Self {
+            Self {
+                access_token: value.access_token,
+                refresh_token: value.refresh_token,
+                token_expiration_secs: value.expires_in,
+                creation_time: chrono::Local::now(),
             }
-            Err(CredentialsError::UndeterminedCredentialsFilepath)
-        }
-
-        // /// Loads all the fields in the `Credentials` in a proper sequence without panic
-        pub async fn full_load(
-            &mut self,
-            token: Token,
-            client_id: &'static str,
-        ) -> Result<(), CredentialsError> {
-            // self.load_client(load_client()?);
-            self.load_token(token);
-            self.load_user_details(client_id).await?;
-            Ok(())
-        }
-
-        pub fn payload(&self) -> Option<(&User, &Token)> {
-            // self.user.is_some() /*&& self.client.is_some()*/ && self.token.is_some()
-            Some((self.user.as_ref()?, self.token.as_ref()?))
-        }
-
-        /// Loads the `User` into the `Credentials`
-        ///
-        /// # Panics
-        /// panics if the `Client` and `Token` in the `Credentials` are`None`.
-        /// To prevent panic, perform `Credentials::load_client` and `Credentials::load_token` first.
-        pub async fn load_user_details(
-            &mut self,
-            client_id: &'static str,
-        ) -> Result<(), CredentialsError> {
-            use super::user_settings;
-
-            // let client_id = self.client.clone().unwrap().client_id.leak();
-            let access_token = self.token.clone().unwrap().access_token;
-            let user_settings = user_settings::get_user_settings(client_id, access_token)
-                .await
-                .map_err(CredentialsError::Api)?;
-
-            self.user = Some(User {
-                username: user_settings.user.username,
-                slug: user_settings.user.ids.slug,
-            });
-            Ok(())
-        }
-
-        /// Loads the `Token` into the `Credentials`
-        pub fn load_token(&mut self, token: Token) {
-            self.token = Some(token);
-        }
-
-        // /// Loads the `Client` into the `Credentials`
-        // pub fn load_client(&mut self, client: Client) {
-        //     self.client = Some(client);
-        // }
-
-        // pub fn get_client_id(&self) -> Option<&str> {
-        //     self.client.as_ref().map(|client| client.client_id.as_str())
-        // }
-
-        pub fn get_user_slug(&self) -> Option<&str> {
-            self.user.as_ref().map(|user| user.slug.as_str())
         }
     }
 
-    /// Loads the `Client` into the `Credentials`
-    pub fn load_client() -> Result<Client, CredentialsError> {
-        use std::env;
+    impl Credentials {
+        /// Construct Credentials from it's data
+        pub fn new(token: Token, user: User) -> Self {
+            Self {
+                token: Some(token),
+                user: Some(user),
+            }
+        }
 
-        let client_id = env::var("CLIENT-ID")
-            .map_err(|err| CredentialsError::EnvironmentVariable("CLIENT-ID", err))?;
-        let client_secret = env::var("CLIENT-SECRET")
-            .map_err(|err| CredentialsError::EnvironmentVariable("CLIENT-SECRET", err))?;
+        /// Loads the User credentials from a  file
+        pub async fn load_from_file() -> Result<Self, CredentialsError> {
+            let credentials_filepath = Self::credentials_filepath()
+                .ok_or(CredentialsError::UndeterminedCredentialsFilepath)?;
 
-        Ok(Client {
-            client_id,
-            client_secret,
-        })
+            fs::read_to_string(&credentials_filepath)
+                .await
+                .map(|file_content| {
+                    serde_json::from_str(&file_content)
+                        .expect("file content should be a valid json")
+                })
+                .map_err(CredentialsError::Io)
+        }
+
+        /// Get the filepath of the credentials file
+        fn credentials_filepath() -> Option<std::path::PathBuf> {
+            ProjectDirs::from("", "", env!("CARGO_PKG_NAME")).map(|proj_dir| {
+                let mut credentials_filepath = std::path::PathBuf::from(&proj_dir.data_dir());
+                credentials_filepath.push(CREDENTIALS_FILENAME);
+                credentials_filepath
+            })
+        }
+
+        /// Save the credentials to the filesystem
+        pub async fn save_credentials(&self) -> Result<(), CredentialsError> {
+            let credentials_filepath = Self::credentials_filepath()
+                .ok_or(CredentialsError::UndeterminedCredentialsFilepath)?;
+            fs::write(
+                credentials_filepath,
+                serde_json::to_string_pretty(self).expect("credentials should be serializable"),
+            )
+            .await
+            .map_err(CredentialsError::Io)
+        }
+
+        /// Get the `Credential`'s data
+        pub fn get_data(&self) -> Option<(&User, &Token)> {
+            Some((self.user.as_ref()?, self.token.as_ref()?))
+        }
     }
 }
 
@@ -501,6 +481,7 @@ pub mod authenication {
     use super::{trakt_data::TraktStatusCode, ApiError};
     use reqwest::header::HeaderValue;
     use serde::{Deserialize, Serialize};
+    use tokio::sync::mpsc;
 
     /// The url to retrieve device code
     const DEVICE_CODE_URL: &str = "https://api.trakt.tv/oauth/device/code";
@@ -522,11 +503,11 @@ pub mod authenication {
     /// Response body after retrieving `CodeResponse`
     #[derive(Deserialize, Debug, Clone)]
     pub struct CodeResponse {
-        device_code: String,
-        user_code: String,
-        verification_url: String,
-        expires_in: u32,
-        interval: u32,
+        pub device_code: String,
+        pub user_code: String,
+        pub verification_url: String,
+        pub expires_in: u32,
+        pub interval: u32,
     }
 
     /// Request body for retrieving `TokenResponse`
@@ -548,7 +529,7 @@ pub mod authenication {
     }
 
     /// Response body after retrieving `TokenResponse`
-    #[derive(Deserialize, Debug)]
+    #[derive(Deserialize, Debug, Clone)]
     pub struct TokenResponse {
         pub access_token: String,
         pub token_type: String,
@@ -564,12 +545,15 @@ pub mod authenication {
         expires_in: u32,
         client_id: String,
         client_secret: String,
+        countdown_sender: mpsc::Sender<()>,
     ) -> Result<Option<TokenResponse>, ApiError> {
         let token_request_body = TokenRequestBody::new(device_code, client_id, client_secret);
 
         let client = reqwest::Client::new();
 
         let mut text = None;
+
+        let expires_in = expires_in / interval;
 
         for current_second in 0..expires_in {
             let mut headers = reqwest::header::HeaderMap::new();
@@ -594,9 +578,18 @@ pub mod authenication {
                 break;
             };
 
-            println!("{}/{} attempt", current_second + 1, expires_in);
-
             tokio::time::sleep(std::time::Duration::from_secs(interval as u64)).await;
+
+            println!(
+                "{}/{} attempt for token request",
+                current_second + 1,
+                expires_in
+            );
+
+            if let Err(err) = countdown_sender.send(()).await {
+                tracing::info!("stopping trakt token request as: {}", err);
+                break;
+            };
         }
 
         Ok(text.map(|text| serde_json::from_str(&text).expect("text should be valid json")))
@@ -621,33 +614,6 @@ pub mod authenication {
 
         serde_json::from_str(&text).unwrap()
     }
-
-    // /// Authenticates the program returning `Token` facilitating import and export of user tracked shows in trakt
-    // pub async fn authenticate(
-    //     client_id: String,
-    //     client_secret: String,
-    // ) -> Result<Option<Token>, ApiError> {
-    //     let code_response = get_device_code_response(client_id.clone()).await;
-
-    //     println!("code response:\n{:#?}", code_response);
-
-    //     let token = get_token_response(
-    //         code_response.device_code,
-    //         code_response.interval,
-    //         code_response.expires_in,
-    //         client_id,
-    //         client_secret,
-    //     )
-    //     .await?
-    //     .map(|token_response| user_credentials::Token {
-    //         access_token: token_response.access_token,
-    //         refresh_token: token_response.refresh_token,
-    //         token_expiration_secs: token_response.expires_in,
-    //         creation_time: chrono::Local::now(),
-    //     });
-
-    //     Ok(token)
-    // }
 }
 
 #[derive(Debug, Error)]

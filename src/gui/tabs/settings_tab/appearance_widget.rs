@@ -24,7 +24,7 @@ impl Appearance {
     pub fn view(&self) -> Element<Message, Renderer> {
         let content = column![text("Appearance")
             .size(21)
-            .style(styles::text_styles::purple_text_theme())]
+            .style(styles::text_styles::accent_color_theme())]
         .padding(5)
         .spacing(5);
 

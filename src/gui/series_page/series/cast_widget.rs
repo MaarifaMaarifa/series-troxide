@@ -278,7 +278,7 @@ mod cast_poster {
 
             cast_info = cast_info.push(column![
                 text(&self.cast.person.name)
-                    .style(styles::text_styles::purple_text_theme())
+                    .style(styles::text_styles::accent_color_theme())
                     .size(15),
                 text(format!("as {}", &self.cast.character.name)).size(11)
             ]);

@@ -252,7 +252,7 @@ mod search_result {
             let mut column = column![
                 text(&self.search_result.show.name)
                     .size(16)
-                    .style(styles::text_styles::purple_text_theme()),
+                    .style(styles::text_styles::accent_color_theme()),
                 genres
             ];
 
