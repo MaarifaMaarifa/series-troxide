@@ -303,6 +303,15 @@ pub mod user_credentials {
             .map_err(CredentialsError::Io)
         }
 
+        /// Removes the `Credentials` by removing it's saved file
+        pub async fn remove_credentials() -> Result<(), CredentialsError> {
+            let credentials_filepath = Self::credentials_filepath()
+                .ok_or(CredentialsError::UndeterminedCredentialsFilepath)?;
+            fs::remove_file(credentials_filepath)
+                .await
+                .map_err(CredentialsError::Io)
+        }
+
         /// Get the `Credential`'s data
         pub fn get_data(&self) -> Option<(&User, &Token)> {
             Some((self.user.as_ref()?, self.token.as_ref()?))

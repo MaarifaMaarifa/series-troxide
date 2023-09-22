@@ -447,13 +447,9 @@ mod trakt_integration {
                     if let Some(SetupStep::Confirmation(confirmation_page)) =
                         self.setup_page.as_mut()
                     {
-                        // Avoiding the check for the next page as the confirmation page
-                        // can set the next page with None implying account setup completion
-                        let command = confirmation_page
+                        confirmation_page
                             .update(message, &mut next_page)
-                            .map(Message::ConfirmationPage);
-                        self.setup_page = next_page;
-                        return command;
+                            .map(Message::ConfirmationPage)
                     } else {
                         Command::none()
                     }
@@ -461,7 +457,11 @@ mod trakt_integration {
             };
 
             if let Some(next_page) = next_page {
-                self.setup_page = Some(next_page)
+                if let SetupStep::None = next_page {
+                    self.setup_page = None;
+                } else {
+                    self.setup_page = Some(next_page);
+                }
             };
 
             command
@@ -480,6 +480,7 @@ mod trakt_integration {
                     SetupStep::Confirmation(confirmation_page) => {
                         confirmation_page.view().map(Message::ConfirmationPage)
                     }
+                    SetupStep::None => unreachable!("SetupStep::None is only used for setup pages to go to the start not to display a view"),
                 };
                 column![setup_page, button("cancel").on_press(Message::Cancel),]
                     .spacing(5)
@@ -498,6 +499,7 @@ mod trakt_integration {
     }
 
     enum SetupStep {
+        None,
         Start(StartPage),
         Client(ClientPage),
         ProgramAuthentication(ProgramAuthenticationPage),
@@ -507,6 +509,8 @@ mod trakt_integration {
     #[derive(Debug, Clone)]
     pub enum StartPageMessage {
         ConnectAccount,
+        RemoveAccount,
+        AccountRemoved,
     }
 
     struct StartPage {
@@ -527,6 +531,18 @@ mod trakt_integration {
                 StartPageMessage::ConnectAccount => {
                     let client_page = ClientPage::new();
                     *next_page = Some(SetupStep::Client(client_page));
+                    Command::none()
+                }
+                StartPageMessage::RemoveAccount => {
+                    Command::perform(Credentials::remove_credentials(), |res| {
+                        if let Err(err) = res {
+                            tracing::error!("failed to remove credentials file: {}", err)
+                        };
+                        StartPageMessage::AccountRemoved
+                    })
+                }
+                StartPageMessage::AccountRemoved => {
+                    *next_page = Some(SetupStep::None);
                     Command::none()
                 }
             }
@@ -550,6 +566,7 @@ mod trakt_integration {
                     ]
                     .spacing(10),
                     button("Reconnect Trakt Account").on_press(StartPageMessage::ConnectAccount),
+                    button("Remove Trakt Account").on_press(StartPageMessage::RemoveAccount),
                 ]
                 .spacing(5)
                 .align_items(Alignment::Center)
@@ -869,8 +886,7 @@ mod trakt_integration {
                     })
                 }
                 ConfirmationPageMessage::CredentialsSaved => {
-                    *next_page = None;
-                    println!("Setting Setup page to None");
+                    *next_page = Some(SetupStep::None);
                     Command::none()
                 }
             }
