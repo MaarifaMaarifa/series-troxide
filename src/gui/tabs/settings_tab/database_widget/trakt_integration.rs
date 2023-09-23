@@ -233,6 +233,8 @@ pub enum ClientPageMessage {
     ClientIdChanged(String),
     ClientSecretChanged(String),
     CodeReceived(CodeResponse),
+    ToggleClientIdView,
+    ToggleClientSecretView,
     Submit,
 }
 
@@ -240,19 +242,19 @@ struct ClientPage {
     client: Result<Client, CredentialsError>,
     client_id: String,
     client_secret: String,
-    can_submit: bool,
+    show_client_id: bool,
+    show_client_secret: bool,
     code_loading: bool,
 }
 
 impl ClientPage {
     fn new() -> Self {
-        let client = user_credentials::Client::new();
-        let can_submit = client.is_ok();
         Self {
-            client,
+            client: user_credentials::Client::new(),
             client_id: String::new(),
             client_secret: String::new(),
-            can_submit,
+            show_client_id: false,
+            show_client_secret: false,
             code_loading: false,
         }
     }
@@ -262,18 +264,16 @@ impl ClientPage {
         message: ClientPageMessage,
         next_page: &mut Option<SetupStep>,
     ) -> Command<ClientPageMessage> {
-        let command = match message {
+        match message {
             ClientPageMessage::ClientIdChanged(text) => {
                 self.client_id = text;
-                Command::none()
             }
             ClientPageMessage::ClientSecretChanged(text) => {
                 self.client_secret = text;
-                Command::none()
             }
             ClientPageMessage::Submit => {
                 self.code_loading = true;
-                match &self.client {
+                return match &self.client {
                     Ok(client) => Command::perform(
                         authenication::get_device_code_response(client.client_id.clone()),
                         ClientPageMessage::CodeReceived,
@@ -282,7 +282,7 @@ impl ClientPage {
                         authenication::get_device_code_response(self.client_id.clone()),
                         ClientPageMessage::CodeReceived,
                     ),
-                }
+                };
             }
             ClientPageMessage::CodeReceived(code_response) => {
                 let client = if let Ok(client) = self.client.as_ref() {
@@ -297,13 +297,15 @@ impl ClientPage {
                 *next_page = Some(SetupStep::ProgramAuthentication(
                     ProgramAuthenticationPage::new(code_response, client),
                 ));
-                Command::none()
+            }
+            ClientPageMessage::ToggleClientIdView => {
+                self.show_client_id = !self.show_client_id;
+            }
+            ClientPageMessage::ToggleClientSecretView => {
+                self.show_client_secret = !self.show_client_secret;
             }
         };
-
-        self.can_submit = !self.client_id.is_empty() && !self.client_secret.is_empty();
-
-        command
+        Command::none()
     }
 
     fn view(&self) -> Element<'_, ClientPageMessage, Renderer> {
@@ -311,7 +313,8 @@ impl ClientPage {
             Spinner::new().into()
         } else {
             let mut submit_button = button("Submit");
-            if self.can_submit {
+            if (!self.client_id.is_empty() && !self.client_secret.is_empty()) || self.client.is_ok()
+            {
                 submit_button = submit_button.on_press(ClientPageMessage::Submit)
             };
 
@@ -334,10 +337,20 @@ impl ClientPage {
                 .align_items(Alignment::Center),
                 Err(_) => column![
                     text("Enter your Trakt client information"),
-                    text_input("Client ID", &self.client_id)
-                        .on_input(ClientPageMessage::ClientIdChanged),
-                    text_input("Client Secret", &self.client_secret)
-                        .on_input(ClientPageMessage::ClientSecretChanged),
+                    Self::client_field_input(
+                        "Client ID",
+                        &self.client_id,
+                        self.show_client_id,
+                        ClientPageMessage::ClientIdChanged,
+                        ClientPageMessage::ToggleClientIdView
+                    ),
+                    Self::client_field_input(
+                        "Client Secret",
+                        &self.client_secret,
+                        self.show_client_secret,
+                        ClientPageMessage::ClientSecretChanged,
+                        ClientPageMessage::ToggleClientSecretView
+                    ),
                 ]
                 .width(500)
                 .spacing(5)
@@ -349,6 +362,32 @@ impl ClientPage {
                 .spacing(5)
                 .into()
         }
+    }
+
+    fn client_field_input<'a, F>(
+        placeholder: &'a str,
+        text_input_value: &'a str,
+        show_client_field: bool,
+        text_input_message: F,
+        button_message: ClientPageMessage,
+    ) -> iced::widget::Row<'a, ClientPageMessage, Renderer>
+    where
+        F: 'a + Fn(String) -> ClientPageMessage,
+    {
+        let text_input = text_input(placeholder, text_input_value).on_input(text_input_message);
+
+        let (button_content, text_input) = match show_client_field {
+            true => ("hide", text_input),
+            false => ("show", text_input.password()),
+        };
+
+        row![
+            text_input,
+            button(button_content)
+                .style(styles::button_styles::transparent_button_with_rounded_border_theme())
+                .on_press(button_message)
+        ]
+        .spacing(5)
     }
 }
 
