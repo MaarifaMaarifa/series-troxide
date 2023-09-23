@@ -235,6 +235,7 @@ pub enum ClientPageMessage {
     CodeReceived(CodeResponse),
     ToggleClientIdView,
     ToggleClientSecretView,
+    ToggleClientInformation,
     Submit,
 }
 
@@ -244,6 +245,7 @@ struct ClientPage {
     client_secret: String,
     show_client_id: bool,
     show_client_secret: bool,
+    show_client_information: bool,
     code_loading: bool,
 }
 
@@ -255,6 +257,7 @@ impl ClientPage {
             client_secret: String::new(),
             show_client_id: false,
             show_client_secret: false,
+            show_client_information: false,
             code_loading: false,
         }
     }
@@ -304,6 +307,9 @@ impl ClientPage {
             ClientPageMessage::ToggleClientSecretView => {
                 self.show_client_secret = !self.show_client_secret;
             }
+            ClientPageMessage::ToggleClientInformation => {
+                self.show_client_information = !self.show_client_information
+            }
         };
         Command::none()
     }
@@ -312,31 +318,62 @@ impl ClientPage {
         if self.code_loading {
             Spinner::new().into()
         } else {
-            let mut submit_button = button("Submit");
+            let button_content = match self.client.is_ok() {
+                true => "continue setup",
+                false => "submit",
+            };
+
+            let mut submit_button = button(button_content);
+
             if (!self.client_id.is_empty() && !self.client_secret.is_empty()) || self.client.is_ok()
             {
                 submit_button = submit_button.on_press(ClientPageMessage::Submit)
             };
 
             let content = match &self.client {
-                Ok(client) => column![
-                    text("Current client information").size(18),
-                    row![
-                        text("Client ID: "),
-                        text(client.client_id.as_str())
-                            .style(styles::text_styles::accent_color_theme())
+                Ok(client) => {
+                    let (content, button_content): (
+                        Element<'_, ClientPageMessage, Renderer>,
+                        &str,
+                    ) = if self.show_client_information {
+                        (
+                            column![
+                                text("client information").size(18),
+                                row![
+                                    text("Client ID: "),
+                                    text(client.client_id.as_str())
+                                        .style(styles::text_styles::accent_color_theme())
+                                ]
+                                .spacing(5),
+                                row![
+                                    text("Client Secret: "),
+                                    text(client.client_secret.as_str())
+                                        .style(styles::text_styles::accent_color_theme())
+                                ]
+                                .spacing(5)
+                            ]
+                            .align_items(Alignment::Center)
+                            .into(),
+                            "hide",
+                        )
+                    } else {
+                        (
+                            text("client information has been loaded from environment variables")
+                                .into(),
+                            "show",
+                        )
+                    };
+
+                    column![
+                        content,
+                        button(button_content).on_press(ClientPageMessage::ToggleClientInformation)
                     ]
-                    .spacing(5),
-                    row![
-                        text("Client Secret: "),
-                        text(client.client_secret.as_str())
-                            .style(styles::text_styles::accent_color_theme())
-                    ]
-                    .spacing(5),
-                ]
-                .align_items(Alignment::Center),
+                    .spacing(5)
+                    .align_items(Alignment::Center)
+                }
                 Err(_) => column![
-                    text("Enter your Trakt client information"),
+                    text("Trakt client information could not be loaded from environment variables"),
+                    text("manually enter your Trakt client information"),
                     Self::client_field_input(
                         "Client ID",
                         &self.client_id,
