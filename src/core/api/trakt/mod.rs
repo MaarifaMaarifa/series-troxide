@@ -583,7 +583,12 @@ pub mod authenication {
                 .error_if_different(response.status().into())
                 .is_ok()
             {
-                text = Some(response.text().await.unwrap());
+                text = Some(
+                    response
+                        .text()
+                        .await
+                        .expect("failed to get text from the response"),
+                );
                 break;
             };
 
@@ -604,7 +609,7 @@ pub mod authenication {
         Ok(text.map(|text| serde_json::from_str(&text).expect("text should be valid json")))
     }
 
-    pub async fn get_device_code_response(client_id: String) -> CodeResponse {
+    pub async fn get_device_code_response(client_id: String) -> Result<CodeResponse, ApiError> {
         let mut headers = reqwest::header::HeaderMap::new();
         headers.insert("Content-Type", HeaderValue::from_static("application/json"));
 
@@ -617,11 +622,16 @@ pub mod authenication {
             .body(json_body)
             .send()
             .await
-            .unwrap();
+            .map_err(ApiError::Network)?;
 
-        let text = response.text().await.unwrap();
+        TraktStatusCode::Success.error_if_different(response.status().into())?;
 
-        serde_json::from_str(&text).unwrap()
+        let text = response
+            .text()
+            .await
+            .expect("failed to get text from response");
+
+        Ok(serde_json::from_str(&text).expect("text should be serializable to json"))
     }
 }
 

@@ -232,7 +232,7 @@ impl StartPage {
 pub enum ClientPageMessage {
     ClientIdChanged(String),
     ClientSecretChanged(String),
-    CodeReceived(CodeResponse),
+    CodeReceived(Result<CodeResponse, String>),
     ToggleClientIdView,
     ToggleClientSecretView,
     ToggleClientInformation,
@@ -247,6 +247,7 @@ struct ClientPage {
     show_client_secret: bool,
     show_client_information: bool,
     code_loading: bool,
+    response_error: Option<String>,
 }
 
 impl ClientPage {
@@ -259,6 +260,7 @@ impl ClientPage {
             show_client_secret: false,
             show_client_information: false,
             code_loading: false,
+            response_error: None,
         }
     }
 
@@ -279,28 +281,31 @@ impl ClientPage {
                 return match &self.client {
                     Ok(client) => Command::perform(
                         authenication::get_device_code_response(client.client_id.clone()),
-                        ClientPageMessage::CodeReceived,
+                        |res| ClientPageMessage::CodeReceived(res.map_err(|err| err.to_string())),
                     ),
                     Err(_) => Command::perform(
                         authenication::get_device_code_response(self.client_id.clone()),
-                        ClientPageMessage::CodeReceived,
+                        |res| ClientPageMessage::CodeReceived(res.map_err(|err| err.to_string())),
                     ),
                 };
             }
-            ClientPageMessage::CodeReceived(code_response) => {
-                let client = if let Ok(client) = self.client.as_ref() {
-                    client.clone()
-                } else {
-                    Client {
-                        client_id: self.client_id.clone(),
-                        client_secret: self.client_secret.clone(),
-                    }
-                };
+            ClientPageMessage::CodeReceived(code_response) => match code_response {
+                Ok(code_response) => {
+                    let client = if let Ok(client) = self.client.as_ref() {
+                        client.clone()
+                    } else {
+                        Client {
+                            client_id: self.client_id.clone(),
+                            client_secret: self.client_secret.clone(),
+                        }
+                    };
 
-                *next_page = Some(SetupStep::ProgramAuthentication(
-                    ProgramAuthenticationPage::new(code_response, client),
-                ));
-            }
+                    *next_page = Some(SetupStep::ProgramAuthentication(
+                        ProgramAuthenticationPage::new(code_response, client),
+                    ));
+                }
+                Err(err) => self.response_error = Some(err),
+            },
             ClientPageMessage::ToggleClientIdView => {
                 self.show_client_id = !self.show_client_id;
             }
@@ -315,7 +320,11 @@ impl ClientPage {
     }
 
     fn view(&self) -> Element<'_, ClientPageMessage, Renderer> {
-        if self.code_loading {
+        if let Some(error_msg) = self.response_error.as_ref() {
+            text(format!("Error: {}", error_msg))
+                .style(styles::text_styles::red_text_theme())
+                .into()
+        } else if self.code_loading {
             Spinner::new().into()
         } else {
             let button_content = match self.client.is_ok() {
