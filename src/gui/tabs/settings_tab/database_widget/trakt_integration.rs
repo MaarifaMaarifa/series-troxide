@@ -1,8 +1,12 @@
-use iced::widget::{button, column, horizontal_space, row, svg, text, text_input};
+use iced::widget::{
+    button, column, horizontal_space, progress_bar, row, svg, text, text_input, vertical_space,
+    Column,
+};
 use iced::{Alignment, Command, Element, Length, Renderer};
 use iced_aw::Spinner;
 
 use crate::core::api::trakt::authenication::{self, CodeResponse, TokenResponse};
+use crate::core::api::trakt::trakt_data::TraktShow;
 use crate::core::api::trakt::user_credentials::{self, Client, Credentials, CredentialsError};
 use crate::core::api::trakt::user_settings::{self, UserSettings};
 use crate::gui::assets::{get_static_cow_from_asset, icons::TRAKT_ICON_RED};
@@ -14,23 +18,40 @@ pub enum Message {
     ClientPage(ClientPageMessage),
     ProgramAuthenticationPage(ProgramAuthenticationPageMessage),
     ConfirmationPage(ConfirmationPageMessage),
+    ImportPage(ImportPageMessage),
     LoadCredentials,
     CredentialsLoaded(Credentials),
+
+    SyncTraktData,
     Cancel,
 }
 
 pub struct TraktIntegration {
     setup_page: Option<SetupStep>,
+    sync_trakt_account: bool,
 }
 
 impl TraktIntegration {
     pub fn new() -> Self {
-        Self { setup_page: None }
+        Self {
+            setup_page: None,
+            sync_trakt_account: false,
+        }
     }
 
     pub fn subscription(&self) -> iced::Subscription<Message> {
-        if let Some(SetupStep::ProgramAuthentication(page)) = self.setup_page.as_ref() {
-            page.subscription().map(Message::ProgramAuthenticationPage)
+        if let Some(setup_page) = self.setup_page.as_ref() {
+            match setup_page {
+                SetupStep::ProgramAuthentication(program_authentication_page) => {
+                    program_authentication_page
+                        .subscription()
+                        .map(Message::ProgramAuthenticationPage)
+                }
+                SetupStep::Import(import_page) => {
+                    import_page.subscription().map(Message::ImportPage)
+                }
+                _ => iced::Subscription::none(),
+            }
         } else {
             iced::Subscription::none()
         }
@@ -40,15 +61,19 @@ impl TraktIntegration {
         let mut next_page = None;
 
         let command = match message {
-            Message::LoadCredentials => Command::perform(Credentials::load_from_file(), |res| {
-                let credentials = res.unwrap_or_else(|err| {
-                    tracing::warn!("failed to load the credentials from the file: {}", err);
-                    Credentials::default()
-                });
-                Message::CredentialsLoaded(credentials)
-            }),
+            Message::LoadCredentials => Self::load_credentials(),
             Message::CredentialsLoaded(credentials) => {
-                self.setup_page = Some(SetupStep::Start(StartPage::new(credentials)));
+                let start_page_mode = if self.sync_trakt_account {
+                    StartPageMode::TraktDataSync(Client::new().map_err(|err| err.to_string()))
+                } else {
+                    StartPageMode::AccountConfiguration
+                };
+
+                self.setup_page = Some(SetupStep::Start(StartPage::new(
+                    credentials,
+                    start_page_mode,
+                )));
+                self.sync_trakt_account = false;
                 Command::none()
             }
             Message::Cancel => {
@@ -93,6 +118,17 @@ impl TraktIntegration {
                     Command::none()
                 }
             }
+            Message::SyncTraktData => {
+                self.sync_trakt_account = true;
+                Self::load_credentials()
+            }
+            Message::ImportPage(message) => {
+                if let Some(SetupStep::Import(import_page)) = self.setup_page.as_mut() {
+                    import_page.update(message).map(Message::ImportPage)
+                } else {
+                    Command::none()
+                }
+            }
         };
 
         if let Some(next_page) = next_page {
@@ -104,6 +140,16 @@ impl TraktIntegration {
         };
 
         command
+    }
+
+    fn load_credentials() -> Command<Message> {
+        Command::perform(Credentials::load_from_file(), |res| {
+            let credentials = res.unwrap_or_else(|err| {
+                tracing::warn!("failed to load the credentials from the file: {}", err);
+                Credentials::default()
+            });
+            Message::CredentialsLoaded(credentials)
+        })
     }
 
     pub fn view(&self) -> Element<'_, Message, Renderer> {
@@ -119,6 +165,7 @@ impl TraktIntegration {
                 SetupStep::Confirmation(confirmation_page) => {
                     confirmation_page.view().map(Message::ConfirmationPage)
                 }
+                SetupStep::Import(import_page) => import_page.view().map(Message::ImportPage),
                 SetupStep::None => unreachable!("SetupStep::None is only used for setup pages to go to the start not to display a view"),
             };
             column![setup_page, button("cancel").on_press(Message::Cancel),]
@@ -130,7 +177,11 @@ impl TraktIntegration {
             row![
                 text("Import series data from your Trakt account"),
                 horizontal_space(Length::Fill),
-                button("Configure Trakt integration").on_press(Message::LoadCredentials),
+                row![
+                    button("Sync Trakt Data").on_press(Message::SyncTraktData),
+                    button("Configure Trakt integration").on_press(Message::LoadCredentials),
+                ]
+                .spacing(5),
             ]
             .into()
         }
@@ -143,6 +194,7 @@ enum SetupStep {
     Client(ClientPage),
     ProgramAuthentication(ProgramAuthenticationPage),
     Confirmation(ConfirmationPage),
+    Import(ImportPage),
 }
 
 #[derive(Debug, Clone)]
@@ -150,15 +202,26 @@ pub enum StartPageMessage {
     ConnectAccount,
     RemoveAccount,
     AccountRemoved,
+    ClientManualSetup,
+    ImportTraktData,
+}
+
+enum StartPageMode {
+    AccountConfiguration,
+    TraktDataSync(Result<Client, String>),
 }
 
 struct StartPage {
     credentials: Credentials,
+    page_mode: StartPageMode,
 }
 
 impl StartPage {
-    pub fn new(credentials: Credentials) -> Self {
-        Self { credentials }
+    pub fn new(credentials: Credentials, start_page_mode: StartPageMode) -> Self {
+        Self {
+            credentials,
+            page_mode: start_page_mode,
+        }
     }
 
     pub fn update(
@@ -168,7 +231,7 @@ impl StartPage {
     ) -> Command<StartPageMessage> {
         match message {
             StartPageMessage::ConnectAccount => {
-                let client_page = ClientPage::new();
+                let client_page = ClientPage::new(ClientPageMode::AccountConfiguration);
                 *next_page = Some(SetupStep::Client(client_page));
                 Command::none()
             }
@@ -184,11 +247,43 @@ impl StartPage {
                 *next_page = Some(SetupStep::None);
                 Command::none()
             }
+            StartPageMessage::ClientManualSetup => {
+                let client_page = ClientPage::new(ClientPageMode::SettingEnvironmentVariables);
+                *next_page = Some(SetupStep::Client(client_page));
+                Command::none()
+            }
+            StartPageMessage::ImportTraktData => match &self.page_mode {
+                StartPageMode::AccountConfiguration => unreachable!(
+                    "importing trakt data is only triggered in StartPageMode::TraktDataSync"
+                ),
+                StartPageMode::TraktDataSync(client) => {
+                    let client = client.as_ref().expect("client should be ok at this point");
+                    let slug = self.credentials.get_data().unwrap().0.slug.clone();
+                    let import_page = ImportPage::new(client.client_id.clone(), slug);
+                    *next_page = Some(SetupStep::Import(import_page));
+                    Command::none()
+                }
+            },
         }
     }
 
     pub fn view(&self) -> Element<'_, StartPageMessage, Renderer> {
-        let content = if let Some((user, token)) = self.credentials.get_data() {
+        let content = match &self.page_mode {
+            StartPageMode::AccountConfiguration => self.content_when_configuring_account(),
+            StartPageMode::TraktDataSync(client) => self.content_when_syncing_data(client),
+        };
+
+        let trakt_icon_handle = svg::Handle::from_memory(get_static_cow_from_asset(TRAKT_ICON_RED));
+        let trakt_icon = svg(trakt_icon_handle).height(50);
+
+        column![trakt_icon, content]
+            .align_items(Alignment::Center)
+            .spacing(5)
+            .into()
+    }
+
+    fn content_when_configuring_account(&self) -> Element<'_, StartPageMessage, Renderer> {
+        if let Some((user, token)) = self.credentials.get_data() {
             column![
                 text("Trakt Account Status").size(18),
                 row![
@@ -216,15 +311,39 @@ impl StartPage {
             ]
             .spacing(2)
             .align_items(Alignment::Center)
-        };
+        }
+        .into()
+    }
 
-        let trakt_icon_handle = svg::Handle::from_memory(get_static_cow_from_asset(TRAKT_ICON_RED));
-        let trakt_icon = svg(trakt_icon_handle).height(50);
-
-        column![trakt_icon, content]
+    fn content_when_syncing_data(
+        &self,
+        client: &Result<Client, String>,
+    ) -> Element<'_, StartPageMessage, Renderer> {
+        match client {
+            Ok(_) => {
+                if let Some((_, token)) = self.credentials.get_data() {
+                    if token.get_access_token().is_ok() {
+                        button("Import Trakt data")
+                            .on_press(StartPageMessage::ImportTraktData)
+                            .into()
+                    } else {
+                        text("Trakt token has expired, reconfigure your account first").into()
+                    }
+                } else {
+                    text("No Trakt account configured").into()
+                }
+            }
+            Err(err) => column![
+                text(err).style(styles::text_styles::red_text_theme()),
+                text("In order to sync your trakt account, Client information must be configured"),
+                text("through environment variables"),
+                vertical_space(5),
+                button("Setup client information manually")
+                    .on_press(StartPageMessage::ClientManualSetup),
+            ]
             .align_items(Alignment::Center)
-            .spacing(5)
-            .into()
+            .into(),
+        }
     }
 }
 
@@ -239,6 +358,11 @@ pub enum ClientPageMessage {
     Submit,
 }
 
+enum ClientPageMode {
+    AccountConfiguration,
+    SettingEnvironmentVariables,
+}
+
 struct ClientPage {
     client: Result<Client, CredentialsError>,
     client_id: String,
@@ -248,10 +372,11 @@ struct ClientPage {
     show_client_information: bool,
     code_loading: bool,
     response_error: Option<String>,
+    client_page_mode: ClientPageMode,
 }
 
 impl ClientPage {
-    fn new() -> Self {
+    fn new(client_page_mode: ClientPageMode) -> Self {
         Self {
             client: user_credentials::Client::new(),
             client_id: String::new(),
@@ -261,6 +386,7 @@ impl ClientPage {
             show_client_information: false,
             code_loading: false,
             response_error: None,
+            client_page_mode,
         }
     }
 
@@ -278,15 +404,27 @@ impl ClientPage {
             }
             ClientPageMessage::Submit => {
                 self.code_loading = true;
-                return match &self.client {
-                    Ok(client) => Command::perform(
-                        authenication::get_device_code_response(client.client_id.clone()),
-                        |res| ClientPageMessage::CodeReceived(res.map_err(|err| err.to_string())),
-                    ),
-                    Err(_) => Command::perform(
-                        authenication::get_device_code_response(self.client_id.clone()),
-                        |res| ClientPageMessage::CodeReceived(res.map_err(|err| err.to_string())),
-                    ),
+
+                return match self.client_page_mode {
+                    ClientPageMode::AccountConfiguration => match &self.client {
+                        Ok(client) => Command::perform(
+                            authenication::get_device_code_response(client.client_id.clone()),
+                            |res| {
+                                ClientPageMessage::CodeReceived(res.map_err(|err| err.to_string()))
+                            },
+                        ),
+                        Err(_) => Command::perform(
+                            authenication::get_device_code_response(self.client_id.clone()),
+                            |res| {
+                                ClientPageMessage::CodeReceived(res.map_err(|err| err.to_string()))
+                            },
+                        ),
+                    },
+                    ClientPageMode::SettingEnvironmentVariables => {
+                        Client::set_vars(&self.client_id, &self.client_secret);
+                        *next_page = Some(SetupStep::None);
+                        Command::none()
+                    }
                 };
             }
             ClientPageMessage::CodeReceived(code_response) => match code_response {
@@ -300,9 +438,16 @@ impl ClientPage {
                         }
                     };
 
-                    *next_page = Some(SetupStep::ProgramAuthentication(
-                        ProgramAuthenticationPage::new(code_response, client),
-                    ));
+                    match self.client_page_mode {
+                        ClientPageMode::AccountConfiguration => {
+                            *next_page = Some(SetupStep::ProgramAuthentication(
+                                ProgramAuthenticationPage::new(code_response, client),
+                            ));
+                        }
+                        ClientPageMode::SettingEnvironmentVariables => {
+                            *next_page = Some(SetupStep::None);
+                        }
+                    };
                 }
                 Err(err) => self.response_error = Some(err),
             },
@@ -629,6 +774,120 @@ impl ConfirmationPage {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum ImportPageMessage {
+    ImportEvent(trakt_data_import::Event),
+}
+
+struct ImportPage {
+    client_id: String,
+    slug: String,
+    progress: (usize, usize),
+    failed_imports: Vec<TraktShow>,
+    // `bool` to indicate when complete, `Option` to indicate import err
+    import_complete: (bool, Option<String>),
+}
+impl ImportPage {
+    fn new(client_id: String, slug: String) -> Self {
+        Self {
+            client_id,
+            slug,
+            progress: (0, 0),
+            failed_imports: vec![],
+            import_complete: (false, None),
+        }
+    }
+
+    fn subscription(&self) -> iced::Subscription<ImportPageMessage> {
+        trakt_data_import::import_trakt_data().map(ImportPageMessage::ImportEvent)
+    }
+
+    fn update(&mut self, message: ImportPageMessage) -> Command<ImportPageMessage> {
+        match message {
+            ImportPageMessage::ImportEvent(event) => match event {
+                trakt_data_import::Event::Ready(mut work_sender) => {
+                    if !self.import_complete.0 {
+                        work_sender
+                            .try_send(trakt_data_import::Input::new(
+                                self.client_id.clone(),
+                                self.slug.clone(),
+                            ))
+                            .expect("failed to start trakt data import")
+                    }
+                }
+                trakt_data_import::Event::WorkFinished(imports) => {
+                    use crate::core::database::DB;
+
+                    match imports {
+                        Ok(imports) => {
+                            imports.0.into_iter().for_each(|(series_id, mut series)| {
+                                series.mark_tracked();
+                                DB.add_series(series_id, &series)
+                            });
+                            self.failed_imports = imports.1;
+                        }
+                        Err(err) => self.import_complete.1 = Some(err),
+                    }
+                    self.import_complete.0 = true;
+                }
+                trakt_data_import::Event::Progressing(total_imports, current_import) => {
+                    self.progress = (total_imports, current_import)
+                }
+            },
+        }
+        Command::none()
+    }
+
+    fn view(&self) -> Element<'_, ImportPageMessage> {
+        let total_imports = self.progress.0;
+        let current_import = self.progress.1;
+
+        if (total_imports != current_import) && !self.import_complete.0 {
+            row![
+                text("importing").size(11),
+                progress_bar(0.0..=total_imports as f32, current_import as f32,).height(13),
+                text(format!("{} / {}", current_import, total_imports)).size(11)
+            ]
+            .spacing(10)
+            .into()
+        } else if !self.failed_imports.is_empty() && self.import_complete.0 {
+            let failed_imports = Column::with_children(
+                self.failed_imports
+                    .iter()
+                    .map(|trakt_show| {
+                        text(format!(
+                            "{} ({})",
+                            trakt_show.show.title, trakt_show.show.year
+                        ))
+                        .into()
+                    })
+                    .collect::<Vec<Element<'_, ImportPageMessage, Renderer>>>(),
+            )
+            .align_items(Alignment::Center)
+            .spacing(3);
+
+            column![
+                text("Failed imports")
+                    .size(18)
+                    .style(styles::text_styles::red_text_theme()),
+                failed_imports,
+            ]
+            .align_items(Alignment::Center)
+            .spacing(5)
+            .into()
+        } else if !self.import_complete.0 {
+            text("importing...").into()
+        } else {
+            if let Some(err) = &self.import_complete.1 {
+                text(err).style(styles::text_styles::red_text_theme())
+            } else {
+                text("import successful").style(styles::text_styles::green_text_theme())
+            }
+            .into()
+        }
+    }
+}
+
 mod code_authentication {
     use crate::core::api::trakt::authenication::{get_token_response, CodeResponse, TokenResponse};
     use crate::core::api::trakt::user_credentials::Client;
@@ -710,6 +969,115 @@ mod code_authentication {
                                 .expect("failed to send work completion");
                             state = State::Starting;
                         }
+                    }
+                }
+            }
+        })
+    }
+}
+
+mod trakt_data_import {
+    use std::mem::ManuallyDrop;
+
+    use crate::core::api::trakt::import_shows::{self, ProgressData};
+    use crate::core::api::trakt::trakt_data::TraktShow;
+    use crate::core::database::Series;
+
+    use iced::futures::channel::mpsc;
+    use iced::futures::sink::SinkExt;
+    use iced::subscription::{self, Subscription};
+
+    #[derive(Debug, Clone)]
+    pub enum Event {
+        Ready(mpsc::Sender<Input>),
+        #[allow(clippy::type_complexity)]
+        WorkFinished(Result<(Vec<(u32, ManuallyDrop<Series>)>, Vec<TraktShow>), String>),
+        /// (total_import_no, current_import_no)
+        Progressing(usize, usize),
+    }
+
+    #[derive(Debug, Clone)]
+    pub struct Input {
+        client_id: String,
+        slug: String,
+    }
+
+    impl Input {
+        pub fn new(client_id: String, slug: String) -> Self {
+            Self { client_id, slug }
+        }
+    }
+
+    enum State {
+        Starting,
+        Ready(mpsc::Receiver<Input>),
+    }
+
+    pub fn import_trakt_data() -> Subscription<Event> {
+        subscription::channel("trakt-data-import", 100, |mut output| async move {
+            let mut state = State::Starting;
+
+            loop {
+                match &mut state {
+                    State::Starting => {
+                        let (sender, receiver) = mpsc::channel(100);
+
+                        output
+                            .send(Event::Ready(sender))
+                            .await
+                            .expect("failed to send input sender");
+
+                        state = State::Ready(receiver);
+                    }
+                    State::Ready(receiver) => {
+                        use iced::futures::StreamExt;
+
+                        let input = receiver.select_next_some().await;
+
+                        let (progress_sender, mut progress_receiver) =
+                            tokio::sync::mpsc::channel(100);
+
+                        let handle = tokio::spawn(async move {
+                            import_shows::import(
+                                &input.slug,
+                                input.client_id.leak(),
+                                progress_sender,
+                            )
+                            .await
+                        });
+
+                        let total_import = if let Some(ProgressData::TotalImport(total_import)) =
+                            progress_receiver.recv().await
+                        {
+                            total_import
+                        } else {
+                            // This condition only happens when the import fails
+                            // therefore returning zero shouldn't matter
+                            tracing::error!("failed to obtain import total amount");
+                            0
+                        };
+
+                        for (current_import, _) in std::iter::repeat(()).enumerate() {
+                            if progress_receiver.recv().await.is_some() {
+                                output
+                                    .send(Event::Progressing(total_import, current_import + 1))
+                                    .await
+                                    .expect("failed to send the progress");
+                            } else {
+                                break;
+                            }
+                        }
+
+                        let import = handle
+                            .await
+                            .expect("failed to await progress handle")
+                            .map_err(|err| err.to_string());
+
+                        output
+                            .send(Event::WorkFinished(import))
+                            .await
+                            .expect("failed to send work completion");
+                        state = State::Starting;
                     }
                 }
             }

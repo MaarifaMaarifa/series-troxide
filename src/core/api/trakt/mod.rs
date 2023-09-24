@@ -2,11 +2,28 @@ use thiserror::Error;
 
 pub mod import_shows {
     //! Import user shows from Trakt api
+    use std::mem::ManuallyDrop;
+
+    use thiserror::Error;
+    use tokio::sync::mpsc;
+
+    pub use super::convert::ProgressData;
 
     use super::trakt_data::{TraktShow, TraktStatusCode};
+    use super::ApiError as TraktApiError;
+    use crate::core::api::tv_maze::ApiError as TvMazeApiError;
+    use crate::core::database::Series;
     use reqwest::header::HeaderValue;
 
     const USER_WATCHED_SHOWS_ADDRESS: &str = "https://api.trakt.tv/users/SLUG/watched/shows";
+
+    #[derive(Debug, Error)]
+    pub enum ImportError {
+        #[error("tvmaze api error: {0}")]
+        TvMazeApi(TvMazeApiError),
+        #[error("trakt api error: {0}")]
+        TraktApi(TraktApiError),
+    }
 
     /// Fetches shows watched by a user based on their trakt slug
     async fn fetch_user_shows(
@@ -25,12 +42,27 @@ pub mod import_shows {
 
         super::deserialize_json(&pretty_json_str)
     }
+
+    pub async fn import(
+        slug: &str,
+        client_id: &'static str,
+        progress_sender: mpsc::Sender<ProgressData>,
+    ) -> Result<(Vec<(u32, ManuallyDrop<Series>)>, Vec<TraktShow>), ImportError> {
+        let trakt_shows = fetch_user_shows(slug, client_id)
+            .await
+            .map_err(ImportError::TraktApi)?;
+        super::convert::convert_trakt_shows_to_troxide(trakt_shows, progress_sender)
+            .await
+            .map_err(ImportError::TvMazeApi)
+    }
 }
 
-pub mod convert {
+mod convert {
     //! Convert Trakt Shows to SerieTroxides' database Shows
 
-    use std::sync::mpsc;
+    use std::mem::ManuallyDrop;
+
+    use tokio::sync::mpsc;
 
     use super::trakt_data::TraktShow;
     use crate::core::api::tv_maze::show_lookup::{show_lookup, Id};
@@ -40,13 +72,20 @@ pub mod convert {
 
     async fn trakt_show_to_troxide(
         trakt_show: &TraktShow,
-    ) -> Result<Option<(u32, Series)>, TvMazeApiError> {
+    ) -> Result<Option<(u32, ManuallyDrop<Series>)>, TvMazeApiError> {
         let imdb_id = Id::Imdb(trakt_show.show.ids.imdb.clone());
 
         let tvmaze_series_info = if let Some(tvmaze_series_info) = show_lookup(imdb_id).await? {
             tvmaze_series_info
         } else {
-            return Ok(None);
+            // Falling back to the tvdb id when imdb id fails
+            let tvdb_id = Id::Tvdb(trakt_show.show.ids.tvdb);
+
+            if let Some(tvmaze_series_info) = show_lookup(tvdb_id).await? {
+                tvmaze_series_info
+            } else {
+                return Ok(None);
+            }
         };
 
         let tvmaze_series_id = tvmaze_series_info.id;
@@ -56,7 +95,8 @@ pub mod convert {
             .expect("SeriesMainInformation should be seriealizable");
         cache_series_information(tvmaze_series_id, &series_info_str).await;
 
-        let mut troxide_db_series = Series::new(tvmaze_series_info.name, tvmaze_series_id);
+        let mut troxide_db_series =
+            ManuallyDrop::new(Series::new(tvmaze_series_info.name, tvmaze_series_id));
 
         trakt_show.seasons.iter().for_each(|season| {
             let season_number = season.number;
@@ -68,27 +108,52 @@ pub mod convert {
         Ok(Some((tvmaze_series_id, troxide_db_series)))
     }
 
+    #[derive(Debug)]
+    pub enum ProgressData {
+        /// Signals Total import amount
+        TotalImport(usize),
+        /// Signals an import has completed
+        Progressing,
+    }
+
     /// Converts given `TraktShow`s to Series Troxide's database `Series`
     ///
     /// Since Conversion might fail, failed `TraktShow`s will be returned too
     pub async fn convert_trakt_shows_to_troxide(
         trakt_shows: Vec<TraktShow>,
-        mut progress_sender: Option<mpsc::Sender<()>>,
-    ) -> Result<(Vec<(u32, Series)>, Vec<TraktShow>), TvMazeApiError> {
+        progress_sender: mpsc::Sender<ProgressData>,
+    ) -> Result<(Vec<(u32, ManuallyDrop<Series>)>, Vec<TraktShow>), TvMazeApiError> {
+        progress_sender
+            .send(ProgressData::TotalImport(trakt_shows.len()))
+            .await
+            .expect("failed to send progress");
+
         let mut ids_and_series = Vec::with_capacity(trakt_shows.len());
         let mut failed = Vec::with_capacity(trakt_shows.len() / 2);
 
-        for show in trakt_shows {
-            // Avoiding using tokio::spawn to avoid overwhelming the tvmaze api, as trakt import can be very huge
-            if let Some(id_and_series) = trakt_show_to_troxide(&show).await? {
+        let handles: Vec<_> = trakt_shows
+            .iter()
+            .cloned()
+            .map(|show| {
+                let progress_sender = progress_sender.clone();
+                tokio::spawn(async move {
+                    let res = trakt_show_to_troxide(&show).await;
+                    if let Err(err) = progress_sender.send(ProgressData::Progressing).await {
+                        tracing::warn!("failed to send import progress as: {}", err);
+                    };
+                    res
+                })
+            })
+            .collect();
+
+        for (show, handle) in trakt_shows.into_iter().zip(handles.into_iter()) {
+            if let Some(id_and_series) = handle.await.expect("failed to join all the handles")? {
                 ids_and_series.push(id_and_series);
             } else {
                 failed.push(show)
             }
-            if let Some(progress_sender) = progress_sender.as_mut() {
-                progress_sender.send(()).expect("failed to send progress");
-            }
         }
+
         Ok((ids_and_series, failed))
     }
 }
@@ -223,6 +288,14 @@ pub mod user_credentials {
                 client_secret,
             })
         }
+
+        /// Sets the `Client ID` and `Client Secret` environment variables for the currently running process
+        pub fn set_vars(client_id: &str, client_secret: &str) {
+            use std::env;
+
+            env::set_var("CLIENT-ID", client_id);
+            env::set_var("CLIENT-SECRET", client_secret);
+        }
     }
 
     #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -327,33 +400,33 @@ pub mod trakt_data {
 
     use super::ApiError;
 
-    #[derive(Deserialize, Debug)]
+    #[derive(Deserialize, Debug, Clone)]
     pub struct TraktShow {
         pub show: Show,
         pub seasons: Vec<Season>,
     }
 
-    #[derive(Deserialize, Debug)]
+    #[derive(Deserialize, Debug, Clone)]
     pub struct Show {
-        title: String,
-        // year: u32,
+        pub title: String,
+        pub year: u32,
         pub ids: Ids,
     }
 
-    #[derive(Deserialize, Debug)]
+    #[derive(Deserialize, Debug, Clone)]
     pub struct Ids {
         pub trakt: u32,
         pub imdb: String,
         pub tvdb: u32,
     }
 
-    #[derive(Deserialize, Debug)]
+    #[derive(Deserialize, Debug, Clone)]
     pub struct Season {
         pub number: u32,
         pub episodes: Vec<Episode>,
     }
 
-    #[derive(Deserialize, Debug)]
+    #[derive(Deserialize, Debug, Clone)]
     pub struct Episode {
         pub number: u32,
         // last_watched_at: String,

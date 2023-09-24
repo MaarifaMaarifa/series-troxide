@@ -174,7 +174,7 @@ impl Database {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Series {
     id: u32,
     name: String,
@@ -361,7 +361,7 @@ impl Drop for Series {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Season {
     episodes: HashSet<Episode>,
 }
