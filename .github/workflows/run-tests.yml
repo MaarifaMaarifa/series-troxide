@@ -33,9 +33,6 @@ jobs:
       - name: apt update
         run: sudo apt update
 
-      - name: installing LLD linker
-        run : sudo apt-get install lld
-
       - name: installing libgtk-3-dev (rfd crate dependency)
         run: sudo apt install libgtk-3-dev
 
@@ -58,9 +55,6 @@ jobs:
 
       - name: apt update
         run: sudo apt update
-
-      - name: installing LLD linker
-        run : sudo apt-get install lld
 
       - name: installing libgtk-3-dev (rfd crate dependency)
         run: sudo apt install libgtk-3-dev
