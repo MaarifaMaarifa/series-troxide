@@ -62,18 +62,18 @@ jobs:
             command: build        
             args: --target x86_64-pc-windows-gnu
 
-  # windows-build:
-  #   name: Run build (windows)
-  #   runs-on: windows-latest
+  windows-build:
+    name: Run build (windows)
+    runs-on: windows-latest
 
-  #   steps:
-  #     - name: Checkout Code
-  #       uses: actions/checkout@v2
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
 
-  #     - name: Run build
-  #       uses: actions-rs/cargo@v1
-  #       with:
-  #           command: build
+      - name: Run build
+        uses: actions-rs/cargo@v1
+        with:
+            command: build
 
   macos-build:
     name: Run build (macos)

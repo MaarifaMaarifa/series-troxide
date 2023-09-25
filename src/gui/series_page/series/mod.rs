@@ -5,7 +5,6 @@ use crate::core::api::series_information::SeriesMainInformation;
 use crate::core::api::Image;
 use crate::core::caching::episode_list::EpisodeReleaseTime;
 use crate::core::{caching, database};
-use crate::gui::assets::get_static_cow_from_asset;
 use crate::gui::assets::icons::{PATCH_PLUS, PATCH_PLUS_FILL};
 use crate::gui::styles;
 
@@ -143,15 +142,14 @@ fn tracking_button(series_id: u32) -> Button<'static, Message, Renderer> {
         .map(|series| series.is_tracked())
         .unwrap_or(false)
     {
-        let tracked_icon_handle =
-            svg::Handle::from_memory(get_static_cow_from_asset(PATCH_PLUS_FILL));
+        let tracked_icon_handle = svg::Handle::from_memory(PATCH_PLUS_FILL);
         let icon = svg(tracked_icon_handle)
             .width(30)
             .height(30)
             .style(styles::svg_styles::colored_svg_theme());
         button(icon).on_press(Message::UntrackSeries)
     } else {
-        let tracked_icon_handle = svg::Handle::from_memory(get_static_cow_from_asset(PATCH_PLUS));
+        let tracked_icon_handle = svg::Handle::from_memory(PATCH_PLUS);
         let icon = svg(tracked_icon_handle)
             .width(30)
             .height(30)

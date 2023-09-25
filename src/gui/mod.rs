@@ -38,9 +38,7 @@ impl Application for TroxideGui {
     type Flags = ();
 
     fn new(_flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
-        let font_command = iced::font::load(assets::get_static_cow_from_asset(
-            assets::fonts::NOTOSANS_REGULAR_STATIC,
-        ));
+        let font_command = iced::font::load(assets::fonts::NOTOSANS_REGULAR_STATIC);
         let (sender, receiver) = mpsc::channel();
         let (tabs_controller, tabs_controller_command) = TabsController::new(sender.clone());
 
