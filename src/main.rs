@@ -3,7 +3,7 @@ use clap::Parser;
 pub mod core;
 mod gui;
 
-use iced::{Application, Settings};
+use iced::{window, Application, Settings};
 
 fn main() -> anyhow::Result<()> {
     let cli_command = core::cli::cli_data::Cli::parse().command;
@@ -30,7 +30,15 @@ fn main() -> anyhow::Result<()> {
 
     std::thread::spawn(|| core::notifications::TroxideNotify::new()?.run());
 
+    let icon =
+        window::icon::from_file_data(gui::assets::logos::IMG_LOGO, Some(image::ImageFormat::Png))
+            .ok();
+
     gui::TroxideGui::run(Settings {
+        window: iced::window::Settings {
+            icon,
+            ..Default::default()
+        },
         default_text_size: 14.0,
         ..Default::default()
     })?;
