@@ -50,7 +50,7 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install Rust
         run: rustup update 1.72.0 --no-self-update && rustup default 1.72.0
       - name: Install cargo-dist
@@ -99,7 +99,7 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install Rust
         run: rustup update 1.72.0 --no-self-update && rustup default 1.72.0
       - name: Install cargo-dist
@@ -131,7 +131,7 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: mark release as non-draft
         run: |
           gh release edit ${{ github.ref_name }} --draft=true
