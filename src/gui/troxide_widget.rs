@@ -298,7 +298,6 @@ pub mod title_bar {
     };
     use iced::{Element, Length, Renderer};
 
-    use crate::gui::assets::get_static_cow_from_asset;
     use crate::gui::assets::icons::CARET_LEFT_FILL;
     use crate::gui::styles;
     use crate::gui::tabs::TabLabel;
@@ -336,8 +335,7 @@ pub mod title_bar {
                 .iter()
                 .enumerate()
                 .map(|(index, tab_label)| {
-                    let svg_handle =
-                        svg::Handle::from_memory(get_static_cow_from_asset(tab_label.icon));
+                    let svg_handle = svg::Handle::from_memory(tab_label.icon);
                     let icon = svg(svg_handle)
                         .width(Length::Shrink)
                         .style(styles::svg_styles::colored_svg_theme());
@@ -360,8 +358,7 @@ pub mod title_bar {
             let tab_views = Row::with_children(tab_views).spacing(10);
 
             let back_button: Element<'_, Message, Renderer> = if show_back_button {
-                let back_button_icon_handle =
-                    svg::Handle::from_memory(get_static_cow_from_asset(CARET_LEFT_FILL));
+                let back_button_icon_handle = svg::Handle::from_memory(CARET_LEFT_FILL);
                 let icon = svg(back_button_icon_handle)
                     .width(20)
                     .style(styles::svg_styles::colored_svg_theme());

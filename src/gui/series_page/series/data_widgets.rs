@@ -1,7 +1,6 @@
 use crate::core::api::episodes_information::Episode;
 use crate::core::api::series_information::{SeriesMainInformation, ShowStatus};
 use crate::core::caching::episode_list::EpisodeReleaseTime;
-use crate::gui::assets::get_static_cow_from_asset;
 use crate::gui::assets::icons::{CLOCK_FILL, STAR, STAR_FILL, STAR_HALF};
 use crate::gui::helpers::{self, season_episode_str_gen};
 use crate::gui::styles;
@@ -138,9 +137,9 @@ pub fn summary_widget(series_info: &SeriesMainInformation) -> iced::Element<'_, 
 
 pub fn rating_widget(series_info: &SeriesMainInformation) -> Element<'_, Message, Renderer> {
     if let Some(average_rating) = series_info.rating.average {
-        let star_handle = svg::Handle::from_memory(get_static_cow_from_asset(STAR));
-        let star_half_handle = svg::Handle::from_memory(get_static_cow_from_asset(STAR_HALF));
-        let star_fill_handle = svg::Handle::from_memory(get_static_cow_from_asset(STAR_FILL));
+        let star_handle = svg::Handle::from_memory(STAR);
+        let star_half_handle = svg::Handle::from_memory(STAR_HALF);
+        let star_fill_handle = svg::Handle::from_memory(STAR_FILL);
 
         let mut rating = row![];
 
@@ -220,7 +219,7 @@ pub fn next_episode_release_time_widget(
         let episode = episode.number.expect("Could not get episode number");
 
         let next_episode = season_episode_str_gen(season, episode);
-        let clock_icon_handle = svg::Handle::from_memory(get_static_cow_from_asset(CLOCK_FILL));
+        let clock_icon_handle = svg::Handle::from_memory(CLOCK_FILL);
         let clock_icon = svg(clock_icon_handle)
             .width(Length::Shrink)
             .style(styles::svg_styles::colored_svg_theme());

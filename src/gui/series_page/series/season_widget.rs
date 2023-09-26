@@ -8,7 +8,6 @@ use crate::core::api::episodes_information::Episode as EpisodeInfo;
 use crate::core::caching::episode_list::TotalEpisodes;
 use crate::core::database::AddResult;
 use crate::core::{caching, database};
-use crate::gui::assets::get_static_cow_from_asset;
 use crate::gui::assets::icons::{CHEVRON_DOWN, CHEVRON_UP};
 pub use crate::gui::message::IndexedMessage;
 use crate::gui::styles;
@@ -176,7 +175,7 @@ impl Season {
         .width(50);
 
         let expand_button = if self.is_expanded {
-            let svg_handle = svg::Handle::from_memory(get_static_cow_from_asset(CHEVRON_UP));
+            let svg_handle = svg::Handle::from_memory(CHEVRON_UP);
             let up_icon = svg(svg_handle)
                 .width(Length::Shrink)
                 .style(styles::svg_styles::colored_svg_theme());
@@ -184,7 +183,7 @@ impl Season {
                 .on_press(Message::Expand)
                 .style(styles::button_styles::transparent_button_theme())
         } else {
-            let svg_handle = svg::Handle::from_memory(get_static_cow_from_asset(CHEVRON_DOWN));
+            let svg_handle = svg::Handle::from_memory(CHEVRON_DOWN);
             let down_icon = svg(svg_handle)
                 .width(Length::Shrink)
                 .style(styles::svg_styles::colored_svg_theme());

@@ -4,7 +4,6 @@ use iced::{Command, Element, Length, Renderer};
 use iced_aw::{Spinner, Wrap};
 
 use crate::core::{api::show_cast::Cast, caching};
-use crate::gui::assets::get_static_cow_from_asset;
 use crate::gui::assets::icons::{CHEVRON_DOWN, CHEVRON_UP};
 use crate::gui::styles;
 
@@ -112,13 +111,13 @@ impl CastWidget {
     fn expansion_widget(&self) -> Element<'_, Message, Renderer> {
         if self.casts.len() > INITIAL_CAST_NUMBER {
             let (info, expansion_icon, message) = if self.is_expanded {
-                let svg_handle = svg::Handle::from_memory(get_static_cow_from_asset(CHEVRON_UP));
+                let svg_handle = svg::Handle::from_memory(CHEVRON_UP);
                 let up_icon = svg(svg_handle)
                     .width(Length::Shrink)
                     .style(styles::svg_styles::colored_svg_theme());
                 (text("show less"), up_icon, Message::Shrink)
             } else {
-                let svg_handle = svg::Handle::from_memory(get_static_cow_from_asset(CHEVRON_DOWN));
+                let svg_handle = svg::Handle::from_memory(CHEVRON_DOWN);
                 let down_icon = svg(svg_handle)
                     .width(Length::Shrink)
                     .style(styles::svg_styles::colored_svg_theme());
@@ -168,10 +167,7 @@ mod cast_poster {
             api::{show_cast::Cast, Image},
             caching,
         },
-        gui::{
-            assets::{get_static_cow_from_asset, icons::ARROW_REPEAT},
-            helpers, styles,
-        },
+        gui::{assets::icons::ARROW_REPEAT, helpers, styles},
     };
 
     #[derive(Debug, Clone)]
@@ -330,8 +326,7 @@ mod cast_poster {
 
         fn image_switch_button(&self) -> Element<'_, Message, Renderer> {
             if self.cast.character.image.is_some() {
-                let image_switch_button_handle =
-                    svg::Handle::from_memory(get_static_cow_from_asset(ARROW_REPEAT));
+                let image_switch_button_handle = svg::Handle::from_memory(ARROW_REPEAT);
                 let icon =
                     svg(image_switch_button_handle).style(styles::svg_styles::colored_svg_theme());
 
