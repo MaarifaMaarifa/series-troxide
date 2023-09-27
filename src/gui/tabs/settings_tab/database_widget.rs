@@ -59,12 +59,12 @@ impl Database {
                 }
                 Err(err) => {
                     self.import_status = Some(Err(anyhow::anyhow!(err)));
-                    Command::perform(super::status_timeout(), |_| Message::ImportTimeoutComplete)
+                    Command::perform(status_timeout(), |_| Message::ImportTimeoutComplete)
                 }
             },
             Message::ExportDatabasePressed => {
                 self.export_status = Some(database_transfer::export());
-                Command::perform(super::status_timeout(), |_| Message::ExportTimeoutComplete)
+                Command::perform(status_timeout(), |_| Message::ExportTimeoutComplete)
             }
             Message::ImportTimeoutComplete => {
                 self.import_status = None;
@@ -90,7 +90,7 @@ impl Database {
                         .expect("failed to import keys_values_vec");
 
                         self.import_status = Some(Ok(()));
-                        return Command::perform(super::status_timeout(), |_| {
+                        return Command::perform(status_timeout(), |_| {
                             Message::ImportTimeoutComplete
                         });
                     }
@@ -181,6 +181,12 @@ fn get_status_text(status: Option<&anyhow::Result<()>>) -> Text {
     } else {
         text("")
     }
+}
+
+/// A function that sleeps for 3 seconds designed to provide timeout
+/// for status texts in widgets like the database and caching widget.
+async fn status_timeout() {
+    tokio::time::sleep(std::time::Duration::from_secs(3)).await
 }
 
 mod full_caching {

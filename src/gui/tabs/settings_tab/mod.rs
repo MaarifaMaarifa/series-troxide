@@ -4,7 +4,6 @@ use iced::{Alignment, Command, Element, Length, Renderer};
 use crate::gui::assets::icons::GEAR_WIDE_CONNECTED;
 use about_widget::{About, Message as AboutMessage};
 use appearance_widget::{Appearance, Message as AppearanceMessage};
-use caching_widget::{Caching, Message as CachingMessage};
 use database_widget::{Database, Message as DatabaseMessage};
 use locale_widget::{Locale, Message as LocaleMessage};
 use notifications_widget::{Message as NotificationsMessage, Notifications};
@@ -12,7 +11,6 @@ use settings_controls_widget::{Message as SettingsControlsMessage, SettingsContr
 
 mod about_widget;
 mod appearance_widget;
-mod caching_widget;
 mod database_widget;
 mod locale_widget;
 mod notifications_widget;
@@ -21,7 +19,6 @@ mod settings_controls_widget;
 #[derive(Debug, Clone)]
 pub enum Message {
     Appearance(AppearanceMessage),
-    Caching(CachingMessage),
     Database(DatabaseMessage),
     Notifications(NotificationsMessage),
     Locale(LocaleMessage),
@@ -32,7 +29,6 @@ pub enum Message {
 #[derive(Default)]
 pub struct SettingsTab {
     appearance_settings: Appearance,
-    caching_settings: Caching,
     database_settings: Database,
     notifications_settings: Notifications,
     locale_settings: Locale,
@@ -44,7 +40,6 @@ impl SettingsTab {
     pub fn new() -> Self {
         Self {
             appearance_settings: Appearance,
-            caching_settings: Caching::default(),
             database_settings: Database::default(),
             notifications_settings: Notifications,
             locale_settings: Locale::default(),
@@ -59,9 +54,6 @@ impl SettingsTab {
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message::Caching(message) => {
-                return self.caching_settings.update(message).map(Message::Caching)
-            }
             Message::Database(message) => {
                 return self
                     .database_settings
@@ -81,7 +73,6 @@ impl SettingsTab {
             column![
                 self.appearance_settings.view().map(Message::Appearance),
                 self.database_settings.view().map(Message::Database),
-                self.caching_settings.view().map(Message::Caching),
                 self.notifications_settings
                     .view()
                     .map(Message::Notifications),
@@ -113,10 +104,4 @@ impl SettingsTab {
     pub fn tab_label() -> super::TabLabel {
         super::TabLabel::new(Self::title(), GEAR_WIDE_CONNECTED)
     }
-}
-
-/// A function that sleeps for 3 seconds designed to provide timeout
-/// for status texts in widgets like the database and caching widget.
-async fn status_timeout() {
-    tokio::time::sleep(std::time::Duration::from_secs(3)).await
 }

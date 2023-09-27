@@ -45,7 +45,7 @@ impl SeriesInfoAndEpisodeList {
                 let series_id = *series_id;
                 let sender = self.completion_signal_sender.clone();
                 tokio::spawn(async move {
-                    let res = Self::run_caching(series_id).await;
+                    let res = Self::cache_series(series_id).await;
                     if report_progress {
                         sender
                             .send(res)
@@ -62,7 +62,7 @@ impl SeriesInfoAndEpisodeList {
         Ok(())
     }
 
-    async fn run_caching(series_id: u32) -> anyhow::Result<()> {
+    pub async fn cache_series(series_id: u32) -> anyhow::Result<()> {
         match Self::get_missing_cache(series_id).await? {
             MissingCache::None => {}
             MissingCache::Series => Self::cache_series_information(series_id).await?,

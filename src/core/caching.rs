@@ -38,7 +38,7 @@ use lazy_static::lazy_static;
 use tokio::fs;
 use tracing::{error, info};
 
-pub mod cache_cleaning;
+pub mod cache_updating;
 pub mod episode_list;
 pub mod series_info_and_episode_list;
 pub mod series_information;

@@ -1,82 +1,50 @@
 use super::deserialize_json;
 use super::get_pretty_json_from_url;
-use super::series_information::SeriesMainInformation;
 use super::ApiError;
 
-pub mod show_updates {
-    use tokio::task::JoinHandle;
+use std::collections::HashMap;
 
-    use crate::core::caching;
+/// Retrieves all the shows update
+const SERIES_UPDATES_ADDRESS: &str = "https://api.tvmaze.com/updates/shows";
+/// Retrieves the shows update with last update duration filter, the filter goes at the end of url.
+const SERIES_UPDATES_ADDRESS_FILTERED: &str = "https://api.tvmaze.com/updates/shows?since=";
 
-    use super::*;
+/// A list of all shows in the TVmaze database and the timestamp when they were last updated.
+/// Updating a direct or indirect child of a show will also mark the show itself as updated.
+/// For example; creating, deleting or updating an episode or an episode's gallery item will
+/// mark the episode's show as updated. It's possible to filter the resultset to only include
+/// shows that have been updated in the past day (24 hours), week, or month.
+pub async fn get_shows_updates_index(
+    last_updated: Option<LastUpdated>,
+) -> Result<HashMap<String, i64>, ApiError> {
+    let url = if let Some(last_updated) = last_updated {
+        format!("{}{}", SERIES_UPDATES_ADDRESS_FILTERED, last_updated)
+    } else {
+        SERIES_UPDATES_ADDRESS.to_string()
+    };
 
-    pub enum UpdateTimestamp {
-        Day,
-        Week,
-        Month,
-    }
+    tracing::info!("fetching updates");
 
-    impl From<UpdateTimestamp> for String {
-        fn from(value: UpdateTimestamp) -> Self {
-            match value {
-                UpdateTimestamp::Day => "day".to_owned(),
-                UpdateTimestamp::Week => "week".to_owned(),
-                UpdateTimestamp::Month => "month".to_owned(),
-            }
-        }
-    }
+    let prettified_json = get_pretty_json_from_url(url)
+        .await
+        .map_err(ApiError::Network)?;
 
-    type ShowUpdatesIndex = indexmap::IndexMap<String, u64>;
+    deserialize_json(&prettified_json)
+}
 
-    // replace TIMESTAMP with one of the variants of UpdateTimestamp enum as String
-    const SERIES_UPDATES_ADDRESS: &str = "https://api.tvmaze.com/updates/shows?since=TIMESTAMP";
+pub enum LastUpdated {
+    Day,
+    Week,
+    Month,
+}
 
-    async fn get_show_update_index(
-        update_timestamp: UpdateTimestamp,
-    ) -> Result<ShowUpdatesIndex, ApiError> {
-        let url = String::from(SERIES_UPDATES_ADDRESS)
-            .replace("TIMESTAMP", &String::from(update_timestamp));
-
-        let prettified_json = get_pretty_json_from_url(url)
-            .await
-            .map_err(ApiError::Network)?;
-
-        deserialize_json(&prettified_json)
-    }
-
-    /// # Get shows updates
-    ///
-    /// This function takes update timestamp when the shows were last updated and an `Option<usize>`
-    /// which specifies the amount of shows to be returned, supply None if you want all of them
-    /// but be aware that they can be alot especially if you provide big timestamps.
-    pub async fn get_show_updates(
-        update_timestamp: UpdateTimestamp,
-        series_number: Option<usize>,
-    ) -> Result<Vec<SeriesMainInformation>, ApiError> {
-        let show_updates_index = get_show_update_index(update_timestamp).await?;
-
-        let mut series_ids: Vec<String> = show_updates_index.into_keys().collect();
-
-        if let Some(len) = series_number {
-            series_ids.truncate(len);
+impl std::fmt::Display for LastUpdated {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
+            LastUpdated::Day => "day",
+            LastUpdated::Week => "week",
+            LastUpdated::Month => "month",
         };
-
-        let handles: Vec<JoinHandle<Result<SeriesMainInformation, ApiError>>> = series_ids
-            .into_iter()
-            .map(|series_id| series_id.parse::<u32>().expect("Can't parse series id"))
-            .map(|series_id| {
-                tokio::task::spawn(caching::series_information::get_series_main_info_with_id(
-                    series_id,
-                ))
-            })
-            .collect();
-
-        let mut series_infos = Vec::with_capacity(handles.len());
-        for handle in handles {
-            let series_info = handle.await.expect("failed to await all series updates")?;
-            series_infos.push(series_info);
-        }
-
-        Ok(series_infos)
+        write!(f, "{}", str)
     }
 }
