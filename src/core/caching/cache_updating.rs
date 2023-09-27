@@ -127,9 +127,14 @@ async fn should_update() -> anyhow::Result<bool> {
     let current_timestamp = duration_since_epoch()?;
 
     let last_update_timestamp: u64 = match fs::read_to_string(last_update_file).await {
-        Ok(content) => content
-            .parse()
-            .expect("'last-cache-update' content should be parsable"),
+        Ok(content) => match content.parse() {
+            Ok(val) => val,
+            Err(err) => {
+                error!("failed to parse 'last-cache-update' file: {}", err);
+                warn!("assuming a day has lasted since last cache update");
+                return Ok(true);
+            }
+        },
         Err(err) => {
             error!("could not read 'last-cache-update' file: {}", err);
             warn!("assuming a day has lasted since last cache update");
