@@ -5,7 +5,6 @@
 
 use std::path;
 use std::time;
-use std::time::SystemTime;
 
 use anyhow::Context;
 use tokio::fs;
@@ -36,7 +35,7 @@ async fn get_all_series_cache_directories(
             .context("failed to get series cache directory metadata")?
             .created()
             .context("failed to get creating time of a series cache directory")?
-            .duration_since(SystemTime::UNIX_EPOCH)
+            .duration_since(time::SystemTime::UNIX_EPOCH)
             .context("system clock failure when determining series cache folder creation")?;
 
         let series_id = dir_path
@@ -50,7 +49,7 @@ async fn get_all_series_cache_directories(
 }
 
 pub async fn update_cache() -> anyhow::Result<()> {
-    if !get_last_update().await? {
+    if !should_update().await? {
         return Ok(());
     }
 
@@ -112,16 +111,20 @@ fn get_last_update_filepath() -> path::PathBuf {
     last_update_file
 }
 
-fn current_time_since_epoch() -> anyhow::Result<time::Duration> {
+fn duration_since_epoch() -> anyhow::Result<time::Duration> {
     time::SystemTime::now()
         .duration_since(time::UNIX_EPOCH)
         .context("system clock failure when determining current time")
 }
 
-async fn get_last_update() -> anyhow::Result<bool> {
+/// Whether cache should be updated or not
+///
+/// Checks if a day has passed since the last cache update and returns `true`,
+/// Otherwise the opposite
+async fn should_update() -> anyhow::Result<bool> {
     let last_update_file = get_last_update_filepath();
 
-    let current_timestamp = current_time_since_epoch()?;
+    let current_timestamp = duration_since_epoch()?;
 
     let last_update_timestamp: u64 = match fs::read_to_string(last_update_file).await {
         Ok(content) => content
@@ -142,7 +145,7 @@ async fn get_last_update() -> anyhow::Result<bool> {
 async fn record_last_update() -> anyhow::Result<()> {
     let last_update_file = get_last_update_filepath();
 
-    let current_timestamp = current_time_since_epoch()?;
+    let current_timestamp = duration_since_epoch()?;
 
     fs::write(last_update_file, current_timestamp.as_secs().to_string())
         .await
