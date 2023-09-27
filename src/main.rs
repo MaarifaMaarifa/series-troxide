@@ -18,15 +18,14 @@ fn main() -> anyhow::Result<()> {
 
     tracing::info!("starting '{}'", env!("CARGO_PKG_NAME"));
 
-    let cache_settings = core::settings_config::SETTINGS
-        .read()
-        .expect("could not read the program settings")
-        .get_current_settings()
-        .cache
-        .clone();
-
-    tokio::runtime::Runtime::new()?
-        .block_on(core::caching::cache_cleaning::auto_clean(&cache_settings))?;
+    std::thread::spawn(|| {
+        if let Err(err) = tokio::runtime::Runtime::new()
+            .expect("failed to create tokio runtime")
+            .block_on(core::caching::cache_updating::update_cache())
+        {
+            tracing::error!("failed to update cache: {}", err)
+        };
+    });
 
     std::thread::spawn(|| core::notifications::TroxideNotify::new()?.run());
 

@@ -31,7 +31,6 @@ impl std::fmt::Display for Theme {
 #[derive(Clone, Default, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub struct Config {
     pub appearance: AppearanceSettings,
-    pub cache: CacheSettings,
     pub locale: LocaleSettings,
     pub notifications: NotificationSettings,
 }
@@ -50,24 +49,6 @@ impl Default for LocaleSettings {
     fn default() -> Self {
         Self {
             country_code: "US".to_owned(),
-        }
-    }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
-pub struct CacheSettings {
-    // the frequencies are in days
-    pub aired_cache_clean_frequency: u32,
-    pub ended_cache_clean_frequency: u32,
-    pub waiting_release_cache_clean_frequency: u32,
-}
-
-impl Default for CacheSettings {
-    fn default() -> Self {
-        Self {
-            aired_cache_clean_frequency: 1,
-            ended_cache_clean_frequency: 7,
-            waiting_release_cache_clean_frequency: 2,
         }
     }
 }
