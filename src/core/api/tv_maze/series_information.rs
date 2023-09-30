@@ -234,7 +234,7 @@ pub struct SeriesMainInformation {
     /// with an embedded list of series' episodes.
     #[serde(rename = "_embedded")]
     pub embedded_episode_list: Option<EmbeddedEpisodeList>,
-    pub externals: ExternalIds,
+    // pub externals: ExternalIds,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
