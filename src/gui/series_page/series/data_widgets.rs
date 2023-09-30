@@ -1,5 +1,5 @@
-use crate::core::api::episodes_information::Episode;
-use crate::core::api::series_information::{SeriesMainInformation, ShowStatus};
+use crate::core::api::tv_maze::episodes_information::Episode;
+use crate::core::api::tv_maze::series_information::{SeriesMainInformation, ShowStatus};
 use crate::core::caching::episode_list::EpisodeReleaseTime;
 use crate::gui::assets::icons::{CLOCK_FILL, STAR, STAR_FILL, STAR_HALF};
 use crate::gui::helpers::{self, season_episode_str_gen};

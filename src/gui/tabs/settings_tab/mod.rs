@@ -26,7 +26,6 @@ pub enum Message {
     Controls(SettingsControlsMessage),
 }
 
-#[derive(Default)]
 pub struct SettingsTab {
     appearance_settings: Appearance,
     database_settings: Database,
@@ -40,7 +39,7 @@ impl SettingsTab {
     pub fn new() -> Self {
         Self {
             appearance_settings: Appearance,
-            database_settings: Database::default(),
+            database_settings: Database::new(),
             notifications_settings: Notifications,
             locale_settings: Locale::default(),
             about: About,

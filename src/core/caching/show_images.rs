@@ -4,7 +4,7 @@ use super::{
     load_image, read_cache, write_cache, CacheFilePath, ImageType as ImageKind, OriginalType,
     CACHER,
 };
-use crate::core::api::{
+use crate::core::api::tv_maze::{
     deserialize_json,
     show_images::{get_show_images as get_show_images_api, Image, ImageType},
     ApiError,

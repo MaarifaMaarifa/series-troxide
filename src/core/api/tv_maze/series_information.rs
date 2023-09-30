@@ -234,6 +234,7 @@ pub struct SeriesMainInformation {
     /// with an embedded list of series' episodes.
     #[serde(rename = "_embedded")]
     pub embedded_episode_list: Option<EmbeddedEpisodeList>,
+    // pub externals: ExternalIds,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -308,6 +309,12 @@ pub struct Network {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Country {
     pub name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ExternalIds {
+    pub imdb: Option<String>,
+    pub thetvdb: Option<u32>,
 }
 
 pub async fn get_series_main_info_with_url(url: String) -> Result<String, ApiError> {

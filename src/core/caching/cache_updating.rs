@@ -12,7 +12,7 @@ use tracing::{error, info, warn};
 
 use super::series_info_and_episode_list::SeriesInfoAndEpisodeList;
 use super::{CacheFolderType, CACHER};
-use crate::core::api::updates::get_shows_updates_index;
+use crate::core::api::tv_maze::updates::get_shows_updates_index;
 use crate::core::database::DB;
 
 async fn get_all_series_cache_directories(

@@ -3,7 +3,7 @@ use iced::widget::{button, column, container, horizontal_space, row, svg, text, 
 use iced::{Command, Element, Length, Renderer};
 use iced_aw::{Spinner, Wrap};
 
-use crate::core::{api::show_cast::Cast, caching};
+use crate::core::{api::tv_maze::show_cast::Cast, caching};
 use crate::gui::assets::icons::{CHEVRON_DOWN, CHEVRON_UP};
 use crate::gui::styles;
 
@@ -164,7 +164,7 @@ mod cast_poster {
     pub use crate::gui::message::IndexedMessage;
     use crate::{
         core::{
-            api::{show_cast::Cast, Image},
+            api::tv_maze::{show_cast::Cast, Image},
             caching,
         },
         gui::{assets::icons::ARROW_REPEAT, helpers, styles},
@@ -274,7 +274,7 @@ mod cast_poster {
 
             cast_info = cast_info.push(column![
                 text(&self.cast.person.name)
-                    .style(styles::text_styles::purple_text_theme())
+                    .style(styles::text_styles::accent_color_theme())
                     .size(15),
                 text(format!("as {}", &self.cast.character.name)).size(11)
             ]);
