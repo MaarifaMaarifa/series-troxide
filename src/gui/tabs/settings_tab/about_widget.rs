@@ -41,7 +41,7 @@ impl About {
     pub fn view(&self) -> Element<'_, Message, Renderer> {
         let content = column![
             text("About")
-                .style(styles::text_styles::purple_text_theme())
+                .style(styles::text_styles::accent_color_theme())
                 .size(21),
             info_widget(),
             horizontal_rule(1),
@@ -75,7 +75,7 @@ fn info_widget() -> Element<'static, Message, Renderer> {
     grid.insert(text(built_info::PKG_LICENSE));
 
     let repository = mouse_area(
-        text(built_info::PKG_REPOSITORY).style(styles::text_styles::purple_text_theme()),
+        text(built_info::PKG_REPOSITORY).style(styles::text_styles::accent_color_theme()),
     )
     .on_press(Message::Repository);
     grid.insert(text("Repository"));
@@ -100,7 +100,7 @@ fn info_widget() -> Element<'static, Message, Renderer> {
 fn credit_widget() -> Element<'static, Message, Renderer> {
     let go_to_site_text = text("here")
         .size(11)
-        .style(styles::text_styles::purple_text_theme());
+        .style(styles::text_styles::accent_color_theme());
 
     let tv_maze = row![
         text("- The API used has been provided by TVmaze, you can check out the site ").size(11),

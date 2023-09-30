@@ -4,8 +4,8 @@ use iced::widget::{container, text, Column};
 use iced::{Command, Element, Length, Renderer};
 use iced_aw::Spinner;
 
-use crate::core::api::episodes_information::Episode;
-use crate::core::api::series_information::SeriesMainInformation;
+use crate::core::api::tv_maze::episodes_information::Episode;
+use crate::core::api::tv_maze::series_information::SeriesMainInformation;
 use crate::core::caching;
 use crate::core::caching::episode_list::EpisodeReleaseTime;
 use crate::gui::troxide_widget::series_poster::{

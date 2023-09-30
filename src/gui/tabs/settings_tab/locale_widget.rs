@@ -45,7 +45,7 @@ impl Locale {
     pub fn view(&self) -> Element<'_, Message, Renderer> {
         let content = column![text("Locale")
             .size(21)
-            .style(styles::text_styles::purple_text_theme())]
+            .style(styles::text_styles::accent_color_theme())]
         .padding(5)
         .spacing(5);
 

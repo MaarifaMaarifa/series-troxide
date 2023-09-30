@@ -1,6 +1,6 @@
 use std::sync::mpsc;
 
-use crate::core::api::series_information::{Genre, SeriesMainInformation};
+use crate::core::api::tv_maze::series_information::{Genre, SeriesMainInformation};
 use crate::core::caching::tv_schedule::full_schedule;
 use crate::gui::troxide_widget::series_poster::{
     IndexedMessage as SeriesPosterIndexedMessage, Message as SeriesPosterMessage, SeriesPoster,

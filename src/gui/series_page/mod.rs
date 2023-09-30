@@ -5,7 +5,7 @@ use indexmap::IndexMap;
 
 use series::{IdentifiableMessage, Series};
 
-use crate::core::api::series_information::SeriesMainInformation;
+use crate::core::api::tv_maze::series_information::SeriesMainInformation;
 
 mod series;
 

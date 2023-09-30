@@ -1,7 +1,7 @@
 use std::{collections::HashSet, io::ErrorKind};
 
 use crate::core::{
-    api::{
+    api::tv_maze::{
         deserialize_json,
         episodes_information::{get_episode_list, Episode},
         ApiError,

@@ -7,8 +7,8 @@ use search_result::{
     IndexedMessage as SearchResultIndexedMessage, Message as SearchResultMessage, SearchResult,
 };
 
-use crate::core::api::series_information::SeriesMainInformation;
-use crate::core::api::series_searching;
+use crate::core::api::tv_maze::series_information::SeriesMainInformation;
+use crate::core::api::tv_maze::series_searching;
 use crate::gui::styles;
 
 #[derive(Default)]
@@ -167,8 +167,8 @@ mod search_result {
     use iced::widget::{column, image, mouse_area, row, text, Space};
     use iced::{Command, Element, Renderer};
 
-    use crate::core::api::series_information::SeriesMainInformation;
-    use crate::core::{api::series_searching, caching};
+    use crate::core::api::tv_maze::series_information::SeriesMainInformation;
+    use crate::core::{api::tv_maze::series_searching, caching};
     pub use crate::gui::message::IndexedMessage;
     use crate::gui::styles;
 
@@ -252,7 +252,7 @@ mod search_result {
             let mut column = column![
                 text(&self.search_result.show.name)
                     .size(16)
-                    .style(styles::text_styles::purple_text_theme()),
+                    .style(styles::text_styles::accent_color_theme()),
                 genres
             ];
 

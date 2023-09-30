@@ -1,4 +1,4 @@
-use crate::core::api::series_information::SeriesMainInformation;
+use crate::core::api::tv_maze::series_information::SeriesMainInformation;
 use discover_tab::{DiscoverTab, Message as DiscoverMessage};
 use my_shows_tab::{Message as MyShowsMessage, MyShowsTab};
 use settings_tab::{Message as SettingsMessage, SettingsTab};

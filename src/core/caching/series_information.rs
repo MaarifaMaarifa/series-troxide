@@ -1,4 +1,4 @@
-use super::api::series_information;
+use super::tv_maze::series_information;
 use super::*;
 
 use std::io::ErrorKind;
@@ -33,6 +33,15 @@ pub async fn get_series_main_info_with_id(
         }
     };
     deserialize_json(&series_information_json)
+}
+
+/// Caches the given `SeriesMainInformation`'s `&str` if not cached already
+pub async fn cache_series_information(series_id: u32, series_info_str: &str) {
+    let series_information_path =
+        CACHER.get_cache_file_path(CacheFilePath::SeriesMainInformation(series_id));
+    if !series_information_path.exists() {
+        write_cache(series_info_str, &series_information_path).await;
+    }
 }
 
 pub async fn get_series_main_info_with_ids(series_ids: Vec<String>) -> Vec<SeriesMainInformation> {

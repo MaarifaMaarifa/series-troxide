@@ -2,9 +2,9 @@ pub mod series_poster {
 
     use std::sync::mpsc;
 
-    use crate::core::api::episodes_information::Episode;
-    use crate::core::api::series_information::SeriesMainInformation;
-    use crate::core::api::Image;
+    use crate::core::api::tv_maze::episodes_information::Episode;
+    use crate::core::api::tv_maze::series_information::SeriesMainInformation;
+    use crate::core::api::tv_maze::Image;
     use crate::core::caching::episode_list::EpisodeReleaseTime;
     use crate::core::{caching, database};
     use crate::gui::helpers::{self, season_episode_str_gen};
@@ -125,7 +125,7 @@ pub mod series_poster {
             metadata = metadata.push(
                 text(&self.series_information.name)
                     .size(18)
-                    .style(styles::text_styles::purple_text_theme()),
+                    .style(styles::text_styles::accent_color_theme()),
             );
             metadata = metadata.push(vertical_space(10));
 
@@ -210,7 +210,7 @@ pub mod series_poster {
             metadata = metadata.push(
                 text(&self.series_information.name)
                     .size(18)
-                    .style(styles::text_styles::purple_text_theme()),
+                    .style(styles::text_styles::accent_color_theme()),
             );
             // Some separation between series name and the rest of content
             metadata = metadata.push(vertical_space(10));

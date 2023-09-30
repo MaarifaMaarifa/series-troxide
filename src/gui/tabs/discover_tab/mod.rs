@@ -1,6 +1,6 @@
 use std::sync::mpsc;
 
-use crate::core::api::series_information::SeriesMainInformation;
+use crate::core::api::tv_maze::series_information::SeriesMainInformation;
 use crate::core::caching::tv_schedule::{get_series_with_country, get_series_with_date};
 use crate::core::settings_config::locale_settings;
 use crate::gui::assets::icons::BINOCULARS_FILL;
@@ -299,7 +299,7 @@ mod full_schedule_posters {
     use iced::{Command, Element, Length, Renderer};
     use iced_aw::{Spinner, Wrap};
 
-    use crate::core::api::series_information::{
+    use crate::core::api::tv_maze::series_information::{
         Genre, SeriesMainInformation, ShowNetwork, ShowWebChannel,
     };
     use crate::core::caching;
