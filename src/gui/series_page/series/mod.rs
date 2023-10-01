@@ -386,6 +386,7 @@ impl Series {
         ];
 
         scrollable(content)
+            .direction(styles::scrollable_styles::vertical_direction())
             .id(self.scroller_id.clone())
             .on_scroll(Message::PageScrolled)
             .into()

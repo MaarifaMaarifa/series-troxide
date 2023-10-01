@@ -118,6 +118,7 @@ impl MyShowsTab {
             .width(Length::Fill)
             .align_items(iced::Alignment::Start),
         )
+        .direction(styles::scrollable_styles::vertical_direction())
         .into()
     }
 }

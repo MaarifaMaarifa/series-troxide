@@ -10,6 +10,7 @@ use crate::core::caching::episode_list::EpisodeList;
 use crate::core::caching::series_list;
 use crate::core::{caching, database};
 use crate::gui::assets::icons::CARD_CHECKLIST;
+use crate::gui::styles;
 use crate::gui::troxide_widget::series_poster::{
     IndexedMessage as SeriesPosterIndexedMessage, Message as SeriesPosterMessage, SeriesPoster,
 };
@@ -113,6 +114,7 @@ impl WatchlistTab {
                             .align_items(iced::Alignment::Center)
                             .width(Length::Fill),
                     )
+                    .direction(styles::scrollable_styles::vertical_direction())
                     .into()
                 }
             }

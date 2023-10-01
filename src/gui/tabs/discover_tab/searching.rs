@@ -153,6 +153,7 @@ impl Search {
                 container(search_results)
                     .style(styles::container_styles::first_class_container_rounded_theme()),
             )
+            .direction(styles::scrollable_styles::vertical_direction())
             .into()
         });
 
