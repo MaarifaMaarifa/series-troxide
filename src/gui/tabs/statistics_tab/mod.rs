@@ -6,6 +6,7 @@ use iced_aw::Wrap;
 
 use crate::core::{api::tv_maze::series_information::SeriesMainInformation, database};
 use crate::gui::assets::icons::GRAPH_UP_ARROW;
+use crate::gui::styles;
 use series_banner::{
     IndexedMessage as SeriesBannerIndexedMessage, Message as SeriesBannerMessage, SeriesBanner,
 };
@@ -98,7 +99,7 @@ impl StatisticsTab {
         .spacing(10)
         .padding(10);
 
-        container(scrollable(content))
+        container(scrollable(content).direction(styles::scrollable_styles::vertical_direction()))
             .width(Length::Fill)
             .height(Length::Fill)
             .into()

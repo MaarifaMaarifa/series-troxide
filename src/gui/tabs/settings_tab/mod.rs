@@ -2,6 +2,7 @@ use iced::widget::{column, scrollable};
 use iced::{Alignment, Command, Element, Length, Renderer};
 
 use crate::gui::assets::icons::GEAR_WIDE_CONNECTED;
+use crate::gui::styles;
 use about_widget::{About, Message as AboutMessage};
 use appearance_widget::{Appearance, Message as AppearanceMessage};
 use database_widget::{Database, Message as DatabaseMessage};
@@ -82,7 +83,8 @@ impl SettingsTab {
             .width(Length::Fill)
             .align_items(Alignment::Center)
             .padding(5),
-        );
+        )
+        .direction(styles::scrollable_styles::vertical_direction());
 
         column![
             settings_body.height(Length::FillPortion(10)),
@@ -90,7 +92,6 @@ impl SettingsTab {
         ]
         .align_items(Alignment::Center)
         .spacing(5)
-        .padding(10)
         .into()
     }
 }
