@@ -92,7 +92,6 @@ impl SettingsTab {
         ]
         .align_items(Alignment::Center)
         .spacing(5)
-        .padding(10)
         .into()
     }
 }
