@@ -208,7 +208,6 @@ impl DiscoverTab {
 
         column![self.search.view().0.map(Message::Search), content]
             .spacing(2)
-            .padding(10)
             .into()
     }
 }
