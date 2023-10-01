@@ -1,5 +1,6 @@
-use iced::widget::{column, container, horizontal_space, row, text, Row, Space};
+use iced::widget::{column, container, horizontal_space, row, scrollable, text, Row, Space};
 use iced::{Alignment, Element, Length, Renderer};
+use iced_aw::Grid;
 
 use crate::core::api::tv_maze::series_information::SeriesMainInformation;
 use crate::core::database;
@@ -118,6 +119,58 @@ pub fn time_count(
         .padding(10)
         .center_x()
         .center_y()
+        .style(styles::container_styles::first_class_container_rounded_theme())
+        .into()
+}
+
+pub fn genre_stats(series_infos: Vec<&SeriesMainInformation>) -> Element<'_, Message, Renderer> {
+    use crate::core::api::tv_maze::series_information::Genre;
+    use std::collections::HashMap;
+
+    if series_infos.is_empty() {
+        return Space::new(0, 0).into();
+    }
+
+    let mut genre_count: HashMap<Genre, usize> = HashMap::new();
+
+    series_infos.iter().for_each(|series_info| {
+        series_info.get_genres().into_iter().for_each(|genre| {
+            genre_count
+                .entry(genre)
+                .and_modify(|count| *count += 1)
+                .or_insert(1);
+        })
+    });
+
+    let mut genre_count: Vec<(Genre, usize)> = genre_count
+        .into_iter()
+        .map(|(genre, count)| (genre, count))
+        .collect();
+
+    genre_count.sort_unstable_by(|a, b| b.1.cmp(&a.1));
+
+    let mut content = Grid::with_columns(2);
+
+    genre_count.into_iter().for_each(|(genre, count)| {
+        content.insert(
+            text(format!("{}    ", genre)).style(styles::text_styles::accent_color_theme()),
+        );
+        content.insert(text(format!("{} series", count)));
+    });
+
+    let content = column![text("Genre Stats"), content]
+        .align_items(Alignment::Center)
+        .spacing(10)
+        .width(Length::Fill)
+        .padding(10);
+
+    let content = scrollable(content)
+        .direction(styles::scrollable_styles::vertical_direction())
+        .width(Length::Fill);
+
+    container(content)
+        .width(Length::Fill)
+        .padding(5)
         .style(styles::container_styles::first_class_container_rounded_theme())
         .into()
 }
