@@ -8,9 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Program logo to be shown in the window and the taskbar. [#8](https://github.com/MaarifaMaarifa/series-troxide/pull/8)
+- Genre Stats in `Statistics page`. [#31](https://github.com/MaarifaMaarifa/series-troxide/pull/31)
+- `Trakt` data import. [#29](https://github.com/MaarifaMaarifa/series-troxide/pull/29)
 
 ### Changed
 - Improve series cache cleaning/updating. [#25](https://github.com/MaarifaMaarifa/series-troxide/pull/25)
+- Made all scrollbars thinner. [#30](https://github.com/MaarifaMaarifa/series-troxide/pull/30)
 
 ## [0.3.0] - 2023-09-02
 
