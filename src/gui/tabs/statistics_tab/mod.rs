@@ -90,10 +90,20 @@ impl StatisticsTab {
 
         let series_list = container(series_list).width(Length::Fill).center_x();
 
+        let series_infos: Vec<&SeriesMainInformation> = self
+            .series_infos_and_time
+            .iter()
+            .map(|(series_info, _)| series_info)
+            .collect();
+
         let content = column![
-            row![watch_count(), time_count(&self.series_infos_and_time)]
-                .height(200)
-                .spacing(10),
+            row![
+                watch_count(),
+                genre_stats(series_infos),
+                time_count(&self.series_infos_and_time)
+            ]
+            .height(200)
+            .spacing(10),
             series_list
         ]
         .spacing(10)
