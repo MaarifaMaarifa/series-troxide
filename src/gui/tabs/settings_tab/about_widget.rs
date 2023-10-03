@@ -1,5 +1,5 @@
 use crate::core::api::crates::{get_program_info, CrateInformation};
-use crate::gui::assets::icons::{ARROW_REPEAT, SERIES_TROXIDE_ICON};
+use crate::gui::assets::icons::{ARROW_REPEAT, CUP_HOT_FILL, SERIES_TROXIDE_ICON};
 use crate::gui::styles;
 
 use iced::font::Weight;
@@ -19,6 +19,7 @@ pub enum Message {
     Iced,
     CrateInfoLoaded(Result<CrateInformation, String>),
     RecheckUpdate,
+    Coffee,
 }
 
 pub struct About {
@@ -57,6 +58,10 @@ impl About {
                 self.crate_information = None;
                 return Self::check_update();
             }
+            Message::Coffee => {
+                webbrowser::open("https://www.patreon.com/MaarifaMaarifa")
+                    .unwrap_or_else(|err| error!("failed to open patreon site: {}", err));
+            }
         };
 
         Command::none()
@@ -69,6 +74,7 @@ impl About {
                 .size(21),
             update_widget(self),
             info_widget(),
+            social_buttons(),
             horizontal_rule(1),
             vertical_space(5),
             text("Credits").size(18),
@@ -211,6 +217,23 @@ fn info_widget() -> Element<'static, Message, Renderer> {
     grid.insert(text(built_info::RUSTC_VERSION));
 
     grid.into()
+}
+
+fn social_buttons() -> Element<'static, Message, Renderer> {
+    let coffee_icon_handle = svg::Handle::from_memory(CUP_HOT_FILL);
+    let coffee_icon = svg(coffee_icon_handle)
+        .style(styles::svg_styles::colored_svg_theme())
+        .height(30)
+        .width(30);
+    let coffee_button = button(coffee_icon)
+        .style(styles::button_styles::transparent_button_theme())
+        .on_press(Message::Coffee);
+
+    container(coffee_button)
+        .width(Length::Fill)
+        .center_x()
+        .center_y()
+        .into()
 }
 
 fn credit_widget() -> Element<'static, Message, Renderer> {
