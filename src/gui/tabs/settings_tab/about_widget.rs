@@ -1,7 +1,13 @@
+use crate::core::api::crates::{get_program_info, CrateInformation};
+use crate::gui::assets::icons::{ARROW_REPEAT, SERIES_TROXIDE_ICON};
 use crate::gui::styles;
 
-use iced::widget::{column, container, horizontal_rule, mouse_area, row, text, vertical_space};
-use iced::{Element, Renderer};
+use iced::font::Weight;
+use iced::widget::{
+    button, column, container, horizontal_rule, horizontal_space, mouse_area, row, svg, text,
+    vertical_space, Space,
+};
+use iced::{Command, Element, Font, Length, Renderer};
 use iced_aw::Grid;
 use tracing::error;
 
@@ -11,13 +17,24 @@ pub enum Message {
     TvMaze,
     BootstrapIcons,
     Iced,
+    CrateInfoLoaded(Result<CrateInformation, String>),
+    RecheckUpdate,
 }
 
-#[derive(Default)]
-pub struct About;
+pub struct About {
+    crate_information: Option<Result<CrateInformation, String>>,
+}
 
 impl About {
-    pub fn update(&mut self, message: Message) {
+    pub fn new() -> (Self, Command<Message>) {
+        (
+            Self {
+                crate_information: None,
+            },
+            Self::check_update(),
+        )
+    }
+    pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Repository => {
                 webbrowser::open(built_info::PKG_REPOSITORY)
@@ -35,7 +52,14 @@ impl About {
                 webbrowser::open("https://iced.rs/")
                     .unwrap_or_else(|err| error!("failed to open Iced site: {}", err));
             }
-        }
+            Message::CrateInfoLoaded(info_result) => self.crate_information = Some(info_result),
+            Message::RecheckUpdate => {
+                self.crate_information = None;
+                return Self::check_update();
+            }
+        };
+
+        Command::none()
     }
 
     pub fn view(&self) -> Element<'_, Message, Renderer> {
@@ -43,6 +67,7 @@ impl About {
             text("About")
                 .style(styles::text_styles::accent_color_theme())
                 .size(21),
+            update_widget(self),
             info_widget(),
             horizontal_rule(1),
             vertical_space(5),
@@ -57,19 +82,110 @@ impl About {
             .padding(5)
             .into()
     }
+
+    fn check_update() -> Command<Message> {
+        Command::perform(get_program_info(), |result| {
+            Message::CrateInfoLoaded(result.map_err(|err| err.to_string()))
+        })
+    }
+}
+
+fn update_widget(about: &About) -> Element<'static, Message, Renderer> {
+    let series_troxide_icon_handle = svg::Handle::from_memory(SERIES_TROXIDE_ICON);
+    let icon = svg(series_troxide_icon_handle).width(40);
+    let program_info = column![
+        text("Series Troxide")
+            .font(Font {
+                weight: Weight::Bold,
+                ..Default::default()
+            })
+            .size(18)
+            .style(styles::text_styles::accent_color_theme()),
+        text(built_info::PKG_DESCRIPTION),
+    ];
+
+    let program_main_info = row![icon, program_info].spacing(5);
+
+    let latest_version_and_container_style: (&str, iced::theme::Container, Option<bool>) =
+        match &about.crate_information {
+            Some(crate_info_result) => match crate_info_result {
+                Ok(crate_info) => {
+                    let container_style = if crate_info.package.is_up_to_date() {
+                        styles::container_styles::success_container_theme()
+                    } else {
+                        styles::container_styles::failure_container_theme()
+                    };
+                    (
+                        crate_info.package.newest_version(),
+                        container_style,
+                        Some(crate_info.package.is_up_to_date()),
+                    )
+                }
+                Err(_) => (
+                    "unavailable",
+                    styles::container_styles::failure_container_theme(),
+                    None,
+                ),
+            },
+            None => (
+                "loading...",
+                styles::container_styles::loading_container_theme(),
+                None,
+            ),
+        };
+
+    let update_status: Element<'_, Message, Renderer> =
+        if let Some(is_up_to_date) = latest_version_and_container_style.2 {
+            if is_up_to_date {
+                text("Up to date")
+            } else {
+                text("Out of date")
+            }
+            .font(Font {
+                weight: Weight::Bold,
+                ..Default::default()
+            })
+            .into()
+        } else {
+            Space::new(0, 0).into()
+        };
+
+    let refresh_icon_handle = svg::Handle::from_memory(ARROW_REPEAT);
+    let refresh_icon = svg(refresh_icon_handle).style(styles::svg_styles::colored_svg_theme());
+
+    let refresh_button = button(refresh_icon)
+        .style(styles::button_styles::transparent_button_theme())
+        .on_press(Message::RecheckUpdate);
+
+    let version_information = container(row![
+        column![
+            update_status,
+            row![
+                text("Latest version: ").style(styles::text_styles::accent_color_theme()),
+                text(latest_version_and_container_style.0)
+            ],
+            row![
+                text("Program version: ").style(styles::text_styles::accent_color_theme()),
+                text(env!("CARGO_PKG_VERSION"))
+            ],
+        ],
+        horizontal_space(Length::Fill),
+        refresh_button
+    ])
+    .style(latest_version_and_container_style.1)
+    .width(300)
+    .padding(10);
+
+    column![program_main_info, version_information]
+        .spacing(5)
+        .into()
 }
 
 fn info_widget() -> Element<'static, Message, Renderer> {
     let mut grid = Grid::with_columns(2);
 
-    grid.insert(text("Program"));
-    grid.insert(text(built_info::PKG_NAME));
-
     grid.insert(text("Author"));
     grid.insert(text(built_info::PKG_AUTHORS));
-
-    grid.insert(text("Version"));
-    grid.insert(text(built_info::PKG_VERSION));
 
     grid.insert(text("License"));
     grid.insert(text(built_info::PKG_LICENSE));

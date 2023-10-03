@@ -37,15 +37,19 @@ pub struct SettingsTab {
 }
 
 impl SettingsTab {
-    pub fn new() -> Self {
-        Self {
-            appearance_settings: Appearance,
-            database_settings: Database::new(),
-            notifications_settings: Notifications,
-            locale_settings: Locale::default(),
-            about: About,
-            controls_settings: SettingsControls,
-        }
+    pub fn new() -> (Self, Command<Message>) {
+        let (about_widget, about_command) = About::new();
+        (
+            Self {
+                appearance_settings: Appearance,
+                database_settings: Database::new(),
+                notifications_settings: Notifications,
+                locale_settings: Locale::default(),
+                about: about_widget,
+                controls_settings: SettingsControls,
+            },
+            about_command.map(Message::About),
+        )
     }
 
     pub fn subscription(&self) -> iced::Subscription<Message> {
@@ -61,7 +65,7 @@ impl SettingsTab {
                     .map(Message::Database)
             }
             Message::Locale(message) => self.locale_settings.update(message),
-            Message::About(message) => self.about.update(message),
+            Message::About(message) => return self.about.update(message).map(Message::About),
             Message::Notifications(message) => self.notifications_settings.update(message),
             Message::Appearance(message) => self.appearance_settings.update(message),
             Message::Controls(message) => self.controls_settings.update(message),
