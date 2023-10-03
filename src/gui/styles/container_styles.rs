@@ -40,6 +40,21 @@ pub fn second_class_container_square_theme() -> Container {
     )
 }
 
+/// A custom theme for container indicating content that represent success
+pub fn success_container_theme() -> Container {
+    Container::Custom(Box::new(SuccessContainerTheme) as Box<dyn StyleSheet<Style = iced::Theme>>)
+}
+
+/// A custom theme for container indicating content that represent success
+pub fn failure_container_theme() -> Container {
+    Container::Custom(Box::new(FailureContainerTheme) as Box<dyn StyleSheet<Style = iced::Theme>>)
+}
+
+/// A custom theme for container indicating content that represent loading
+pub fn loading_container_theme() -> Container {
+    Container::Custom(Box::new(LoadingContainerTheme) as Box<dyn StyleSheet<Style = iced::Theme>>)
+}
+
 pub struct FirstClassContainerRoundedTheme;
 
 impl StyleSheet for FirstClassContainerRoundedTheme {
@@ -183,6 +198,84 @@ impl StyleSheet for ContainerThemeReleaseTime {
                 }
             }
             _ => unreachable!("built-in iced themes are not in use"),
+        }
+    }
+}
+
+pub struct SuccessContainerTheme;
+
+impl StyleSheet for SuccessContainerTheme {
+    type Style = iced::Theme;
+
+    fn appearance(&self, _style: &Self::Style) -> Appearance {
+        Appearance {
+            background: Some(Background::Color(Color {
+                r: 0.0,
+                g: 128_f32 / 255.0,
+                b: 0.0,
+                a: 0.1,
+            })),
+            border_color: Color {
+                r: 0.0,
+                g: 128_f32 / 255.0,
+                b: 0.0,
+                a: 1.0,
+            },
+            border_width: 1.0,
+            border_radius: BorderRadius::from(10.0),
+            ..Appearance::default()
+        }
+    }
+}
+
+pub struct FailureContainerTheme;
+
+impl StyleSheet for FailureContainerTheme {
+    type Style = iced::Theme;
+
+    fn appearance(&self, _style: &Self::Style) -> Appearance {
+        Appearance {
+            background: Some(Background::Color(Color {
+                r: 255.0,
+                g: 0.0,
+                b: 0.0,
+                a: 0.1,
+            })),
+            border_color: Color {
+                r: 255.0,
+                g: 0.0,
+                b: 0.0,
+                a: 1.0,
+            },
+            border_width: 1.0,
+            border_radius: BorderRadius::from(10.0),
+            ..Appearance::default()
+        }
+    }
+}
+
+pub struct LoadingContainerTheme;
+
+impl StyleSheet for LoadingContainerTheme {
+    type Style = iced::Theme;
+
+    fn appearance(&self, _style: &Self::Style) -> Appearance {
+        Appearance {
+            background: Some(Background::Color(Color {
+                r: 0.0,
+                g: 0.0,
+                b: 0.5,
+                a: 0.1,
+            })),
+            border_color: Color {
+                r: 0.0,
+                g: 0.0,
+                b: 0.5,
+                a: 1.0,
+            },
+            border_width: 1.0,
+            border_radius: BorderRadius::from(10.0),
+            ..Appearance::default()
         }
     }
 }
