@@ -1,5 +1,5 @@
 use crate::core::api::crates::{get_program_info, CrateInformation};
-use crate::gui::assets::icons::{ARROW_REPEAT, CUP_HOT_FILL, SERIES_TROXIDE_ICON};
+use crate::gui::assets::icons::{ARROW_REPEAT, CUP_HOT_FILL, GITHUB_ICON, SERIES_TROXIDE_ICON};
 use crate::gui::styles;
 
 use iced::font::Weight;
@@ -229,7 +229,18 @@ fn social_buttons() -> Element<'static, Message, Renderer> {
         .style(styles::button_styles::transparent_button_theme())
         .on_press(Message::Coffee);
 
-    container(coffee_button)
+    let github_icon_handle = svg::Handle::from_memory(GITHUB_ICON);
+    let github_icon = svg(github_icon_handle)
+        .style(styles::svg_styles::colored_svg_theme())
+        .height(30)
+        .width(30);
+    let github_button = button(github_icon)
+        .style(styles::button_styles::transparent_button_theme())
+        .on_press(Message::Repository);
+
+    let social_buttons = row![coffee_button, github_button].spacing(5);
+
+    container(social_buttons)
         .width(Length::Fill)
         .center_x()
         .center_y()
