@@ -17,6 +17,8 @@ pub mod icons {
     pub static STAR_HALF: &[u8] = include_bytes!("../../assets/icons/star-half.svg");
     pub static PATCH_PLUS: &[u8] = include_bytes!("../../assets/icons/patch-plus.svg");
     pub static PATCH_PLUS_FILL: &[u8] = include_bytes!("../../assets/icons/patch-plus-fill.svg");
+    pub static CUP_HOT_FILL: &[u8] = include_bytes!("../../assets/icons/cup-hot-fill.svg");
+    pub static GITHUB_ICON: &[u8] = include_bytes!("../../assets/icons/github.svg");
     pub static TRAKT_ICON_RED: &[u8] = include_bytes!("../../assets/logos/trakt-icon-red.svg");
     pub static SERIES_TROXIDE_ICON: &[u8] = include_bytes!("../../assets/logos/series-troxide.svg");
 }
