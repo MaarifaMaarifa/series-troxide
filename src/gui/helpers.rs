@@ -164,3 +164,16 @@ pub mod time {
         (word, time_value)
     }
 }
+
+pub fn genres_with_pipes(genres: &[String]) -> String {
+    let mut genres_string = String::new();
+
+    let mut series_result_iter = genres.iter().peekable();
+    while let Some(genre) = series_result_iter.next() {
+        genres_string.push_str(genre);
+        if series_result_iter.peek().is_some() {
+            genres_string.push_str(" | ");
+        }
+    }
+    genres_string
+}

@@ -63,16 +63,7 @@ pub fn genres_widget(
 ) {
     if !series_info.genres.is_empty() {
         let title_text = text("Genres");
-        let mut genres = String::new();
-
-        let mut series_result_iter = series_info.genres.iter().peekable();
-        while let Some(genre) = series_result_iter.next() {
-            genres.push_str(genre);
-            if series_result_iter.peek().is_some() {
-                genres.push_str(" | ");
-            }
-        }
-        let genres = text(genres);
+        let genres = text(helpers::genres_with_pipes(&series_info.genres));
 
         data_grid.insert(title_text);
         data_grid.insert(genres);

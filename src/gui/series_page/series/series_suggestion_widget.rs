@@ -99,7 +99,7 @@ impl SeriesSuggestion {
                         Wrap::with_elements(
                             self.suggested_series
                                 .iter()
-                                .map(|poster| poster.normal_view().map(Message::SeriesPoster))
+                                .map(|poster| poster.normal_view(false).map(Message::SeriesPoster))
                                 .collect(),
                         )
                         .line_spacing(5.0)

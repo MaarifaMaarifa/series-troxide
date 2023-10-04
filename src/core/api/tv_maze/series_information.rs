@@ -1,4 +1,5 @@
 use super::episodes_information::Episode;
+pub use super::Rating;
 use super::*;
 use serde::{Deserialize, Serialize};
 use std::hash::{Hash, Hasher};
