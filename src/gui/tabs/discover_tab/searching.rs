@@ -149,11 +149,12 @@ impl Search {
         };
 
         let search_results = search_results.map(|search_results| {
-            scrollable(
-                container(search_results)
-                    .style(styles::container_styles::first_class_container_rounded_theme()),
+            container(
+                scrollable(search_results)
+                    .direction(styles::scrollable_styles::vertical_direction()),
             )
-            .direction(styles::scrollable_styles::vertical_direction())
+            .padding(5)
+            .style(styles::container_styles::first_class_container_rounded_theme())
             .into()
         });
 
