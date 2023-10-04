@@ -277,11 +277,15 @@ fn series_posters_loader<'a>(
             .padding(10)
             .into()
     } else {
-        let wrapped_posters =
-            Wrap::with_elements(posters.iter().map(|poster| poster.normal_view()).collect())
-                .spacing(5.0)
-                .line_spacing(5.0)
-                .padding(5.0);
+        let wrapped_posters = Wrap::with_elements(
+            posters
+                .iter()
+                .map(|poster| poster.normal_view(true))
+                .collect(),
+        )
+        .spacing(5.0)
+        .line_spacing(5.0)
+        .padding(5.0);
 
         column!(title, wrapped_posters)
             .spacing(5)
@@ -521,7 +525,7 @@ mod full_schedule_posters {
                                 self.monthly_new_poster
                                     .iter()
                                     .map(|poster| {
-                                        poster.normal_view().map(Message::MonthlyNewPosters)
+                                        poster.normal_view(true).map(Message::MonthlyNewPosters)
                                     })
                                     .collect(),
                             )
@@ -541,7 +545,9 @@ mod full_schedule_posters {
                                 self.monthly_returning_posters
                                     .iter()
                                     .map(|poster| {
-                                        poster.normal_view().map(Message::MonthlyReturningPosters)
+                                        poster
+                                            .normal_view(true)
+                                            .map(Message::MonthlyReturningPosters)
                                     })
                                     .collect(),
                             )
@@ -557,7 +563,7 @@ mod full_schedule_posters {
                         Wrap::with_elements(
                             self.popular_posters
                                 .iter()
-                                .map(|poster| poster.normal_view().map(Message::PopularPosters))
+                                .map(|poster| poster.normal_view(true).map(Message::PopularPosters))
                                 .collect()
                         )
                         .spacing(5.0)
@@ -752,7 +758,7 @@ mod full_schedule_posters {
                 Wrap::with_elements(
                     series_posters
                         .iter()
-                        .map(|series_poster| series_poster.normal_view().map(message))
+                        .map(|series_poster| series_poster.normal_view(true).map(message))
                         .collect(),
                 )
                 .spacing(5.0)
