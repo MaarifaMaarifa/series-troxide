@@ -165,13 +165,15 @@ mod search_result {
     use std::sync::mpsc;
 
     use bytes::Bytes;
-    use iced::widget::{column, image, mouse_area, row, text, Space};
+    use iced::widget::{column, image, mouse_area, row, svg, text, Space};
     use iced::{Command, Element, Renderer};
 
     use crate::core::api::tv_maze::series_information::SeriesMainInformation;
+    use crate::core::api::tv_maze::Rating;
     use crate::core::{api::tv_maze::series_searching, caching};
+    use crate::gui::assets::icons::STAR_FILL;
     pub use crate::gui::message::IndexedMessage;
-    use crate::gui::styles;
+    use crate::gui::{helpers, styles};
 
     #[derive(Debug, Clone)]
     pub enum Message {
@@ -236,16 +238,9 @@ mod search_result {
             // Getting the series genres
             let genres: Element<'_, Message, Renderer> =
                 if !self.search_result.show.genres.is_empty() {
-                    let mut genres = String::from("Genres: ");
-
-                    let mut series_result_iter = self.search_result.show.genres.iter().peekable();
-                    while let Some(genre) = series_result_iter.next() {
-                        genres.push_str(genre);
-                        if series_result_iter.peek().is_some() {
-                            genres.push_str(", ");
-                        }
-                    }
-                    text(genres).size(11).into()
+                    text(helpers::genres_with_pipes(&self.search_result.show.genres))
+                        .size(11)
+                        .into()
                 } else {
                     Space::new(0, 0).into()
                 };
@@ -261,10 +256,28 @@ mod search_result {
                 column = column.push(text(format!("Premiered: {}", premier)).size(9));
             }
 
+            column = column.push(Self::rating_widget(&self.search_result.show.rating));
+
             let element: Element<'_, Message, Renderer> = mouse_area(row.push(column))
                 .on_press(Message::SeriesResultPressed)
                 .into();
             element.map(|message| IndexedMessage::new(self.index, message))
+        }
+
+        fn rating_widget(rating: &Rating) -> Element<'_, Message, Renderer> {
+            if let Some(average_rating) = rating.average {
+                let star_handle = svg::Handle::from_memory(STAR_FILL);
+                let star_icon = svg(star_handle)
+                    .width(12)
+                    .height(12)
+                    .style(styles::svg_styles::colored_svg_theme());
+
+                row![star_icon, text(average_rating).size(11)]
+                    .spacing(5)
+                    .into()
+            } else {
+                Space::new(0, 0).into()
+            }
         }
     }
 }
