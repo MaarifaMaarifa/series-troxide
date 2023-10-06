@@ -215,7 +215,7 @@ pub mod series_poster {
 
             button(content)
                 .on_press(Message::Hide)
-                .style(styles::button_styles::transparent_button_theme())
+                .style(styles::button_styles::transparent_button_with_rounded_border_theme())
                 .into()
         }
 
