@@ -1,0 +1,96 @@
+//! Prevent certain series posters from appearing in the Discover page
+
+use std::path;
+
+use directories::ProjectDirs;
+use indexmap::IndexMap;
+use tokio::fs;
+use tracing::info;
+
+const HIDDEN_SERIES_FILENAME: &str = "hidden-series";
+
+#[derive(Clone)]
+pub struct HiddenSeries {
+    /// <`Series ID`, (`Series Name`, `Premiere Date`)>
+    hidden_series: Option<IndexMap<u32, (String, Option<String>)>>,
+    hidden_series_filepath: path::PathBuf,
+}
+
+impl HiddenSeries {
+    pub fn new() -> Self {
+        let proj_dirs = ProjectDirs::from("", "", env!("CARGO_PKG_NAME"))
+            .expect("could not get the hidden series filepath");
+
+        let mut hidden_series_filepath = std::path::PathBuf::from(proj_dirs.config_dir());
+        hidden_series_filepath.push(HIDDEN_SERIES_FILENAME);
+
+        Self {
+            hidden_series: None,
+            hidden_series_filepath,
+        }
+    }
+
+    pub async fn load_series(&mut self) -> anyhow::Result<()> {
+        match fs::read_to_string(&self.hidden_series_filepath).await {
+            Ok(file_content) => {
+                self.hidden_series = Some(serde_json::from_str(&file_content)?);
+            }
+            Err(err) => {
+                if let std::io::ErrorKind::NotFound = err.kind() {
+                    self.hidden_series = Some(IndexMap::new());
+                } else {
+                    anyhow::bail!(err)
+                }
+            }
+        };
+        Ok(())
+    }
+
+    /// Hides a Series and automatically save it to it's file
+    pub async fn hide_series(
+        &mut self,
+        series_id: u32,
+        series_name: String,
+        premier_date: Option<String>,
+    ) -> anyhow::Result<()> {
+        loop {
+            if let Some(ref mut hidden_series) = self.hidden_series {
+                hidden_series.insert(
+                    series_id,
+                    (
+                        series_name.to_owned(),
+                        premier_date.map(|date| date.to_owned()),
+                    ),
+                );
+                break;
+            } else {
+                self.load_series().await?;
+            }
+        }
+
+        self.save_series().await?;
+
+        info!("'{}' successfully hidden'", series_name);
+
+        Ok(())
+    }
+
+    pub async fn save_series(&self) -> anyhow::Result<()> {
+        let file_content = if let Some(hidden_series) = &self.hidden_series {
+            serde_json::to_string_pretty(&hidden_series)?
+        } else {
+            let map: IndexMap<u32, (String, Option<String>)> = IndexMap::new();
+            serde_json::to_string_pretty(&map)?
+        };
+
+        fs::write(&self.hidden_series_filepath, file_content).await?;
+
+        Ok(())
+    }
+}
+
+impl Default for HiddenSeries {
+    fn default() -> Self {
+        Self::new()
+    }
+}
