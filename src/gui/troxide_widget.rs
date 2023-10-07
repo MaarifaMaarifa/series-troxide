@@ -6,7 +6,7 @@ pub mod series_poster {
     use crate::core::api::tv_maze::series_information::{Rating, SeriesMainInformation};
     use crate::core::api::tv_maze::Image;
     use crate::core::caching::episode_list::EpisodeReleaseTime;
-    use crate::core::posters_hiding::HiddenSeries;
+    use crate::core::posters_hiding::HIDDEN_SERIES;
     use crate::core::{caching, database};
     use crate::gui::assets::icons::{EYE_SLASH_FILL, STAR_FILL};
     use crate::gui::helpers::{self, season_episode_str_gen};
@@ -36,7 +36,6 @@ pub mod series_poster {
         image: Option<Bytes>,
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
         expanded: bool,
-        hidden_series: HiddenSeries,
         hidden: bool,
     }
 
@@ -54,7 +53,6 @@ pub mod series_poster {
                 image: None,
                 series_page_sender,
                 expanded: false,
-                hidden_series: HiddenSeries::new(),
                 hidden: false,
             };
 
@@ -83,10 +81,11 @@ pub mod series_poster {
                     let index = self.index;
                     let series_name = self.series_information.name.clone();
                     let premiered_date = self.series_information.premiered.clone();
-                    let mut hidden_series = self.hidden_series.clone();
 
                     return Command::perform(
                         async move {
+                            let mut hidden_series = HIDDEN_SERIES.write().await;
+
                             hidden_series
                                 .hide_series(series_id, series_name, premiered_date)
                                 .await

@@ -4,10 +4,16 @@ use std::path;
 
 use directories::ProjectDirs;
 use indexmap::IndexMap;
+use lazy_static::lazy_static;
 use tokio::fs;
+use tokio::sync::RwLock;
 use tracing::info;
 
 const HIDDEN_SERIES_FILENAME: &str = "hidden-series";
+
+lazy_static! {
+    pub static ref HIDDEN_SERIES: RwLock<HiddenSeries> = RwLock::new(HiddenSeries::new());
+}
 
 #[derive(Clone)]
 pub struct HiddenSeries {
@@ -17,7 +23,7 @@ pub struct HiddenSeries {
 }
 
 impl HiddenSeries {
-    pub fn new() -> Self {
+    fn new() -> Self {
         let proj_dirs = ProjectDirs::from("", "", env!("CARGO_PKG_NAME"))
             .expect("could not get the hidden series filepath");
 
@@ -44,6 +50,20 @@ impl HiddenSeries {
             }
         };
         Ok(())
+    }
+
+    /// Unhides a Series and automatically save it to it's file
+    pub async fn unhide_series(&mut self, series_id: u32) -> anyhow::Result<()> {
+        if let Some(ref mut hidden_series) = self.hidden_series {
+            hidden_series.shift_remove(&series_id);
+            self.save_series().await?;
+        }
+
+        Ok(())
+    }
+
+    pub fn get_hidden_series(&self) -> Option<&IndexMap<u32, (String, Option<String>)>> {
+        self.hidden_series.as_ref()
     }
 
     /// Hides a Series and automatically save it to it's file
