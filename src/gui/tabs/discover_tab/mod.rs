@@ -280,6 +280,7 @@ fn series_posters_loader<'a>(
         let wrapped_posters = Wrap::with_elements(
             posters
                 .iter()
+                .filter(|poster| !poster.is_hidden())
                 .map(|poster| poster.normal_view(true))
                 .collect(),
         )
@@ -524,6 +525,7 @@ mod full_schedule_posters {
                             Wrap::with_elements(
                                 self.monthly_new_poster
                                     .iter()
+                                    .filter(|poster| !poster.is_hidden())
                                     .map(|poster| {
                                         poster.normal_view(true).map(Message::MonthlyNewPosters)
                                     })
@@ -544,6 +546,7 @@ mod full_schedule_posters {
                             Wrap::with_elements(
                                 self.monthly_returning_posters
                                     .iter()
+                                    .filter(|poster| !poster.is_hidden())
                                     .map(|poster| {
                                         poster
                                             .normal_view(true)
@@ -563,6 +566,7 @@ mod full_schedule_posters {
                         Wrap::with_elements(
                             self.popular_posters
                                 .iter()
+                                .filter(|poster| !poster.is_hidden())
                                 .map(|poster| poster.normal_view(true).map(Message::PopularPosters))
                                 .collect()
                         )
@@ -758,6 +762,7 @@ mod full_schedule_posters {
                 Wrap::with_elements(
                     series_posters
                         .iter()
+                        .filter(|poster| !poster.is_hidden())
                         .map(|series_poster| series_poster.normal_view(true).map(message))
                         .collect(),
                 )

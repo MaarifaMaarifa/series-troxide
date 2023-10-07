@@ -6,8 +6,9 @@ pub mod series_poster {
     use crate::core::api::tv_maze::series_information::{Rating, SeriesMainInformation};
     use crate::core::api::tv_maze::Image;
     use crate::core::caching::episode_list::EpisodeReleaseTime;
+    use crate::core::posters_hiding::HIDDEN_SERIES;
     use crate::core::{caching, database};
-    use crate::gui::assets::icons::STAR_FILL;
+    use crate::gui::assets::icons::{EYE_SLASH_FILL, STAR_FILL};
     use crate::gui::helpers::{self, season_episode_str_gen};
     pub use crate::gui::message::IndexedMessage;
     use crate::gui::styles;
@@ -15,8 +16,8 @@ pub mod series_poster {
     use bytes::Bytes;
     use iced::font::Weight;
     use iced::widget::{
-        column, container, horizontal_space, image, mouse_area, progress_bar, row, svg, text,
-        vertical_space, Space,
+        button, column, container, horizontal_space, image, mouse_area, progress_bar, row, svg,
+        text, vertical_space, Space,
     };
     use iced::{Command, Element, Font, Length, Renderer};
 
@@ -25,6 +26,8 @@ pub mod series_poster {
         ImageLoaded(usize, Option<Bytes>),
         SeriesPosterPressed,
         Expand,
+        Hide,
+        SeriesHidden,
     }
 
     pub struct SeriesPoster {
@@ -33,6 +36,7 @@ pub mod series_poster {
         image: Option<Bytes>,
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
         expanded: bool,
+        hidden: bool,
     }
 
     impl SeriesPoster {
@@ -49,6 +53,7 @@ pub mod series_poster {
                 image: None,
                 series_page_sender,
                 expanded: false,
+                hidden: false,
             };
 
             let series_image_command = poster_image_command(index, image_url);
@@ -71,8 +76,33 @@ pub mod series_poster {
                         .expect("failed to send series page info");
                 }
                 Message::Expand => self.expanded = !self.expanded,
+                Message::Hide => {
+                    let series_id = self.series_information.id;
+                    let index = self.index;
+                    let series_name = self.series_information.name.clone();
+                    let premiered_date = self.series_information.premiered.clone();
+
+                    return Command::perform(
+                        async move {
+                            let mut hidden_series = HIDDEN_SERIES.write().await;
+
+                            hidden_series
+                                .hide_series(series_id, series_name, premiered_date)
+                                .await
+                        },
+                        |_| Message::SeriesHidden,
+                    )
+                    .map(move |message| IndexedMessage::new(index, message));
+                }
+                Message::SeriesHidden => {
+                    self.hidden = true;
+                }
             }
             Command::none()
+        }
+
+        pub fn is_hidden(&self) -> bool {
+            self.hidden
         }
 
         /// Views the series poster widget
@@ -95,41 +125,40 @@ pub mod series_poster {
                 }
             };
 
-            let content: Element<'_, Message, Renderer> = match self.expanded {
-                true => {
-                    let metadata = column![
-                        text(&self.series_information.name)
-                            .size(11)
-                            .font(Font {
-                                weight: Weight::Bold,
-                                ..Default::default()
-                            })
-                            .style(styles::text_styles::accent_color_theme()),
-                        Self::genres_widget(&self.series_information.genres),
-                        Self::premier_widget(self.series_information.premiered.as_deref()),
-                        Self::rating_widget(&self.series_information.rating),
-                    ]
-                    .spacing(2);
+            let content: Element<'_, Message, Renderer> = if self.expanded {
+                let metadata = column![
+                    text(&self.series_information.name)
+                        .size(11)
+                        .font(Font {
+                            weight: Weight::Bold,
+                            ..Default::default()
+                        })
+                        .style(styles::text_styles::accent_color_theme()),
+                    Self::genres_widget(&self.series_information.genres),
+                    Self::premier_widget(self.series_information.premiered.as_deref()),
+                    Self::rating_widget(&self.series_information.rating),
+                    vertical_space(5),
+                    Self::hiding_button(),
+                ]
+                .spacing(2);
 
-                    row![poster_image, metadata]
-                        .padding(2)
-                        .spacing(5)
-                        .width(300)
-                        .into()
-                }
-                false => {
-                    let mut content = column![].padding(2).spacing(1);
-                    content = content.push(poster_image);
-                    content = content.push(
-                        text(&self.series_information.name)
-                            .size(11)
-                            .width(100)
-                            .height(30)
-                            .vertical_alignment(iced::alignment::Vertical::Center)
-                            .horizontal_alignment(iced::alignment::Horizontal::Center),
-                    );
-                    content.into()
-                }
+                row![poster_image, metadata]
+                    .padding(2)
+                    .spacing(5)
+                    .width(300)
+                    .into()
+            } else {
+                let mut content = column![].padding(2).spacing(1);
+                content = content.push(poster_image);
+                content = content.push(
+                    text(&self.series_information.name)
+                        .size(11)
+                        .width(100)
+                        .height(30)
+                        .vertical_alignment(iced::alignment::Vertical::Center)
+                        .horizontal_alignment(iced::alignment::Horizontal::Center),
+                );
+                content.into()
             };
 
             let content = container(content)
@@ -176,6 +205,21 @@ pub mod series_poster {
             } else {
                 text(helpers::genres_with_pipes(genres)).size(11).into()
             }
+        }
+
+        fn hiding_button() -> Element<'static, Message, Renderer> {
+            let tracked_icon_handle = svg::Handle::from_memory(EYE_SLASH_FILL);
+            let icon = svg(tracked_icon_handle)
+                .width(15)
+                .height(15)
+                .style(styles::svg_styles::colored_svg_theme());
+
+            let content = row![icon, text("Hide from Discover").size(11)].spacing(5);
+
+            button(content)
+                .on_press(Message::Hide)
+                .style(styles::button_styles::transparent_button_with_rounded_border_theme())
+                .into()
         }
 
         /// View intended for the watchlist tab
