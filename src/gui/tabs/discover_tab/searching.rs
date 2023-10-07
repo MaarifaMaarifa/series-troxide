@@ -130,13 +130,7 @@ impl Search {
                     .collect();
 
                 Some(if result_items.is_empty() {
-                    container(text("No results"))
-                        .padding(10)
-                        .height(Length::Fill)
-                        .width(Length::Fill)
-                        .center_x()
-                        .center_y()
-                        .into()
+                    container(text("No results")).padding(10).into()
                 } else {
                     Column::with_children(result_items)
                         .padding(20)
