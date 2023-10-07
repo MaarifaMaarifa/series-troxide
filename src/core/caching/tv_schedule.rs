@@ -135,7 +135,7 @@ pub mod full_schedule {
     use anyhow::{bail, Context};
     use chrono::{Datelike, Local, NaiveDate};
     use tokio::fs;
-    use tracing::{error, info};
+    use tracing::{error, info, warn};
 
     use crate::core::api::tv_maze::deserialize_json;
     use crate::core::api::tv_maze::episodes_information::Episode;
@@ -144,6 +144,7 @@ pub mod full_schedule {
     };
     use crate::core::api::tv_maze::tv_schedule::get_full_schedule;
     use crate::core::caching::CACHER;
+    use crate::core::posters_hiding::HIDDEN_SERIES;
 
     const FULL_SCHEDULE_CACHE_FILENAME: &str = "full-schedule";
 
@@ -161,6 +162,7 @@ pub mod full_schedule {
     #[derive(Clone, Debug)]
     pub struct FullSchedule {
         episodes: Vec<Episode>,
+        hidden_series_ids: HashSet<u32>,
     }
 
     impl FullSchedule {
@@ -168,6 +170,8 @@ pub mod full_schedule {
         pub async fn new() -> anyhow::Result<Self> {
             let mut cache_path = CACHER.get_root_cache_path().to_owned();
             cache_path.push(FULL_SCHEDULE_CACHE_FILENAME);
+
+            let hidden_series_ids = Self::get_hidden_series_ids().await.unwrap_or_default();
 
             match cache_path.metadata() {
                 Ok(metadata) => match metadata.created() {
@@ -213,7 +217,24 @@ pub mod full_schedule {
             };
 
             let episodes = deserialize_json::<Vec<Episode>>(&json_string)?;
-            Ok(Self { episodes })
+            Ok(Self {
+                episodes,
+                hidden_series_ids,
+            })
+        }
+
+        async fn get_hidden_series_ids() -> Option<HashSet<u32>> {
+            let mut hidden_series = HIDDEN_SERIES.write().await;
+
+            hidden_series
+                .load_series()
+                .await
+                .map_err(|err| warn!("could not load hidden posters: {}", err))
+                .ok()?;
+
+            hidden_series
+                .get_hidden_series()
+                .map(|hidden_series| hidden_series.keys().copied().collect::<HashSet<u32>>())
         }
 
         /// # Returns new series aired in the given month
@@ -468,6 +489,7 @@ pub mod full_schedule {
                 .cloned()
                 .map(|embedded| embedded.show)
                 .filter(|series_info| filter_condition(series_info, &filter.0))
+                .filter(|series| self.hidden_series_ids.get(&series.id).is_none())
                 .collect::<HashSet<SeriesMainInformation>>()
                 .into_iter()
                 .collect()
@@ -485,6 +507,7 @@ pub mod full_schedule {
                 .filter_map(|episode| episode.embedded.as_ref())
                 .cloned()
                 .map(|embedded| embedded.show)
+                .filter(|series| self.hidden_series_ids.get(&series.id).is_none())
                 .collect::<HashSet<SeriesMainInformation>>()
                 .into_iter()
                 .collect()
@@ -533,6 +556,7 @@ pub mod full_schedule {
                     .into_iter()
                     .filter_map(|episode| episode.embedded)
                     .map(|embedded| embedded.show)
+                    .filter(|series| self.hidden_series_ids.get(&series.id).is_none())
                     .collect(),
             );
 
