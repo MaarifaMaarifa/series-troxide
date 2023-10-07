@@ -132,8 +132,6 @@ impl Search {
                 Some(if result_items.is_empty() {
                     container(text("No results"))
                         .padding(10)
-                        .height(Length::Fill)
-                        .width(Length::Fill)
                         .center_x()
                         .center_y()
                         .into()
