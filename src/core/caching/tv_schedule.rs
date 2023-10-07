@@ -18,7 +18,14 @@ pub async fn get_series_with_date(
 ) -> anyhow::Result<Vec<SeriesMainInformation>> {
     let episodes = get_episodes_with_date(date).await?;
     let series_infos = get_series_infos_from_episodes(episodes).await?;
-    let mut series_infos = deduplicate_series_infos(series_infos);
+
+    let hidden_series_ids = get_hidden_series_ids().await;
+
+    let mut series_infos = deduplicate_series_infos(series_infos)
+        .into_iter()
+        .filter(|series| hidden_series_ids.get(&series.id).is_none())
+        .collect::<Vec<SeriesMainInformation>>();
+
     sort_by_rating(&mut series_infos);
     Ok(series_infos)
 }
@@ -39,12 +46,7 @@ pub async fn get_series_with_country(
 
     let series_infos = get_series_infos_from_episodes(episodes).await?;
 
-    let hidden_series_ids = HIDDEN_SERIES
-        .write()
-        .await
-        .get_hidden_series_ids()
-        .await
-        .unwrap_or_default();
+    let hidden_series_ids = get_hidden_series_ids().await;
 
     let mut series_infos = deduplicate_series_infos(series_infos)
         .into_iter()
@@ -145,6 +147,15 @@ fn sort_by_rating(series_infos: &mut [SeriesMainInformation]) {
     });
 }
 
+async fn get_hidden_series_ids() -> HashSet<u32> {
+    HIDDEN_SERIES
+        .write()
+        .await
+        .get_hidden_series_ids()
+        .await
+        .unwrap_or_default()
+}
+
 pub mod full_schedule {
     use std::collections::HashSet;
 
@@ -160,7 +171,6 @@ pub mod full_schedule {
     };
     use crate::core::api::tv_maze::tv_schedule::get_full_schedule;
     use crate::core::caching::CACHER;
-    use crate::core::posters_hiding::HIDDEN_SERIES;
 
     const FULL_SCHEDULE_CACHE_FILENAME: &str = "full-schedule";
 
@@ -187,12 +197,7 @@ pub mod full_schedule {
             let mut cache_path = CACHER.get_root_cache_path().to_owned();
             cache_path.push(FULL_SCHEDULE_CACHE_FILENAME);
 
-            let hidden_series_ids = HIDDEN_SERIES
-                .write()
-                .await
-                .get_hidden_series_ids()
-                .await
-                .unwrap_or_default();
+            let hidden_series_ids = super::get_hidden_series_ids().await;
 
             match cache_path.metadata() {
                 Ok(metadata) => match metadata.created() {
