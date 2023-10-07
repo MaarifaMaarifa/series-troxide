@@ -101,6 +101,10 @@ pub mod series_poster {
             Command::none()
         }
 
+        pub fn is_hidden(&self) -> bool {
+            self.hidden
+        }
+
         /// Views the series poster widget
         ///
         /// This is the normal view of the poster, just having the image of the
