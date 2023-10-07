@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use crate::core::api::tv_maze::episodes_information::Episode;
 use crate::core::api::tv_maze::series_information::SeriesMainInformation;
 use crate::core::api::tv_maze::tv_schedule::{get_episodes_with_country, get_episodes_with_date};
+use crate::core::posters_hiding::HIDDEN_SERIES;
 
 /// Retrieves series aired on a specific date through the provided optional &str
 /// If None is supplied, it will default the the current day
@@ -27,14 +28,29 @@ pub async fn get_series_with_date(
 /// ## Note
 /// Expect slightly different results for the when calling multiple times with very small time gap,
 /// this is because this function uses a `HashSet` for deduplication since duplicates
-/// can appear and any random indices(not necessarily consecutive).
+/// can appear at any random indices(not necessarily consecutive).
 /// Sorts the collection from the one with highest rating to the lowest.
+///
+/// Excludes hidden series
 pub async fn get_series_with_country(
     country_iso: &str,
 ) -> anyhow::Result<Vec<SeriesMainInformation>> {
     let episodes = get_episodes_with_country(country_iso).await?;
+
     let series_infos = get_series_infos_from_episodes(episodes).await?;
-    let mut series_infos = deduplicate_series_infos(series_infos);
+
+    let hidden_series_ids = HIDDEN_SERIES
+        .write()
+        .await
+        .get_hidden_series_ids()
+        .await
+        .unwrap_or_default();
+
+    let mut series_infos = deduplicate_series_infos(series_infos)
+        .into_iter()
+        .filter(|series| hidden_series_ids.get(&series.id).is_none())
+        .collect::<Vec<SeriesMainInformation>>();
+
     sort_by_rating(&mut series_infos);
     Ok(series_infos)
 }
@@ -135,7 +151,7 @@ pub mod full_schedule {
     use anyhow::{bail, Context};
     use chrono::{Datelike, Local, NaiveDate};
     use tokio::fs;
-    use tracing::{error, info, warn};
+    use tracing::{error, info};
 
     use crate::core::api::tv_maze::deserialize_json;
     use crate::core::api::tv_maze::episodes_information::Episode;
@@ -171,7 +187,12 @@ pub mod full_schedule {
             let mut cache_path = CACHER.get_root_cache_path().to_owned();
             cache_path.push(FULL_SCHEDULE_CACHE_FILENAME);
 
-            let hidden_series_ids = Self::get_hidden_series_ids().await.unwrap_or_default();
+            let hidden_series_ids = HIDDEN_SERIES
+                .write()
+                .await
+                .get_hidden_series_ids()
+                .await
+                .unwrap_or_default();
 
             match cache_path.metadata() {
                 Ok(metadata) => match metadata.created() {
@@ -221,20 +242,6 @@ pub mod full_schedule {
                 episodes,
                 hidden_series_ids,
             })
-        }
-
-        async fn get_hidden_series_ids() -> Option<HashSet<u32>> {
-            let mut hidden_series = HIDDEN_SERIES.write().await;
-
-            hidden_series
-                .load_series()
-                .await
-                .map_err(|err| warn!("could not load hidden posters: {}", err))
-                .ok()?;
-
-            hidden_series
-                .get_hidden_series()
-                .map(|hidden_series| hidden_series.keys().copied().collect::<HashSet<u32>>())
         }
 
         /// # Returns new series aired in the given month

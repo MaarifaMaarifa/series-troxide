@@ -1,5 +1,6 @@
 //! Prevent certain series posters from appearing in the Discover page
 
+use std::collections::HashSet;
 use std::path;
 
 use directories::ProjectDirs;
@@ -7,7 +8,7 @@ use indexmap::IndexMap;
 use lazy_static::lazy_static;
 use tokio::fs;
 use tokio::sync::RwLock;
-use tracing::info;
+use tracing::{info, warn};
 
 const HIDDEN_SERIES_FILENAME: &str = "hidden-series";
 
@@ -50,6 +51,16 @@ impl HiddenSeries {
             }
         };
         Ok(())
+    }
+
+    pub async fn get_hidden_series_ids(&mut self) -> Option<HashSet<u32>> {
+        self.load_series()
+            .await
+            .map_err(|err| warn!("could not load hidden posters: {}", err))
+            .ok()?;
+
+        self.get_hidden_series()
+            .map(|hidden_series| hidden_series.keys().copied().collect::<HashSet<u32>>())
     }
 
     /// Unhides a Series and automatically save it to it's file
