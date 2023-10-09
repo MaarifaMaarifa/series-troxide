@@ -3584,9 +3584,9 @@ dependencies = [
 
 [[package]]
 name = "rust_iso3166"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e19f23f46e5d2f3f1e917ecf5cc988e23ba7fc2a2ce3ef09cb17033842d0ef8"
+checksum = "cc46f436f726b768364d35d099f43a94f22fd34857ff4f679b1f5cbcb03b9f71"
 dependencies = [
  "js-sys",
  "phf 0.11.2",
