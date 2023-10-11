@@ -65,8 +65,7 @@ impl TroxideNotify {
                                 &series_info,
                                 &episode,
                                 current_notification_time_setting,
-                            )
-                            .await;
+                            );
                             signal_sender.send(Signal::NotificationSent).unwrap();
                         })
                     })
@@ -147,7 +146,7 @@ async fn get_releases_with_duration_to_release() -> Vec<(SeriesMainInformation, 
         .collect()
 }
 
-async fn notify_episode_release(
+fn notify_episode_release(
     series_info: &SeriesMainInformation,
     episode: &Episode,
     release_time_in_minute: u32,
@@ -174,8 +173,7 @@ async fn notify_episode_release(
         .body(&notification_body)
         .timeout(0)
         .auto_icon()
-        .show_async()
-        .await
+        .show()
         .expect("failed to show notification");
 }
 
