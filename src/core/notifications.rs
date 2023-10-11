@@ -8,6 +8,7 @@ use chrono::Duration;
 use directories::ProjectDirs;
 use notify::{recommended_watcher, EventHandler, Watcher};
 use std::sync::mpsc;
+use tokio::task::JoinHandle;
 
 enum Signal {
     SettingsFileChanged,
@@ -81,9 +82,8 @@ impl TroxideNotify {
                         */
                         tracing::info!("config file change detected, refreshing notifications");
                         current_notification_time_setting = get_current_notification_time_setting();
-                        for handle in notification_handles {
-                            handle.abort();
-                        }
+
+                        Self::abort_notifications(notification_handles);
                     }
                     Signal::NotificationSent => {
                         /*
@@ -95,14 +95,19 @@ impl TroxideNotify {
                         tracing::info!(
                             "episode release notification sent, refreshing notifications"
                         );
-                        for handle in notification_handles {
-                            handle.abort();
-                        }
+
+                        Self::abort_notifications(notification_handles);
                     }
                 }
             }
         });
         Ok(())
+    }
+
+    fn abort_notifications(notification_handles: Vec<JoinHandle<()>>) {
+        notification_handles
+            .into_iter()
+            .for_each(|handle| handle.abort())
     }
 
     fn file_change_watcher(signal_sender: mpsc::Sender<Signal>) {
