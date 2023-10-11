@@ -224,8 +224,8 @@ pub fn next_episode_release_time_widget(
             .get_time_plurized()
             .into_iter()
             .rev()
-            .map(|(time_text, time_value)| format!("{} {} ", time_value, time_text))
-            .collect::<String>()
+            .fold(String::new(), |acc, (time_text, time_value)| acc
+                + &format!("{} {} ", time_value, time_text))
         ))
         .size(14);
 

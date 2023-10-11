@@ -291,8 +291,9 @@ pub mod series_poster {
                 let watchtime: String = time
                     .into_iter()
                     .rev()
-                    .map(|(time_text, time_value)| format!("{} {} ", time_value, time_text))
-                    .collect();
+                    .fold(String::new(), |acc, (time_text, time_value)| {
+                        acc + &format!("{} {} ", time_value, time_text)
+                    });
                 metadata = metadata.push(text(watchtime));
             };
 
