@@ -55,16 +55,17 @@ impl TroxideNotify {
                         let signal_sender = self.signal_sender.clone();
                         tokio::spawn(async move {
                             tracing::info!(
-                                "sleeping \"{}'s\" notification for {}mins",
+                                "waiting {} minutes for \"{}'s\" notification",
+                                duration.num_minutes(),
                                 series_info.name,
-                                duration.num_minutes()
                             );
                             tokio::time::sleep(duration.to_std().unwrap()).await;
                             notify_episode_release(
                                 &series_info,
                                 &episode,
                                 current_notification_time_setting,
-                            );
+                            )
+                            .await;
                             signal_sender.send(Signal::NotificationSent).unwrap();
                         })
                     })
@@ -141,7 +142,7 @@ async fn get_releases_with_duration_to_release() -> Vec<(SeriesMainInformation, 
         .collect()
 }
 
-fn notify_episode_release(
+async fn notify_episode_release(
     series_info: &SeriesMainInformation,
     episode: &Episode,
     release_time_in_minute: u32,
@@ -155,16 +156,22 @@ fn notify_episode_release(
             .expect("an episode should have a valid number"),
     );
 
-    let notification_summary = format!(
-        "{}\n{}-{} will be released in {} minutes",
-        series_name, episode_order, episode_name, release_time_in_minute
+    let notification_summary = format!("\"{}\" episode release", series_name);
+
+    let notification_body = format!(
+        "{}: {}, will be released in {} minutes",
+        episode_order, episode_name, release_time_in_minute
     );
 
     notify_rust::Notification::new()
         .appname("Series Troxide")
         .summary(&notification_summary)
-        .show()
-        .unwrap();
+        .body(&notification_body)
+        .timeout(0)
+        .auto_icon()
+        .show_async()
+        .await
+        .expect("failed to show notification");
 }
 
 struct FileWatcherEventHandler {
