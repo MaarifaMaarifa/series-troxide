@@ -162,6 +162,7 @@ pub mod full_schedule {
     use anyhow::{bail, Context};
     use chrono::{Datelike, Local, NaiveDate};
     use tokio::fs;
+    use tokio::sync::OnceCell;
     use tracing::{error, info};
 
     use crate::core::api::tv_maze::deserialize_json;
@@ -184,6 +185,8 @@ pub mod full_schedule {
         None,
     }
 
+    static FULL_SCHEDULE: OnceCell<anyhow::Result<FullSchedule>> = OnceCell::const_new();
+
     /// `FullSchedule` is a list of all future episodes known to TVmaze, regardless of their country.
     #[derive(Clone, Debug)]
     pub struct FullSchedule {
@@ -192,8 +195,15 @@ pub mod full_schedule {
     }
 
     impl FullSchedule {
+        pub async fn new() -> Result<&'static FullSchedule, &'static anyhow::Error> {
+            FULL_SCHEDULE
+                .get_or_init(|| async { Self::load().await })
+                .await
+                .as_ref()
+        }
+
         /// Constructs `FullSchedule`
-        pub async fn new() -> anyhow::Result<Self> {
+        async fn load() -> anyhow::Result<Self> {
             let mut cache_path = CACHER.get_root_cache_path().to_owned();
             cache_path.push(FULL_SCHEDULE_CACHE_FILENAME);
 

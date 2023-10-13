@@ -340,7 +340,7 @@ mod full_schedule_posters {
 
     #[derive(Debug, Clone)]
     pub enum Message {
-        FullScheduleLoaded(caching::tv_schedule::full_schedule::FullSchedule),
+        FullScheduleLoaded(&'static caching::tv_schedule::full_schedule::FullSchedule),
         MonthlyNewPosters(SeriesPosterIndexedMessage<SeriesPosterMessage>),
         MonthlyReturningPosters(SeriesPosterIndexedMessage<SeriesPosterMessage>),
         PopularPosters(SeriesPosterIndexedMessage<SeriesPosterMessage>),
