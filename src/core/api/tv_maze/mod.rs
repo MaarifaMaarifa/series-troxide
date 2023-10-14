@@ -11,6 +11,7 @@ pub mod series_information;
 pub mod series_searching;
 pub mod show_cast;
 pub mod show_images;
+pub mod show_lookup;
 pub mod tv_schedule;
 pub mod updates;
 

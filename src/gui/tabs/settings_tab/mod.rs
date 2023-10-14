@@ -2,17 +2,18 @@ use iced::widget::{column, scrollable};
 use iced::{Alignment, Command, Element, Length, Renderer};
 
 use crate::gui::assets::icons::GEAR_WIDE_CONNECTED;
+use crate::gui::styles;
 use about_widget::{About, Message as AboutMessage};
 use appearance_widget::{Appearance, Message as AppearanceMessage};
 use database_widget::{Database, Message as DatabaseMessage};
-use locale_widget::{Locale, Message as LocaleMessage};
+use discover_widget::{Discover, Message as DiscoverMessage};
 use notifications_widget::{Message as NotificationsMessage, Notifications};
 use settings_controls_widget::{Message as SettingsControlsMessage, SettingsControls};
 
 mod about_widget;
 mod appearance_widget;
 mod database_widget;
-mod locale_widget;
+mod discover_widget;
 mod notifications_widget;
 mod settings_controls_widget;
 
@@ -21,31 +22,34 @@ pub enum Message {
     Appearance(AppearanceMessage),
     Database(DatabaseMessage),
     Notifications(NotificationsMessage),
-    Locale(LocaleMessage),
+    Discover(DiscoverMessage),
     About(AboutMessage),
     Controls(SettingsControlsMessage),
 }
 
-#[derive(Default)]
 pub struct SettingsTab {
     appearance_settings: Appearance,
     database_settings: Database,
     notifications_settings: Notifications,
-    locale_settings: Locale,
+    discover_settings: Discover,
     about: About,
     controls_settings: SettingsControls,
 }
 
 impl SettingsTab {
-    pub fn new() -> Self {
-        Self {
-            appearance_settings: Appearance,
-            database_settings: Database::default(),
-            notifications_settings: Notifications,
-            locale_settings: Locale::default(),
-            about: About,
-            controls_settings: SettingsControls,
-        }
+    pub fn new() -> (Self, Command<Message>) {
+        let (about_widget, about_command) = About::new();
+        (
+            Self {
+                appearance_settings: Appearance,
+                database_settings: Database::new(),
+                notifications_settings: Notifications,
+                discover_settings: Discover::default(),
+                about: about_widget,
+                controls_settings: SettingsControls,
+            },
+            about_command.map(Message::About),
+        )
     }
 
     pub fn subscription(&self) -> iced::Subscription<Message> {
@@ -60,8 +64,13 @@ impl SettingsTab {
                     .update(message)
                     .map(Message::Database)
             }
-            Message::Locale(message) => self.locale_settings.update(message),
-            Message::About(message) => self.about.update(message),
+            Message::Discover(message) => {
+                return self
+                    .discover_settings
+                    .update(message)
+                    .map(Message::Discover)
+            }
+            Message::About(message) => return self.about.update(message).map(Message::About),
             Message::Notifications(message) => self.notifications_settings.update(message),
             Message::Appearance(message) => self.appearance_settings.update(message),
             Message::Controls(message) => self.controls_settings.update(message),
@@ -76,14 +85,15 @@ impl SettingsTab {
                 self.notifications_settings
                     .view()
                     .map(Message::Notifications),
-                self.locale_settings.view().map(Message::Locale),
+                self.discover_settings.view().map(Message::Discover),
                 self.about.view().map(Message::About),
             ]
             .spacing(10)
             .width(Length::Fill)
             .align_items(Alignment::Center)
             .padding(5),
-        );
+        )
+        .direction(styles::scrollable_styles::vertical_direction());
 
         column![
             settings_body.height(Length::FillPortion(10)),
@@ -91,7 +101,6 @@ impl SettingsTab {
         ]
         .align_items(Alignment::Center)
         .spacing(5)
-        .padding(10)
         .into()
     }
 }

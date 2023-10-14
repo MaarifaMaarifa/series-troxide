@@ -1,5 +1,5 @@
 use super::{
-    api::{episodes_information::Episode, series_information::SeriesMainInformation},
+    api::tv_maze::{episodes_information::Episode, series_information::SeriesMainInformation},
     caching::series_list,
     settings_config,
 };
@@ -8,6 +8,7 @@ use chrono::Duration;
 use directories::ProjectDirs;
 use notify::{recommended_watcher, EventHandler, Watcher};
 use std::sync::mpsc;
+use tokio::task::JoinHandle;
 
 enum Signal {
     SettingsFileChanged,
@@ -55,9 +56,9 @@ impl TroxideNotify {
                         let signal_sender = self.signal_sender.clone();
                         tokio::spawn(async move {
                             tracing::info!(
-                                "sleeping \"{}'s\" notification for {}mins",
+                                "waiting {} minutes for \"{}'s\" notification",
+                                duration.num_minutes(),
                                 series_info.name,
-                                duration.num_minutes()
                             );
                             tokio::time::sleep(duration.to_std().unwrap()).await;
                             notify_episode_release(
@@ -80,9 +81,8 @@ impl TroxideNotify {
                         */
                         tracing::info!("config file change detected, refreshing notifications");
                         current_notification_time_setting = get_current_notification_time_setting();
-                        for handle in notification_handles {
-                            handle.abort();
-                        }
+
+                        Self::abort_notifications(notification_handles);
                     }
                     Signal::NotificationSent => {
                         /*
@@ -94,14 +94,19 @@ impl TroxideNotify {
                         tracing::info!(
                             "episode release notification sent, refreshing notifications"
                         );
-                        for handle in notification_handles {
-                            handle.abort();
-                        }
+
+                        Self::abort_notifications(notification_handles);
                     }
                 }
             }
         });
         Ok(())
+    }
+
+    fn abort_notifications(notification_handles: Vec<JoinHandle<()>>) {
+        notification_handles
+            .into_iter()
+            .for_each(|handle| handle.abort())
     }
 
     fn file_change_watcher(signal_sender: mpsc::Sender<Signal>) {
@@ -155,16 +160,21 @@ fn notify_episode_release(
             .expect("an episode should have a valid number"),
     );
 
-    let notification_summary = format!(
-        "{}\n{}-{} will be released in {} minutes",
-        series_name, episode_order, episode_name, release_time_in_minute
+    let notification_summary = format!("\"{}\" episode release", series_name);
+
+    let notification_body = format!(
+        "{}: {}, will be released in {} minutes",
+        episode_order, episode_name, release_time_in_minute
     );
 
     notify_rust::Notification::new()
         .appname("Series Troxide")
         .summary(&notification_summary)
+        .body(&notification_body)
+        .timeout(0)
+        .auto_icon()
         .show()
-        .unwrap();
+        .expect("failed to show notification");
 }
 
 struct FileWatcherEventHandler {

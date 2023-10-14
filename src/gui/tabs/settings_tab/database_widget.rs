@@ -9,6 +9,8 @@ use crate::core::database::{self, DB};
 
 use crate::gui::styles;
 
+mod trakt_integration;
+
 #[derive(Debug, Clone)]
 pub enum Message {
     ImportDatabasePressed,
@@ -16,9 +18,9 @@ pub enum Message {
     ImportTimeoutComplete,
     ExportTimeoutComplete,
     ImportCachingEvent(full_caching::Event),
+    TraktIntegration(trakt_integration::Message),
 }
 
-#[derive(Default)]
 pub struct Database {
     import_status: Option<anyhow::Result<()>>,
     export_status: Option<anyhow::Result<()>>,
@@ -26,11 +28,28 @@ pub struct Database {
     importing: bool,
     keys_values_vec: Option<database::KeysValuesVec>,
     sender: Option<iced::futures::channel::mpsc::Sender<full_caching::Input>>,
+    trakt_widget: trakt_integration::TraktIntegration,
 }
 
 impl Database {
+    pub fn new() -> Self {
+        Self {
+            import_status: None,
+            export_status: None,
+            import_progress: (0, 0),
+            importing: false,
+            keys_values_vec: None,
+            sender: None,
+            trakt_widget: trakt_integration::TraktIntegration::new(),
+        }
+    }
     pub fn subscription(&self) -> iced::Subscription<Message> {
-        full_caching::import_data_cacher().map(Message::ImportCachingEvent)
+        iced::Subscription::batch([
+            full_caching::import_data_cacher().map(Message::ImportCachingEvent),
+            self.trakt_widget
+                .subscription()
+                .map(Message::TraktIntegration),
+        ])
     }
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
@@ -100,6 +119,10 @@ impl Database {
                 }
                 Command::none()
             }
+            Message::TraktIntegration(message) => self
+                .trakt_widget
+                .update(message)
+                .map(Message::TraktIntegration),
         }
     }
 
@@ -154,15 +177,27 @@ impl Database {
             .spacing(5)
         ];
 
-        let content = column![
-            text("Series Troxide Data")
-                .size(21)
-                .style(styles::text_styles::purple_text_theme()),
+        let series_troxide_data = column![
+            text("Series Troxide Data").size(18),
             import_widget,
             export_widget,
         ]
-        .padding(5)
         .spacing(5);
+
+        let trakt_data = column![
+            text("Trakt Data").size(18),
+            self.trakt_widget.view().map(Message::TraktIntegration)
+        ]
+        .spacing(5);
+
+        let content = column![
+            text("Series Tracking Data")
+                .size(21)
+                .style(styles::text_styles::accent_color_theme()),
+            series_troxide_data,
+            trakt_data
+        ]
+        .padding(5);
 
         container(content)
             .style(styles::container_styles::first_class_container_rounded_theme())

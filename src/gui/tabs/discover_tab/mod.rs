@@ -1,9 +1,10 @@
 use std::sync::mpsc;
 
-use crate::core::api::series_information::SeriesMainInformation;
+use crate::core::api::tv_maze::series_information::SeriesMainInformation;
 use crate::core::caching::tv_schedule::{get_series_with_country, get_series_with_date};
 use crate::core::settings_config::locale_settings;
 use crate::gui::assets::icons::BINOCULARS_FILL;
+use crate::gui::styles;
 use crate::gui::troxide_widget::series_poster::{
     IndexedMessage as SeriesPosterIndexedMessage, Message as SeriesPosterMessage, SeriesPoster,
 };
@@ -45,7 +46,7 @@ pub enum Message {
 
 pub struct DiscoverTab {
     load_status: LoadStatus,
-    search_state: searching::Search,
+    search: searching::Search,
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
     country_name: String,
 
@@ -64,7 +65,7 @@ impl DiscoverTab {
         (
             Self {
                 load_status: LoadStatus::default(),
-                search_state: searching::Search::new(series_page_sender.clone()),
+                search: searching::Search::new(series_page_sender.clone()),
                 new_global_series: vec![],
                 new_local_series: vec![],
                 full_schedule_series,
@@ -103,7 +104,7 @@ impl DiscoverTab {
                 }
                 None
             }),
-            self.search_state.subscription().map(Message::Search),
+            self.search.subscription().map(Message::Search),
         ])
     }
 
@@ -145,7 +146,7 @@ impl DiscoverTab {
             Message::GlobalSeries(message) => self.new_global_series[message.index()]
                 .update(message)
                 .map(Message::GlobalSeries),
-            Message::Search(message) => self.search_state.update(message).map(Message::Search),
+            Message::Search(message) => self.search.update(message).map(Message::Search),
             Message::LocalSeriesLoaded(series_infos) => {
                 self.load_status.local_series = LoadState::Loaded;
 
@@ -191,12 +192,13 @@ impl DiscoverTab {
             )
             .spacing(20),
         )
+        .direction(styles::scrollable_styles::vertical_direction())
         .width(Length::Fill)
         .into();
 
         let content = floating_element::FloatingElement::new(
             underlay,
-            self.search_state
+            self.search
                 .view()
                 .1
                 .map(|element| element.map(Message::Search))
@@ -204,9 +206,8 @@ impl DiscoverTab {
         )
         .anchor(floating_element::Anchor::North);
 
-        column![self.search_state.view().0.map(Message::Search), content]
+        column![self.search.view().0.map(Message::Search), content]
             .spacing(2)
-            .padding(10)
             .into()
     }
 }
@@ -276,11 +277,16 @@ fn series_posters_loader<'a>(
             .padding(10)
             .into()
     } else {
-        let wrapped_posters =
-            Wrap::with_elements(posters.iter().map(|poster| poster.normal_view()).collect())
-                .spacing(5.0)
-                .line_spacing(5.0)
-                .padding(5.0);
+        let wrapped_posters = Wrap::with_elements(
+            posters
+                .iter()
+                .filter(|poster| !poster.is_hidden())
+                .map(|poster| poster.normal_view(true))
+                .collect(),
+        )
+        .spacing(5.0)
+        .line_spacing(5.0)
+        .padding(5.0);
 
         column!(title, wrapped_posters)
             .spacing(5)
@@ -299,7 +305,7 @@ mod full_schedule_posters {
     use iced::{Command, Element, Length, Renderer};
     use iced_aw::{Spinner, Wrap};
 
-    use crate::core::api::series_information::{
+    use crate::core::api::tv_maze::series_information::{
         Genre, SeriesMainInformation, ShowNetwork, ShowWebChannel,
     };
     use crate::core::caching;
@@ -334,7 +340,7 @@ mod full_schedule_posters {
 
     #[derive(Debug, Clone)]
     pub enum Message {
-        FullScheduleLoaded(caching::tv_schedule::full_schedule::FullSchedule),
+        FullScheduleLoaded(&'static caching::tv_schedule::full_schedule::FullSchedule),
         MonthlyNewPosters(SeriesPosterIndexedMessage<SeriesPosterMessage>),
         MonthlyReturningPosters(SeriesPosterIndexedMessage<SeriesPosterMessage>),
         PopularPosters(SeriesPosterIndexedMessage<SeriesPosterMessage>),
@@ -519,8 +525,9 @@ mod full_schedule_posters {
                             Wrap::with_elements(
                                 self.monthly_new_poster
                                     .iter()
+                                    .filter(|poster| !poster.is_hidden())
                                     .map(|poster| {
-                                        poster.normal_view().map(Message::MonthlyNewPosters)
+                                        poster.normal_view(true).map(Message::MonthlyNewPosters)
                                     })
                                     .collect(),
                             )
@@ -539,8 +546,11 @@ mod full_schedule_posters {
                             Wrap::with_elements(
                                 self.monthly_returning_posters
                                     .iter()
+                                    .filter(|poster| !poster.is_hidden())
                                     .map(|poster| {
-                                        poster.normal_view().map(Message::MonthlyReturningPosters)
+                                        poster
+                                            .normal_view(true)
+                                            .map(Message::MonthlyReturningPosters)
                                     })
                                     .collect(),
                             )
@@ -556,7 +566,8 @@ mod full_schedule_posters {
                         Wrap::with_elements(
                             self.popular_posters
                                 .iter()
-                                .map(|poster| poster.normal_view().map(Message::PopularPosters))
+                                .filter(|poster| !poster.is_hidden())
+                                .map(|poster| poster.normal_view(true).map(Message::PopularPosters))
                                 .collect()
                         )
                         .spacing(5.0)
@@ -751,7 +762,8 @@ mod full_schedule_posters {
                 Wrap::with_elements(
                     series_posters
                         .iter()
-                        .map(|series_poster| series_poster.normal_view().map(message))
+                        .filter(|poster| !poster.is_hidden())
+                        .map(|series_poster| series_poster.normal_view(true).map(message))
                         .collect(),
                 )
                 .spacing(5.0)

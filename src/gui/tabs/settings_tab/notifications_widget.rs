@@ -55,7 +55,7 @@ impl Notifications {
 
         let content = column![
             text("Notifications")
-                .style(styles::text_styles::purple_text_theme())
+                .style(styles::text_styles::accent_color_theme())
                 .size(21),
             content,
         ]

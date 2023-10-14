@@ -4,7 +4,7 @@ use iced::widget::{container, text};
 use iced::{Command, Element, Length, Renderer};
 use iced_aw::{Spinner, Wrap};
 
-use crate::core::api::series_information::SeriesMainInformation;
+use crate::core::api::tv_maze::series_information::SeriesMainInformation;
 use crate::core::caching;
 use crate::gui::styles;
 use crate::gui::troxide_widget::series_poster::{
@@ -139,7 +139,7 @@ impl MyShows {
             Wrap::with_elements(
                 self.series_posters
                     .iter()
-                    .map(|poster| poster.normal_view().map(Message::SeriesPosters))
+                    .map(|poster| poster.normal_view(false).map(Message::SeriesPosters))
                     .collect(),
             )
             .line_spacing(5.0)

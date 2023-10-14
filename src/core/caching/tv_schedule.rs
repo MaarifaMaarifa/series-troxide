@@ -1,8 +1,9 @@
 use std::collections::HashSet;
 
-use crate::core::api::episodes_information::Episode;
-use crate::core::api::series_information::SeriesMainInformation;
-use crate::core::api::tv_schedule::{get_episodes_with_country, get_episodes_with_date};
+use crate::core::api::tv_maze::episodes_information::Episode;
+use crate::core::api::tv_maze::series_information::SeriesMainInformation;
+use crate::core::api::tv_maze::tv_schedule::{get_episodes_with_country, get_episodes_with_date};
+use crate::core::posters_hiding::HIDDEN_SERIES;
 
 /// Retrieves series aired on a specific date through the provided optional &str
 /// If None is supplied, it will default the the current day
@@ -17,7 +18,14 @@ pub async fn get_series_with_date(
 ) -> anyhow::Result<Vec<SeriesMainInformation>> {
     let episodes = get_episodes_with_date(date).await?;
     let series_infos = get_series_infos_from_episodes(episodes).await?;
-    let mut series_infos = deduplicate_series_infos(series_infos);
+
+    let hidden_series_ids = get_hidden_series_ids().await;
+
+    let mut series_infos = deduplicate_series_infos(series_infos)
+        .into_iter()
+        .filter(|series| hidden_series_ids.get(&series.id).is_none())
+        .collect::<Vec<SeriesMainInformation>>();
+
     sort_by_rating(&mut series_infos);
     Ok(series_infos)
 }
@@ -27,14 +35,24 @@ pub async fn get_series_with_date(
 /// ## Note
 /// Expect slightly different results for the when calling multiple times with very small time gap,
 /// this is because this function uses a `HashSet` for deduplication since duplicates
-/// can appear and any random indices(not necessarily consecutive).
+/// can appear at any random indices(not necessarily consecutive).
 /// Sorts the collection from the one with highest rating to the lowest.
+///
+/// Excludes hidden series
 pub async fn get_series_with_country(
     country_iso: &str,
 ) -> anyhow::Result<Vec<SeriesMainInformation>> {
     let episodes = get_episodes_with_country(country_iso).await?;
+
     let series_infos = get_series_infos_from_episodes(episodes).await?;
-    let mut series_infos = deduplicate_series_infos(series_infos);
+
+    let hidden_series_ids = get_hidden_series_ids().await;
+
+    let mut series_infos = deduplicate_series_infos(series_infos)
+        .into_iter()
+        .filter(|series| hidden_series_ids.get(&series.id).is_none())
+        .collect::<Vec<SeriesMainInformation>>();
+
     sort_by_rating(&mut series_infos);
     Ok(series_infos)
 }
@@ -129,20 +147,30 @@ fn sort_by_rating(series_infos: &mut [SeriesMainInformation]) {
     });
 }
 
+async fn get_hidden_series_ids() -> HashSet<u32> {
+    HIDDEN_SERIES
+        .write()
+        .await
+        .get_hidden_series_ids()
+        .await
+        .unwrap_or_default()
+}
+
 pub mod full_schedule {
     use std::collections::HashSet;
 
     use anyhow::{bail, Context};
     use chrono::{Datelike, Local, NaiveDate};
     use tokio::fs;
+    use tokio::sync::OnceCell;
     use tracing::{error, info};
 
-    use crate::core::api::deserialize_json;
-    use crate::core::api::episodes_information::Episode;
-    use crate::core::api::series_information::{
+    use crate::core::api::tv_maze::deserialize_json;
+    use crate::core::api::tv_maze::episodes_information::Episode;
+    use crate::core::api::tv_maze::series_information::{
         Genre, SeriesMainInformation, ShowNetwork, ShowWebChannel,
     };
-    use crate::core::api::tv_schedule::get_full_schedule;
+    use crate::core::api::tv_maze::tv_schedule::get_full_schedule;
     use crate::core::caching::CACHER;
 
     const FULL_SCHEDULE_CACHE_FILENAME: &str = "full-schedule";
@@ -157,17 +185,29 @@ pub mod full_schedule {
         None,
     }
 
+    static FULL_SCHEDULE: OnceCell<anyhow::Result<FullSchedule>> = OnceCell::const_new();
+
     /// `FullSchedule` is a list of all future episodes known to TVmaze, regardless of their country.
     #[derive(Clone, Debug)]
     pub struct FullSchedule {
         episodes: Vec<Episode>,
+        hidden_series_ids: HashSet<u32>,
     }
 
     impl FullSchedule {
+        pub async fn new() -> Result<&'static FullSchedule, &'static anyhow::Error> {
+            FULL_SCHEDULE
+                .get_or_init(|| async { Self::load().await })
+                .await
+                .as_ref()
+        }
+
         /// Constructs `FullSchedule`
-        pub async fn new() -> anyhow::Result<Self> {
+        async fn load() -> anyhow::Result<Self> {
             let mut cache_path = CACHER.get_root_cache_path().to_owned();
             cache_path.push(FULL_SCHEDULE_CACHE_FILENAME);
+
+            let hidden_series_ids = super::get_hidden_series_ids().await;
 
             match cache_path.metadata() {
                 Ok(metadata) => match metadata.created() {
@@ -213,7 +253,10 @@ pub mod full_schedule {
             };
 
             let episodes = deserialize_json::<Vec<Episode>>(&json_string)?;
-            Ok(Self { episodes })
+            Ok(Self {
+                episodes,
+                hidden_series_ids,
+            })
         }
 
         /// # Returns new series aired in the given month
@@ -468,6 +511,7 @@ pub mod full_schedule {
                 .cloned()
                 .map(|embedded| embedded.show)
                 .filter(|series_info| filter_condition(series_info, &filter.0))
+                .filter(|series| self.hidden_series_ids.get(&series.id).is_none())
                 .collect::<HashSet<SeriesMainInformation>>()
                 .into_iter()
                 .collect()
@@ -485,6 +529,7 @@ pub mod full_schedule {
                 .filter_map(|episode| episode.embedded.as_ref())
                 .cloned()
                 .map(|embedded| embedded.show)
+                .filter(|series| self.hidden_series_ids.get(&series.id).is_none())
                 .collect::<HashSet<SeriesMainInformation>>()
                 .into_iter()
                 .collect()
@@ -533,6 +578,7 @@ pub mod full_schedule {
                     .into_iter()
                     .filter_map(|episode| episode.embedded)
                     .map(|embedded| embedded.show)
+                    .filter(|series| self.hidden_series_ids.get(&series.id).is_none())
                     .collect(),
             );
 

@@ -1,4 +1,4 @@
-use crate::core::api::series_information::SeriesMainInformation;
+use crate::core::api::tv_maze::series_information::SeriesMainInformation;
 use discover_tab::{DiscoverTab, Message as DiscoverMessage};
 use my_shows_tab::{Message as MyShowsMessage, MyShowsTab};
 use settings_tab::{Message as SettingsMessage, SettingsTab};
@@ -87,16 +87,20 @@ impl TabsController {
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (Self, Command<Message>) {
         let (discover_tab, discover_command) = DiscoverTab::new(series_page_sender.clone());
+        let (settings_tab, settings_command) = SettingsTab::new();
 
         (
             Self {
                 current_tab: Tab::Discover,
                 discover_tab,
                 reloadable_tab: None,
-                settings_tab: SettingsTab::new(),
+                settings_tab,
                 series_page_sender,
             },
-            discover_command.map(Message::Discover),
+            Command::batch([
+                discover_command.map(Message::Discover),
+                settings_command.map(Message::Settings),
+            ]),
         )
     }
     pub fn switch_to_tab(&mut self, tab: Tab) -> Command<Message> {

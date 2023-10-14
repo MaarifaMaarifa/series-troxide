@@ -4,8 +4,9 @@ use iced::widget::{column, container, row, scrollable, text};
 use iced::{Command, Element, Length, Renderer};
 use iced_aw::Wrap;
 
-use crate::core::{api::series_information::SeriesMainInformation, database};
+use crate::core::{api::tv_maze::series_information::SeriesMainInformation, database};
 use crate::gui::assets::icons::GRAPH_UP_ARROW;
+use crate::gui::styles;
 use series_banner::{
     IndexedMessage as SeriesBannerIndexedMessage, Message as SeriesBannerMessage, SeriesBanner,
 };
@@ -89,16 +90,26 @@ impl StatisticsTab {
 
         let series_list = container(series_list).width(Length::Fill).center_x();
 
+        let series_infos: Vec<&SeriesMainInformation> = self
+            .series_infos_and_time
+            .iter()
+            .map(|(series_info, _)| series_info)
+            .collect();
+
         let content = column![
-            row![watch_count(), time_count(&self.series_infos_and_time)]
-                .height(200)
-                .spacing(10),
+            row![
+                watch_count(),
+                genre_stats(series_infos),
+                time_count(&self.series_infos_and_time)
+            ]
+            .height(200)
+            .spacing(10),
             series_list
         ]
         .spacing(10)
         .padding(10);
 
-        container(scrollable(content))
+        container(scrollable(content).direction(styles::scrollable_styles::vertical_direction()))
             .width(Length::Fill)
             .height(Length::Fill)
             .into()

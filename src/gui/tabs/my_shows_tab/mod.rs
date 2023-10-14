@@ -1,6 +1,6 @@
 use std::sync::mpsc;
 
-use crate::core::api::series_information::SeriesMainInformation;
+use crate::core::api::tv_maze::series_information::SeriesMainInformation;
 use crate::gui::assets::icons::FILM;
 use crate::gui::styles;
 
@@ -118,6 +118,7 @@ impl MyShowsTab {
             .width(Length::Fill)
             .align_items(iced::Alignment::Start),
         )
+        .direction(styles::scrollable_styles::vertical_direction())
         .into()
     }
 }

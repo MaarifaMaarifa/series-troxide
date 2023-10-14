@@ -1,5 +1,5 @@
-use crate::core::api::episodes_information::Episode;
-use crate::core::api::series_information::{SeriesMainInformation, ShowStatus};
+use crate::core::api::tv_maze::episodes_information::Episode;
+use crate::core::api::tv_maze::series_information::{SeriesMainInformation, ShowStatus};
 use crate::core::caching::episode_list::EpisodeReleaseTime;
 use crate::gui::assets::icons::{CLOCK_FILL, STAR, STAR_FILL, STAR_HALF};
 use crate::gui::helpers::{self, season_episode_str_gen};
@@ -63,16 +63,7 @@ pub fn genres_widget(
 ) {
     if !series_info.genres.is_empty() {
         let title_text = text("Genres");
-        let mut genres = String::new();
-
-        let mut series_result_iter = series_info.genres.iter().peekable();
-        while let Some(genre) = series_result_iter.next() {
-            genres.push_str(genre);
-            if series_result_iter.peek().is_some() {
-                genres.push_str(" | ");
-            }
-        }
-        let genres = text(genres);
+        let genres = text(helpers::genres_with_pipes(&series_info.genres));
 
         data_grid.insert(title_text);
         data_grid.insert(genres);
@@ -233,8 +224,8 @@ pub fn next_episode_release_time_widget(
             .get_time_plurized()
             .into_iter()
             .rev()
-            .map(|(time_text, time_value)| format!("{} {} ", time_value, time_text))
-            .collect::<String>()
+            .fold(String::new(), |acc, (time_text, time_value)| acc
+                + &format!("{} {} ", time_value, time_text))
         ))
         .size(14);
 

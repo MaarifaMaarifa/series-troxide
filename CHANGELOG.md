@@ -8,9 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Program logo to be shown in the window and the taskbar. [#8](https://github.com/MaarifaMaarifa/series-troxide/pull/8)
+- Genre Stats in `Statistics page`. [#31](https://github.com/MaarifaMaarifa/series-troxide/pull/31)
+- `Trakt` data import. [#29](https://github.com/MaarifaMaarifa/series-troxide/pull/29)
+- Program's `update check widget`. [#35](https://github.com/MaarifaMaarifa/series-troxide/pull/35)
+- Social media icons in `Settings page`. [#36](https://github.com/MaarifaMaarifa/series-troxide/pull/36)
+- Expandable series posters in `Discover page`. [#37](https://github.com/MaarifaMaarifa/series-troxide/pull/37)
+- Hiding posters from `Discover page`. [#39](https://github.com/MaarifaMaarifa/series-troxide/pull/39)
 
 ### Changed
 - Improve series cache cleaning/updating. [#25](https://github.com/MaarifaMaarifa/series-troxide/pull/25)
+- Made all scrollbars thinner. [#30](https://github.com/MaarifaMaarifa/series-troxide/pull/30)
+- Improve `full-schedule` episodes loading. [#47](https://github.com/MaarifaMaarifa/series-troxide/pull/47)
+- Improve notifications appearance. [#45](https://github.com/MaarifaMaarifa/series-troxide/pull/45)
+- Improve search results by adding show rating. [#38](https://github.com/MaarifaMaarifa/series-troxide/pull/38)
+
+### Removed
+- Cache cleaning configurations in `Settings page`. [#25](https://github.com/MaarifaMaarifa/series-troxide/pull/25)
+
 
 ## [0.3.0] - 2023-09-02
 

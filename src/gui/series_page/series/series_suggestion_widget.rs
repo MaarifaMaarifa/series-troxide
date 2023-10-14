@@ -1,6 +1,6 @@
 use std::sync::mpsc;
 
-use crate::core::api::series_information::{Genre, SeriesMainInformation};
+use crate::core::api::tv_maze::series_information::{Genre, SeriesMainInformation};
 use crate::core::caching::tv_schedule::full_schedule;
 use crate::gui::troxide_widget::series_poster::{
     IndexedMessage as SeriesPosterIndexedMessage, Message as SeriesPosterMessage, SeriesPoster,
@@ -12,7 +12,7 @@ use iced_aw::{Spinner, Wrap};
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    FullScheduleLoaded(full_schedule::FullSchedule),
+    FullScheduleLoaded(&'static full_schedule::FullSchedule),
     SeriesPoster(SeriesPosterIndexedMessage<SeriesPosterMessage>),
 }
 
@@ -99,7 +99,7 @@ impl SeriesSuggestion {
                         Wrap::with_elements(
                             self.suggested_series
                                 .iter()
-                                .map(|poster| poster.normal_view().map(Message::SeriesPoster))
+                                .map(|poster| poster.normal_view(false).map(Message::SeriesPoster))
                                 .collect(),
                         )
                         .line_spacing(5.0)

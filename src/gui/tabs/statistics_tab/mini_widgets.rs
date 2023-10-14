@@ -1,7 +1,8 @@
-use iced::widget::{column, container, horizontal_space, row, text, Row, Space};
+use iced::widget::{column, container, horizontal_space, row, scrollable, text, Row, Space};
 use iced::{Alignment, Element, Length, Renderer};
+use iced_aw::Grid;
 
-use crate::core::api::series_information::SeriesMainInformation;
+use crate::core::api::tv_maze::series_information::SeriesMainInformation;
 use crate::core::database;
 use crate::gui::{helpers, styles};
 
@@ -15,7 +16,7 @@ pub fn watch_count() -> Element<'static, Message, Renderer> {
     let episodes_count = column![
         text(episodes_total_number)
             .size(31)
-            .style(styles::text_styles::purple_text_theme()),
+            .style(styles::text_styles::accent_color_theme()),
         text("Episodes").size(11),
     ]
     .align_items(Alignment::Center);
@@ -24,7 +25,7 @@ pub fn watch_count() -> Element<'static, Message, Renderer> {
         column![
             text(series_total_number)
                 .size(31)
-                .style(styles::text_styles::purple_text_theme()),
+                .style(styles::text_styles::accent_color_theme()),
             text("Series").size(11)
         ]
         .align_items(Alignment::Center),
@@ -32,7 +33,7 @@ pub fn watch_count() -> Element<'static, Message, Renderer> {
         column![
             text(seasons_total_number)
                 .size(31)
-                .style(styles::text_styles::purple_text_theme()),
+                .style(styles::text_styles::accent_color_theme()),
             text("Seasons").size(11)
         ]
         .align_items(Alignment::Center)
@@ -68,7 +69,7 @@ pub fn time_count(
 
     let total_minutes_count = column![
         text(total_average_minutes)
-            .style(styles::text_styles::purple_text_theme())
+            .style(styles::text_styles::accent_color_theme())
             .size(31),
         text("Minutes").size(11)
     ]
@@ -86,7 +87,7 @@ pub fn time_count(
                 column![
                     text(time_value)
                         .size(31)
-                        .style(styles::text_styles::purple_text_theme()),
+                        .style(styles::text_styles::accent_color_theme()),
                     text(time_text).size(11)
                 ]
                 .align_items(Alignment::Center)
@@ -122,6 +123,58 @@ pub fn time_count(
         .into()
 }
 
+pub fn genre_stats(series_infos: Vec<&SeriesMainInformation>) -> Element<'_, Message, Renderer> {
+    use crate::core::api::tv_maze::series_information::Genre;
+    use std::collections::HashMap;
+
+    if series_infos.is_empty() {
+        return Space::new(0, 0).into();
+    }
+
+    let mut genre_count: HashMap<Genre, usize> = HashMap::new();
+
+    series_infos.iter().for_each(|series_info| {
+        series_info.get_genres().into_iter().for_each(|genre| {
+            genre_count
+                .entry(genre)
+                .and_modify(|count| *count += 1)
+                .or_insert(1);
+        })
+    });
+
+    let mut genre_count: Vec<(Genre, usize)> = genre_count
+        .into_iter()
+        .map(|(genre, count)| (genre, count))
+        .collect();
+
+    genre_count.sort_unstable_by(|a, b| b.1.cmp(&a.1));
+
+    let mut content = Grid::with_columns(2);
+
+    genre_count.into_iter().for_each(|(genre, count)| {
+        content.insert(
+            text(format!("{}    ", genre)).style(styles::text_styles::accent_color_theme()),
+        );
+        content.insert(text(format!("{} series", count)));
+    });
+
+    let content = column![text("Genre Stats"), content]
+        .align_items(Alignment::Center)
+        .spacing(10)
+        .width(Length::Fill)
+        .padding(10);
+
+    let content = scrollable(content)
+        .direction(styles::scrollable_styles::vertical_direction())
+        .width(Length::Fill);
+
+    container(content)
+        .width(Length::Fill)
+        .padding(5)
+        .style(styles::container_styles::first_class_container_rounded_theme())
+        .into()
+}
+
 pub mod series_banner {
     use std::sync::mpsc;
 
@@ -130,7 +183,7 @@ pub mod series_banner {
     use iced::{Alignment, Command, Element, Length, Renderer};
 
     use crate::core::caching;
-    use crate::core::{api::series_information::SeriesMainInformation, database};
+    use crate::core::{api::tv_maze::series_information::SeriesMainInformation, database};
     pub use crate::gui::message::IndexedMessage;
     use crate::gui::{helpers, styles};
 
@@ -210,7 +263,7 @@ pub mod series_banner {
                         column![
                             text(time_value)
                                 .size(20)
-                                .style(styles::text_styles::purple_text_theme()),
+                                .style(styles::text_styles::accent_color_theme()),
                             text(time_text).size(11)
                         ]
                         .align_items(Alignment::Center)
@@ -226,14 +279,14 @@ pub mod series_banner {
                 column![
                     text(seasons)
                         .size(20)
-                        .style(styles::text_styles::purple_text_theme()),
+                        .style(styles::text_styles::accent_color_theme()),
                     text("Seasons").size(11)
                 ]
                 .align_items(Alignment::Center),
                 column![
                     text(episodes)
                         .size(20)
-                        .style(styles::text_styles::purple_text_theme()),
+                        .style(styles::text_styles::accent_color_theme()),
                     text("episodes").size(11)
                 ]
                 .align_items(Alignment::Center),
