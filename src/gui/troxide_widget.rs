@@ -441,7 +441,6 @@ pub mod title_bar {
         }
 
         pub fn update(&mut self, message: Message) {
-            #[allow(irrefutable_let_patterns)]
             if let Message::TabSelected(new_active_tab) = message {
                 self.active_tab = new_active_tab
             }
@@ -460,7 +459,7 @@ pub mod title_bar {
                     let icon = svg(svg_handle)
                         .width(Length::Shrink)
                         .style(styles::svg_styles::colored_svg_theme());
-                    let text_label = text(&tab_label.text);
+                    let text_label = text(tab_label.text);
                     let mut tab = container(
                         mouse_area(row![icon, text_label].spacing(5))
                             .on_press(Message::TabSelected(index)),

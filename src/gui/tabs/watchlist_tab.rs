@@ -15,6 +15,8 @@ use crate::gui::troxide_widget::series_poster::{
     IndexedMessage as SeriesPosterIndexedMessage, Message as SeriesPosterMessage, SeriesPoster,
 };
 
+use super::Tab;
+
 #[derive(Debug, Clone)]
 pub enum Message {
     SeriesInformationLoaded(Vec<(SeriesMainInformation, Option<Episode>, usize)>),
@@ -181,12 +183,12 @@ async fn get_series_informations_and_watched_episodes(
         .collect()
 }
 
-impl WatchlistTab {
-    pub fn title() -> String {
-        "Watchlist".to_owned()
+impl Tab for WatchlistTab {
+    fn title() -> &'static str {
+        "Watchlist"
     }
 
-    pub fn tab_label() -> super::TabLabel {
-        super::TabLabel::new(Self::title(), CARD_CHECKLIST)
+    fn icon_bytes() -> &'static [u8] {
+        CARD_CHECKLIST
     }
 }

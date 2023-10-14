@@ -10,6 +10,8 @@ use iced::{Command, Element, Length, Renderer};
 use my_shows_widget::{Message as MyShowsMessage, MyShows};
 use upcoming_releases_widget::{Message as UpcomingReleasesMessage, UpcomingReleases};
 
+use super::Tab;
+
 mod my_shows_widget;
 mod upcoming_releases_widget;
 
@@ -123,12 +125,12 @@ impl MyShowsTab {
     }
 }
 
-impl MyShowsTab {
-    pub fn title() -> String {
-        "My Shows".to_owned()
+impl Tab for MyShowsTab {
+    fn title() -> &'static str {
+        "My Shows"
     }
 
-    pub fn tab_label() -> super::TabLabel {
-        super::TabLabel::new(Self::title(), FILM)
+    fn icon_bytes() -> &'static [u8] {
+        FILM
     }
 }

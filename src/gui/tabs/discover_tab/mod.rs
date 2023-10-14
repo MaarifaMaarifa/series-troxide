@@ -18,6 +18,8 @@ use iced_aw::floating_element;
 use iced_aw::wrap::Wrap;
 use iced_aw::Spinner;
 
+use super::Tab;
+
 mod searching;
 
 #[derive(Default, PartialEq)]
@@ -212,13 +214,13 @@ impl DiscoverTab {
     }
 }
 
-impl DiscoverTab {
-    pub fn title() -> String {
-        "Discover".to_owned()
+impl Tab for DiscoverTab {
+    fn title() -> &'static str {
+        "Discover"
     }
 
-    pub fn tab_label() -> super::TabLabel {
-        super::TabLabel::new(Self::title(), BINOCULARS_FILL)
+    fn icon_bytes() -> &'static [u8] {
+        BINOCULARS_FILL
     }
 }
 

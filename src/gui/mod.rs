@@ -4,7 +4,7 @@ use iced::{Application, Command};
 use std::sync::mpsc;
 
 use series_page::{Message as SeriesPageControllerMessage, SeriesPageController};
-use tabs::{Message as TabsControllerMessage, Tab as TabId, TabsController};
+use tabs::{Message as TabsControllerMessage, TabId, TabsController};
 use troxide_widget::title_bar::{Message as TitleBarMessage, TitleBar};
 
 pub mod assets;

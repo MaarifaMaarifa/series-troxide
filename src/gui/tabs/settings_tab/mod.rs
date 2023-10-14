@@ -10,6 +10,8 @@ use discover_widget::{Discover, Message as DiscoverMessage};
 use notifications_widget::{Message as NotificationsMessage, Notifications};
 use settings_controls_widget::{Message as SettingsControlsMessage, SettingsControls};
 
+use super::Tab;
+
 mod about_widget;
 mod appearance_widget;
 mod database_widget;
@@ -105,12 +107,12 @@ impl SettingsTab {
     }
 }
 
-impl SettingsTab {
-    pub fn title() -> String {
-        "Settings".to_owned()
+impl Tab for SettingsTab {
+    fn title() -> &'static str {
+        "Settings"
     }
 
-    pub fn tab_label() -> super::TabLabel {
-        super::TabLabel::new(Self::title(), GEAR_WIDE_CONNECTED)
+    fn icon_bytes() -> &'static [u8] {
+        GEAR_WIDE_CONNECTED
     }
 }
