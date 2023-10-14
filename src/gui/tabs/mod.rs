@@ -14,8 +14,18 @@ pub mod settings_tab;
 pub mod statistics_tab;
 pub mod watchlist_tab;
 
+pub trait Tab {
+    fn title() -> &'static str;
+
+    fn icon_bytes() -> &'static [u8];
+
+    fn tab_label() -> TabLabel {
+        TabLabel::new(Self::title(), Self::icon_bytes())
+    }
+}
+
 #[derive(Clone)]
-pub enum Tab {
+pub enum TabId {
     Discover,
     Watchlist,
     MyShows,
@@ -23,7 +33,7 @@ pub enum Tab {
     Settings,
 }
 
-impl From<usize> for Tab {
+impl From<usize> for TabId {
     fn from(value: usize) -> Self {
         match value {
             0 => Self::Discover,
@@ -36,25 +46,25 @@ impl From<usize> for Tab {
     }
 }
 
-impl From<Tab> for usize {
-    fn from(val: Tab) -> Self {
+impl From<TabId> for usize {
+    fn from(val: TabId) -> Self {
         match val {
-            Tab::Discover => 0,
-            Tab::Watchlist => 1,
-            Tab::MyShows => 2,
-            Tab::Statistics => 3,
-            Tab::Settings => 4,
+            TabId::Discover => 0,
+            TabId::Watchlist => 1,
+            TabId::MyShows => 2,
+            TabId::Statistics => 3,
+            TabId::Settings => 4,
         }
     }
 }
 
 pub struct TabLabel {
-    pub text: String,
+    pub text: &'static str,
     pub icon: &'static [u8],
 }
 
 impl TabLabel {
-    pub fn new(text: String, icon: &'static [u8]) -> Self {
+    pub fn new(text: &'static str, icon: &'static [u8]) -> Self {
         Self { text, icon }
     }
 }
@@ -75,7 +85,7 @@ enum ReloadableTab {
 }
 
 pub struct TabsController {
-    current_tab: Tab,
+    current_tab: TabId,
     discover_tab: DiscoverTab,
     settings_tab: SettingsTab,
     reloadable_tab: Option<ReloadableTab>,
@@ -91,7 +101,7 @@ impl TabsController {
 
         (
             Self {
-                current_tab: Tab::Discover,
+                current_tab: TabId::Discover,
                 discover_tab,
                 reloadable_tab: None,
                 settings_tab,
@@ -103,36 +113,36 @@ impl TabsController {
             ]),
         )
     }
-    pub fn switch_to_tab(&mut self, tab: Tab) -> Command<Message> {
+    pub fn switch_to_tab(&mut self, tab: TabId) -> Command<Message> {
         self.current_tab = tab.clone();
 
         match tab {
-            Tab::Discover => self.discover_tab.refresh().map(Message::Discover),
-            Tab::Watchlist => {
+            TabId::Discover => self.discover_tab.refresh().map(Message::Discover),
+            TabId::Watchlist => {
                 let (watchlist_tab, watchlist_command) =
                     WatchlistTab::new(self.series_page_sender.clone());
                 self.reloadable_tab = Some(ReloadableTab::Watchlist(watchlist_tab));
                 watchlist_command.map(Message::Watchlist)
             }
-            Tab::MyShows => {
+            TabId::MyShows => {
                 let (my_shows_tab, my_shows_command) =
                     MyShowsTab::new(self.series_page_sender.clone());
                 self.reloadable_tab = Some(ReloadableTab::MyShows(my_shows_tab));
                 my_shows_command.map(Message::MyShows)
             }
-            Tab::Statistics => {
+            TabId::Statistics => {
                 let (statistics_tab, statistics_command) =
                     StatisticsTab::new(self.series_page_sender.clone());
                 self.reloadable_tab = Some(ReloadableTab::Statistics(statistics_tab));
                 statistics_command.map(Message::Statistics)
             }
-            Tab::Settings => Command::none(),
+            TabId::Settings => Command::none(),
         }
     }
 
     pub fn subscription(&self) -> iced::Subscription<Message> {
         let tab_subscription = match self.current_tab {
-            Tab::Discover => self.discover_tab.subscription().map(Message::Discover),
+            TabId::Discover => self.discover_tab.subscription().map(Message::Discover),
             _ => {
                 if let Some(reloadable_tab) = &self.reloadable_tab {
                     match reloadable_tab {
@@ -180,8 +190,8 @@ impl TabsController {
         }
     }
 
-    pub fn get_labels(&self) -> Vec<TabLabel> {
-        vec![
+    pub fn get_labels(&self) -> [TabLabel; 5] {
+        [
             DiscoverTab::tab_label(),
             WatchlistTab::tab_label(),
             MyShowsTab::tab_label(),
@@ -192,8 +202,8 @@ impl TabsController {
 
     pub fn view(&self) -> Element<'_, Message, Renderer> {
         match self.current_tab {
-            Tab::Discover => self.discover_tab.view().map(Message::Discover),
-            Tab::Settings => self.settings_tab.view().map(Message::Settings),
+            TabId::Discover => self.discover_tab.view().map(Message::Discover),
+            TabId::Settings => self.settings_tab.view().map(Message::Settings),
             _ => {
                 let reloadable_tab = self.reloadable_tab.as_ref().expect("there must be a tab");
                 match reloadable_tab {

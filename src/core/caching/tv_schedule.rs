@@ -185,7 +185,7 @@ pub mod full_schedule {
         None,
     }
 
-    static FULL_SCHEDULE: OnceCell<anyhow::Result<FullSchedule>> = OnceCell::const_new();
+    static FULL_SCHEDULE: OnceCell<FullSchedule> = OnceCell::const_new();
 
     /// `FullSchedule` is a list of all future episodes known to TVmaze, regardless of their country.
     #[derive(Clone, Debug)]
@@ -195,14 +195,12 @@ pub mod full_schedule {
     }
 
     impl FullSchedule {
-        pub async fn new() -> Result<&'static FullSchedule, &'static anyhow::Error> {
+        pub async fn new() -> anyhow::Result<&'static Self> {
             FULL_SCHEDULE
-                .get_or_init(|| async { Self::load().await })
+                .get_or_try_init(|| async { Self::load().await })
                 .await
-                .as_ref()
         }
 
-        /// Constructs `FullSchedule`
         async fn load() -> anyhow::Result<Self> {
             let mut cache_path = CACHER.get_root_cache_path().to_owned();
             cache_path.push(FULL_SCHEDULE_CACHE_FILENAME);

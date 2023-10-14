@@ -13,6 +13,8 @@ use series_banner::{
 
 use mini_widgets::*;
 
+use super::Tab;
+
 mod mini_widgets;
 
 #[derive(Clone, Debug)]
@@ -136,12 +138,12 @@ async fn get_series_with_runtime() -> Vec<(SeriesMainInformation, Option<u32>)> 
     infos_and_time
 }
 
-impl StatisticsTab {
-    pub fn title() -> String {
-        "Statistics".to_owned()
+impl Tab for StatisticsTab {
+    fn title() -> &'static str {
+        "Statistics"
     }
 
-    pub fn tab_label() -> super::TabLabel {
-        super::TabLabel::new(Self::title(), GRAPH_UP_ARROW)
+    fn icon_bytes() -> &'static [u8] {
+        GRAPH_UP_ARROW
     }
 }
