@@ -105,6 +105,10 @@ pub mod series_poster {
             self.hidden
         }
 
+        pub fn get_series_info(&self) -> &SeriesMainInformation {
+            &self.series_information
+        }
+
         /// Views the series poster widget
         ///
         /// This is the normal view of the poster, just having the image of the
@@ -286,15 +290,9 @@ pub mod series_poster {
             metadata = metadata.push(text(format!("{} episodes left", episodes_left)));
 
             if let Some(runtime) = self.series_information.average_runtime {
-                let time = helpers::time::SaneTime::new(runtime * episodes_left as u32)
-                    .get_time_plurized();
-                let watchtime: String = time
-                    .into_iter()
-                    .rev()
-                    .fold(String::new(), |acc, (time_text, time_value)| {
-                        acc + &format!("{} {} ", time_value, time_text)
-                    });
-                metadata = metadata.push(text(watchtime));
+                metadata = metadata.push(text(helpers::time::SaneTime::new(
+                    runtime * episodes_left as u32,
+                )));
             };
 
             content = content.push(metadata);

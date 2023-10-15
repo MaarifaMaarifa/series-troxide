@@ -221,11 +221,6 @@ pub fn next_episode_release_time_widget(
             helpers::time::SaneTime::new(
                 release_time.get_remaining_release_duration().num_minutes() as u32
             )
-            .get_time_plurized()
-            .into_iter()
-            .rev()
-            .fold(String::new(), |acc, (time_text, time_value)| acc
-                + &format!("{} {} ", time_value, time_text))
         ))
         .size(14);
 
