@@ -163,6 +163,20 @@ pub mod time {
         };
         (word, time_value)
     }
+
+    impl std::fmt::Display for SaneTime {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            let str = self
+                .get_time_plurized()
+                .into_iter()
+                .rev()
+                .fold(String::new(), |acc, (time_text, time_value)| {
+                    acc + &format!("{} {} ", time_value, time_text)
+                });
+
+            write!(f, "{}", str)
+        }
+    }
 }
 
 pub fn genres_with_pipes(genres: &[String]) -> String {

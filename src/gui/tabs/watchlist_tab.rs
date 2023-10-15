@@ -1,9 +1,10 @@
 use std::sync::mpsc;
 
-use iced::widget::{container, scrollable, text, Column};
+use iced::widget::{column, container, scrollable, text, Column, Space};
 use iced::{Command, Element, Length, Renderer};
 use iced_aw::Spinner;
 
+use super::Tab;
 use crate::core::api::tv_maze::episodes_information::Episode;
 use crate::core::api::tv_maze::series_information::SeriesMainInformation;
 use crate::core::caching::episode_list::EpisodeList;
@@ -14,8 +15,7 @@ use crate::gui::styles;
 use crate::gui::troxide_widget::series_poster::{
     IndexedMessage as SeriesPosterIndexedMessage, Message as SeriesPosterMessage, SeriesPoster,
 };
-
-use super::Tab;
+use watchlist_summary::WatchlistSummary;
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -32,6 +32,7 @@ enum LoadState {
 
 pub struct WatchlistTab {
     series_posters: Vec<(SeriesPoster, Option<Episode>, usize)>,
+    watchlist_summary: Option<WatchlistSummary>,
     load_state: LoadState,
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
 }
@@ -43,6 +44,7 @@ impl WatchlistTab {
         (
             Self {
                 series_posters: vec![],
+                watchlist_summary: None,
                 load_state: LoadState::Loading,
                 series_page_sender,
             },
@@ -70,7 +72,41 @@ impl WatchlistTab {
                     posters.push((poster, episode, total_episodes));
                     commands.push(command);
                 }
+
+                self.watchlist_summary = Some(WatchlistSummary::new(
+                    posters
+                        .iter()
+                        .map(|(_, _, total_episodes)| total_episodes)
+                        .sum(),
+                    posters
+                        .iter()
+                        .map(|(poster, _, _)| {
+                            let watched_episodes = database::DB
+                                .get_series(poster.get_series_info().id)
+                                .map(|series| series.get_total_episodes())
+                                .unwrap_or(0);
+
+                            watched_episodes
+                        })
+                        .sum(),
+                    posters
+                        .iter()
+                        .map(|(poster, _, total_episodes)| {
+                            let series_info = poster.get_series_info();
+
+                            let watched_episodes = database::DB
+                                .get_series(series_info.id)
+                                .map(|series| series.get_total_episodes())
+                                .unwrap_or(0);
+
+                            (total_episodes - watched_episodes) as u32
+                                * series_info.average_runtime.unwrap_or_default()
+                        })
+                        .sum(),
+                    posters.len(),
+                ));
                 self.series_posters = posters;
+
                 Command::batch(commands).map(Message::SeriesPoster)
             }
             Message::SeriesPoster(message) => self.series_posters[message.index()]
@@ -109,15 +145,25 @@ impl WatchlistTab {
                         })
                         .collect();
 
-                    scrollable(
-                        Column::with_children(watchlist_items)
-                            .padding(5)
-                            .spacing(5)
-                            .align_items(iced::Alignment::Center)
-                            .width(Length::Fill),
-                    )
-                    .direction(styles::scrollable_styles::vertical_direction())
-                    .into()
+                    let watchlist_summary = self
+                        .watchlist_summary
+                        .as_ref()
+                        .map(|watchlist_summary| watchlist_summary.view())
+                        .unwrap_or(Space::new(0, 0).into());
+
+                    let watchlist_items = Column::with_children(watchlist_items)
+                        .spacing(5)
+                        .align_items(iced::Alignment::Center)
+                        .width(Length::Fill);
+
+                    let content = column![watchlist_summary, watchlist_items]
+                        .padding(5)
+                        .spacing(10)
+                        .align_items(iced::Alignment::Center);
+
+                    scrollable(content)
+                        .direction(styles::scrollable_styles::vertical_direction())
+                        .into()
                 }
             }
         }
@@ -190,5 +236,108 @@ impl Tab for WatchlistTab {
 
     fn icon_bytes() -> &'static [u8] {
         CARD_CHECKLIST
+    }
+}
+
+mod watchlist_summary {
+    use crate::gui::helpers::time::SaneTime;
+    use crate::gui::styles;
+
+    use super::Message;
+    use iced::widget::{column, container, progress_bar, row, text};
+    use iced::{Alignment, Element, Renderer};
+
+    pub struct WatchlistSummary {
+        total_episodes_watched: usize,
+        total_episodes: usize,
+        total_minutes: u32,
+        total_shows_to_watch: usize,
+    }
+
+    impl WatchlistSummary {
+        pub fn new(
+            total_episodes: usize,
+            total_episodes_watched: usize,
+            total_minutes: u32,
+            total_shows_to_watch: usize,
+        ) -> Self {
+            Self {
+                total_episodes,
+                total_episodes_watched,
+                total_minutes,
+                total_shows_to_watch,
+            }
+        }
+
+        pub fn view(&self) -> Element<'static, Message, Renderer> {
+            let total_shows_to_watch = Self::summary_item(
+                "Total Series to Watch",
+                self.total_shows_to_watch.to_string(),
+            );
+
+            let total_time_to_watch = Self::summary_item(
+                "Total Time Required to Watch",
+                SaneTime::new(self.total_minutes).to_string(),
+            );
+
+            let episodes_left_to_watch = self.total_episodes - self.total_episodes_watched;
+
+            let total_episodes = Self::summary_item(
+                "Total Episodes to Watch",
+                (episodes_left_to_watch).to_string(),
+            );
+
+            let percentage_progress = Self::summary_item(
+                "Progress",
+                format!(
+                    "{}%",
+                    ((self.total_episodes_watched as f32 / self.total_episodes as f32) * 100_f32)
+                        .trunc()
+                ),
+            );
+
+            let progress = row![
+                progress_bar(
+                    0.0..=self.total_episodes as f32,
+                    self.total_episodes_watched as f32,
+                )
+                .height(10)
+                .width(500),
+                text(format!(
+                    "{}/{}",
+                    self.total_episodes_watched as f32, self.total_episodes as f32
+                ))
+            ]
+            .spacing(5);
+
+            let content = column![
+                row![
+                    percentage_progress,
+                    total_time_to_watch,
+                    total_shows_to_watch,
+                    total_episodes,
+                ]
+                .spacing(20),
+                progress,
+            ]
+            .spacing(20)
+            .align_items(Alignment::Center);
+
+            container(content)
+                .padding(20)
+                .style(styles::container_styles::first_class_container_rounded_theme())
+                .into()
+        }
+
+        fn summary_item(title: &'static str, info: String) -> Element<'static, Message, Renderer> {
+            column![
+                text(title),
+                text(info)
+                    .style(styles::text_styles::accent_color_theme())
+                    .size(18)
+            ]
+            .align_items(Alignment::Center)
+            .into()
+        }
     }
 }
