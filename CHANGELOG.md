@@ -14,17 +14,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Social media icons in `Settings page`. [#36](https://github.com/MaarifaMaarifa/series-troxide/pull/36)
 - Expandable series posters in `Discover page`. [#37](https://github.com/MaarifaMaarifa/series-troxide/pull/37)
 - Hiding posters from `Discover page`. [#39](https://github.com/MaarifaMaarifa/series-troxide/pull/39)
+- Watchlist summary in `Watchlist page`. [#49](https://github.com/MaarifaMaarifa/series-troxide/pull/49)
 
 ### Changed
 - Improve series cache cleaning/updating. [#25](https://github.com/MaarifaMaarifa/series-troxide/pull/25)
 - Made all scrollbars thinner. [#30](https://github.com/MaarifaMaarifa/series-troxide/pull/30)
-- Improve `full-schedule` episodes loading. [#47](https://github.com/MaarifaMaarifa/series-troxide/pull/47)
 - Improve notifications appearance. [#45](https://github.com/MaarifaMaarifa/series-troxide/pull/45)
 - Improve search results by adding show rating. [#38](https://github.com/MaarifaMaarifa/series-troxide/pull/38)
+- Improve notifications appearance. [#45](https://github.com/MaarifaMaarifa/series-troxide/pull/45)
+- Made loading `full schedule` faster and efficient. [#47](https://github.com/MaarifaMaarifa/series-troxide/pull/47), [#53](https://github.com/MaarifaMaarifa/series-troxide/pull/53)
 
 ### Removed
 - Cache cleaning configurations in `Settings page`. [#25](https://github.com/MaarifaMaarifa/series-troxide/pull/25)
 
+### Fixed
+- Scrollable positions when switching tabs. [#52](https://github.com/MaarifaMaarifa/series-troxide/pull/52)
 
 ## [0.3.0] - 2023-09-02
 
