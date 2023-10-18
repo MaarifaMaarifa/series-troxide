@@ -1,5 +1,6 @@
 use std::sync::mpsc;
 
+use iced::widget::scrollable::{RelativeOffset, Viewport};
 use iced::widget::{column, container, row, scrollable, text};
 use iced::{Command, Element, Length, Renderer};
 use iced_aw::Wrap;
@@ -21,23 +22,27 @@ mod mini_widgets;
 pub enum Message {
     SeriesInfosAndTimeReceived(Vec<(SeriesMainInformation, Option<u32>)>),
     SeriesBanner(SeriesBannerIndexedMessage<SeriesBannerMessage>),
+    PageScrolled(Viewport),
 }
 
 pub struct StatisticsTab {
     series_infos_and_time: Vec<(SeriesMainInformation, Option<u32>)>,
     series_banners: Vec<SeriesBanner>,
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
+    scrollable_offset: RelativeOffset,
 }
 
 impl StatisticsTab {
     pub fn new(
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
+        scrollable_offset: Option<RelativeOffset>,
     ) -> (Self, Command<Message>) {
         (
             Self {
                 series_infos_and_time: vec![],
                 series_banners: vec![],
                 series_page_sender,
+                scrollable_offset: scrollable_offset.unwrap_or(RelativeOffset::START),
             },
             Command::perform(
                 get_series_with_runtime(),
@@ -71,6 +76,10 @@ impl StatisticsTab {
             }
             Message::SeriesBanner(message) => {
                 self.series_banners[message.index()].update(message);
+                Command::none()
+            }
+            Message::PageScrolled(view_port) => {
+                self.scrollable_offset = view_port.relative_offset();
                 Command::none()
             }
         }
@@ -111,10 +120,15 @@ impl StatisticsTab {
         .spacing(10)
         .padding(10);
 
-        container(scrollable(content).direction(styles::scrollable_styles::vertical_direction()))
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .into()
+        container(
+            scrollable(content)
+                .id(Self::scrollable_id())
+                .on_scroll(Message::PageScrolled)
+                .direction(styles::scrollable_styles::vertical_direction()),
+        )
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .into()
     }
 }
 
@@ -139,11 +153,17 @@ async fn get_series_with_runtime() -> Vec<(SeriesMainInformation, Option<u32>)> 
 }
 
 impl Tab for StatisticsTab {
+    type Message = Message;
+
     fn title() -> &'static str {
         "Statistics"
     }
 
     fn icon_bytes() -> &'static [u8] {
         GRAPH_UP_ARROW
+    }
+
+    fn get_scrollable_offset(&self) -> scrollable::RelativeOffset {
+        self.scrollable_offset
     }
 }

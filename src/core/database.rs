@@ -553,7 +553,7 @@ pub mod database_transfer {
         if data[..MAGIC.len()] == MAGIC[..] {
             Ok(data[MAGIC.len()..].into())
         } else if data[..4] == MAGIC[..4] {
-            match dbg!(String::from_utf8_lossy(&data[4..MAGIC.len()]).parse::<u16>()) {
+            match String::from_utf8_lossy(&data[4..MAGIC.len()]).parse::<u16>() {
                 Ok(wrong_version) => Err(DataFormatError::WrongVersion(
                     CURRENT_DATA_VERSION,
                     wrong_version,

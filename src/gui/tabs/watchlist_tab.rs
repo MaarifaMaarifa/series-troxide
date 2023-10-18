@@ -1,5 +1,6 @@
 use std::sync::mpsc;
 
+use iced::widget::scrollable::{RelativeOffset, Viewport};
 use iced::widget::{column, container, scrollable, text, Column, Space};
 use iced::{Command, Element, Length, Renderer};
 use iced_aw::Spinner;
@@ -21,6 +22,7 @@ use watchlist_summary::WatchlistSummary;
 pub enum Message {
     SeriesInformationLoaded(Vec<(SeriesMainInformation, Option<Episode>, usize)>),
     SeriesPoster(SeriesPosterIndexedMessage<SeriesPosterMessage>),
+    PageScrolled(Viewport),
 }
 
 #[derive(Default)]
@@ -35,11 +37,13 @@ pub struct WatchlistTab {
     watchlist_summary: Option<WatchlistSummary>,
     load_state: LoadState,
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
+    scrollable_offset: RelativeOffset,
 }
 
 impl WatchlistTab {
     pub fn new(
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
+        scrollable_offset: Option<RelativeOffset>,
     ) -> (Self, Command<Message>) {
         (
             Self {
@@ -47,6 +51,7 @@ impl WatchlistTab {
                 watchlist_summary: None,
                 load_state: LoadState::Loading,
                 series_page_sender,
+                scrollable_offset: scrollable_offset.unwrap_or(RelativeOffset::START),
             },
             Command::perform(
                 get_series_informations_and_watched_episodes(),
@@ -113,6 +118,10 @@ impl WatchlistTab {
                 .0
                 .update(message)
                 .map(Message::SeriesPoster),
+            Message::PageScrolled(view_port) => {
+                self.scrollable_offset = view_port.relative_offset();
+                Command::none()
+            }
         }
     }
     pub fn view(&self) -> Element<Message, Renderer> {
@@ -163,6 +172,8 @@ impl WatchlistTab {
 
                     scrollable(content)
                         .direction(styles::scrollable_styles::vertical_direction())
+                        .id(Self::scrollable_id())
+                        .on_scroll(Message::PageScrolled)
                         .into()
                 }
             }
@@ -230,12 +241,18 @@ async fn get_series_informations_and_watched_episodes(
 }
 
 impl Tab for WatchlistTab {
+    type Message = Message;
+
     fn title() -> &'static str {
         "Watchlist"
     }
 
     fn icon_bytes() -> &'static [u8] {
         CARD_CHECKLIST
+    }
+
+    fn get_scrollable_offset(&self) -> scrollable::RelativeOffset {
+        self.scrollable_offset
     }
 }
 

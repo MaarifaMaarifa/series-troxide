@@ -1,3 +1,4 @@
+use iced::widget::scrollable::{RelativeOffset, Viewport};
 use iced::widget::{column, scrollable};
 use iced::{Alignment, Command, Element, Length, Renderer};
 
@@ -27,6 +28,7 @@ pub enum Message {
     Discover(DiscoverMessage),
     About(AboutMessage),
     Controls(SettingsControlsMessage),
+    PageScrolled(Viewport),
 }
 
 pub struct SettingsTab {
@@ -36,6 +38,7 @@ pub struct SettingsTab {
     discover_settings: Discover,
     about: About,
     controls_settings: SettingsControls,
+    scrollable_offset: RelativeOffset,
 }
 
 impl SettingsTab {
@@ -48,6 +51,7 @@ impl SettingsTab {
                 notifications_settings: Notifications,
                 discover_settings: Discover::default(),
                 about: about_widget,
+                scrollable_offset: RelativeOffset::START,
                 controls_settings: SettingsControls,
             },
             about_command.map(Message::About),
@@ -76,6 +80,9 @@ impl SettingsTab {
             Message::Notifications(message) => self.notifications_settings.update(message),
             Message::Appearance(message) => self.appearance_settings.update(message),
             Message::Controls(message) => self.controls_settings.update(message),
+            Message::PageScrolled(view_port) => {
+                self.scrollable_offset = view_port.relative_offset()
+            }
         }
         Command::none()
     }
@@ -95,6 +102,8 @@ impl SettingsTab {
             .align_items(Alignment::Center)
             .padding(5),
         )
+        .id(Self::scrollable_id())
+        .on_scroll(Message::PageScrolled)
         .direction(styles::scrollable_styles::vertical_direction());
 
         column![
@@ -108,11 +117,17 @@ impl SettingsTab {
 }
 
 impl Tab for SettingsTab {
+    type Message = Message;
+
     fn title() -> &'static str {
         "Settings"
     }
 
     fn icon_bytes() -> &'static [u8] {
         GEAR_WIDE_CONNECTED
+    }
+
+    fn get_scrollable_offset(&self) -> scrollable::RelativeOffset {
+        self.scrollable_offset
     }
 }
