@@ -11,6 +11,7 @@ use crate::gui::troxide_widget::series_poster::{
 use full_schedule_posters::{FullSchedulePosters, Message as FullSchedulePostersMessage};
 use searching::Message as SearchMessage;
 
+use iced::widget::scrollable::{RelativeOffset, Viewport};
 use iced::widget::{column, container, scrollable, text, vertical_space, Space};
 use iced::{Command, Element, Length, Renderer};
 
@@ -44,6 +45,7 @@ pub enum Message {
     LocalSeries(SeriesPosterIndexedMessage<SeriesPosterMessage>),
     FullSchedulePosters(FullSchedulePostersMessage),
     Search(SearchMessage),
+    PageScrolled(Viewport),
 }
 
 pub struct DiscoverTab {
@@ -51,10 +53,10 @@ pub struct DiscoverTab {
     search: searching::Search,
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
     country_name: String,
-
     new_global_series: Vec<SeriesPoster>,
     new_local_series: Vec<SeriesPoster>,
     full_schedule_series: FullSchedulePosters,
+    scrollable_offset: RelativeOffset,
 }
 
 impl DiscoverTab {
@@ -73,6 +75,7 @@ impl DiscoverTab {
                 full_schedule_series,
                 series_page_sender,
                 country_name: locale_settings::get_country_name_from_settings(),
+                scrollable_offset: RelativeOffset::START,
             },
             Command::batch([
                 load_discover_schedule_command(),
@@ -170,6 +173,10 @@ impl DiscoverTab {
                 .full_schedule_series
                 .update(message)
                 .map(Message::FullSchedulePosters),
+            Message::PageScrolled(view_port) => {
+                self.scrollable_offset = view_port.relative_offset();
+                Command::none()
+            }
         }
     }
 
@@ -195,6 +202,8 @@ impl DiscoverTab {
             .spacing(20),
         )
         .direction(styles::scrollable_styles::vertical_direction())
+        .id(Self::scrollable_id())
+        .on_scroll(Message::PageScrolled)
         .width(Length::Fill)
         .into();
 
@@ -215,12 +224,18 @@ impl DiscoverTab {
 }
 
 impl Tab for DiscoverTab {
+    type Message = Message;
+
     fn title() -> &'static str {
         "Discover"
     }
 
     fn icon_bytes() -> &'static [u8] {
         BINOCULARS_FILL
+    }
+
+    fn get_scrollable_offset(&self) -> RelativeOffset {
+        self.scrollable_offset
     }
 }
 

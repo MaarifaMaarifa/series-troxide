@@ -28,7 +28,6 @@ pub struct TroxideGui {
     title_bar: TitleBar,
     tabs_controller: TabsController,
     series_page_controller: SeriesPageController,
-    show_back_button: bool,
 }
 
 impl Application for TroxideGui {
@@ -48,7 +47,6 @@ impl Application for TroxideGui {
                 title_bar: TitleBar::new(),
                 tabs_controller,
                 series_page_controller: SeriesPageController::new(sender, receiver),
-                show_back_button: false,
             },
             Command::batch([
                 font_command.map(Message::FontLoaded),
@@ -85,7 +83,7 @@ impl Application for TroxideGui {
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
-        let command = match message {
+        match message {
             Message::TabsController(message) => Command::batch([
                 self.tabs_controller
                     .update(message)
@@ -110,20 +108,30 @@ impl Application for TroxideGui {
                     TitleBarMessage::TabSelected(tab_id) => {
                         self.series_page_controller.clear_all_pages();
                         let tab_id: TabId = tab_id.into();
-                        self.active_tab = tab_id.clone();
+                        self.active_tab = tab_id;
                         self.tabs_controller
                             .switch_to_tab(tab_id)
                             .map(Message::TabsController)
                     }
-                    TitleBarMessage::BackButtonPressed => self
-                        .series_page_controller
-                        .go_previous()
-                        .map(Message::SeriesPageController),
+                    TitleBarMessage::BackButtonPressed => {
+                        let command = self
+                            .series_page_controller
+                            .go_previous()
+                            .map(Message::SeriesPageController);
+                        let scrollers_offset_restore_command =
+                            if !self.series_page_controller.has_a_series_page() {
+                                self.tabs_controller
+                                    .update_scrollables_offsets()
+                                    .map(Message::TabsController)
+                            } else {
+                                Command::none()
+                            };
+
+                        Command::batch([command, scrollers_offset_restore_command])
+                    }
                 }
             }
-        };
-        self.show_back_button = self.series_page_controller.has_a_series_page();
-        command
+        }
     }
 
     fn view(&self) -> iced::Element<'_, Message, iced::Renderer<Self::Theme>> {
@@ -135,7 +143,10 @@ impl Application for TroxideGui {
 
         column![
             self.title_bar
-                .view(&self.tabs_controller.get_labels(), self.show_back_button)
+                .view(
+                    &self.tabs_controller.get_labels(),
+                    self.series_page_controller.has_a_series_page()
+                )
                 .map(Message::TitleBar),
             view
         ]

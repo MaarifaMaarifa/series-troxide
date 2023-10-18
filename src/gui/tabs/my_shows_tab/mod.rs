@@ -4,6 +4,7 @@ use crate::core::api::tv_maze::series_information::SeriesMainInformation;
 use crate::gui::assets::icons::FILM;
 use crate::gui::styles;
 
+use iced::widget::scrollable::{RelativeOffset, Viewport};
 use iced::widget::{column, scrollable, text};
 use iced::{Command, Element, Length, Renderer};
 
@@ -21,6 +22,7 @@ pub enum Message {
     Waiting(MyShowsMessage),
     Upcoming(UpcomingReleasesMessage),
     Untracked(MyShowsMessage),
+    PageScrolled(Viewport),
 }
 
 pub struct MyShowsTab {
@@ -28,11 +30,13 @@ pub struct MyShowsTab {
     upcoming_releases: UpcomingReleases,
     ended_releases: MyShows,
     untracked_releases: MyShows,
+    scrollable_offset: RelativeOffset,
 }
 
 impl MyShowsTab {
     pub fn new(
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
+        scrollable_offset: Option<RelativeOffset>,
     ) -> (Self, Command<Message>) {
         let (untracked_releases, untracked_releases_commands) =
             MyShows::new_as_untracked_series(series_page_sender.clone());
@@ -49,6 +53,7 @@ impl MyShowsTab {
                 untracked_releases,
                 waiting_releases,
                 upcoming_releases,
+                scrollable_offset: scrollable_offset.unwrap_or(RelativeOffset::START),
             },
             Command::batch([
                 untracked_releases_commands.map(Message::Untracked),
@@ -77,6 +82,10 @@ impl MyShowsTab {
                 .untracked_releases
                 .update(message)
                 .map(Message::Untracked),
+            Message::PageScrolled(view_port) => {
+                self.scrollable_offset = view_port.relative_offset();
+                Command::none()
+            }
         }
     }
 
@@ -121,16 +130,24 @@ impl MyShowsTab {
             .align_items(iced::Alignment::Start),
         )
         .direction(styles::scrollable_styles::vertical_direction())
+        .id(Self::scrollable_id())
+        .on_scroll(Message::PageScrolled)
         .into()
     }
 }
 
 impl Tab for MyShowsTab {
+    type Message = Message;
+
     fn title() -> &'static str {
         "My Shows"
     }
 
     fn icon_bytes() -> &'static [u8] {
         FILM
+    }
+
+    fn get_scrollable_offset(&self) -> scrollable::RelativeOffset {
+        self.scrollable_offset
     }
 }
