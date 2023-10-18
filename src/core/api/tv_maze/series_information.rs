@@ -276,6 +276,23 @@ impl SeriesMainInformation {
             .take()
             .map(|embedded| embedded.episodes)
     }
+
+    /// Returns the country iso of the series
+    pub fn get_country_code(&self) -> Option<&str> {
+        if let Some(network) = &self.network {
+            let country_code = network.country.code.as_deref();
+            if country_code.is_some() {
+                return country_code;
+            }
+        }
+
+        if let Some(web_channel) = &self.web_channel {
+            if let Some(country) = &web_channel.country {
+                return country.code.as_deref();
+            }
+        }
+        None
+    }
 }
 
 impl PartialEq for SeriesMainInformation {
@@ -295,6 +312,7 @@ impl Hash for SeriesMainInformation {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct WebChannel {
     pub name: String,
+    pub country: Option<Country>,
     #[serde(rename = "officialSite")]
     pub official_site: Option<String>,
 }
@@ -309,7 +327,8 @@ pub struct Network {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Country {
-    pub name: String,
+    pub name: Option<String>,
+    pub code: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

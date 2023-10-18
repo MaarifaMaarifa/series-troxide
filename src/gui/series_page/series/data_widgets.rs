@@ -181,14 +181,20 @@ pub fn network_widget(
     series_info: &SeriesMainInformation,
     data_grid: &mut Grid<'_, Message, Renderer>,
 ) {
-    if let Some(network) = series_info.network.as_ref() {
-        // TODO: Add a clickable link
-        data_grid.insert(text("Network"));
-        data_grid.insert(text(format!(
-            "{} ({})",
-            &network.name, &network.country.name
-        )));
-    };
+    // if let Some(network) = series_info.network.as_ref() {
+    //     if let Some(network_name) = network.country.name.as_ref() {
+    //         data_grid.insert(text("Network"));
+    //         data_grid.insert(text(format!("{} ({})", &network.name, network_name)));
+    //     }
+    // };
+
+    series_info.network.as_ref().map(|network| {
+        network.country.name.as_ref().map(|network_name| {
+            // TODO: Add a clickable link
+            data_grid.insert(text("Network"));
+            data_grid.insert(text(format!("{} ({})", &network.name, network_name)));
+        })
+    });
 }
 
 pub fn webchannel_widget(
