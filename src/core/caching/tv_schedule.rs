@@ -162,7 +162,7 @@ pub mod full_schedule {
     use anyhow::{bail, Context};
     use chrono::{Datelike, Local, NaiveDate};
     use tokio::fs;
-    use tokio::sync::OnceCell;
+    use tokio::sync::{OnceCell, RwLock};
     use tracing::{error, info};
 
     use crate::core::api::tv_maze::deserialize_json;
@@ -186,16 +186,34 @@ pub mod full_schedule {
     }
 
     static FULL_SCHEDULE: OnceCell<FullSchedule> = OnceCell::const_new();
+    static HIDDEN_SERIES_IDS: RwLock<Option<HashSet<u32>>> = RwLock::const_new(None);
+
+    fn is_hidden(id: u32) -> bool {
+        HIDDEN_SERIES_IDS
+            .blocking_read()
+            .as_ref()
+            .map(|hidden_series_id| hidden_series_id.get(&id).is_some())
+            .unwrap_or(false)
+    }
 
     /// `FullSchedule` is a list of all future episodes known to TVmaze, regardless of their country.
     #[derive(Clone, Debug)]
     pub struct FullSchedule {
         episodes: Vec<Episode>,
-        hidden_series_ids: HashSet<u32>,
     }
 
     impl FullSchedule {
-        pub async fn new() -> anyhow::Result<&'static Self> {
+        pub async fn new<'a>() -> anyhow::Result<&'a Self> {
+            let hidden_series_ids = super::get_hidden_series_ids().await;
+
+            if FULL_SCHEDULE.initialized() {
+                if Some(&hidden_series_ids) != HIDDEN_SERIES_IDS.read().await.as_ref() {
+                    *HIDDEN_SERIES_IDS.write().await = Some(hidden_series_ids);
+                }
+            } else {
+                *HIDDEN_SERIES_IDS.write().await = Some(hidden_series_ids);
+            }
+
             FULL_SCHEDULE
                 .get_or_try_init(|| async { Self::load().await })
                 .await
@@ -204,8 +222,6 @@ pub mod full_schedule {
         async fn load() -> anyhow::Result<Self> {
             let mut cache_path = CACHER.get_root_cache_path().to_owned();
             cache_path.push(FULL_SCHEDULE_CACHE_FILENAME);
-
-            let hidden_series_ids = super::get_hidden_series_ids().await;
 
             match cache_path.metadata() {
                 Ok(metadata) => match metadata.created() {
@@ -251,10 +267,7 @@ pub mod full_schedule {
             };
 
             let episodes = deserialize_json::<Vec<Episode>>(&json_string)?;
-            Ok(Self {
-                episodes,
-                hidden_series_ids,
-            })
+            Ok(Self { episodes })
         }
 
         /// # Returns new series aired in the given month
@@ -509,7 +522,7 @@ pub mod full_schedule {
                 .cloned()
                 .map(|embedded| embedded.show)
                 .filter(|series_info| filter_condition(series_info, &filter.0))
-                .filter(|series| self.hidden_series_ids.get(&series.id).is_none())
+                .filter(|series| !is_hidden(series.id))
                 .collect::<HashSet<SeriesMainInformation>>()
                 .into_iter()
                 .collect()
@@ -527,7 +540,7 @@ pub mod full_schedule {
                 .filter_map(|episode| episode.embedded.as_ref())
                 .cloned()
                 .map(|embedded| embedded.show)
-                .filter(|series| self.hidden_series_ids.get(&series.id).is_none())
+                .filter(|series| !is_hidden(series.id))
                 .collect::<HashSet<SeriesMainInformation>>()
                 .into_iter()
                 .collect()
@@ -576,7 +589,7 @@ pub mod full_schedule {
                     .into_iter()
                     .filter_map(|episode| episode.embedded)
                     .map(|embedded| embedded.show)
-                    .filter(|series| self.hidden_series_ids.get(&series.id).is_none())
+                    .filter(|series| !is_hidden(series.id))
                     .collect(),
             );
 
@@ -621,7 +634,7 @@ pub mod full_schedule {
                     .filter_map(|episode| episode.embedded)
                     .map(|embedded| embedded.show)
                     .filter(filter_condition)
-                    .filter(|series| self.hidden_series_ids.get(&series.id).is_none())
+                    .filter(|series| !is_hidden(series.id))
                     .collect(),
             );
 
