@@ -584,5 +584,50 @@ pub mod full_schedule {
 
             series_infos.into_iter().take(amount).collect()
         }
+
+        pub fn get_daily_global_series(&self, amount: usize) -> Vec<SeriesMainInformation> {
+            self.get_series_by_date(amount, Local::now().date_naive(), |_| true)
+        }
+
+        pub fn get_daily_local_series(
+            &self,
+            amount: usize,
+            country_iso: &str,
+        ) -> Vec<SeriesMainInformation> {
+            self.get_series_by_date(amount, Local::now().date_naive(), |series_info| {
+                series_info.get_country_code() == Some(country_iso)
+            })
+        }
+
+        fn get_series_by_date<'a, F>(
+            &self,
+            amount: usize,
+            date: chrono::NaiveDate,
+            filter_condition: F,
+        ) -> Vec<SeriesMainInformation>
+        where
+            F: 'a + Fn(&SeriesMainInformation) -> bool,
+        {
+            let episodes: Vec<Episode> = self
+                .episodes
+                .iter()
+                .filter(|episode| date == episode.get_naive_date().unwrap())
+                .cloned()
+                .collect();
+
+            let mut series_infos: Vec<SeriesMainInformation> = super::deduplicate_series_infos(
+                episodes
+                    .into_iter()
+                    .filter_map(|episode| episode.embedded)
+                    .map(|embedded| embedded.show)
+                    .filter(filter_condition)
+                    .filter(|series| self.hidden_series_ids.get(&series.id).is_none())
+                    .collect(),
+            );
+
+            super::sort_by_rating(&mut series_infos);
+
+            series_infos.into_iter().take(amount).collect()
+        }
     }
 }
