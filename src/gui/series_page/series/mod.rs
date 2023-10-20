@@ -339,7 +339,7 @@ impl Series {
                     .collect();
 
                 self.next_episode_release_time = episode_list
-                    .get_next_episode_and_time()
+                    .get_next_episode_to_air_and_time()
                     .map(|(episode, release_time)| (episode.clone(), release_time))
             }
             Message::SeriesBackgroundLoaded(background) => self.series_background = background,

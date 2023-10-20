@@ -7,6 +7,7 @@ use crate::core::{
         ApiError,
     },
     caching::CACHER,
+    database,
 };
 use chrono::{DateTime, Datelike, Duration, Local, Timelike, Utc};
 use tracing::info;
@@ -15,6 +16,7 @@ use super::{read_cache, write_cache, CacheFilePath};
 
 #[derive(Clone, Debug)]
 pub struct EpisodeList {
+    series_id: u32,
     episodes: Vec<Episode>,
 }
 
@@ -32,18 +34,27 @@ impl EpisodeList {
                 if err.kind() == ErrorKind::NotFound {
                     write_cache(&json_string, &episodes_list_path).await;
                 }
-                return Ok(Self { episodes });
+                return Ok(Self {
+                    series_id,
+                    episodes,
+                });
             }
         };
 
         let episodes = deserialize_json::<Vec<Episode>>(&json_string)?;
-        Ok(Self { episodes })
+        Ok(Self {
+            series_id,
+            episodes,
+        })
     }
 
     /// Constructs `EpisodeList` from it's cache file contents directly
-    pub fn with_cache(cache_str: &str) -> Result<Self, ApiError> {
+    pub fn with_cache(series_id: u32, cache_str: &str) -> Result<Self, ApiError> {
         let episodes = deserialize_json::<Vec<Episode>>(cache_str)?;
-        Ok(Self { episodes })
+        Ok(Self {
+            series_id,
+            episodes,
+        })
     }
 
     pub fn get_episode(&self, season_number: u32, episode_number: u32) -> Option<&Episode> {
@@ -130,11 +141,11 @@ impl EpisodeList {
         Some(airstamp <= local_time)
     }
 
-    /// Returns the previous episode from the current time
+    /// Returns the previous episode to air from the current time
     ///
     /// This method is also useful when finding the maximum watchable episode
     /// as you can not watch an episode that is released in the future.
-    pub fn get_previous_episode(&self) -> Option<&Episode> {
+    pub fn get_previous_episode_to_air(&self) -> Option<&Episode> {
         let mut episodes_iter = self.episodes.iter().peekable();
         while let Some(episode) = episodes_iter.next() {
             if let Some(peeked_episode) = episodes_iter.peek() {
@@ -148,20 +159,38 @@ impl EpisodeList {
         None
     }
 
-    /// Returns the next episode from the current time
-    pub fn get_next_episode(&self) -> Option<&Episode> {
+    /// Returns the next episode to air from the current time
+    pub fn get_next_episode_to_air(&self) -> Option<&Episode> {
         self.episodes
             .iter()
             .find(|episode| Self::is_episode_watchable(episode) == Some(false))
     }
 
-    /// Returns the next episode and it's release time
-    pub fn get_next_episode_and_time(&self) -> Option<(&Episode, EpisodeReleaseTime)> {
-        let next_episode = self.get_next_episode()?;
+    /// Returns the next episode to air and it's release time
+    pub fn get_next_episode_to_air_and_time(&self) -> Option<(&Episode, EpisodeReleaseTime)> {
+        let next_episode = self.get_next_episode_to_air()?;
         let next_episode_airstamp = next_episode.airstamp.as_ref()?;
 
         let release_time = EpisodeReleaseTime::from_rfc3339_str(next_episode_airstamp);
         Some((next_episode, release_time))
+    }
+
+    pub fn get_next_episode_to_watch(&self) -> Option<&Episode> {
+        let series = database::DB
+            .get_series(self.series_id)
+            .expect("series not in the database");
+
+        self.get_all_episodes().iter().find(|episode| {
+            series
+                .get_season(episode.season)
+                .map(|season| {
+                    episode
+                        .number
+                        .map(|episode_number| !season.is_episode_watched(episode_number))
+                        .unwrap_or(false)
+                })
+                .unwrap_or(true) // if season isn't watched, let's get it's first episode
+        })
     }
 }
 

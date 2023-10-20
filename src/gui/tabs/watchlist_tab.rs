@@ -6,7 +6,6 @@ use iced::{Command, Element, Length, Renderer};
 use iced_aw::Spinner;
 
 use super::Tab;
-use crate::core::api::tv_maze::episodes_information::Episode;
 use crate::core::api::tv_maze::series_information::SeriesMainInformation;
 use crate::core::caching::episode_list::EpisodeList;
 use crate::core::caching::series_list;
@@ -19,7 +18,7 @@ use watchlist_summary::WatchlistSummary;
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    SeriesInformationLoaded(Vec<(SeriesMainInformation, Option<Episode>, usize)>),
+    SeriesInformationLoaded(Vec<(SeriesMainInformation, EpisodeList, usize)>),
     WatchlistPoster(IndexedMessage<WatchlistPosterMessage>),
     PageScrolled(Viewport),
 }
@@ -184,7 +183,7 @@ fn has_pending_episodes(database_series: &database::Series, episodes_list: &Epis
 }
 
 async fn get_series_informations_and_watched_episodes(
-) -> Vec<(SeriesMainInformation, Option<Episode>, usize)> {
+) -> Vec<(SeriesMainInformation, EpisodeList, usize)> {
     let tracked_series_informations = series_list::SeriesList::new()
         .get_tracked_series_informations()
         .await
@@ -213,25 +212,8 @@ async fn get_series_informations_and_watched_episodes(
             has_pending_episodes(&series, episode_list)
         })
         .map(|(series_info, episode_list)| {
-            let series = database::DB.get_series(series_info.id).unwrap();
-
-            // Finding an episode that is not watched, making it as the next episode to watch
-            let next_episode_to_watch = episode_list.get_all_episodes().iter().find(|episode| {
-                series
-                    .get_season(episode.season)
-                    .map(|season| {
-                        episode
-                            .number
-                            .map(|episode_number| !season.is_episode_watched(episode_number))
-                            .unwrap_or(false)
-                    })
-                    .unwrap_or(true) // if season isn't watched, let's get it's first episode
-            });
-            (
-                series_info,
-                next_episode_to_watch.cloned(),
-                episode_list.get_total_watchable_episodes(),
-            )
+            let total_watchable_episodes = episode_list.get_total_watchable_episodes();
+            (series_info, episode_list, total_watchable_episodes)
         })
         .collect()
 }
@@ -256,15 +238,19 @@ mod watchlist_poster {
     use std::sync::mpsc;
 
     use iced::widget::{
-        column, container, image, mouse_area, progress_bar, row, text, vertical_space, Space,
+        button, column, container, horizontal_rule, image, mouse_area, progress_bar, row, text,
+        Space,
     };
-    use iced::{Command, Element, Renderer};
+    use iced::{Command, Element, Length, Renderer};
 
-    use crate::core::api::tv_maze::episodes_information::Episode;
     use crate::core::api::tv_maze::series_information::SeriesMainInformation;
+    use crate::core::caching::episode_list::EpisodeList;
     use crate::core::database;
     use crate::gui::helpers::{self, season_episode_str_gen};
     use crate::gui::styles;
+    use crate::gui::troxide_widget::episode_widget::{
+        Episode as EpisodePoster, Message as EpisodePosterMessage, ViewType,
+    };
     use crate::gui::troxide_widget::series_poster::{
         GenericPoster, GenericPosterMessage, IndexedMessage,
     };
@@ -272,21 +258,25 @@ mod watchlist_poster {
     #[derive(Debug, Clone)]
     pub enum Message {
         Poster(GenericPosterMessage),
+        EpisodePoster(EpisodePosterMessage),
         SeriesPosterPressed,
+        ToggleEpisodeInfo,
     }
 
     pub struct WatchlistPoster {
         index: usize,
         poster: GenericPoster,
-        next_episode_to_watch: Option<Episode>,
+        episode_list: EpisodeList,
         total_series_episodes: usize,
+        episode_poster: Option<EpisodePoster>,
+        show_episode_info: bool,
     }
 
     impl WatchlistPoster {
         pub fn new(
             index: usize,
             series_info: SeriesMainInformation,
-            next_episode_to_watch: Option<Episode>,
+            episode_list: EpisodeList,
             total_series_episodes: usize,
             series_page_sender: mpsc::Sender<SeriesMainInformation>,
         ) -> (Self, Command<IndexedMessage<Message>>) {
@@ -296,8 +286,10 @@ mod watchlist_poster {
                 Self {
                     index,
                     poster,
-                    next_episode_to_watch,
+                    episode_list,
                     total_series_episodes,
+                    episode_poster: None,
+                    show_episode_info: false,
                 },
                 poster_command
                     .map(Message::Poster)
@@ -309,7 +301,7 @@ mod watchlist_poster {
             &mut self,
             message: IndexedMessage<Message>,
         ) -> Command<IndexedMessage<Message>> {
-            match message.message() {
+            let command = match message.message() {
                 Message::Poster(message) => {
                     self.poster.update(message);
                     Command::none()
@@ -318,6 +310,57 @@ mod watchlist_poster {
                     self.poster.open_series_page();
                     Command::none()
                 }
+                Message::ToggleEpisodeInfo => {
+                    self.show_episode_info = !self.show_episode_info;
+
+                    if self.episode_poster.is_none() {
+                        self.update_episode_poster()
+                    } else {
+                        Command::none()
+                    }
+                }
+                Message::EpisodePoster(message) => {
+                    let index = self.index;
+                    self.episode_poster
+                        .as_mut()
+                        .expect("there should be episode poster when receiving it's message")
+                        .update(IndexedMessage::new(0, message))
+                        .map(move |message| {
+                            IndexedMessage::new(index, Message::EpisodePoster(message.message()))
+                        })
+                }
+            };
+
+            let episode_update_command = if self
+                .episode_poster
+                .as_ref()
+                .map(|poster| poster.is_set_watched())
+                .unwrap_or(false)
+            {
+                self.episode_poster = None;
+                self.update_episode_poster()
+            } else {
+                Command::none()
+            };
+
+            Command::batch([episode_update_command, command])
+        }
+
+        fn update_episode_poster(&mut self) -> Command<IndexedMessage<Message>> {
+            if let Some(episode) = self.episode_list.get_next_episode_to_watch() {
+                let (episode_poster, episode_poster_command) = EpisodePoster::new(
+                    0,
+                    self.poster.get_series_info().id,
+                    self.poster.get_series_info().name.clone(),
+                    episode.clone(),
+                );
+                let index = self.index;
+                self.episode_poster = Some(episode_poster);
+                episode_poster_command.map(move |message| {
+                    IndexedMessage::new(index, Message::EpisodePoster(message.message()))
+                })
+            } else {
+                Command::none()
             }
         }
 
@@ -338,7 +381,6 @@ mod watchlist_poster {
                     .size(18)
                     .style(styles::text_styles::accent_color_theme()),
             );
-            metadata = metadata.push(vertical_space(10));
 
             let watched_episodes = database::DB
                 .get_series(self.poster.get_series_info().id)
@@ -361,7 +403,7 @@ mod watchlist_poster {
 
             metadata = metadata.push(progress_bar);
 
-            if let Some(next_episode_to_watch) = self.next_episode_to_watch.as_ref() {
+            if let Some(next_episode_to_watch) = self.episode_list.get_next_episode_to_watch() {
                 let season_number = next_episode_to_watch.season;
                 let episode_number = next_episode_to_watch
                     .number
@@ -385,7 +427,22 @@ mod watchlist_poster {
                 )));
             };
 
+            metadata = metadata.push(self.show_episode_info_button());
+
             content = content.push(metadata);
+
+            let mut content = column![content].spacing(5).width(Length::Fill);
+
+            if let Some(episode_poster) = self.episode_poster.as_ref() {
+                if self.show_episode_info {
+                    content = content.push(horizontal_rule(1));
+                    let episode_view = episode_poster
+                        .view(ViewType::Watchlist)
+                        .map(|message| Message::EpisodePoster(message.message()));
+
+                    content = content.push(container(episode_view).width(Length::Fill).center_x());
+                }
+            }
 
             let content = container(content)
                 .padding(5)
@@ -396,6 +453,18 @@ mod watchlist_poster {
                 .on_press(Message::SeriesPosterPressed)
                 .into();
             element.map(|message| IndexedMessage::new(self.index, message))
+        }
+
+        fn show_episode_info_button(&self) -> Element<'static, Message, Renderer> {
+            let content = match self.show_episode_info {
+                true => "Hide Episode Info",
+                false => "Show Episode Info",
+            };
+
+            button(content)
+                .on_press(Message::ToggleEpisodeInfo)
+                .style(styles::button_styles::transparent_button_with_rounded_border_theme())
+                .into()
         }
     }
 }

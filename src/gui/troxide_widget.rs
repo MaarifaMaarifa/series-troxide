@@ -1,3 +1,223 @@
+pub mod episode_widget {
+    pub use crate::gui::message::IndexedMessage;
+    use crate::{
+        core::{api::tv_maze::episodes_information::Episode as EpisodeInfo, caching, database},
+        gui::{assets::icons::EYE_FILL, helpers::season_episode_str_gen, styles},
+    };
+    use bytes::Bytes;
+    use iced::{
+        widget::{
+            button, checkbox, column, container, horizontal_space, image, row, svg, text,
+            vertical_space, Row, Space, Text,
+        },
+        Command, Element, Length, Renderer,
+    };
+
+    #[derive(Clone, Debug)]
+    pub enum Message {
+        ImageLoaded(Option<Bytes>),
+        MarkedWatched,
+        TrackCommandComplete(bool),
+    }
+
+    #[derive(Clone, Copy)]
+    pub enum ViewType {
+        Watchlist,
+        Season,
+    }
+
+    #[derive(Clone)]
+    pub struct Episode {
+        index: usize,
+        series_name: String,
+        episode_information: EpisodeInfo,
+        series_id: u32,
+        episode_image: Option<Bytes>,
+        set_watched: bool,
+    }
+
+    impl Episode {
+        pub fn new(
+            index: usize,
+            series_id: u32,
+            series_name: String,
+            episode_information: EpisodeInfo,
+        ) -> (Self, Command<IndexedMessage<Message>>) {
+            let episode_image = episode_information.image.clone();
+            let episode = Self {
+                index,
+                series_name,
+                episode_information,
+                series_id,
+                episode_image: None,
+                set_watched: false,
+            };
+
+            let command = if let Some(image) = episode_image {
+                Command::perform(
+                    caching::load_image(image.medium_image_url, caching::ImageType::Medium),
+                    Message::ImageLoaded,
+                )
+                .map(move |message| IndexedMessage::new(index, message))
+            } else {
+                Command::none()
+            };
+
+            (episode, command)
+        }
+
+        pub fn is_set_watched(&self) -> bool {
+            self.set_watched
+        }
+
+        pub fn update(
+            &mut self,
+            message: IndexedMessage<Message>,
+        ) -> Command<IndexedMessage<Message>> {
+            match message.message() {
+                Message::ImageLoaded(image) => self.episode_image = image,
+                Message::MarkedWatched => {
+                    let season_number = self.episode_information.season;
+                    let episode_number = self.episode_information.number.unwrap();
+                    let series_id = self.series_id;
+                    let series_name = self.series_name.clone();
+                    let episode_index = self.index;
+
+                    return Command::perform(
+                        async move {
+                            if let Some(mut series) = database::DB.get_series(series_id) {
+                                series.add_episode(season_number, episode_number).await
+                            } else {
+                                let mut series = database::Series::new(series_name, series_id);
+                                series.add_episode(season_number, episode_number).await
+                            }
+                        },
+                        Message::TrackCommandComplete,
+                    )
+                    .map(move |message| IndexedMessage::new(episode_index, message));
+                }
+                Message::TrackCommandComplete(is_newly_added) => {
+                    if !is_newly_added {
+                        if let Some(mut series) = database::DB.get_series(self.series_id) {
+                            series.remove_episode(
+                                self.episode_information.season,
+                                self.episode_information.number.unwrap(),
+                            );
+                        }
+                    } else {
+                        self.set_watched = true;
+                    }
+                }
+            }
+            Command::none()
+        }
+
+        pub fn view(&self, view_type: ViewType) -> Element<'_, IndexedMessage<Message>, Renderer> {
+            let (poster_width, image_width, image_height) = match view_type {
+                ViewType::Watchlist => (800_f32, 124_f32, 70_f32),
+                ViewType::Season => (700_f32, 107_f32, 60_f32),
+            };
+
+            let mut content = row!().padding(5).width(poster_width);
+            if let Some(image_bytes) = self.episode_image.clone() {
+                let image_handle = image::Handle::from_memory(image_bytes);
+                let image = image(image_handle).height(image_height);
+                content = content.push(image);
+            } else {
+                content = content.push(Space::new(image_width, image_height));
+            };
+
+            let info = column!(
+                heading_widget(self.series_id, &self.episode_information, view_type),
+                airdate_widget(&self.episode_information),
+                vertical_space(5),
+                summary_widget(&self.episode_information)
+            )
+            .padding(5);
+
+            let content = content.push(info);
+
+            let mut content = container(content);
+
+            if let ViewType::Season = view_type {
+                content =
+                    content.style(styles::container_styles::second_class_container_rounded_theme());
+            }
+
+            let element: Element<'_, Message, Renderer> = content.into();
+
+            element.map(|message| IndexedMessage::new(self.index, message))
+        }
+    }
+
+    fn summary_widget(episode_information: &EpisodeInfo) -> Text<'static, Renderer> {
+        if let Some(summary) = &episode_information.summary {
+            let summary = html2text::from_read(summary.as_bytes(), 1000);
+            text(summary).size(11)
+        } else {
+            text("")
+        }
+    }
+
+    fn airdate_widget(episode_information: &EpisodeInfo) -> Text<'static, Renderer> {
+        if let Some(airdate) = &episode_information.airdate {
+            text(format!("Air date: {}", airdate)).size(11)
+        } else {
+            text("")
+        }
+    }
+
+    fn heading_widget(
+        series_id: u32,
+        episode_information: &EpisodeInfo,
+        view_type: ViewType,
+    ) -> Row<'static, Message, Renderer> {
+        let mark_watched_widget: Element<'_, Message, Renderer> = match view_type {
+            ViewType::Watchlist => {
+                let tracked_icon_handle = svg::Handle::from_memory(EYE_FILL);
+                let icon = svg(tracked_icon_handle)
+                    .width(17)
+                    .height(17)
+                    .style(styles::svg_styles::colored_svg_theme());
+                button(icon)
+                    .style(styles::button_styles::transparent_button_theme())
+                    .on_press(Message::MarkedWatched)
+                    .into()
+            }
+            ViewType::Season => {
+                let is_tracked = database::DB
+                    .get_series(series_id)
+                    .map(|series| {
+                        if let Some(season) = series.get_season(episode_information.season) {
+                            season.is_episode_watched(episode_information.number.unwrap())
+                        } else {
+                            false
+                        }
+                    })
+                    .unwrap_or(false);
+
+                checkbox("", is_tracked, |_| Message::MarkedWatched)
+                    .size(17)
+                    .into()
+            }
+        };
+        row![
+            if let Some(episode_number) = episode_information.number {
+                text(season_episode_str_gen(
+                    episode_information.season,
+                    episode_number,
+                ))
+            } else {
+                text("")
+            },
+            text(&episode_information.name).size(13),
+            horizontal_space(Length::Fill),
+            mark_watched_widget
+        ]
+        .spacing(5)
+    }
+}
+
 pub mod series_poster {
     use std::sync::mpsc;
 
