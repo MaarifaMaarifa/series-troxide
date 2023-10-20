@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expandable series posters in `Discover page`. [#37](https://github.com/MaarifaMaarifa/series-troxide/pull/37)
 - Hiding posters from `Discover page`. [#39](https://github.com/MaarifaMaarifa/series-troxide/pull/39)
 - Watchlist summary in `Watchlist page`. [#49](https://github.com/MaarifaMaarifa/series-troxide/pull/49)
+- Next to watch episode info in Watchlist entries in `Watchlist page`. [#59](https://github.com/MaarifaMaarifa/series-troxide/pull/59)
 
 ### Changed
 - Improve series cache cleaning/updating. [#25](https://github.com/MaarifaMaarifa/series-troxide/pull/25)
