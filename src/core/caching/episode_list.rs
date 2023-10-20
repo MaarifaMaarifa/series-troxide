@@ -180,17 +180,20 @@ impl EpisodeList {
             .get_series(self.series_id)
             .expect("series not in the database");
 
-        self.get_all_episodes().iter().find(|episode| {
-            series
-                .get_season(episode.season)
-                .map(|season| {
-                    episode
-                        .number
-                        .map(|episode_number| !season.is_episode_watched(episode_number))
-                        .unwrap_or(false)
-                })
-                .unwrap_or(true) // if season isn't watched, let's get it's first episode
-        })
+        self.get_all_episodes()
+            .iter()
+            .filter(|episode| Self::is_episode_watchable(episode) == Some(true))
+            .find(|episode| {
+                series
+                    .get_season(episode.season)
+                    .map(|season| {
+                        episode
+                            .number
+                            .map(|episode_number| !season.is_episode_watched(episode_number))
+                            .unwrap_or(false)
+                    })
+                    .unwrap_or(true) // if season isn't watched, let's get it's first episode
+            })
     }
 }
 

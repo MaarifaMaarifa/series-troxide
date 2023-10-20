@@ -16,12 +16,12 @@ pub mod episode_widget {
     #[derive(Clone, Debug)]
     pub enum Message {
         ImageLoaded(Option<Bytes>),
-        MarkedWatched,
+        MarkedWatched(PosterType),
         TrackCommandComplete(bool),
     }
 
-    #[derive(Clone, Copy)]
-    pub enum ViewType {
+    #[derive(Clone, Copy, Debug)]
+    pub enum PosterType {
         Watchlist,
         Season,
     }
@@ -75,26 +75,42 @@ pub mod episode_widget {
             message: IndexedMessage<Message>,
         ) -> Command<IndexedMessage<Message>> {
             match message.message() {
-                Message::ImageLoaded(image) => self.episode_image = image,
-                Message::MarkedWatched => {
+                Message::ImageLoaded(image) => {
+                    self.episode_image = image;
+                    Command::none()
+                }
+                Message::MarkedWatched(poster_type) => {
                     let season_number = self.episode_information.season;
                     let episode_number = self.episode_information.number.unwrap();
                     let series_id = self.series_id;
                     let series_name = self.series_name.clone();
                     let episode_index = self.index;
 
-                    return Command::perform(
-                        async move {
+                    match poster_type {
+                        PosterType::Watchlist => {
+                            self.set_watched = true;
                             if let Some(mut series) = database::DB.get_series(series_id) {
-                                series.add_episode(season_number, episode_number).await
+                                series.add_episode_unchecked(season_number, episode_number);
                             } else {
                                 let mut series = database::Series::new(series_name, series_id);
-                                series.add_episode(season_number, episode_number).await
+                                series.add_episode_unchecked(season_number, episode_number)
                             }
-                        },
-                        Message::TrackCommandComplete,
-                    )
-                    .map(move |message| IndexedMessage::new(episode_index, message));
+
+                            Command::none()
+                        }
+                        PosterType::Season => Command::perform(
+                            async move {
+                                if let Some(mut series) = database::DB.get_series(series_id) {
+                                    series.add_episode(season_number, episode_number).await
+                                } else {
+                                    let mut series = database::Series::new(series_name, series_id);
+                                    series.add_episode(season_number, episode_number).await
+                                }
+                            },
+                            Message::TrackCommandComplete,
+                        )
+                        .map(move |message| IndexedMessage::new(episode_index, message)),
+                    }
                 }
                 Message::TrackCommandComplete(is_newly_added) => {
                     if !is_newly_added {
@@ -104,18 +120,19 @@ pub mod episode_widget {
                                 self.episode_information.number.unwrap(),
                             );
                         }
-                    } else {
-                        self.set_watched = true;
                     }
+                    Command::none()
                 }
             }
-            Command::none()
         }
 
-        pub fn view(&self, view_type: ViewType) -> Element<'_, IndexedMessage<Message>, Renderer> {
-            let (poster_width, image_width, image_height) = match view_type {
-                ViewType::Watchlist => (800_f32, 124_f32, 70_f32),
-                ViewType::Season => (700_f32, 107_f32, 60_f32),
+        pub fn view(
+            &self,
+            poster_type: PosterType,
+        ) -> Element<'_, IndexedMessage<Message>, Renderer> {
+            let (poster_width, image_width, image_height) = match poster_type {
+                PosterType::Watchlist => (800_f32, 124_f32, 70_f32),
+                PosterType::Season => (700_f32, 107_f32, 60_f32),
             };
 
             let mut content = row!().padding(5).width(poster_width);
@@ -128,7 +145,7 @@ pub mod episode_widget {
             };
 
             let info = column!(
-                heading_widget(self.series_id, &self.episode_information, view_type),
+                heading_widget(self.series_id, &self.episode_information, poster_type),
                 airdate_widget(&self.episode_information),
                 vertical_space(5),
                 summary_widget(&self.episode_information)
@@ -139,7 +156,7 @@ pub mod episode_widget {
 
             let mut content = container(content);
 
-            if let ViewType::Season = view_type {
+            if let PosterType::Season = poster_type {
                 content =
                     content.style(styles::container_styles::second_class_container_rounded_theme());
             }
@@ -170,10 +187,10 @@ pub mod episode_widget {
     fn heading_widget(
         series_id: u32,
         episode_information: &EpisodeInfo,
-        view_type: ViewType,
+        poster_type: PosterType,
     ) -> Row<'static, Message, Renderer> {
-        let mark_watched_widget: Element<'_, Message, Renderer> = match view_type {
-            ViewType::Watchlist => {
+        let mark_watched_widget: Element<'_, Message, Renderer> = match poster_type {
+            PosterType::Watchlist => {
                 let tracked_icon_handle = svg::Handle::from_memory(EYE_FILL);
                 let icon = svg(tracked_icon_handle)
                     .width(17)
@@ -181,10 +198,10 @@ pub mod episode_widget {
                     .style(styles::svg_styles::colored_svg_theme());
                 button(icon)
                     .style(styles::button_styles::transparent_button_theme())
-                    .on_press(Message::MarkedWatched)
+                    .on_press(Message::MarkedWatched(poster_type))
                     .into()
             }
-            ViewType::Season => {
+            PosterType::Season => {
                 let is_tracked = database::DB
                     .get_series(series_id)
                     .map(|series| {
@@ -196,7 +213,7 @@ pub mod episode_widget {
                     })
                     .unwrap_or(false);
 
-                checkbox("", is_tracked, |_| Message::MarkedWatched)
+                checkbox("", is_tracked, move |_| Message::MarkedWatched(poster_type))
                     .size(17)
                     .into()
             }

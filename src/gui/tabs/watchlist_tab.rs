@@ -70,26 +70,14 @@ impl WatchlistTab {
                         .sum(),
                     series_infos
                         .iter()
-                        .map(|(series_info, _, _)| {
-                            database::DB
-                                .get_series(series_info.id)
-                                .map(|series| series.get_total_episodes())
-                                .unwrap_or(0)
-                        })
-                        .sum(),
-                    series_infos
-                        .iter()
                         .map(|(series_info, _, total_episodes)| {
-                            let watched_episodes = database::DB
-                                .get_series(series_info.id)
-                                .map(|series| series.get_total_episodes())
-                                .unwrap_or(0);
-
-                            (total_episodes - watched_episodes) as u32
-                                * series_info.average_runtime.unwrap_or_default()
+                            (
+                                series_info.id,
+                                *total_episodes as u32,
+                                series_info.average_runtime.unwrap_or_default(),
+                            )
                         })
-                        .sum(),
-                    series_infos.len(),
+                        .collect(),
                 ));
 
                 // Arranging the watchlist shows alphabetically
@@ -249,7 +237,7 @@ mod watchlist_poster {
     use crate::gui::helpers::{self, season_episode_str_gen};
     use crate::gui::styles;
     use crate::gui::troxide_widget::episode_widget::{
-        Episode as EpisodePoster, Message as EpisodePosterMessage, ViewType,
+        Episode as EpisodePoster, Message as EpisodePosterMessage, PosterType,
     };
     use crate::gui::troxide_widget::series_poster::{
         GenericPoster, GenericPosterMessage, IndexedMessage,
@@ -437,7 +425,7 @@ mod watchlist_poster {
                 if self.show_episode_info {
                     content = content.push(horizontal_rule(1));
                     let episode_view = episode_poster
-                        .view(ViewType::Watchlist)
+                        .view(PosterType::Watchlist)
                         .map(|message| Message::EpisodePoster(message.message()));
 
                     content = content.push(container(episode_view).width(Length::Fill).center_x());
@@ -470,6 +458,7 @@ mod watchlist_poster {
 }
 
 mod watchlist_summary {
+    use crate::core::database;
     use crate::gui::helpers::time::SaneTime;
     use crate::gui::styles;
 
@@ -478,39 +467,53 @@ mod watchlist_summary {
     use iced::{Alignment, Element, Renderer};
 
     pub struct WatchlistSummary {
-        total_episodes_watched: usize,
+        /// Vec<(series id, total_episodes, series runtime)>
+        series_ids: Vec<(u32, u32, u32)>,
         total_episodes: usize,
-        total_minutes: u32,
-        total_shows_to_watch: usize,
     }
 
     impl WatchlistSummary {
-        pub fn new(
-            total_episodes: usize,
-            total_episodes_watched: usize,
-            total_minutes: u32,
-            total_shows_to_watch: usize,
-        ) -> Self {
+        pub fn new(total_episodes: usize, series_ids: Vec<(u32, u32, u32)>) -> Self {
             Self {
                 total_episodes,
-                total_episodes_watched,
-                total_minutes,
-                total_shows_to_watch,
+                series_ids,
             }
         }
 
         pub fn view(&self) -> Element<'static, Message, Renderer> {
-            let total_shows_to_watch = Self::summary_item(
-                "Total Series to Watch",
-                self.total_shows_to_watch.to_string(),
-            );
+            let total_shows_to_watch =
+                Self::summary_item("Total Series to Watch", self.series_ids.len().to_string());
 
             let total_time_to_watch = Self::summary_item(
                 "Total Time Required to Watch",
-                SaneTime::new(self.total_minutes).to_string(),
+                SaneTime::new(
+                    self.series_ids
+                        .iter()
+                        .map(|(id, total_episodes, time)| {
+                            let watched_episodes = database::DB
+                                .get_series(*id)
+                                .map(|series| series.get_total_episodes())
+                                .unwrap_or(0);
+
+                            (total_episodes - watched_episodes as u32) * time
+                        })
+                        .sum(),
+                )
+                .to_string(),
             );
 
-            let episodes_left_to_watch = self.total_episodes - self.total_episodes_watched;
+            let total_episodes_watched: usize = self
+                .series_ids
+                .iter()
+                .map(|tup| {
+                    database::DB
+                        .get_series(tup.0)
+                        .map(|series| series.get_total_episodes())
+                        .unwrap_or(0)
+                })
+                .sum();
+
+            let episodes_left_to_watch = self.total_episodes - total_episodes_watched;
 
             let total_episodes = Self::summary_item(
                 "Total Episodes to Watch",
@@ -521,7 +524,7 @@ mod watchlist_summary {
                 "Progress",
                 format!(
                     "{}%",
-                    ((self.total_episodes_watched as f32 / self.total_episodes as f32) * 100_f32)
+                    ((total_episodes_watched as f32 / self.total_episodes as f32) * 100_f32)
                         .trunc()
                 ),
             );
@@ -529,13 +532,13 @@ mod watchlist_summary {
             let progress = row![
                 progress_bar(
                     0.0..=self.total_episodes as f32,
-                    self.total_episodes_watched as f32,
+                    total_episodes_watched as f32,
                 )
                 .height(10)
                 .width(500),
                 text(format!(
                     "{}/{}",
-                    self.total_episodes_watched as f32, self.total_episodes as f32
+                    total_episodes_watched as f32, self.total_episodes as f32
                 ))
             ]
             .spacing(5);

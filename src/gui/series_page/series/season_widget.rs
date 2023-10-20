@@ -10,7 +10,7 @@ use crate::gui::assets::icons::{CHEVRON_DOWN, CHEVRON_UP};
 pub use crate::gui::message::IndexedMessage;
 use crate::gui::styles;
 use crate::gui::troxide_widget::episode_widget::{
-    Episode, IndexedMessage as EpisodeIndexedMessage, Message as EpisodeMessage, ViewType,
+    Episode, IndexedMessage as EpisodeIndexedMessage, Message as EpisodeMessage, PosterType,
 };
 
 #[derive(Clone, Debug)]
@@ -205,7 +205,7 @@ impl Season {
                     Column::with_children(
                         self.episodes
                             .iter()
-                            .map(|episode| episode.view(ViewType::Season).map(Message::Episode))
+                            .map(|episode| episode.view(PosterType::Season).map(Message::Episode))
                             .collect(),
                     )
                     .spacing(3),
