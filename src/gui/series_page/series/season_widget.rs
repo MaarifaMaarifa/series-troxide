@@ -2,8 +2,6 @@ use iced::widget::{button, checkbox, column, container, progress_bar, row, svg, 
 use iced::{Command, Element, Length, Renderer};
 use iced_aw::Spinner;
 
-use episode_widget::Episode;
-
 use crate::core::api::tv_maze::episodes_information::Episode as EpisodeInfo;
 use crate::core::caching::episode_list::TotalEpisodes;
 use crate::core::database::AddResult;
@@ -11,7 +9,9 @@ use crate::core::{caching, database};
 use crate::gui::assets::icons::{CHEVRON_DOWN, CHEVRON_UP};
 pub use crate::gui::message::IndexedMessage;
 use crate::gui::styles;
-use episode_widget::{IndexedMessage as EpisodeIndexedMessage, Message as EpisodeMessage};
+use crate::gui::troxide_widget::episode_widget::{
+    Episode, IndexedMessage as EpisodeIndexedMessage, Message as EpisodeMessage, PosterType,
+};
 
 #[derive(Clone, Debug)]
 pub enum Message {
@@ -29,7 +29,7 @@ pub struct Season {
     series_name: String,
     season_number: u32,
     total_episodes: TotalEpisodes,
-    episodes: Vec<episode_widget::Episode>,
+    episodes: Vec<Episode>,
     is_expanded: bool,
 }
 
@@ -101,12 +101,7 @@ impl Season {
                         .into_iter()
                         .enumerate()
                         .map(|(index, info)| {
-                            episode_widget::Episode::new(
-                                index,
-                                self.series_id,
-                                self.series_name.clone(),
-                                info,
-                            )
+                            Episode::new(index, self.series_id, self.series_name.clone(), info)
                         })
                         .collect();
 
@@ -210,7 +205,7 @@ impl Season {
                     Column::with_children(
                         self.episodes
                             .iter()
-                            .map(|episode| episode.view().map(Message::Episode))
+                            .map(|episode| episode.view(PosterType::Season).map(Message::Episode))
                             .collect(),
                     )
                     .spacing(3),
@@ -233,181 +228,4 @@ async fn load_episode_infos(series_id: u32, season_number: u32) -> Vec<EpisodeIn
         .into_iter()
         .cloned()
         .collect()
-}
-
-mod episode_widget {
-    pub use crate::gui::message::IndexedMessage;
-    use crate::{
-        core::{api::tv_maze::episodes_information::Episode as EpisodeInfo, caching, database},
-        gui::{helpers::season_episode_str_gen, styles},
-    };
-    use bytes::Bytes;
-    use iced::{
-        widget::{
-            checkbox, column, container, horizontal_space, image, row, text, vertical_space, Row,
-            Space, Text,
-        },
-        Command, Element, Length, Renderer,
-    };
-
-    #[derive(Clone, Debug)]
-    pub enum Message {
-        ImageLoaded(Option<Bytes>),
-        TrackCheckboxPressed,
-        TrackCommandComplete(bool),
-    }
-
-    #[derive(Clone)]
-    pub struct Episode {
-        index: usize,
-        series_name: String,
-        episode_information: EpisodeInfo,
-        series_id: u32,
-        episode_image: Option<Bytes>,
-    }
-
-    impl Episode {
-        pub fn new(
-            index: usize,
-            series_id: u32,
-            series_name: String,
-            episode_information: EpisodeInfo,
-        ) -> (Self, Command<IndexedMessage<Message>>) {
-            let episode_image = episode_information.image.clone();
-            let episode = Self {
-                index,
-                series_name,
-                episode_information,
-                series_id,
-                episode_image: None,
-            };
-
-            let command = if let Some(image) = episode_image {
-                Command::perform(
-                    caching::load_image(image.medium_image_url, caching::ImageType::Medium),
-                    Message::ImageLoaded,
-                )
-                .map(move |message| IndexedMessage::new(index, message))
-            } else {
-                Command::none()
-            };
-
-            (episode, command)
-        }
-
-        pub fn update(
-            &mut self,
-            message: IndexedMessage<Message>,
-        ) -> Command<IndexedMessage<Message>> {
-            match message.message() {
-                Message::ImageLoaded(image) => self.episode_image = image,
-                Message::TrackCheckboxPressed => {
-                    let season_number = self.episode_information.season;
-                    let episode_number = self.episode_information.number.unwrap();
-                    let series_id = self.series_id;
-                    let series_name = self.series_name.clone();
-                    let episode_index = self.index;
-
-                    return Command::perform(
-                        async move {
-                            if let Some(mut series) = database::DB.get_series(series_id) {
-                                series.add_episode(season_number, episode_number).await
-                            } else {
-                                let mut series = database::Series::new(series_name, series_id);
-                                series.add_episode(season_number, episode_number).await
-                            }
-                        },
-                        Message::TrackCommandComplete,
-                    )
-                    .map(move |message| IndexedMessage::new(episode_index, message));
-                }
-                Message::TrackCommandComplete(is_newly_added) => {
-                    if !is_newly_added {
-                        if let Some(mut series) = database::DB.get_series(self.series_id) {
-                            series.remove_episode(
-                                self.episode_information.season,
-                                self.episode_information.number.unwrap(),
-                            );
-                        }
-                    }
-                }
-            }
-            Command::none()
-        }
-
-        pub fn view(&self) -> Element<'_, IndexedMessage<Message>, Renderer> {
-            let mut content = row!().padding(5).width(700);
-            if let Some(image_bytes) = self.episode_image.clone() {
-                let image_handle = image::Handle::from_memory(image_bytes);
-                let image = image(image_handle).height(60);
-                content = content.push(image);
-            } else {
-                content = content.push(Space::new(107, 60));
-            };
-
-            let info = column!(
-                heading_widget(self.series_id, &self.episode_information),
-                airdate_widget(&self.episode_information),
-                vertical_space(5),
-                summary_widget(&self.episode_information)
-            )
-            .padding(5);
-
-            let content = content.push(info);
-
-            let element: Element<'_, Message, Renderer> = container(content)
-                .style(styles::container_styles::second_class_container_rounded_theme())
-                .into();
-            element.map(|message| IndexedMessage::new(self.index, message))
-        }
-    }
-
-    fn summary_widget(episode_information: &EpisodeInfo) -> Text<'static, Renderer> {
-        if let Some(summary) = &episode_information.summary {
-            let summary = html2text::from_read(summary.as_bytes(), 1000);
-            text(summary).size(11)
-        } else {
-            text("")
-        }
-    }
-
-    fn airdate_widget(episode_information: &EpisodeInfo) -> Text<'static, Renderer> {
-        if let Some(airdate) = &episode_information.airdate {
-            text(format!("Air date: {}", airdate)).size(11)
-        } else {
-            text("")
-        }
-    }
-
-    fn heading_widget(
-        series_id: u32,
-        episode_information: &EpisodeInfo,
-    ) -> Row<'static, Message, Renderer> {
-        let is_tracked = database::DB
-            .get_series(series_id)
-            .map(|series| {
-                if let Some(season) = series.get_season(episode_information.season) {
-                    season.is_episode_watched(episode_information.number.unwrap())
-                } else {
-                    false
-                }
-            })
-            .unwrap_or(false);
-
-        let tracking_checkbox = checkbox("", is_tracked, |_| Message::TrackCheckboxPressed);
-        row!(
-            if let Some(episode_number) = episode_information.number {
-                text(season_episode_str_gen(
-                    episode_information.season,
-                    episode_number,
-                ))
-            } else {
-                text("")
-            },
-            text(&episode_information.name).size(13),
-            horizontal_space(Length::Fill),
-            tracking_checkbox.size(17),
-        )
-        .spacing(5)
-    }
 }
