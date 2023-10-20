@@ -404,7 +404,7 @@ fn series_posters_viewer<'a>(
             posters
                 .iter()
                 .filter(|poster| !poster.is_hidden())
-                .map(|poster| poster.normal_view(true))
+                .map(|poster| poster.view(true))
                 .collect(),
         )
         .spacing(5.0)
@@ -510,7 +510,7 @@ where
                 series_posters
                     .iter()
                     .filter(|poster| !poster.is_hidden())
-                    .map(|series_poster| series_poster.normal_view(true).map(message))
+                    .map(|series_poster| series_poster.view(true).map(message))
                     .collect(),
             )
             .spacing(5.0)

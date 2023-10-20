@@ -12,16 +12,15 @@ use crate::core::caching::episode_list::EpisodeList;
 use crate::core::caching::series_list;
 use crate::core::{caching, database};
 use crate::gui::assets::icons::CARD_CHECKLIST;
+use crate::gui::message::IndexedMessage;
 use crate::gui::styles;
-use crate::gui::troxide_widget::series_poster::{
-    IndexedMessage as SeriesPosterIndexedMessage, Message as SeriesPosterMessage, SeriesPoster,
-};
+use watchlist_poster::{Message as WatchlistPosterMessage, WatchlistPoster};
 use watchlist_summary::WatchlistSummary;
 
 #[derive(Debug, Clone)]
 pub enum Message {
     SeriesInformationLoaded(Vec<(SeriesMainInformation, Option<Episode>, usize)>),
-    SeriesPoster(SeriesPosterIndexedMessage<SeriesPosterMessage>),
+    WatchlistPoster(IndexedMessage<WatchlistPosterMessage>),
     PageScrolled(Viewport),
 }
 
@@ -33,9 +32,9 @@ enum LoadState {
 }
 
 pub struct WatchlistTab {
-    series_posters: Vec<(SeriesPoster, Option<Episode>, usize)>,
-    watchlist_summary: Option<WatchlistSummary>,
     load_state: LoadState,
+    watchlist_posters: Vec<WatchlistPoster>,
+    watchlist_summary: Option<WatchlistSummary>,
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
     scrollable_offset: RelativeOffset,
 }
@@ -47,7 +46,7 @@ impl WatchlistTab {
     ) -> (Self, Command<Message>) {
         (
             Self {
-                series_posters: vec![],
+                watchlist_posters: vec![],
                 watchlist_summary: None,
                 load_state: LoadState::Loading,
                 series_page_sender,
@@ -65,40 +64,23 @@ impl WatchlistTab {
             Message::SeriesInformationLoaded(mut series_infos) => {
                 self.load_state = LoadState::Loaded;
 
-                // Arranging the watchlist shows alphabetically
-                series_infos.sort_by_key(|(series_info, _, _)| series_info.name.clone());
-
-                let mut posters = Vec::with_capacity(series_infos.len());
-                let mut commands = Vec::with_capacity(series_infos.len());
-                for (index, (info, episode, total_episodes)) in series_infos.into_iter().enumerate()
-                {
-                    let (poster, command) =
-                        SeriesPoster::new(index, info, self.series_page_sender.clone());
-                    posters.push((poster, episode, total_episodes));
-                    commands.push(command);
-                }
-
                 self.watchlist_summary = Some(WatchlistSummary::new(
-                    posters
+                    series_infos
                         .iter()
                         .map(|(_, _, total_episodes)| total_episodes)
                         .sum(),
-                    posters
+                    series_infos
                         .iter()
-                        .map(|(poster, _, _)| {
-                            let watched_episodes = database::DB
-                                .get_series(poster.get_series_info().id)
+                        .map(|(series_info, _, _)| {
+                            database::DB
+                                .get_series(series_info.id)
                                 .map(|series| series.get_total_episodes())
-                                .unwrap_or(0);
-
-                            watched_episodes
+                                .unwrap_or(0)
                         })
                         .sum(),
-                    posters
+                    series_infos
                         .iter()
-                        .map(|(poster, _, total_episodes)| {
-                            let series_info = poster.get_series_info();
-
+                        .map(|(series_info, _, total_episodes)| {
                             let watched_episodes = database::DB
                                 .get_series(series_info.id)
                                 .map(|series| series.get_total_episodes())
@@ -108,16 +90,34 @@ impl WatchlistTab {
                                 * series_info.average_runtime.unwrap_or_default()
                         })
                         .sum(),
-                    posters.len(),
+                    series_infos.len(),
                 ));
-                self.series_posters = posters;
 
-                Command::batch(commands).map(Message::SeriesPoster)
+                // Arranging the watchlist shows alphabetically
+                series_infos.sort_by_key(|(series_info, _, _)| series_info.name.clone());
+
+                let mut posters = Vec::with_capacity(series_infos.len());
+                let mut commands = Vec::with_capacity(series_infos.len());
+                for (index, (info, episode, total_episodes)) in series_infos.into_iter().enumerate()
+                {
+                    let (poster, command) = WatchlistPoster::new(
+                        index,
+                        info,
+                        episode,
+                        total_episodes,
+                        self.series_page_sender.clone(),
+                    );
+                    posters.push(poster);
+                    commands.push(command);
+                }
+
+                self.watchlist_posters = posters;
+
+                Command::batch(commands).map(Message::WatchlistPoster)
             }
-            Message::SeriesPoster(message) => self.series_posters[message.index()]
-                .0
+            Message::WatchlistPoster(message) => self.watchlist_posters[message.index()]
                 .update(message)
-                .map(Message::SeriesPoster),
+                .map(Message::WatchlistPoster),
             Message::PageScrolled(view_port) => {
                 self.scrollable_offset = view_port.relative_offset();
                 Command::none()
@@ -133,7 +133,7 @@ impl WatchlistTab {
                 .center_y()
                 .into(),
             LoadState::Loaded => {
-                if self.series_posters.is_empty() {
+                if self.watchlist_posters.is_empty() {
                     container(
                         text("All Clear!")
                             .horizontal_alignment(iced::alignment::Horizontal::Center),
@@ -145,13 +145,9 @@ impl WatchlistTab {
                     .into()
                 } else {
                     let watchlist_items: Vec<Element<'_, Message, Renderer>> = self
-                        .series_posters
+                        .watchlist_posters
                         .iter()
-                        .map(|(poster, last_watched_episode, total_episodes)| {
-                            poster
-                                .watchlist_view(last_watched_episode.as_ref(), *total_episodes)
-                                .map(Message::SeriesPoster)
-                        })
+                        .map(|poster| poster.view().map(Message::WatchlistPoster))
                         .collect();
 
                     let watchlist_summary = self
@@ -253,6 +249,154 @@ impl Tab for WatchlistTab {
 
     fn get_scrollable_offset(&self) -> scrollable::RelativeOffset {
         self.scrollable_offset
+    }
+}
+
+mod watchlist_poster {
+    use std::sync::mpsc;
+
+    use iced::widget::{
+        column, container, image, mouse_area, progress_bar, row, text, vertical_space, Space,
+    };
+    use iced::{Command, Element, Renderer};
+
+    use crate::core::api::tv_maze::episodes_information::Episode;
+    use crate::core::api::tv_maze::series_information::SeriesMainInformation;
+    use crate::core::database;
+    use crate::gui::helpers::{self, season_episode_str_gen};
+    use crate::gui::styles;
+    use crate::gui::troxide_widget::series_poster::{
+        GenericPoster, GenericPosterMessage, IndexedMessage,
+    };
+
+    #[derive(Debug, Clone)]
+    pub enum Message {
+        Poster(GenericPosterMessage),
+        SeriesPosterPressed,
+    }
+
+    pub struct WatchlistPoster {
+        index: usize,
+        poster: GenericPoster,
+        next_episode_to_watch: Option<Episode>,
+        total_series_episodes: usize,
+    }
+
+    impl WatchlistPoster {
+        pub fn new(
+            index: usize,
+            series_info: SeriesMainInformation,
+            next_episode_to_watch: Option<Episode>,
+            total_series_episodes: usize,
+            series_page_sender: mpsc::Sender<SeriesMainInformation>,
+        ) -> (Self, Command<IndexedMessage<Message>>) {
+            let (poster, poster_command) = GenericPoster::new(series_info, series_page_sender);
+
+            (
+                Self {
+                    index,
+                    poster,
+                    next_episode_to_watch,
+                    total_series_episodes,
+                },
+                poster_command
+                    .map(Message::Poster)
+                    .map(move |message| IndexedMessage::new(index, message)),
+            )
+        }
+
+        pub fn update(
+            &mut self,
+            message: IndexedMessage<Message>,
+        ) -> Command<IndexedMessage<Message>> {
+            match message.message() {
+                Message::Poster(message) => {
+                    self.poster.update(message);
+                    Command::none()
+                }
+                Message::SeriesPosterPressed => {
+                    self.poster.open_series_page();
+                    Command::none()
+                }
+            }
+        }
+
+        pub fn view(&self) -> Element<'_, IndexedMessage<Message>, Renderer> {
+            let mut content = row!().padding(2).spacing(5);
+            if let Some(image_bytes) = self.poster.get_image() {
+                let image_handle = image::Handle::from_memory(image_bytes.clone());
+                let image = image(image_handle).width(100);
+                content = content.push(image);
+            } else {
+                content = content.push(Space::new(100, 140));
+            };
+
+            let mut metadata = column!().padding(2).spacing(5);
+
+            metadata = metadata.push(
+                text(&self.poster.get_series_info().name)
+                    .size(18)
+                    .style(styles::text_styles::accent_color_theme()),
+            );
+            metadata = metadata.push(vertical_space(10));
+
+            let watched_episodes = database::DB
+                .get_series(self.poster.get_series_info().id)
+                .map(|series| series.get_total_episodes())
+                .unwrap_or(0);
+
+            let progress_bar = row![
+                progress_bar(
+                    0.0..=self.total_series_episodes as f32,
+                    watched_episodes as f32,
+                )
+                .height(10)
+                .width(500),
+                text(format!(
+                    "{}/{}",
+                    watched_episodes as f32, self.total_series_episodes as f32
+                ))
+            ]
+            .spacing(5);
+
+            metadata = metadata.push(progress_bar);
+
+            if let Some(next_episode_to_watch) = self.next_episode_to_watch.as_ref() {
+                let season_number = next_episode_to_watch.season;
+                let episode_number = next_episode_to_watch
+                    .number
+                    .expect("episode should have a valid number at this point");
+                let episode_name = next_episode_to_watch.name.as_str();
+                let episode_text = text(format!(
+                    "{}: {}",
+                    season_episode_str_gen(season_number, episode_number),
+                    episode_name
+                ));
+                metadata = metadata.push(episode_text);
+            };
+
+            let episodes_left = self.total_series_episodes - watched_episodes;
+
+            metadata = metadata.push(text(format!("{} episodes left", episodes_left)));
+
+            if let Some(runtime) = self.poster.get_series_info().average_runtime {
+                metadata = metadata.push(text(helpers::time::SaneTime::new(
+                    runtime * episodes_left as u32,
+                )));
+            };
+
+            content = content.push(metadata);
+
+            let content = container(content)
+                .padding(5)
+                .style(styles::container_styles::first_class_container_rounded_theme())
+                .width(1000);
+
+            let element: Element<'_, Message, Renderer> = mouse_area(content)
+                .on_press(Message::SeriesPosterPressed)
+                .into();
+            element.map(|message| IndexedMessage::new(self.index, message))
+        }
     }
 }
 

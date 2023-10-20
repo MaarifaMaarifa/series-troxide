@@ -1,29 +1,87 @@
 pub mod series_poster {
-
     use std::sync::mpsc;
 
-    use crate::core::api::tv_maze::episodes_information::Episode;
     use crate::core::api::tv_maze::series_information::{Rating, SeriesMainInformation};
     use crate::core::api::tv_maze::Image;
-    use crate::core::caching::episode_list::EpisodeReleaseTime;
+    use crate::core::caching;
     use crate::core::posters_hiding::HIDDEN_SERIES;
-    use crate::core::{caching, database};
     use crate::gui::assets::icons::{EYE_SLASH_FILL, STAR_FILL};
-    use crate::gui::helpers::{self, season_episode_str_gen};
+    use crate::gui::helpers;
     pub use crate::gui::message::IndexedMessage;
     use crate::gui::styles;
 
     use bytes::Bytes;
     use iced::font::Weight;
     use iced::widget::{
-        button, column, container, horizontal_space, image, mouse_area, progress_bar, row, svg,
-        text, vertical_space, Space,
+        button, column, container, image, mouse_area, row, svg, text, vertical_space, Space,
     };
-    use iced::{Command, Element, Font, Length, Renderer};
+    use iced::{Command, Element, Font, Renderer};
+
+    #[derive(Debug, Clone)]
+    pub enum GenericPosterMessage {
+        ImageLoaded(Option<Bytes>),
+    }
+
+    pub struct GenericPoster {
+        series_information: SeriesMainInformation,
+        image: Option<Bytes>,
+        series_page_sender: mpsc::Sender<SeriesMainInformation>,
+    }
+
+    impl GenericPoster {
+        pub fn new(
+            series_information: SeriesMainInformation,
+            series_page_sender: mpsc::Sender<SeriesMainInformation>,
+        ) -> (Self, Command<GenericPosterMessage>) {
+            let image_url = series_information.image.clone();
+
+            let poster = Self {
+                series_information,
+                image: None,
+                series_page_sender,
+            };
+
+            (poster, Self::load_image(image_url))
+        }
+
+        pub fn update(&mut self, message: GenericPosterMessage) {
+            match message {
+                GenericPosterMessage::ImageLoaded(image) => self.image = image,
+            }
+        }
+
+        pub fn get_series_info(&self) -> &SeriesMainInformation {
+            &self.series_information
+        }
+
+        pub fn open_series_page(&self) {
+            self.series_page_sender
+                .send(self.series_information.clone())
+                .expect("failed to send series page info");
+        }
+
+        pub fn get_image(&self) -> Option<&Bytes> {
+            self.image.as_ref()
+        }
+
+        fn load_image(image: Option<Image>) -> Command<GenericPosterMessage> {
+            if let Some(image) = image {
+                Command::perform(
+                    async move {
+                        caching::load_image(image.medium_image_url, caching::ImageType::Medium)
+                            .await
+                    },
+                    GenericPosterMessage::ImageLoaded,
+                )
+            } else {
+                Command::none()
+            }
+        }
+    }
 
     #[derive(Clone, Debug)]
     pub enum Message {
-        ImageLoaded(usize, Option<Bytes>),
+        Poster(GenericPosterMessage),
         SeriesPosterPressed,
         Expand,
         Hide,
@@ -32,9 +90,7 @@ pub mod series_poster {
 
     pub struct SeriesPoster {
         index: usize,
-        series_information: SeriesMainInformation,
-        image: Option<Bytes>,
-        series_page_sender: mpsc::Sender<SeriesMainInformation>,
+        poster: GenericPoster,
         expanded: bool,
         hidden: bool,
     }
@@ -45,22 +101,20 @@ pub mod series_poster {
             series_information: SeriesMainInformation,
             series_page_sender: mpsc::Sender<SeriesMainInformation>,
         ) -> (Self, Command<IndexedMessage<Message>>) {
-            let image_url = series_information.image.clone();
-
+            let (poster, poster_command) =
+                GenericPoster::new(series_information, series_page_sender);
             let poster = Self {
                 index,
-                series_information,
-                image: None,
-                series_page_sender,
+                poster,
                 expanded: false,
                 hidden: false,
             };
 
-            let series_image_command = poster_image_command(index, image_url);
-
             (
                 poster,
-                series_image_command.map(move |message| IndexedMessage::new(index, message)),
+                poster_command
+                    .map(Message::Poster)
+                    .map(move |message| IndexedMessage::new(index, message)),
             )
         }
 
@@ -69,18 +123,15 @@ pub mod series_poster {
             message: IndexedMessage<Message>,
         ) -> Command<IndexedMessage<Message>> {
             match message.message() {
-                Message::ImageLoaded(_, image) => self.image = image,
                 Message::SeriesPosterPressed => {
-                    self.series_page_sender
-                        .send(self.series_information.clone())
-                        .expect("failed to send series page info");
+                    self.poster.open_series_page();
                 }
                 Message::Expand => self.expanded = !self.expanded,
                 Message::Hide => {
-                    let series_id = self.series_information.id;
+                    let series_id = self.poster.get_series_info().id;
                     let index = self.index;
-                    let series_name = self.series_information.name.clone();
-                    let premiered_date = self.series_information.premiered.clone();
+                    let series_name = self.poster.get_series_info().name.clone();
+                    let premiered_date = self.poster.get_series_info().premiered.clone();
 
                     return Command::perform(
                         async move {
@@ -97,6 +148,7 @@ pub mod series_poster {
                 Message::SeriesHidden => {
                     self.hidden = true;
                 }
+                Message::Poster(message) => self.poster.update(message),
             }
             Command::none()
         }
@@ -105,24 +157,11 @@ pub mod series_poster {
             self.hidden
         }
 
-        pub fn get_series_info(&self) -> &SeriesMainInformation {
-            &self.series_information
-        }
-
-        /// Views the series poster widget
-        ///
-        /// This is the normal view of the poster, just having the image of the
-        /// of the series and it's name below it
-        pub fn normal_view(
-            &self,
-            expandable: bool,
-        ) -> Element<'_, IndexedMessage<Message>, Renderer> {
-            // let mut content = column![].padding(2).spacing(1);
-
+        pub fn view(&self, expandable: bool) -> Element<'_, IndexedMessage<Message>, Renderer> {
             let poster_image: Element<'_, Message, Renderer> = {
                 let image_height = if self.expanded { 170 } else { 140 };
-                if let Some(image_bytes) = self.image.clone() {
-                    let image_handle = image::Handle::from_memory(image_bytes);
+                if let Some(image_bytes) = self.poster.get_image() {
+                    let image_handle = image::Handle::from_memory(image_bytes.clone());
                     image(image_handle).height(image_height).into()
                 } else {
                     Space::new(image_height as f32 / 1.4, image_height).into()
@@ -131,16 +170,16 @@ pub mod series_poster {
 
             let content: Element<'_, Message, Renderer> = if self.expanded {
                 let metadata = column![
-                    text(&self.series_information.name)
+                    text(&self.poster.get_series_info().name)
                         .size(11)
                         .font(Font {
                             weight: Weight::Bold,
                             ..Default::default()
                         })
                         .style(styles::text_styles::accent_color_theme()),
-                    Self::genres_widget(&self.series_information.genres),
-                    Self::premier_widget(self.series_information.premiered.as_deref()),
-                    Self::rating_widget(&self.series_information.rating),
+                    Self::genres_widget(&self.poster.get_series_info().genres),
+                    Self::premier_widget(self.poster.get_series_info().premiered.as_deref()),
+                    Self::rating_widget(&self.poster.get_series_info().rating),
                     vertical_space(5),
                     Self::hiding_button(),
                 ]
@@ -155,7 +194,7 @@ pub mod series_poster {
                 let mut content = column![].padding(2).spacing(1);
                 content = content.push(poster_image);
                 content = content.push(
-                    text(&self.series_information.name)
+                    text(&self.poster.get_series_info().name)
                         .size(11)
                         .width(100)
                         .height(30)
@@ -224,189 +263,6 @@ pub mod series_poster {
                 .on_press(Message::Hide)
                 .style(styles::button_styles::transparent_button_with_rounded_border_theme())
                 .into()
-        }
-
-        /// View intended for the watchlist tab
-        ///
-        /// Consists of the Series image to the left and it's metadata (progress bar, etc)
-        /// related to stuffs left to watch (episodes, time, etc)
-        pub fn watchlist_view(
-            &self,
-            next_episode_to_watch: Option<&Episode>,
-            total_episodes: usize,
-        ) -> Element<'_, IndexedMessage<Message>, Renderer> {
-            let mut content = row!().padding(2).spacing(5);
-            if let Some(image_bytes) = self.image.clone() {
-                let image_handle = image::Handle::from_memory(image_bytes);
-                let image = image(image_handle).width(100);
-                content = content.push(image);
-            } else {
-                content = content.push(Space::new(100, 140));
-            };
-
-            let mut metadata = column!().padding(2).spacing(5);
-
-            metadata = metadata.push(
-                text(&self.series_information.name)
-                    .size(18)
-                    .style(styles::text_styles::accent_color_theme()),
-            );
-            metadata = metadata.push(vertical_space(10));
-
-            let watched_episodes = database::DB
-                .get_series(self.series_information.id)
-                .map(|series| series.get_total_episodes())
-                .unwrap_or(0);
-
-            let progress_bar = row![
-                progress_bar(0.0..=total_episodes as f32, watched_episodes as f32,)
-                    .height(10)
-                    .width(500),
-                text(format!(
-                    "{}/{}",
-                    watched_episodes as f32, total_episodes as f32
-                ))
-            ]
-            .spacing(5);
-
-            metadata = metadata.push(progress_bar);
-
-            if let Some(next_episode_to_watch) = next_episode_to_watch {
-                let season_number = next_episode_to_watch.season;
-                let episode_number = next_episode_to_watch
-                    .number
-                    .expect("episode should have a valid number at this point");
-                let episode_name = next_episode_to_watch.name.as_str();
-                let episode_text = text(format!(
-                    "{}: {}",
-                    season_episode_str_gen(season_number, episode_number),
-                    episode_name
-                ));
-                metadata = metadata.push(episode_text);
-            };
-
-            let episodes_left = total_episodes - watched_episodes;
-
-            metadata = metadata.push(text(format!("{} episodes left", episodes_left)));
-
-            if let Some(runtime) = self.series_information.average_runtime {
-                metadata = metadata.push(text(helpers::time::SaneTime::new(
-                    runtime * episodes_left as u32,
-                )));
-            };
-
-            content = content.push(metadata);
-
-            let content = container(content)
-                .padding(5)
-                .style(styles::container_styles::first_class_container_rounded_theme())
-                .width(1000);
-
-            let element: Element<'_, Message, Renderer> = mouse_area(content)
-                .on_press(Message::SeriesPosterPressed)
-                .into();
-            element.map(|message| IndexedMessage::new(self.index, message))
-        }
-
-        /// View intended for the upcoming releases
-        ///
-        /// This view is intended to be used in my_shows tab for the series whose next release
-        /// episode is known
-        pub fn release_series_posters_view(
-            &self,
-            episode_and_release_time: (&Episode, &EpisodeReleaseTime),
-        ) -> Element<'_, IndexedMessage<Message>, Renderer> {
-            let mut content = row!().padding(2).spacing(7);
-            if let Some(image_bytes) = self.image.clone() {
-                let image_handle = image::Handle::from_memory(image_bytes);
-                let image = image(image_handle).width(100);
-                content = content.push(image);
-            } else {
-                content = content.push(Space::new(100, 140));
-            };
-
-            let mut metadata = column!().spacing(5);
-            metadata = metadata.push(
-                text(&self.series_information.name)
-                    .size(18)
-                    .style(styles::text_styles::accent_color_theme()),
-            );
-            // Some separation between series name and the rest of content
-            metadata = metadata.push(vertical_space(10));
-
-            let season_number = episode_and_release_time.0.season;
-            let episode_number = episode_and_release_time
-                .0
-                .number
-                .expect("an episode should have a valid number");
-
-            let episode_name = &episode_and_release_time.0.name;
-
-            metadata = metadata.push(text(format!(
-                "{}: {}",
-                season_episode_str_gen(season_number, episode_number),
-                episode_name,
-            )));
-
-            metadata = metadata.push(text(
-                episode_and_release_time.1.get_full_release_date_and_time(),
-            ));
-
-            content = content.push(metadata);
-
-            content = content.push(horizontal_space(Length::Fill));
-            let release_time_widget = container(
-                container(
-                    helpers::time::SaneTime::new(
-                        episode_and_release_time
-                            .1
-                            .get_remaining_release_duration()
-                            .num_minutes() as u32,
-                    )
-                    .get_time_plurized()
-                    .into_iter()
-                    .last()
-                    .map(|(time_text, time_value)| {
-                        column![text(time_value), text(time_text),]
-                            .align_items(iced::Alignment::Center)
-                    })
-                    .unwrap_or(column![text("Now")]),
-                )
-                .width(70)
-                .height(70)
-                .padding(5)
-                .center_x()
-                .center_y()
-                .style(styles::container_styles::release_time_container_theme()),
-            )
-            .center_x()
-            .center_y()
-            .height(140);
-
-            content = content.push(release_time_widget);
-
-            let content = container(content)
-                .padding(5)
-                .style(styles::container_styles::first_class_container_rounded_theme())
-                .width(1000);
-
-            let element: Element<'_, Message, Renderer> = mouse_area(content)
-                .on_press(Message::SeriesPosterPressed)
-                .into();
-            element.map(|message| IndexedMessage::new(self.index, message))
-        }
-    }
-
-    fn poster_image_command(id: usize, image: Option<Image>) -> Command<Message> {
-        if let Some(image) = image {
-            Command::perform(
-                async move {
-                    caching::load_image(image.medium_image_url, caching::ImageType::Medium).await
-                },
-                move |image| Message::ImageLoaded(id, image),
-            )
-        } else {
-            Command::none()
         }
     }
 }

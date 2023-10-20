@@ -178,77 +178,64 @@ pub fn genre_stats(series_infos: Vec<&SeriesMainInformation>) -> Element<'_, Mes
 pub mod series_banner {
     use std::sync::mpsc;
 
-    use bytes::Bytes;
     use iced::widget::{column, container, image, mouse_area, row, text, Row, Space};
     use iced::{Alignment, Command, Element, Length, Renderer};
 
-    use crate::core::caching;
     use crate::core::{api::tv_maze::series_information::SeriesMainInformation, database};
     pub use crate::gui::message::IndexedMessage;
+    use crate::gui::troxide_widget::series_poster::{GenericPoster, GenericPosterMessage};
     use crate::gui::{helpers, styles};
 
     #[derive(Debug, Clone)]
     pub enum Message {
-        #[allow(dead_code)]
-        BannerReceived(Option<Bytes>),
+        Poster(GenericPosterMessage),
         Selected,
     }
 
     pub struct SeriesBanner {
         index: usize,
-        series_info_and_time: (SeriesMainInformation, Option<u32>),
-        banner: Option<Bytes>,
-        series_page_sender: mpsc::Sender<SeriesMainInformation>,
+        poster: GenericPoster,
+        watch_time: Option<u32>,
     }
 
     impl SeriesBanner {
         pub fn new(
             index: usize,
-            series_info_and_time: (SeriesMainInformation, Option<u32>),
+            series_info: SeriesMainInformation,
+            watch_time: Option<u32>,
             series_page_sender: mpsc::Sender<SeriesMainInformation>,
         ) -> (Self, Command<IndexedMessage<Message>>) {
-            let image_url = series_info_and_time
-                .0
-                .clone()
-                .image
-                .map(|image| image.medium_image_url);
+            let (poster, poster_command) = GenericPoster::new(series_info, series_page_sender);
             (
                 Self {
                     index,
-                    series_info_and_time,
-                    banner: None,
-                    series_page_sender,
+                    poster,
+                    watch_time,
                 },
-                image_url
-                    .map(|image_url| {
-                        Command::perform(
-                            caching::load_image(image_url, caching::ImageType::Medium),
-                            Message::BannerReceived,
-                        )
-                        .map(move |message| IndexedMessage::new(index, message))
-                    })
-                    .unwrap_or(Command::none()),
+                poster_command
+                    .map(Message::Poster)
+                    .map(move |message| IndexedMessage::new(index, message)),
             )
         }
 
         pub fn update(&mut self, message: IndexedMessage<Message>) {
             match message.message() {
-                Message::BannerReceived(banner) => self.banner = banner,
-                Message::Selected => self
-                    .series_page_sender
-                    .send(self.series_info_and_time.0.clone())
-                    .expect("failed to send series page"),
+                Message::Selected => self.poster.open_series_page(),
+                Message::Poster(message) => self.poster.update(message),
             }
         }
 
         pub fn view(&self) -> Element<'_, IndexedMessage<Message>, Renderer> {
-            let series_id = self.series_info_and_time.0.id;
+            let series_id = self.poster.get_series_info().id;
             let series = database::DB.get_series(series_id).unwrap();
 
-            let series_name = format!("{}: {}", self.index + 1, &self.series_info_and_time.0.name);
+            let series_name = format!(
+                "{}: {}",
+                self.index + 1,
+                &self.poster.get_series_info().name
+            );
             let times = self
-                .series_info_and_time
-                .1
+                .watch_time
                 .map(|time| helpers::time::SaneTime::new(time).get_time_plurized())
                 .unwrap_or_default();
 
@@ -299,8 +286,8 @@ pub mod series_banner {
                 .spacing(5);
 
             let banner: Element<'_, Message, Renderer> =
-                if let Some(image_bytes) = self.banner.clone() {
-                    let image_handle = image::Handle::from_memory(image_bytes);
+                if let Some(image_bytes) = self.poster.get_image() {
+                    let image_handle = image::Handle::from_memory(image_bytes.clone());
                     image(image_handle).height(100).into()
                 } else {
                     Space::new(71, 100).into()

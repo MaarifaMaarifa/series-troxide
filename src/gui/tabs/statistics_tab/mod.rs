@@ -65,7 +65,8 @@ impl StatisticsTab {
                 for (index, series_info_and_time) in series_infos_and_time.into_iter().enumerate() {
                     let (banner, banner_command) = SeriesBanner::new(
                         index,
-                        series_info_and_time,
+                        series_info_and_time.0,
+                        series_info_and_time.1,
                         self.series_page_sender.clone(),
                     );
                     banners.push(banner);
