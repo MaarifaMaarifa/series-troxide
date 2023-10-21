@@ -577,9 +577,10 @@ pub mod full_schedule {
                 .iter()
                 .filter(|episode| filter_condition(episode))
                 .filter(|episode| {
-                    all_dates_of_month
-                        .iter()
-                        .any(|date| *date == episode.get_naive_date().unwrap())
+                    episode
+                        .date_naive()
+                        .map(|naive_date| all_dates_of_month.iter().any(|date| *date == naive_date))
+                        .unwrap_or(false)
                 })
                 .cloned()
                 .collect();
@@ -624,7 +625,12 @@ pub mod full_schedule {
             let episodes: Vec<Episode> = self
                 .episodes
                 .iter()
-                .filter(|episode| date == episode.get_naive_date().unwrap())
+                .filter(|episode| {
+                    episode
+                        .date_naive()
+                        .map(|naive_date| date == naive_date)
+                        .unwrap_or(false)
+                })
                 .cloned()
                 .collect();
 

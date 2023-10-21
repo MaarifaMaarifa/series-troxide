@@ -169,9 +169,9 @@ impl EpisodeList {
     /// Returns the next episode to air and it's release time
     pub fn get_next_episode_to_air_and_time(&self) -> Option<(&Episode, EpisodeReleaseTime)> {
         let next_episode = self.get_next_episode_to_air()?;
-        let next_episode_airstamp = next_episode.airstamp.as_ref()?;
+        let local_date_time = next_episode.local_date_time().ok()?;
 
-        let release_time = EpisodeReleaseTime::from_rfc3339_str(next_episode_airstamp);
+        let release_time = EpisodeReleaseTime::new(local_date_time);
         Some((next_episode, release_time))
     }
 
@@ -228,18 +228,8 @@ pub struct EpisodeReleaseTime {
 }
 
 impl EpisodeReleaseTime {
-    pub fn new(release_time: DateTime<Utc>) -> Self {
-        Self {
-            release_time: release_time.with_timezone(&Local),
-        }
-    }
-
-    fn from_rfc3339_str(str: &str) -> Self {
-        Self {
-            release_time: DateTime::parse_from_rfc3339(str)
-                .unwrap()
-                .with_timezone(&Local),
-        }
+    pub fn new(release_time: DateTime<Local>) -> Self {
+        Self { release_time }
     }
 
     pub fn get_remaining_release_duration(&self) -> Duration {

@@ -1,3 +1,5 @@
+use chrono::Local;
+
 use super::{series_information::SeriesMainInformation, *};
 
 const EPISODE_INFORMATION_ADDRESS: &str =
@@ -70,11 +72,15 @@ pub enum EpisodeDateError {
 }
 
 impl Episode {
-    pub fn get_naive_date(&self) -> Result<chrono::NaiveDate, EpisodeDateError> {
+    pub fn date_naive(&self) -> Result<chrono::NaiveDate, EpisodeDateError> {
+        Ok(self.local_date_time()?.date_naive())
+    }
+
+    pub fn local_date_time(&self) -> Result<chrono::DateTime<Local>, EpisodeDateError> {
         let date_time_str = self.airstamp.as_ref().ok_or(EpisodeDateError::NotFound)?;
         Ok(chrono::DateTime::parse_from_rfc3339(date_time_str)
             .map_err(EpisodeDateError::Parse)?
-            .date_naive())
+            .with_timezone(&Local))
     }
 }
 
