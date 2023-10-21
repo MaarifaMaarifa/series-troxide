@@ -136,7 +136,8 @@ pub mod episode_widget {
                 PosterType::Season => (700_f32, 107_f32, 60_f32),
             };
 
-            let mut content = row!().padding(5).width(poster_width);
+            let mut content = row!().padding(5).spacing(5).width(poster_width);
+
             if let Some(image_bytes) = self.episode_image.clone() {
                 let image_handle = image::Handle::from_memory(image_bytes);
                 let image = image(image_handle).height(image_height);
@@ -145,15 +146,14 @@ pub mod episode_widget {
                 content = content.push(Space::new(image_width, image_height));
             };
 
-            let info = column!(
+            let episode_details = column!(
                 heading_widget(self.series_id, &self.episode_information, poster_type),
                 date_time_widget(&self.episode_information),
                 vertical_space(5),
                 summary_widget(&self.episode_information)
-            )
-            .padding(5);
+            );
 
-            let content = content.push(info);
+            let content = content.push(episode_details);
 
             let mut content = container(content);
 
