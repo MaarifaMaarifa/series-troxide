@@ -24,7 +24,11 @@ impl Crate {
     }
 
     pub fn is_up_to_date(&self) -> bool {
-        self.newest_version == env!("CARGO_PKG_VERSION")
+        let crates_io_version =
+            semver::Version::parse(&self.newest_version).expect("parse version");
+        let program_version =
+            semver::Version::parse(env!("CARGO_PKG_VERSION")).expect("parse version");
+        program_version >= crates_io_version
     }
 
     pub fn updated_at(&self) -> Result<chrono::NaiveDate, chrono::ParseError> {
