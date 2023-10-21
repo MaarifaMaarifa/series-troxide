@@ -11,7 +11,7 @@ use crate::core::posters_hiding::HIDDEN_SERIES;
 /// ## Note
 /// Expect slightly different results for the when calling multiple times with very small time gap,
 /// this is because this function uses a `HashSet` for deduplication since duplicates
-/// can appear and any random indices(not necessarily consecutive).
+/// can appear at any random indices(not necessarily consecutive).
 /// Sorts the collection from the one with highest rating to the lowest.
 pub async fn get_series_with_date(
     date: Option<&str>,
@@ -75,7 +75,7 @@ async fn get_series_infos_from_episodes(
             episode
                 .as_ref()
                 .map(|episode| episode.show.is_some())
-                .unwrap_or(false)
+                .unwrap_or_default()
         })
         .filter_map(|episode| episode.take())
         .filter_map(|episode| episode.show)
@@ -89,7 +89,7 @@ async fn get_series_infos_from_episodes(
             episode
                 .as_ref()
                 .map(|episode| episode.embedded.is_some())
-                .unwrap_or(false)
+                .unwrap_or_default()
         })
         .filter_map(|episode| episode.take())
         .filter_map(|episode| episode.embedded)
@@ -121,7 +121,7 @@ async fn get_series_infos_from_episodes(
 ///
 /// Expect slightly different results for the same provided collection, this is
 /// because this function uses a `HashSet` for deduplication since duplicates
-/// can appear and any random indices(not necessarily consecutive)
+/// can appear at any random indices(not necessarily consecutive)
 fn deduplicate_series_infos(
     series_infos: Vec<SeriesMainInformation>,
 ) -> Vec<SeriesMainInformation> {
@@ -175,16 +175,6 @@ pub mod full_schedule {
 
     const FULL_SCHEDULE_CACHE_FILENAME: &str = "full-schedule";
 
-    struct Filter<'a>(ScheduleFilter<'a>);
-
-    enum ScheduleFilter<'a> {
-        Network(&'a ShowNetwork),
-        WebChannel(&'a ShowWebChannel),
-        Genre(&'a Genre),
-        Genres(Vec<Genre>),
-        None,
-    }
-
     static FULL_SCHEDULE: OnceCell<FullSchedule> = OnceCell::const_new();
     static HIDDEN_SERIES_IDS: RwLock<Option<HashSet<u32>>> = RwLock::const_new(None);
 
@@ -193,7 +183,7 @@ pub mod full_schedule {
             .blocking_read()
             .as_ref()
             .map(|hidden_series_id| hidden_series_id.get(&id).is_some())
-            .unwrap_or(false)
+            .unwrap_or_default()
     }
 
     /// `FullSchedule` is a list of all future episodes known to TVmaze, regardless of their country.
@@ -280,14 +270,14 @@ pub mod full_schedule {
         /// - the returned collection is automatically sorted starting from series with highest rating.
         /// - Expect slightly different results for the same provided collection, this is
         ///   because this function uses a `HashSet` for deduplication since duplicates
-        ///   can appear and any random indices(not necessarily consecutive)
+        ///   can appear at any random indices(not necessarily consecutive)
         pub fn get_monthly_new_series(
             &self,
             amount: usize,
             month: chrono::Month,
         ) -> Vec<SeriesMainInformation> {
-            self.get_monthly_series(amount, month, |episode| {
-                episode.number.map(|num| num == 1).unwrap_or(false) && episode.season == 1
+            self.get_monthly_series_with_condition(amount, month, |episode| {
+                episode.number.map(|num| num == 1).unwrap_or_default() && episode.season == 1
             })
         }
 
@@ -301,14 +291,14 @@ pub mod full_schedule {
         /// - the returned collection is automatically sorted starting from series with highest rating.
         /// - Expect slightly different results for the same provided collection, this is
         ///   because this function uses a `HashSet` for deduplication since duplicates
-        ///   can appear and any random indices(not necessarily consecutive)
+        ///   can appear at at random indices(not necessarily consecutive)
         pub fn get_monthly_returning_series(
             &self,
             amount: usize,
             month: chrono::Month,
         ) -> Vec<SeriesMainInformation> {
-            self.get_monthly_series(amount, month, |episode| {
-                episode.number.map(|num| num == 1).unwrap_or(false) && episode.season != 1
+            self.get_monthly_series_with_condition(amount, month, |episode| {
+                episode.number.map(|num| num == 1).unwrap_or_default() && episode.season != 1
             })
         }
 
@@ -319,13 +309,18 @@ pub mod full_schedule {
         /// - the returned collection is automatically sorted starting from series with highest rating.
         /// - Expect slightly different results for the same provided collection, this is
         ///   because this function uses a `HashSet` for deduplication since duplicates
-        ///   can appear and any random indices(not necessarily consecutive)
+        ///   can appear at any random indices(not necessarily consecutive)
         pub fn get_popular_series_by_genre(
             &self,
             amount: usize,
             genre: &Genre,
         ) -> Vec<SeriesMainInformation> {
-            self.get_popular_series_by_schedule_filter(amount, Filter(ScheduleFilter::Genre(genre)))
+            self.get_popular_series_with_condition(amount, |series_info| {
+                series_info
+                    .get_genres()
+                    .into_iter()
+                    .any(|series_genre| series_genre == *genre)
+            })
         }
 
         /// # Returns popular series filtered out using the provided genre
@@ -334,7 +329,7 @@ pub mod full_schedule {
         /// - more accurate version of `self.get_popular_series_by_genre()` without caring of the rating.
         /// - Expect slightly different results for the same provided collection, this is
         ///   because this function uses a `HashSet` for deduplication since duplicates
-        ///   can appear and any random indices(not necessarily consecutive)
+        ///   can appear at any random indices(not necessarily consecutive)
         pub fn get_series_by_genres(
             &self,
             amount: usize,
@@ -380,16 +375,18 @@ pub mod full_schedule {
         /// - the returned collection is automatically sorted starting from series with highest rating.
         /// - Expect slightly different results for the same provided collection, this is
         ///   because this function uses a `HashSet` for deduplication since duplicates
-        ///   can appear and any random indices(not necessarily consecutive)
+        ///   can appear at any random indices(not necessarily consecutive)
         pub fn get_popular_series_by_genres(
             &self,
             amount: usize,
-            genres: Vec<Genre>,
+            genres: &[Genre],
         ) -> Vec<SeriesMainInformation> {
-            self.get_popular_series_by_schedule_filter(
-                amount,
-                Filter(ScheduleFilter::Genres(genres)),
-            )
+            self.get_popular_series_with_condition(amount, |series_info| {
+                series_info
+                    .get_genres()
+                    .into_iter()
+                    .any(|series_genre| genres.iter().any(|genre| *genre == series_genre))
+            })
         }
 
         /// # Returns popular series filtered out using the provided network
@@ -398,16 +395,18 @@ pub mod full_schedule {
         /// - the returned collection is automatically sorted starting from series with highest rating.
         /// - Expect slightly different results for the same provided collection, this is
         ///   because this function uses a `HashSet` for deduplication since duplicates
-        ///   can appear and any random indices(not necessarily consecutive)
+        ///   can appear at any random indices(not necessarily consecutive)
         pub fn get_popular_series_by_network(
             &self,
             amount: usize,
             network: &ShowNetwork,
         ) -> Vec<SeriesMainInformation> {
-            self.get_popular_series_by_schedule_filter(
-                amount,
-                Filter(ScheduleFilter::Network(network)),
-            )
+            self.get_popular_series_with_condition(amount, |series_info| {
+                series_info
+                    .get_network()
+                    .map(|show_network| show_network == *network)
+                    .unwrap_or_default()
+            })
         }
 
         /// # Returns popular series filtered out using the provided webchannel
@@ -416,16 +415,18 @@ pub mod full_schedule {
         /// - the returned collection is automatically sorted starting from series with highest rating.
         /// - Expect slightly different results for the same provided collection, this is
         ///   because this function uses a `HashSet` for deduplication since duplicates
-        ///   can appear and any random indices(not necessarily consecutive)
+        ///   can appear at any random indices(not necessarily consecutive)
         pub fn get_popular_series_by_webchannel(
             &self,
             amount: usize,
             webchannel: &ShowWebChannel,
         ) -> Vec<SeriesMainInformation> {
-            self.get_popular_series_by_schedule_filter(
-                amount,
-                Filter(ScheduleFilter::WebChannel(webchannel)),
-            )
+            self.get_popular_series_with_condition(amount, |series_info| {
+                series_info
+                    .get_webchannel()
+                    .map(|show_webchannel| show_webchannel == *webchannel)
+                    .unwrap_or_default()
+            })
         }
 
         /// # This is a list of all future series known to TVmaze, regardless of their country sorted by rating starting from the highest to the lowest
@@ -437,49 +438,9 @@ pub mod full_schedule {
         /// - the returned collection is automatically sorted starting from series with highest rating.
         /// - Expect slightly different results for the same provided collection, this is
         ///   because this function uses a `HashSet` for deduplication since duplicates
-        ///   can appear and any random indices(not necessarily consecutive)
+        ///   can appear at any random indices(not necessarily consecutive)
         pub fn get_popular_series(&self, amount: usize) -> Vec<SeriesMainInformation> {
-            self.get_popular_series_by_schedule_filter(amount, Filter(ScheduleFilter::None))
-        }
-
-        /// # This is a list of all future series known to TVmaze, regardless of their country sorted by rating starting from the highest to the lowest
-        ///
-        /// takes in an amount describing how many of `SeriesMainInformation` to return since they can
-        /// be alot. Also takes a Filter for filtering what `SeriesMainInformation` are requied
-        ///
-        /// ## Note
-        /// - the returned collection is automatically sorted starting from series with highest rating.
-        /// - Expect slightly different results for the same provided collection, this is
-        ///   because this function uses a `HashSet` for deduplication since duplicates
-        ///   can appear and any random indices(not necessarily consecutive)
-        fn get_popular_series_by_schedule_filter(
-            &self,
-            amount: usize,
-            filter: Filter,
-        ) -> Vec<SeriesMainInformation> {
-            self.get_popular_series_with_condition(
-                amount,
-                filter,
-                |series_info, schedule_filter| match schedule_filter {
-                    ScheduleFilter::Network(network) => series_info
-                        .get_network()
-                        .map(|show_network| show_network == **network)
-                        .unwrap_or(false),
-                    ScheduleFilter::WebChannel(webchannel) => series_info
-                        .get_webchannel()
-                        .map(|show_webchannel| show_webchannel == **webchannel)
-                        .unwrap_or(false),
-                    ScheduleFilter::Genre(genre) => series_info
-                        .get_genres()
-                        .into_iter()
-                        .any(|series_genre| series_genre == **genre),
-                    ScheduleFilter::Genres(genres) => series_info
-                        .get_genres()
-                        .into_iter()
-                        .any(|series_genre| genres.iter().any(|genre| *genre == series_genre)),
-                    ScheduleFilter::None => true,
-                },
-            )
+            self.get_popular_series_with_condition(amount, |_| true)
         }
 
         /// # This is a list of all future series known to TVmaze, regardless of their country sorted by rating starting from the highest to the lowest
@@ -491,14 +452,16 @@ pub mod full_schedule {
         /// - the returned collection is automatically sorted starting from series with highest rating.
         /// - Expect slightly different results for the same provided collection, this is
         ///   because this function uses a `HashSet` for deduplication since duplicates
-        ///   can appear and any random indices(not necessarily consecutive)
-        fn get_popular_series_with_condition(
+        ///   can appear at any random indices(not necessarily consecutive)
+        fn get_popular_series_with_condition<'a, F>(
             &self,
             amount: usize,
-            filter: Filter,
-            filter_condition: fn(&SeriesMainInformation, &ScheduleFilter) -> bool,
-        ) -> Vec<SeriesMainInformation> {
-            let mut series_infos = self.get_series_with_condition(filter, filter_condition);
+            condition: F,
+        ) -> Vec<SeriesMainInformation>
+        where
+            F: 'a + Fn(&SeriesMainInformation) -> bool,
+        {
+            let mut series_infos = self.get_series_with_condition(condition);
             super::sort_by_rating(&mut series_infos);
             series_infos.into_iter().take(amount).collect()
         }
@@ -510,18 +473,17 @@ pub mod full_schedule {
         /// ## Note
         /// - Expect slightly different results for the same provided collection, this is
         ///   because this function uses a `HashSet` for deduplication since duplicates
-        ///   can appear and any random indices(not necessarily consecutive)
-        fn get_series_with_condition(
-            &self,
-            filter: Filter,
-            filter_condition: fn(&SeriesMainInformation, &ScheduleFilter) -> bool,
-        ) -> Vec<SeriesMainInformation> {
+        ///   can appear at any random indices(not necessarily consecutive)
+        fn get_series_with_condition<'a, F>(&self, condition: F) -> Vec<SeriesMainInformation>
+        where
+            F: 'a + Fn(&SeriesMainInformation) -> bool,
+        {
             self.episodes
                 .iter()
                 .filter_map(|episode| episode.embedded.as_ref())
                 .cloned()
                 .map(|embedded| embedded.show)
-                .filter(|series_info| filter_condition(series_info, &filter.0))
+                .filter(condition)
                 .filter(|series| !is_hidden(series.id))
                 .collect::<HashSet<SeriesMainInformation>>()
                 .into_iter()
@@ -533,7 +495,7 @@ pub mod full_schedule {
         /// ## Note
         /// - Expect slightly different results for the same provided collection, this is
         ///   because this function uses a `HashSet` for deduplication since duplicates
-        ///   can appear and any random indices(not necessarily consecutive)
+        ///   can appear at any random indices(not necessarily consecutive)
         fn get_series(&self) -> Vec<SeriesMainInformation> {
             self.episodes
                 .iter()
@@ -557,13 +519,16 @@ pub mod full_schedule {
         /// - the returned collection is automatically sorted starting from series with highest rating.
         /// - Expect slightly different results for the same provided collection, this is
         ///   because this function uses a `HashSet` for deduplication since duplicates
-        ///   can appear and any random indices(not necessarily consecutive)
-        fn get_monthly_series(
+        ///   can appear at any random indices(not necessarily consecutive)
+        fn get_monthly_series_with_condition<'a, F>(
             &self,
             amount: usize,
             month: chrono::Month,
-            filter_condition: fn(&Episode) -> bool,
-        ) -> Vec<SeriesMainInformation> {
+            condition: F,
+        ) -> Vec<SeriesMainInformation>
+        where
+            F: 'a + Fn(&Episode) -> bool,
+        {
             let current_year = Local::now().year();
             let month = month.number_from_month();
             let first_date_of_current_month =
@@ -575,7 +540,7 @@ pub mod full_schedule {
             let episodes: Vec<Episode> = self
                 .episodes
                 .iter()
-                .filter(|episode| filter_condition(episode))
+                .filter(|episode| condition(episode))
                 .filter(|episode| {
                     episode
                         .date_naive()
@@ -600,7 +565,7 @@ pub mod full_schedule {
         }
 
         pub fn get_daily_global_series(&self, amount: usize) -> Vec<SeriesMainInformation> {
-            self.get_series_by_date(amount, Local::now().date_naive(), |_| true)
+            self.get_series_by_date_with_condition(amount, Local::now().date_naive(), |_| true)
         }
 
         pub fn get_daily_local_series(
@@ -608,16 +573,18 @@ pub mod full_schedule {
             amount: usize,
             country_iso: &str,
         ) -> Vec<SeriesMainInformation> {
-            self.get_series_by_date(amount, Local::now().date_naive(), |series_info| {
-                series_info.get_country_code() == Some(country_iso)
-            })
+            self.get_series_by_date_with_condition(
+                amount,
+                Local::now().date_naive(),
+                |series_info| series_info.get_country_code() == Some(country_iso),
+            )
         }
 
-        fn get_series_by_date<'a, F>(
+        fn get_series_by_date_with_condition<'a, F>(
             &self,
             amount: usize,
             date: chrono::NaiveDate,
-            filter_condition: F,
+            condition: F,
         ) -> Vec<SeriesMainInformation>
         where
             F: 'a + Fn(&SeriesMainInformation) -> bool,
@@ -629,7 +596,7 @@ pub mod full_schedule {
                     episode
                         .date_naive()
                         .map(|naive_date| date == naive_date)
-                        .unwrap_or(false)
+                        .unwrap_or_default()
                 })
                 .cloned()
                 .collect();
@@ -639,7 +606,7 @@ pub mod full_schedule {
                     .into_iter()
                     .filter_map(|episode| episode.embedded)
                     .map(|embedded| embedded.show)
-                    .filter(filter_condition)
+                    .filter(condition)
                     .filter(|series| !is_hidden(series.id))
                     .collect(),
             );
