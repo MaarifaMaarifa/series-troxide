@@ -155,7 +155,7 @@ impl FullSchedulePosters {
 
                 let (popular_posters, popular_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        full_schedule.get_popular_series(SECTIONS_POSTERS_AMOUNT),
+                        full_schedule.get_popular_series(Some(SECTIONS_POSTERS_AMOUNT)),
                         self.series_page_sender.clone(),
                     );
 
@@ -185,7 +185,7 @@ impl FullSchedulePosters {
                     .into_iter()
                     .map(|network| {
                         let series_infos = full_schedule
-                            .get_popular_series_by_network(SECTIONS_POSTERS_AMOUNT, &network);
+                            .get_popular_series_by_network(Some(SECTIONS_POSTERS_AMOUNT), &network);
                         self.network_posters.push_section_posters(
                             network,
                             series_infos,
@@ -198,7 +198,7 @@ impl FullSchedulePosters {
                     .into_iter()
                     .map(|genre| {
                         let series_infos = full_schedule
-                            .get_popular_series_by_genre(SECTIONS_POSTERS_AMOUNT, &genre);
+                            .get_popular_series_by_genre(Some(SECTIONS_POSTERS_AMOUNT), &genre);
                         self.genre_posters.push_section_posters(
                             genre,
                             series_infos,
@@ -210,8 +210,10 @@ impl FullSchedulePosters {
                 let webchannel_posters_commands: Vec<_> = WEB_CHANNEL_SECTIONS
                     .into_iter()
                     .map(|webchannel| {
-                        let series_infos = full_schedule
-                            .get_popular_series_by_webchannel(SECTIONS_POSTERS_AMOUNT, &webchannel);
+                        let series_infos = full_schedule.get_popular_series_by_webchannel(
+                            Some(SECTIONS_POSTERS_AMOUNT),
+                            &webchannel,
+                        );
                         self.web_channel_posters.push_section_posters(
                             webchannel,
                             series_infos,
