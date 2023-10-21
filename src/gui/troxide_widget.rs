@@ -146,7 +146,7 @@ pub mod episode_widget {
 
             let info = column!(
                 heading_widget(self.series_id, &self.episode_information, poster_type),
-                airdate_widget(&self.episode_information),
+                date_time_widget(&self.episode_information),
                 vertical_space(5),
                 summary_widget(&self.episode_information)
             )
@@ -176,11 +176,15 @@ pub mod episode_widget {
         }
     }
 
-    fn airdate_widget(episode_information: &EpisodeInfo) -> Text<'static, Renderer> {
-        if let Some(airdate) = &episode_information.airdate {
-            text(format!("Air date: {}", airdate)).size(11)
+    fn date_time_widget(episode_information: &EpisodeInfo) -> Element<'_, Message, Renderer> {
+        if let Ok(release_time) = episode_information.episode_release_time() {
+            let prefix = match release_time.is_future() {
+                true => "Airing on",
+                false => "Aired on",
+            };
+            text(format!("{} {}", prefix, release_time)).into()
         } else {
-            text("")
+            Space::new(0, 0).into()
         }
     }
 

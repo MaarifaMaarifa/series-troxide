@@ -1,4 +1,4 @@
-use chrono::Local;
+use chrono::{DateTime, Datelike, Duration, Local, Timelike, Utc};
 
 use super::{series_information::SeriesMainInformation, *};
 
@@ -81,6 +81,61 @@ impl Episode {
         Ok(chrono::DateTime::parse_from_rfc3339(date_time_str)
             .map_err(EpisodeDateError::Parse)?
             .with_timezone(&Local))
+    }
+
+    pub fn episode_release_time(&self) -> Result<EpisodeReleaseTime, EpisodeDateError> {
+        Ok(EpisodeReleaseTime::new(self.local_date_time()?))
+    }
+}
+
+/// Local time aware Episode release time
+#[derive(Debug, Clone, PartialEq, PartialOrd, Ord, Eq)]
+pub struct EpisodeReleaseTime {
+    release_time: DateTime<Local>,
+}
+
+impl EpisodeReleaseTime {
+    pub fn new(release_time: DateTime<Local>) -> Self {
+        Self { release_time }
+    }
+
+    pub fn get_remaining_release_duration(&self) -> Duration {
+        let local_time = Utc::now().with_timezone(&Local);
+        self.release_time - local_time
+    }
+
+    pub fn is_future(&self) -> bool {
+        let local_time = Utc::now().with_timezone(&Local);
+        self.release_time > local_time
+    }
+}
+
+impl std::fmt::Display for EpisodeReleaseTime {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        /// appends zero the minute digit if it's below 10 for better display
+        fn append_zero(num: u32) -> String {
+            if num < 10 {
+                format!("0{num}")
+            } else {
+                format!("{num}")
+            }
+        }
+
+        let (is_pm, hour) = self.release_time.hour12();
+        let pm_am = if is_pm { "p.m." } else { "a.m." };
+
+        let minute = append_zero(self.release_time.minute());
+
+        let str = format!(
+            "{} {} {}:{} {}",
+            self.release_time.date_naive(),
+            self.release_time.weekday(),
+            hour,
+            minute,
+            pm_am
+        );
+
+        write!(f, "{}", str)
     }
 }
 
