@@ -6,11 +6,12 @@ pub mod episode_widget {
     };
     use bytes::Bytes;
     use iced::{
+        font::Weight,
         widget::{
             button, checkbox, column, container, horizontal_space, image, row, svg, text,
             vertical_space, Row, Space, Text,
         },
-        Command, Element, Length, Renderer,
+        Command, Element, Font, Length, Renderer,
     };
 
     #[derive(Clone, Debug)]
@@ -222,16 +223,21 @@ pub mod episode_widget {
                     .into()
             }
         };
+
         row![
-            if let Some(episode_number) = episode_information.number {
-                text(season_episode_str_gen(
-                    episode_information.season,
-                    episode_number,
-                ))
-            } else {
-                text("")
-            },
-            text(&episode_information.name).size(13),
+            text(format!(
+                "{} {}",
+                episode_information
+                    .number
+                    .map(|number| season_episode_str_gen(episode_information.season, number))
+                    .unwrap_or_default(),
+                episode_information.name
+            ))
+            .font(Font {
+                weight: Weight::Bold,
+                ..Default::default()
+            })
+            .style(styles::text_styles::accent_color_theme()),
             horizontal_space(Length::Fill),
             mark_watched_widget
         ]
