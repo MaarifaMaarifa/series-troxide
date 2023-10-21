@@ -19,8 +19,8 @@ pub async fn get_show_images(series_id: u32) -> Result<Vec<Image>, ApiError> {
         Ok(info) => info,
         Err(err) => {
             info!(
-                "falling back online for 'series image list' for series id {}: {}",
-                series_id, err
+                "falling back online for 'series image list' for series id {}",
+                series_id
             );
             let json_string = get_show_images_api(series_id).await?;
             if err.kind() == ErrorKind::NotFound {

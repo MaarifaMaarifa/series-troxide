@@ -24,7 +24,7 @@ impl EpisodeList {
         let json_string = match read_cache(&episodes_list_path).await {
             Ok(json_string) => json_string,
             Err(err) => {
-                info!("falling back online for 'episode_list' for series id: {series_id}");
+                info!("falling back online for 'episode list' for series id: {series_id}");
                 let (episodes, json_string) = get_episode_list(series_id).await?;
 
                 if err.kind() == ErrorKind::NotFound {
