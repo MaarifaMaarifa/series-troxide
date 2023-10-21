@@ -6,11 +6,12 @@ pub mod episode_widget {
     };
     use bytes::Bytes;
     use iced::{
+        font::Weight,
         widget::{
             button, checkbox, column, container, horizontal_space, image, row, svg, text,
             vertical_space, Row, Space, Text,
         },
-        Command, Element, Length, Renderer,
+        Command, Element, Font, Length, Renderer,
     };
 
     #[derive(Clone, Debug)]
@@ -135,7 +136,8 @@ pub mod episode_widget {
                 PosterType::Season => (700_f32, 107_f32, 60_f32),
             };
 
-            let mut content = row!().padding(5).width(poster_width);
+            let mut content = row!().padding(5).spacing(5).width(poster_width);
+
             if let Some(image_bytes) = self.episode_image.clone() {
                 let image_handle = image::Handle::from_memory(image_bytes);
                 let image = image(image_handle).height(image_height);
@@ -144,15 +146,14 @@ pub mod episode_widget {
                 content = content.push(Space::new(image_width, image_height));
             };
 
-            let info = column!(
+            let episode_details = column!(
                 heading_widget(self.series_id, &self.episode_information, poster_type),
-                airdate_widget(&self.episode_information),
+                date_time_widget(&self.episode_information),
                 vertical_space(5),
                 summary_widget(&self.episode_information)
-            )
-            .padding(5);
+            );
 
-            let content = content.push(info);
+            let content = content.push(episode_details);
 
             let mut content = container(content);
 
@@ -176,11 +177,15 @@ pub mod episode_widget {
         }
     }
 
-    fn airdate_widget(episode_information: &EpisodeInfo) -> Text<'static, Renderer> {
-        if let Some(airdate) = &episode_information.airdate {
-            text(format!("Air date: {}", airdate)).size(11)
+    fn date_time_widget(episode_information: &EpisodeInfo) -> Element<'_, Message, Renderer> {
+        if let Ok(release_time) = episode_information.episode_release_time() {
+            let prefix = match release_time.is_future() {
+                true => "Airing on",
+                false => "Aired on",
+            };
+            text(format!("{} {}", prefix, release_time)).into()
         } else {
-            text("")
+            Space::new(0, 0).into()
         }
     }
 
@@ -218,16 +223,21 @@ pub mod episode_widget {
                     .into()
             }
         };
+
         row![
-            if let Some(episode_number) = episode_information.number {
-                text(season_episode_str_gen(
-                    episode_information.season,
-                    episode_number,
-                ))
-            } else {
-                text("")
-            },
-            text(&episode_information.name).size(13),
+            text(format!(
+                "{} {}",
+                episode_information
+                    .number
+                    .map(|number| season_episode_str_gen(episode_information.season, number))
+                    .unwrap_or_default(),
+                episode_information.name
+            ))
+            .font(Font {
+                weight: Weight::Bold,
+                ..Default::default()
+            })
+            .style(styles::text_styles::accent_color_theme()),
             horizontal_space(Length::Fill),
             mark_watched_widget
         ]

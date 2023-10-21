@@ -252,9 +252,7 @@ mod upcoming_poster {
                 episode_name,
             )));
 
-            metadata = metadata.push(text(
-                self.episode_release_time.get_full_release_date_and_time(),
-            ));
+            metadata = metadata.push(text(&self.episode_release_time));
 
             content = content.push(metadata);
 

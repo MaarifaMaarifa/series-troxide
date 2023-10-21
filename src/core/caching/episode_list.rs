@@ -1,18 +1,14 @@
 use std::{collections::HashSet, io::ErrorKind};
 
-use crate::core::{
-    api::tv_maze::{
-        deserialize_json,
-        episodes_information::{get_episode_list, Episode},
-        ApiError,
-    },
-    caching::CACHER,
-    database,
-};
-use chrono::{DateTime, Datelike, Duration, Local, Timelike, Utc};
+use chrono::{Local, Utc};
 use tracing::info;
 
 use super::{read_cache, write_cache, CacheFilePath};
+use crate::core::api::tv_maze::deserialize_json;
+pub use crate::core::api::tv_maze::episodes_information::EpisodeReleaseTime;
+use crate::core::api::tv_maze::episodes_information::{get_episode_list, Episode};
+use crate::core::api::tv_maze::ApiError;
+use crate::core::{caching::CACHER, database};
 
 #[derive(Clone, Debug)]
 pub struct EpisodeList {
@@ -134,9 +130,7 @@ impl EpisodeList {
     /// This method returns an optional bool as an episode my not have airstamp associated with it hence
     /// the method can not infer that information.
     pub fn is_episode_watchable(episode: &Episode) -> Option<bool> {
-        let airstamp = DateTime::parse_from_rfc3339(episode.airstamp.as_ref()?)
-            .unwrap()
-            .with_timezone(&Local);
+        let airstamp = episode.local_date_time().ok()?;
         let local_time = Utc::now().with_timezone(&Local);
         Some(airstamp <= local_time)
     }
@@ -169,9 +163,7 @@ impl EpisodeList {
     /// Returns the next episode to air and it's release time
     pub fn get_next_episode_to_air_and_time(&self) -> Option<(&Episode, EpisodeReleaseTime)> {
         let next_episode = self.get_next_episode_to_air()?;
-        let local_date_time = next_episode.local_date_time().ok()?;
-
-        let release_time = EpisodeReleaseTime::new(local_date_time);
+        let release_time = next_episode.episode_release_time().ok()?;
         Some((next_episode, release_time))
     }
 
@@ -219,47 +211,5 @@ impl TotalEpisodes {
     /// Retrieves all the watchable episodes
     pub fn get_all_watchable_episodes(&self) -> usize {
         self.all_watchable_episodes
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, PartialOrd, Ord, Eq)]
-pub struct EpisodeReleaseTime {
-    release_time: DateTime<Local>,
-}
-
-impl EpisodeReleaseTime {
-    pub fn new(release_time: DateTime<Local>) -> Self {
-        Self { release_time }
-    }
-
-    pub fn get_remaining_release_duration(&self) -> Duration {
-        let local_time = Utc::now().with_timezone(&Local);
-        self.release_time - local_time
-    }
-
-    /// Returns the remaining full date and time for an episode to be released
-    pub fn get_full_release_date_and_time(&self) -> String {
-        /// appends zero the minute digit if it's below 10 for better display
-        fn append_zero(num: u32) -> String {
-            if num < 10 {
-                format!("0{num}")
-            } else {
-                format!("{num}")
-            }
-        }
-
-        let (is_pm, hour) = self.release_time.hour12();
-        let pm_am = if is_pm { "p.m." } else { "a.m." };
-
-        let minute = append_zero(self.release_time.minute());
-
-        format!(
-            "{} {} {}:{} {}",
-            self.release_time.date_naive(),
-            self.release_time.weekday(),
-            hour,
-            minute,
-            pm_am
-        )
     }
 }
