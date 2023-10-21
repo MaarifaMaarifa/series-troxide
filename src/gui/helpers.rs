@@ -103,18 +103,6 @@ pub mod time {
             time
         }
 
-        // pub fn get_shortest_duration(&self) -> Option<Duration> {
-        //     self.get_time()
-        //         .first()
-        //         .map(|(time_kind, time_value)| Self::to_chrono_duration(time_kind, *time_value))
-        // }
-
-        // pub fn get_longest_duration(&self) -> Option<Duration> {
-        //     self.get_time()
-        //         .last()
-        //         .map(|(time_kind, time_value)| Self::to_chrono_duration(time_kind, *time_value))
-        // }
-
         /// This returns the longest time after the split in it's unit value
         ///
         /// For example, if in the split you got 5 days as the longest duration, the duration
@@ -127,16 +115,6 @@ pub mod time {
                 .last()
                 .map(|(time_kind, _)| Self::to_chrono_duration_unit(time_kind))
         }
-
-        // fn to_chrono_duration(time_kind: &TimeKind, time_value: u32) -> Duration {
-        //     match time_kind {
-        //         TimeKind::Minute => Duration::minutes(time_value as i64),
-        //         TimeKind::Hour => Duration::hours(time_value as i64),
-        //         TimeKind::Day => Duration::days(time_value as i64),
-        //         TimeKind::Month => Duration::weeks(time_value as i64 * 4),
-        //         TimeKind::Year => Duration::weeks(time_value as i64 * 52),
-        //     }
-        // }
 
         /// Returns the Unit of the `TimeKind`
         ///
