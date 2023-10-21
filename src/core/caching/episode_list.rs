@@ -134,9 +134,7 @@ impl EpisodeList {
     /// This method returns an optional bool as an episode my not have airstamp associated with it hence
     /// the method can not infer that information.
     pub fn is_episode_watchable(episode: &Episode) -> Option<bool> {
-        let airstamp = DateTime::parse_from_rfc3339(episode.airstamp.as_ref()?)
-            .unwrap()
-            .with_timezone(&Local);
+        let airstamp = episode.local_date_time().ok()?;
         let local_time = Utc::now().with_timezone(&Local);
         Some(airstamp <= local_time)
     }
