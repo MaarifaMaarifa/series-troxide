@@ -42,6 +42,7 @@ notify-rust = "4.9.0"
 notify = "6.1.1"
 num-traits = "0.2.17"
 semver = "1.0.20"
+ron = "0.8.1"
 
 [build-dependencies]
 built = { version = "0.7.1", features = ["git2", "chrono"] }

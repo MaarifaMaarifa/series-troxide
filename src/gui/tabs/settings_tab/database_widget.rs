@@ -4,8 +4,8 @@ use iced::widget::{
 };
 use iced::{Command, Element, Length, Renderer};
 
-use crate::core::database::get_ids_from_keys_values_vec;
-use crate::core::database::{self, DB};
+use crate::core::database::database_transfer::TransferData;
+use crate::core::database::DB;
 
 use crate::gui::styles;
 
@@ -26,7 +26,7 @@ pub struct Database {
     export_status: Option<anyhow::Result<()>>,
     import_progress: (usize, usize),
     importing: bool,
-    keys_values_vec: Option<database::KeysValuesVec>,
+    transfer_data: Option<TransferData>,
     sender: Option<iced::futures::channel::mpsc::Sender<full_caching::Input>>,
     trakt_widget: trakt_integration::TraktIntegration,
 }
@@ -38,7 +38,7 @@ impl Database {
             export_status: None,
             import_progress: (0, 0),
             importing: false,
-            keys_values_vec: None,
+            transfer_data: None,
             sender: None,
             trakt_widget: trakt_integration::TraktIntegration::new(),
         }
@@ -54,18 +54,17 @@ impl Database {
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message::ImportDatabasePressed => match database_transfer::import_keys_values_vec() {
-                Ok(keys_values_vec) => {
-                    if let Some(keys_values_vec) = keys_values_vec {
-                        self.keys_values_vec = Some(keys_values_vec.clone());
-                        let ids: Vec<u32> = get_ids_from_keys_values_vec(keys_values_vec)
-                            .into_iter()
-                            .map(|series_id| {
-                                series_id
-                                    .parse()
-                                    .expect("series id should be parsable to u32")
-                            })
+            Message::ImportDatabasePressed => match database_transfer::import_transfer_data() {
+                Ok(transfer_data) => {
+                    if let Some(transfer_data) = transfer_data {
+                        let ids: Vec<u32> = transfer_data
+                            .get_series()
+                            .iter()
+                            .map(|series| series.id())
                             .collect();
+
+                        self.transfer_data = Some(transfer_data);
+
                         self.import_progress.1 = ids.len();
                         self.importing = true;
                         self.sender
@@ -101,12 +100,13 @@ impl Database {
                     full_caching::Event::WorkFinished => {
                         self.import_progress = (0, 0);
                         self.importing = false;
-                        DB.import_keys_value_vec(
-                            self.keys_values_vec
-                                .take()
-                                .expect("there should be keys_values_vec at this point"),
-                        )
-                        .expect("failed to import keys_values_vec");
+
+                        let data = self
+                            .transfer_data
+                            .as_ref()
+                            .expect("there should be transfer data at this point");
+
+                        DB.import(data);
 
                         self.import_status = Some(Ok(()));
                         return Command::perform(status_timeout(), |_| {
@@ -310,8 +310,7 @@ mod database_transfer {
     use directories::UserDirs;
     use std::path;
 
-    use crate::core::database::database_transfer;
-    use crate::core::database::KeysValuesVec;
+    use crate::core::database::database_transfer::TransferData;
     use rfd::FileDialog;
 
     pub fn export() -> anyhow::Result<()> {
@@ -319,37 +318,20 @@ mod database_transfer {
             .set_directory(get_home_directory()?)
             .save_file();
 
-        if let Some(mut chosen_path) = chosen_path {
-            let file_name = chosen_path.file_name().map(std::ffi::OsString::from);
-            chosen_path.pop();
-            database_transfer::write_database_to_path(&chosen_path, file_name.as_deref())?;
+        if let Some(chosen_path) = chosen_path {
+            TransferData::export_from_db(chosen_path)?;
         }
 
         Ok(())
     }
 
-    // TODO: Uncomment when needed
-    // pub fn import() -> anyhow::Result<()> {
-    //     let chosen_path = FileDialog::new()
-    //         .set_directory(get_home_directory()?)
-    //         .pick_file();
-
-    //     if let Some(chosen_path) = chosen_path {
-    //         database_transfer::read_database_from_path(path::Path::new(&chosen_path))?;
-    //     }
-
-    //     Ok(())
-    // }
-
-    pub fn import_keys_values_vec() -> anyhow::Result<Option<KeysValuesVec>> {
+    pub fn import_transfer_data() -> anyhow::Result<Option<TransferData>> {
         let chosen_path = FileDialog::new()
             .set_directory(get_home_directory()?)
             .pick_file();
 
         if let Some(chosen_path) = chosen_path {
-            let data = database_transfer::read_database_from_path_as_keys_value_vec(
-                path::Path::new(&chosen_path),
-            )?;
+            let data = TransferData::import(chosen_path)?;
             return Ok(Some(data));
         }
 
