@@ -10,28 +10,11 @@ use tracing::info;
 
 use super::{api::tv_maze::series_information::SeriesMainInformation, caching};
 
-/*
-The last digit represents the version of the database.
-This should correspond to the version of the file magic
-of the exportation and importation file.
-*/
+// The last digit represents the version of the database.
 const DATABASE_FOLDER_NAME: &str = "series-troxide-db-1";
 
 lazy_static! {
     pub static ref DB: Database = Database::init();
-}
-
-/// This is a `Vec` containing keys corresponding to their values in the database
-/// in their bytes form usefull for importing and exporting database data
-pub type KeysValuesVec = Vec<(Vec<u8>, Vec<u8>)>;
-
-pub fn get_ids_from_keys_values_vec(keys_values_vec: KeysValuesVec) -> Vec<String> {
-    let mut series_ids = Vec::with_capacity(keys_values_vec.len());
-    for (series_id, _) in keys_values_vec {
-        let series_id = String::from_utf8_lossy(&series_id).to_string();
-        series_ids.push(series_id)
-    }
-    series_ids
 }
 
 pub struct Database {
@@ -135,42 +118,15 @@ impl Database {
             .sum()
     }
 
-    /// Returns the bytes of the all database
-    ///
-    /// # Errors
-    ///
-    /// Export fails when reading from the database fails i.e io problems or when data fails to be
-    /// serialize (super unlikely).
-    pub fn export(&self) -> anyhow::Result<Vec<u8>> {
-        let kv: Result<KeysValuesVec, sled::Error> = self
-            .db
-            .iter()
-            .map(|kv| kv.map(|(key, value)| (key.to_vec(), value.to_vec())))
-            .collect();
-        Ok(bincode::serialize(&kv?)?)
+    pub fn export(&self) -> database_transfer::TransferData {
+        database_transfer::TransferData::new(self.get_series_collection())
     }
 
-    /// Reads the bytes and adds them to the database
-    ///
-    /// # Note
-    ///
-    /// For already existing series, this will replace their data with the new one.
-    ///
-    /// # Errors
-    ///
-    /// Import fails when the bytes are invalid, when bytes insertion to the database fails
-    /// i.e io problems, and when database fails to flush.
-    pub fn import(&self, data: &[u8]) -> anyhow::Result<()> {
-        let data: KeysValuesVec = bincode::deserialize(data)?;
-        self.import_keys_value_vec(data)
-    }
-
-    pub fn import_keys_value_vec(&self, data: KeysValuesVec) -> anyhow::Result<()> {
-        data.into_iter()
-            .try_for_each(|(key, value)| self.db.insert(key, value).map(|_| ()))?;
-
-        self.db.flush()?;
-        Ok(())
+    pub fn import(&self, transfer_data: &database_transfer::TransferData) {
+        for series in transfer_data.get_series() {
+            self.add_series(series.id, series);
+        }
+        self.db.flush().expect("flushing database");
     }
 }
 
@@ -195,6 +151,10 @@ impl Series {
             is_tracked: false,
             seasons: HashMap::new(),
         }
+    }
+
+    pub fn id(&self) -> u32 {
+        self.id
     }
 
     pub fn get_name(&self) -> &str {
@@ -477,153 +437,74 @@ pub enum AddResult {
 pub mod database_transfer {
     //! Implementations of importing and exporting series tracking data
 
+    use std::{fs, io, path};
+
+    use super::Series;
     use super::DB;
 
-    use std::ffi::OsStr;
-    use std::fs;
-    use std::path;
+    use ron::ser;
+    use serde::{Deserialize, Serialize};
+    use thiserror::Error;
 
-    /*
-    The first 4 bytes "sro2" represent "seriestroxide"
-    The last 4 bytes represent the version, "0001" will be version 1
-    */
-    const MAGIC: &[u8; 8] = b"sro20001";
     const CURRENT_DATA_VERSION: u16 = 1;
 
-    const DEFAULT_DATABASE_EXPORT_NAME: &str = "series-troxide-export";
-
-    /// # Reads series tracking data from the provided path
-    ///
-    /// This will directly import the data into the database
-    pub fn read_database_from_path(database_read_path: &path::Path) -> anyhow::Result<()> {
-        DB.import(&remove_magic_from_read_data(fs::read(database_read_path)?)?)?;
-        Ok(())
+    #[derive(Debug, Error)]
+    pub enum ImportError {
+        #[error("IO error: {0}")]
+        Io(io::Error),
+        #[error("incompatible version. Expected version {0}, found {1}")]
+        Version(u16, u16),
+        #[error("deserialization error: {0}")]
+        Deserialization(ron::de::SpannedError),
     }
 
-    /// # Reads series tracking data from the provided path and returns the `KeysValuesVec`
-    ///
-    /// This can be usefull when you want to cache the series data first before importing it to the database.
-    pub fn read_database_from_path_as_keys_value_vec(
-        database_read_path: &path::Path,
-    ) -> anyhow::Result<super::KeysValuesVec> {
-        let data = &remove_magic_from_read_data(fs::read(database_read_path)?)?;
-        Ok(bincode::deserialize(data)?)
+    #[derive(Serialize, Deserialize)]
+    pub struct TransferData {
+        version: u16,
+        series: Vec<Series>,
     }
 
-    /// Writes series tracking data from the provided directory path
-    ///
-    /// Takes in an optional name to be used as a name for the exported data. Otherwise
-    /// it defaults to series-troxide-export
-    ///
-    /// # Note
-    /// This overwrites any file of the same name if it exists
-    pub fn write_database_to_path(
-        database_write_path: &path::Path,
-        database_name: Option<&OsStr>,
-    ) -> anyhow::Result<()> {
-        let raw_data = DB.export()?;
-
-        let mut database_write_path = path::PathBuf::from(database_write_path);
-
-        if let Some(name) = database_name {
-            database_write_path.push(name);
-        } else {
-            database_write_path.push(DEFAULT_DATABASE_EXPORT_NAME);
-        }
-
-        fs::write(database_write_path, add_magic_into_raw_data(raw_data))?;
-        Ok(())
-    }
-
-    #[derive(Debug, thiserror::Error, PartialEq)]
-    enum DataFormatError {
-        #[error("invalid file")]
-        InvalidMagic,
-
-        #[error("invalid file version")]
-        InvalidVersion,
-
-        #[error("wrong version. expected version {0}, found version {0}")]
-        WrongVersion(u16, u16),
-    }
-
-    /// Reads data from the path, checks magic if it's series troxide's and returns data
-    /// that follow after the magic
-    fn remove_magic_from_read_data(data: Vec<u8>) -> Result<Vec<u8>, DataFormatError> {
-        if data[..MAGIC.len()] == MAGIC[..] {
-            Ok(data[MAGIC.len()..].into())
-        } else if data[..4] == MAGIC[..4] {
-            match String::from_utf8_lossy(&data[4..MAGIC.len()]).parse::<u16>() {
-                Ok(wrong_version) => Err(DataFormatError::WrongVersion(
-                    CURRENT_DATA_VERSION,
-                    wrong_version,
-                )),
-                Err(_) => Err(DataFormatError::InvalidVersion),
+    impl TransferData {
+        pub fn new(series: Vec<Series>) -> Self {
+            Self {
+                version: CURRENT_DATA_VERSION,
+                series,
             }
-        } else {
-            Err(DataFormatError::InvalidMagic)
-        }
-    }
-
-    /// Adds magic bytes into raw data
-    fn add_magic_into_raw_data(mut raw_data: Vec<u8>) -> Vec<u8> {
-        let mut magicfied_data: Vec<u8> = MAGIC.to_vec(); // Initialize data with magic
-        magicfied_data.append(&mut raw_data);
-        magicfied_data
-    }
-
-    #[cfg(test)]
-    mod tests {
-        use super::*;
-
-        #[test]
-        fn remove_magic_from_read_data_test() {
-            let mut raw_data = vec![1, 2, 3];
-            let mut data: Vec<u8> = MAGIC.to_vec(); // Initialize data with magic
-            data.append(&mut raw_data);
-
-            // Checking if we get out actual data
-            assert_eq!(vec![1, 2, 3], remove_magic_from_read_data(data).unwrap())
         }
 
-        #[test]
-        fn add_magic_into_raw_data_test() {
-            let mut raw_data = vec![1, 2, 3];
-            let magicfied_data = add_magic_into_raw_data(raw_data.clone());
+        pub fn import(path: impl AsRef<path::Path>) -> Result<Self, ImportError> {
+            let import = fs::read_to_string(path).map_err(ImportError::Io)?;
+            let imported_data =
+                ron::from_str::<Self>(&import).map_err(ImportError::Deserialization)?;
 
-            let mut data: Vec<u8> = MAGIC.to_vec(); // Initialize data with magic
-            data.append(&mut raw_data);
-
-            assert_eq!(magicfied_data, data);
+            if imported_data.version == CURRENT_DATA_VERSION {
+                Ok(imported_data)
+            } else {
+                Err(ImportError::Version(
+                    CURRENT_DATA_VERSION,
+                    imported_data.version,
+                ))
+            }
         }
 
-        #[test]
-        fn valid_file_test() {
-            assert!(remove_magic_from_read_data(b"sro20001".to_vec()).is_ok())
+        pub fn import_to_db(path: impl AsRef<path::Path>) -> Result<(), ImportError> {
+            DB.import(&Self::import(path)?);
+            Ok(())
         }
 
-        #[test]
-        fn invalid_file_test() {
-            assert_eq!(
-                remove_magic_from_read_data(b"helloworld".to_vec()),
-                Err(DataFormatError::InvalidMagic)
-            )
+        pub fn get_series(&self) -> &[Series] {
+            &self.series
         }
 
-        #[test]
-        fn invalid_version_test() {
-            assert_eq!(
-                remove_magic_from_read_data(b"sro2hello".to_vec()),
-                Err(DataFormatError::InvalidVersion)
-            )
+        pub fn export(&self, path: impl AsRef<path::Path>) -> Result<(), io::Error> {
+            let pretty_config = ser::PrettyConfig::new().depth_limit(4);
+            let ron_str =
+                ser::to_string_pretty(self, pretty_config).expect("transfer data serialization");
+            fs::write(path, ron_str)
         }
 
-        #[test]
-        fn wrong_version_test() {
-            assert_eq!(
-                remove_magic_from_read_data(b"sro29000".to_vec()),
-                Err(DataFormatError::WrongVersion(CURRENT_DATA_VERSION, 9000))
-            )
+        pub fn export_from_db(path: impl AsRef<path::Path>) -> Result<(), io::Error> {
+            DB.export().export(path)
         }
     }
 }

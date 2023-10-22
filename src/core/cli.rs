@@ -10,20 +10,16 @@ pub mod handle_cli {
     /// Handles all the logic for the command line arguments
     pub fn handle_cli(command: Command) -> anyhow::Result<()> {
         match command {
-            Command::ImportData { path_to_data } => {
-                database::database_transfer::read_database_from_path(&path_to_data)?;
-                println!("data imported successfully");
+            Command::ImportData { file_path } => {
+                database::database_transfer::TransferData::import_to_db(file_path)?;
+                println!("data imported successfully!");
                 Ok(())
             }
             Command::ExportData {
-                path_to_data,
-                export_name,
+                file_path: path_to_data,
             } => {
-                database::database_transfer::write_database_to_path(
-                    &path_to_data,
-                    export_name.as_deref().map(std::ffi::OsStr::new),
-                )?;
-                println!("data exported successfully");
+                database::database_transfer::TransferData::export_from_db(path_to_data)?;
+                println!("data exported successfully!");
                 Ok(())
             }
         }
@@ -45,21 +41,16 @@ pub mod cli_data {
 
     #[derive(Subcommand)]
     pub enum Command {
-        /// Imports Series Troxide series tracking data
+        /// Import series data
         ImportData {
-            /// The path to the data to import
-            path_to_data: path::PathBuf,
+            /// Import filepath
+            file_path: path::PathBuf,
         },
 
-        /// Exports Series Troxide series tracking data, overwritting
-        /// an existing file of the same name.
+        /// Export series data
         ExportData {
-            /// The folder path for writing exported data
-            path_to_data: path::PathBuf,
-
-            /// An optional name given to the exported data.
-            /// Defaults to "series-troxide-export" when no name given
-            export_name: Option<String>,
+            /// Export filepath
+            file_path: path::PathBuf,
         },
     }
 }
