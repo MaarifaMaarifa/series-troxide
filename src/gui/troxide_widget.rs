@@ -2,7 +2,11 @@ pub mod episode_widget {
     pub use crate::gui::message::IndexedMessage;
     use crate::{
         core::{api::tv_maze::episodes_information::Episode as EpisodeInfo, caching, database},
-        gui::{assets::icons::EYE_FILL, helpers::season_episode_str_gen, styles},
+        gui::{
+            assets::icons::EYE_FILL,
+            helpers::{self, season_episode_str_gen},
+            styles,
+        },
     };
     use bytes::Bytes;
     use iced::{
@@ -143,7 +147,11 @@ pub mod episode_widget {
                 let image = image(image_handle).height(image_height);
                 content = content.push(image);
             } else {
-                content = content.push(Space::new(image_width, image_height));
+                content = content.push(
+                    helpers::empty_image::empty_image()
+                        .width(image_width)
+                        .height(image_height),
+                );
             };
 
             let episode_details = column!(
