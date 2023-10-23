@@ -170,6 +170,7 @@ pub fn genre_stats(series_infos: Vec<&SeriesMainInformation>) -> Element<'_, Mes
 
     container(content)
         .width(Length::Fill)
+        .height(Length::Fill)
         .padding(5)
         .style(styles::container_styles::first_class_container_rounded_theme())
         .into()
