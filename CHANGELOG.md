@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hiding posters from `Discover page`. [#39](https://github.com/MaarifaMaarifa/series-troxide/pull/39)
 - Watchlist summary in `Watchlist page`. [#49](https://github.com/MaarifaMaarifa/series-troxide/pull/49)
 - Next to watch episode info in Watchlist entries in `Watchlist page`. [#59](https://github.com/MaarifaMaarifa/series-troxide/pull/59)
+- Grayscaled program logo as a placeholder when no/loading images in different posters. [#67](https://github.com/MaarifaMaarifa/series-troxide/pull/67)
 
 ### Changed
 - Improve series cache cleaning/updating. [#25](https://github.com/MaarifaMaarifa/series-troxide/pull/25)
@@ -24,12 +25,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improve search results by adding show rating. [#38](https://github.com/MaarifaMaarifa/series-troxide/pull/38)
 - Improve notifications appearance. [#45](https://github.com/MaarifaMaarifa/series-troxide/pull/45)
 - Made loading `full schedule` faster and efficient. [#47](https://github.com/MaarifaMaarifa/series-troxide/pull/47), [#53](https://github.com/MaarifaMaarifa/series-troxide/pull/53)
+- Import/export format from binary to a text form [ron file format](https://github.com/ron-rs/ron). [#63](https://github.com/MaarifaMaarifa/series-troxide/pull/63)
+- Overall UI improvement. [#68](https://github.com/MaarifaMaarifa/series-troxide/pull/68), [#61](https://github.com/MaarifaMaarifa/series-troxide/pull/61)
 
 ### Removed
 - Cache cleaning configurations in `Settings page`. [#25](https://github.com/MaarifaMaarifa/series-troxide/pull/25)
 
 ### Fixed
 - Scrollable positions when switching tabs. [#52](https://github.com/MaarifaMaarifa/series-troxide/pull/52)
+- Episode checkbox squished when episode name is too long. [#69](https://github.com/MaarifaMaarifa/series-troxide/pull/69)
 
 ## [0.3.0] - 2023-09-02
 
