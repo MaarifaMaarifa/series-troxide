@@ -36,9 +36,9 @@
 - [x] **Series Statistics**. See how many series, seasons and episodes you have watched and how much time you've spent watching them in an ordered way.
 - [x] **Light and Dark themes**. Use **Series Troxide** at any time of the day.
 - [x] **Data export and import**. Carry your series tracking data anywhere.
-- [x] **Caching**. Due to the rate limit of the API, caching makes **Series Troxide** fast when opening previously opened items and be able to perform crazy things like getting the statistics of all watched series. Cache cleaning can be managed both automatically and manually to make sure the program does not have outdated series data.
+- [x] **Caching**. Caches Series information for faster reload with auto-updating.
 - [x] **Notifications for upcoming episodes**. Configure when to get notified before an episode release.
-- [ ] **Trakt integration**.
+- [x] **Trakt import**. Import your series data from your Trakt account.
 
 ## Installation
 
@@ -53,13 +53,6 @@ Pre-built binaries for your specific platform can be obtained from the [release 
 |Fedora         |dnf install gtk3-devel  |
 |Arch           |pacman -S gtk3          |
 |Debian & Ubuntu|apt install libgtk-3-dev|
-
-When building the project, Cargo has been configure to use the LLD linker for faster linking on linux. To install LLD, find your distro below and run the given command:
-
-|Distribution   | Installation Command   |
-|:--------------|:-----------------------|
-|Arch           |sudo pacman -S lld      |
-|Debian & Ubuntu|sudo apt-get install lld|
 
 #### From Cargo ([crates.io](https://crates.io/crates/series-troxide))
 **Series Troxide** is available in crates.io and can be installed using Cargo.
