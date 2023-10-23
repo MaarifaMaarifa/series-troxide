@@ -1,6 +1,5 @@
 use iced::widget::{
     button, column, container, horizontal_space, progress_bar, row, text, vertical_space, Space,
-    Text,
 };
 use iced::{Command, Element, Length, Renderer};
 
@@ -15,6 +14,8 @@ mod trakt_integration;
 pub enum Message {
     ImportDatabasePressed,
     ExportDatabasePressed,
+    ImportReceived(Result<Option<TransferData>, String>),
+    ExportComplete(Result<(), String>),
     ImportTimeoutComplete,
     ExportTimeoutComplete,
     ImportCachingEvent(full_caching::Event),
@@ -22,8 +23,8 @@ pub enum Message {
 }
 
 pub struct Database {
-    import_status: Option<anyhow::Result<()>>,
-    export_status: Option<anyhow::Result<()>>,
+    import_status: Option<Result<(), String>>,
+    export_status: Option<Result<(), String>>,
     import_progress: (usize, usize),
     importing: bool,
     transfer_data: Option<TransferData>,
@@ -54,7 +55,18 @@ impl Database {
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message::ImportDatabasePressed => match database_transfer::import_transfer_data() {
+            Message::ImportDatabasePressed => {
+                Command::perform(database_transfer::import_transfer_data(), |result| {
+                    Message::ImportReceived(result.map_err(|err| err.to_string()))
+                })
+            }
+            Message::ExportDatabasePressed => {
+                Command::perform(database_transfer::export(), |result| {
+                    Message::ExportComplete(result.map_err(|err| err.to_string()))
+                })
+            }
+            // Message::ImportReceived(import_result) => todo!(),
+            Message::ImportReceived(import_result) => match import_result {
                 Ok(transfer_data) => {
                     if let Some(transfer_data) = transfer_data {
                         let ids: Vec<u32> = transfer_data
@@ -76,12 +88,12 @@ impl Database {
                     Command::none()
                 }
                 Err(err) => {
-                    self.import_status = Some(Err(anyhow::anyhow!(err)));
+                    self.import_status = Some(Err(err));
                     Command::perform(status_timeout(), |_| Message::ImportTimeoutComplete)
                 }
             },
-            Message::ExportDatabasePressed => {
-                self.export_status = Some(database_transfer::export());
+            Message::ExportComplete(export_result) => {
+                self.export_status = Some(export_result);
                 Command::perform(status_timeout(), |_| Message::ExportTimeoutComplete)
             }
             Message::ImportTimeoutComplete => {
@@ -206,15 +218,19 @@ impl Database {
     }
 }
 
-fn get_status_text(status: Option<&anyhow::Result<()>>) -> Text {
+fn get_status_text(status: Option<&Result<(), String>>) -> Element<'_, Message, Renderer> {
     if let Some(res) = status {
         if let Err(err) = res {
-            text(err.to_string()).style(styles::text_styles::red_text_theme())
+            text(err)
+                .style(styles::text_styles::red_text_theme())
+                .into()
         } else {
-            text("Done!").style(styles::text_styles::green_text_theme())
+            text("Done!")
+                .style(styles::text_styles::green_text_theme())
+                .into()
         }
     } else {
-        text("")
+        Space::new(0, 0).into()
     }
 }
 
@@ -311,27 +327,31 @@ mod database_transfer {
     use std::path;
 
     use crate::core::database::database_transfer::TransferData;
-    use rfd::FileDialog;
+    use rfd::AsyncFileDialog;
 
-    pub fn export() -> anyhow::Result<()> {
-        let chosen_path = FileDialog::new()
+    pub async fn export() -> anyhow::Result<()> {
+        let chosen_path = AsyncFileDialog::new()
             .set_directory(get_home_directory()?)
-            .save_file();
+            .save_file()
+            .await
+            .map(|file_handle| file_handle.path().to_owned());
 
         if let Some(chosen_path) = chosen_path {
-            TransferData::export_from_db(chosen_path)?;
+            TransferData::async_export_from_db(chosen_path).await?;
         }
 
         Ok(())
     }
 
-    pub fn import_transfer_data() -> anyhow::Result<Option<TransferData>> {
-        let chosen_path = FileDialog::new()
+    pub async fn import_transfer_data() -> anyhow::Result<Option<TransferData>> {
+        let chosen_path = AsyncFileDialog::new()
             .set_directory(get_home_directory()?)
-            .pick_file();
+            .pick_file()
+            .await
+            .map(|file_handle| file_handle.path().to_owned());
 
         if let Some(chosen_path) = chosen_path {
-            let data = TransferData::import(chosen_path)?;
+            let data = TransferData::async_import(chosen_path).await?;
             return Ok(Some(data));
         }
 

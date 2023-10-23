@@ -437,7 +437,7 @@ pub enum AddResult {
 pub mod database_transfer {
     //! Implementations of importing and exporting series tracking data
 
-    use std::{fs, io, path};
+    use std::{io, path};
 
     use super::Series;
     use super::DB;
@@ -458,7 +458,7 @@ pub mod database_transfer {
         Deserialization(ron::de::SpannedError),
     }
 
-    #[derive(Serialize, Deserialize)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct TransferData {
         version: u16,
         series: Vec<Series>,
@@ -472,23 +472,42 @@ pub mod database_transfer {
             }
         }
 
-        pub fn import(path: impl AsRef<path::Path>) -> Result<Self, ImportError> {
-            let import = fs::read_to_string(path).map_err(ImportError::Io)?;
-            let imported_data =
-                ron::from_str::<Self>(&import).map_err(ImportError::Deserialization)?;
-
-            if imported_data.version == CURRENT_DATA_VERSION {
-                Ok(imported_data)
+        fn error_when_incompatible(import_data_version: u16) -> Result<(), ImportError> {
+            if import_data_version == CURRENT_DATA_VERSION {
+                Ok(())
             } else {
                 Err(ImportError::Version(
                     CURRENT_DATA_VERSION,
-                    imported_data.version,
+                    import_data_version,
                 ))
             }
         }
 
-        pub fn import_to_db(path: impl AsRef<path::Path>) -> Result<(), ImportError> {
-            DB.import(&Self::import(path)?);
+        pub fn blocking_import(path: impl AsRef<path::Path>) -> Result<Self, ImportError> {
+            let import = std::fs::read_to_string(path).map_err(ImportError::Io)?;
+            let imported_data =
+                ron::from_str::<Self>(&import).map_err(ImportError::Deserialization)?;
+
+            Self::error_when_incompatible(imported_data.version).map(|_| imported_data)
+        }
+
+        pub fn blocking_import_to_db(path: impl AsRef<path::Path>) -> Result<(), ImportError> {
+            DB.import(&Self::blocking_import(path)?);
+            Ok(())
+        }
+
+        pub async fn async_import(path: impl AsRef<path::Path>) -> Result<Self, ImportError> {
+            let import = tokio::fs::read_to_string(path)
+                .await
+                .map_err(ImportError::Io)?;
+            let imported_data =
+                ron::from_str::<Self>(&import).map_err(ImportError::Deserialization)?;
+
+            Self::error_when_incompatible(imported_data.version).map(|_| imported_data)
+        }
+
+        pub async fn async_import_to_db(path: impl AsRef<path::Path>) -> Result<(), ImportError> {
+            DB.import(&Self::async_import(path).await?);
             Ok(())
         }
 
@@ -496,15 +515,27 @@ pub mod database_transfer {
             &self.series
         }
 
-        pub fn export(&self, path: impl AsRef<path::Path>) -> Result<(), io::Error> {
+        fn ron_str(&self) -> String {
             let pretty_config = ser::PrettyConfig::new().depth_limit(4);
-            let ron_str =
-                ser::to_string_pretty(self, pretty_config).expect("transfer data serialization");
-            fs::write(path, ron_str)
+            ser::to_string_pretty(self, pretty_config).expect("transfer data serialization")
         }
 
-        pub fn export_from_db(path: impl AsRef<path::Path>) -> Result<(), io::Error> {
-            DB.export().export(path)
+        pub fn blocking_export(&self, path: impl AsRef<path::Path>) -> Result<(), io::Error> {
+            let ron_str = self.ron_str();
+            std::fs::write(path, ron_str)
+        }
+
+        pub fn blocking_export_from_db(path: impl AsRef<path::Path>) -> Result<(), io::Error> {
+            DB.export().blocking_export(path)
+        }
+
+        pub async fn async_export(&self, path: impl AsRef<path::Path>) -> Result<(), io::Error> {
+            let ron_str = self.ron_str();
+            tokio::fs::write(path, ron_str).await
+        }
+
+        pub async fn async_export_from_db(path: impl AsRef<path::Path>) -> Result<(), io::Error> {
+            DB.export().async_export(path).await
         }
     }
 }
