@@ -11,14 +11,14 @@ pub mod handle_cli {
     pub fn handle_cli(command: Command) -> anyhow::Result<()> {
         match command {
             Command::ImportData { file_path } => {
-                database::database_transfer::TransferData::import_to_db(file_path)?;
+                database::database_transfer::TransferData::blocking_import_to_db(file_path)?;
                 println!("data imported successfully!");
                 Ok(())
             }
             Command::ExportData {
                 file_path: path_to_data,
             } => {
-                database::database_transfer::TransferData::export_from_db(path_to_data)?;
+                database::database_transfer::TransferData::blocking_export_from_db(path_to_data)?;
                 println!("data exported successfully!");
                 Ok(())
             }
