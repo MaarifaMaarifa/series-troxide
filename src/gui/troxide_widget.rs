@@ -9,8 +9,8 @@ pub mod episode_widget {
     use bytes::Bytes;
     use iced::font::Weight;
     use iced::widget::{
-        button, checkbox, column, container, horizontal_space, image, row, svg, text,
-        vertical_space, Row, Space, Text,
+        button, checkbox, column, container, image, row, svg, text, vertical_space, Row, Space,
+        Text,
     };
     use iced::{Command, Element, Font, Length, Renderer};
 
@@ -241,8 +241,8 @@ pub mod episode_widget {
                 weight: Weight::Bold,
                 ..Default::default()
             })
-            .style(styles::text_styles::accent_color_theme()),
-            horizontal_space(Length::Fill),
+            .style(styles::text_styles::accent_color_theme())
+            .width(Length::FillPortion(10)),
             mark_watched_widget
         ]
         .spacing(5)
