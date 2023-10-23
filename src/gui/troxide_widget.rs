@@ -1,22 +1,18 @@
 pub mod episode_widget {
+    use crate::core::{
+        api::tv_maze::episodes_information::Episode as EpisodeInfo, caching, database,
+    };
+    use crate::gui::assets::icons::EYE_FILL;
+    use crate::gui::helpers::{self, season_episode_str_gen};
     pub use crate::gui::message::IndexedMessage;
-    use crate::{
-        core::{api::tv_maze::episodes_information::Episode as EpisodeInfo, caching, database},
-        gui::{
-            assets::icons::EYE_FILL,
-            helpers::{self, season_episode_str_gen},
-            styles,
-        },
-    };
+    use crate::gui::styles;
     use bytes::Bytes;
-    use iced::{
-        font::Weight,
-        widget::{
-            button, checkbox, column, container, horizontal_space, image, row, svg, text,
-            vertical_space, Row, Space, Text,
-        },
-        Command, Element, Font, Length, Renderer,
+    use iced::font::Weight;
+    use iced::widget::{
+        button, checkbox, column, container, horizontal_space, image, row, svg, text,
+        vertical_space, Row, Space, Text,
     };
+    use iced::{Command, Element, Font, Length, Renderer};
 
     #[derive(Clone, Debug)]
     pub enum Message {
