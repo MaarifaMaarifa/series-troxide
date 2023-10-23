@@ -113,7 +113,7 @@ impl Search {
     ) {
         let search_bar = column!(
             vertical_space(10),
-            text_input("Search Series", &self.search_term)
+            text_input("Search", &self.search_term)
                 .width(300)
                 .on_input(Message::TermChanged)
                 .on_submit(Message::TermSearched)
