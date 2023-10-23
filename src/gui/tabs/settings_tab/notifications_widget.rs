@@ -1,4 +1,4 @@
-use iced::widget::{column, container, horizontal_space, row, text};
+use iced::widget::{column, container, text};
 use iced::{Element, Length, Renderer};
 use iced_aw::NumberInput;
 
@@ -45,13 +45,9 @@ impl Notifications {
 
         let time_to_notify =
             NumberInput::new(current_time_to_notify, u32::MAX, Message::TimeChanged)
-                .width(Length::FillPortion(2));
+                .width(Length::Fixed(200.0));
 
-        let content = row![
-            notifications_info,
-            horizontal_space(Length::Fill),
-            time_to_notify,
-        ];
+        let content = column![notifications_info, time_to_notify,].spacing(5);
 
         let content = column![
             text("Notifications")

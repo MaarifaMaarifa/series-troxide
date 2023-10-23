@@ -132,7 +132,7 @@ impl MyShows {
                 .style(styles::container_styles::first_class_container_square_theme())
                 .center_x()
                 .center_y()
-                .height(100)
+                .height(200)
                 .width(Length::Fill)
                 .into()
         } else {

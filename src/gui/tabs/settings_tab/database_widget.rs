@@ -160,9 +160,9 @@ impl Database {
         };
 
         let import_widget = column![
-            text("Import Data").size(18),
+            text("Import Data"),
             row![
-                text("Import your series tracking data into Series Troxide").size(11),
+                text("Import your series data into Series Troxide").size(11),
                 horizontal_space(Length::Fill),
                 get_status_text(self.import_status.as_ref()),
                 {
@@ -179,9 +179,9 @@ impl Database {
         ];
 
         let export_widget = column![
-            text("Export Data").size(18),
+            text("Export Data"),
             row![
-                text("Export your series tracking data from Series Troxide").size(11),
+                text("Export your series data from Series Troxide").size(11),
                 horizontal_space(Length::Fill),
                 get_status_text(self.export_status.as_ref()),
                 button("Export").on_press(Message::ExportDatabasePressed)
@@ -203,7 +203,7 @@ impl Database {
         .spacing(5);
 
         let content = column![
-            text("Series Tracking Data")
+            text("Data")
                 .size(21)
                 .style(styles::text_styles::accent_color_theme()),
             series_troxide_data,

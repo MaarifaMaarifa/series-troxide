@@ -1,6 +1,6 @@
 use iced::widget::{
-    button, column, horizontal_space, progress_bar, row, svg, text, text_input, vertical_space,
-    Column,
+    button, column, container, horizontal_space, progress_bar, row, svg, text, text_input,
+    vertical_space, Column,
 };
 use iced::{Alignment, Command, Element, Length, Renderer};
 use iced_aw::Spinner;
@@ -168,10 +168,17 @@ impl TraktIntegration {
                 SetupStep::Import(import_page) => import_page.view().map(Message::ImportPage),
                 SetupStep::None => unreachable!("SetupStep::None is only used for setup pages to go to the start not to display a view"),
             };
-            column![setup_page, button("cancel").on_press(Message::Cancel),]
+
+            let content = column![setup_page, button("cancel").on_press(Message::Cancel),]
                 .spacing(5)
                 .width(Length::Fill)
-                .align_items(Alignment::Center)
+                .align_items(Alignment::Center);
+
+            container(content)
+                .style(styles::container_styles::loading_container_theme())
+                .width(Length::Fill)
+                .center_x()
+                .padding(10)
                 .into()
         } else {
             row![
