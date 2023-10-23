@@ -45,7 +45,7 @@ impl Notifications {
 
         let time_to_notify =
             NumberInput::new(current_time_to_notify, u32::MAX, Message::TimeChanged)
-                .width(Length::FillPortion(2));
+                .width(Length::Fixed(200.0));
 
         let content = column![notifications_info, time_to_notify,].spacing(5);
 
