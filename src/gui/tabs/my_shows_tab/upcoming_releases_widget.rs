@@ -161,7 +161,7 @@ mod upcoming_poster {
     use crate::gui::troxide_widget::series_poster::{GenericPoster, GenericPosterMessage};
 
     use iced::widget::{
-        column, container, horizontal_space, image, mouse_area, row, text, vertical_space, Space,
+        column, container, horizontal_space, image, mouse_area, row, text, vertical_space,
     };
     use iced::{Command, Element, Length, Renderer};
 
@@ -226,7 +226,7 @@ mod upcoming_poster {
                 let image = image(image_handle).width(100);
                 content = content.push(image);
             } else {
-                content = content.push(Space::new(100, 140));
+                content = content.push(helpers::empty_image::empty_image().width(100).height(140));
             };
 
             let mut metadata = column!().spacing(5);

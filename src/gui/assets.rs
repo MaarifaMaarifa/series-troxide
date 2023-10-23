@@ -22,6 +22,8 @@ pub mod icons {
     pub static GITHUB_ICON: &[u8] = include_bytes!("../../assets/icons/github.svg");
     pub static TRAKT_ICON_RED: &[u8] = include_bytes!("../../assets/logos/trakt-icon-red.svg");
     pub static SERIES_TROXIDE_ICON: &[u8] = include_bytes!("../../assets/logos/series-troxide.svg");
+    pub static SERIES_TROXIDE_GRAY_SCALED_ICON: &[u8] =
+        include_bytes!("../../assets/logos/series-troxide-grayscaled.svg");
 }
 
 pub mod fonts {
