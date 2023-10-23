@@ -178,7 +178,7 @@ pub fn genre_stats(series_infos: Vec<&SeriesMainInformation>) -> Element<'_, Mes
 pub mod series_banner {
     use std::sync::mpsc;
 
-    use iced::widget::{column, container, image, mouse_area, row, text, Row, Space};
+    use iced::widget::{column, container, image, mouse_area, row, text, Row};
     use iced::{Alignment, Command, Element, Length, Renderer};
 
     use crate::core::{api::tv_maze::series_information::SeriesMainInformation, database};
@@ -290,7 +290,10 @@ pub mod series_banner {
                     let image_handle = image::Handle::from_memory(image_bytes.clone());
                     image(image_handle).height(100).into()
                 } else {
-                    Space::new(71, 100).into()
+                    helpers::empty_image::empty_image()
+                        .width(71)
+                        .height(100)
+                        .into()
                 };
 
             let content = column![text(series_name), metadata]

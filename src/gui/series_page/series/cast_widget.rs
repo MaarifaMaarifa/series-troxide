@@ -247,6 +247,8 @@ mod cast_poster {
         pub fn view(&self) -> Element<'_, IndexedMessage<Message>, Renderer> {
             let mut content = Row::new().spacing(10);
 
+            let empty_image = helpers::empty_image::empty_image().width(100).height(140);
+
             match self.current_display_image {
                 DisplayImage::Person => {
                     if let Some(image_bytes) = self.person_image.clone() {
@@ -255,7 +257,7 @@ mod cast_poster {
                         let image = image(image_handle).width(100);
                         content = content.push(image);
                     } else {
-                        content = content.push(Space::new(100, 140));
+                        content = content.push(empty_image);
                     };
                 }
                 DisplayImage::Character => {
@@ -265,7 +267,7 @@ mod cast_poster {
                         let image = image(image_handle).width(100);
                         content = content.push(image);
                     } else {
-                        content = content.push(Space::new(100, 140));
+                        content = content.push(empty_image);
                     };
                 }
             }

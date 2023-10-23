@@ -22,6 +22,19 @@ pub fn season_episode_str_gen(season_number: u32, episode_number: u32) -> String
     )
 }
 
+pub fn genres_with_pipes(genres: &[String]) -> String {
+    let mut genres_string = String::new();
+
+    let mut series_result_iter = genres.iter().peekable();
+    while let Some(genre) = series_result_iter.next() {
+        genres_string.push_str(genre);
+        if series_result_iter.peek().is_some() {
+            genres_string.push_str(" | ");
+        }
+    }
+    genres_string
+}
+
 pub mod time {
     //! Time related helpers
     use chrono::Duration;
@@ -157,15 +170,14 @@ pub mod time {
     }
 }
 
-pub fn genres_with_pipes(genres: &[String]) -> String {
-    let mut genres_string = String::new();
+pub mod empty_image {
+    use crate::gui::assets::icons::SERIES_TROXIDE_GRAY_SCALED_ICON;
 
-    let mut series_result_iter = genres.iter().peekable();
-    while let Some(genre) = series_result_iter.next() {
-        genres_string.push_str(genre);
-        if series_result_iter.peek().is_some() {
-            genres_string.push_str(" | ");
-        }
+    use iced::widget::{svg, Svg};
+
+    /// Placeholder for an empty image
+    pub fn empty_image() -> Svg {
+        let icon_handle = svg::Handle::from_memory(SERIES_TROXIDE_GRAY_SCALED_ICON);
+        svg(icon_handle)
     }
-    genres_string
 }

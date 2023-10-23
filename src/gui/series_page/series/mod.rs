@@ -6,7 +6,7 @@ use crate::core::api::tv_maze::Image;
 use crate::core::caching::episode_list::EpisodeReleaseTime;
 use crate::core::{caching, database};
 use crate::gui::assets::icons::{PATCH_PLUS, PATCH_PLUS_FILL};
-use crate::gui::styles;
+use crate::gui::{helpers, styles};
 
 use bytes::Bytes;
 use cast_widget::{CastWidget, Message as CastWidgetMessage};
@@ -43,7 +43,7 @@ pub fn series_metadata<'a>(
 
         main_info = main_info.push(image);
     } else {
-        main_info = main_info.push(Space::new(180, 253));
+        main_info = main_info.push(helpers::empty_image::empty_image().width(180).height(253));
     };
 
     let mut series_data_grid = Grid::with_columns(2);

@@ -411,7 +411,10 @@ pub mod series_poster {
                     let image_handle = image::Handle::from_memory(image_bytes.clone());
                     image(image_handle).height(image_height).into()
                 } else {
-                    Space::new(image_height as f32 / 1.4, image_height).into()
+                    helpers::empty_image::empty_image()
+                        .width(image_height as f32 / 1.4)
+                        .height(image_height)
+                        .into()
                 }
             };
 
