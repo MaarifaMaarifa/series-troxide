@@ -243,6 +243,15 @@ pub mod full_schedule {
                         let cache_str = get_full_schedule()
                             .await
                             .context("failed to download daily episode schedule")?;
+                        {
+                            // Creating cache directory if it does not exist
+                            let mut cache_dir = cache_path.clone();
+                            cache_dir.pop();
+                            fs::create_dir_all(cache_dir)
+                                .await
+                                .context("failed to create cache dir")?;
+                        }
+
                         fs::write(cache_path, &cache_str)
                             .await
                             .context("failed to save daily episode schedule")?;
