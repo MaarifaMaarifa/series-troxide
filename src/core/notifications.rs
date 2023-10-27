@@ -120,9 +120,11 @@ impl TroxideNotify {
             let mut config_file = config_directory.clone();
             config_file.push(super::settings_config::CONFIG_FILE_NAME);
 
-            settings_file_watcher
-                .watch(&config_file, notify::RecursiveMode::NonRecursive)
-                .unwrap();
+            if let Err(err) =
+                settings_file_watcher.watch(&config_file, notify::RecursiveMode::NonRecursive)
+            {
+                tracing::error!("error watching the config file: {}", err)
+            };
             std::thread::park();
         }
     }
