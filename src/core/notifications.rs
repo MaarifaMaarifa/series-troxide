@@ -1,11 +1,10 @@
 use super::{
     api::tv_maze::{episodes_information::Episode, series_information::SeriesMainInformation},
     caching::series_list,
-    settings_config,
+    paths, settings_config,
 };
 use anyhow::Context;
 use chrono::Duration;
-use directories::ProjectDirs;
 use notify::{recommended_watcher, EventHandler, Watcher};
 use std::sync::mpsc;
 use tokio::task::JoinHandle;
@@ -115,18 +114,20 @@ impl TroxideNotify {
             .context("failed to create settings file watcher")
             .unwrap();
 
-        if let Some(proj_dirs) = ProjectDirs::from("", "", env!("CARGO_PKG_NAME")) {
-            let config_directory = std::path::PathBuf::from(proj_dirs.config_dir());
-            let mut config_file = config_directory.clone();
-            config_file.push(super::settings_config::CONFIG_FILE_NAME);
+        let mut config_file = paths::PATHS
+            .get()
+            .expect("paths should be initialized")
+            .get_config_dir_path()
+            .to_path_buf();
 
-            if let Err(err) =
-                settings_file_watcher.watch(&config_file, notify::RecursiveMode::NonRecursive)
-            {
-                tracing::error!("error watching the config file: {}", err)
-            };
-            std::thread::park();
-        }
+        config_file.push(super::settings_config::CONFIG_FILE_NAME);
+
+        if let Err(err) =
+            settings_file_watcher.watch(&config_file, notify::RecursiveMode::NonRecursive)
+        {
+            tracing::error!("error watching the config file: {}", err)
+        };
+        std::thread::park();
     }
 }
 

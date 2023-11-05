@@ -3,12 +3,13 @@
 use std::collections::HashSet;
 use std::path;
 
-use directories::ProjectDirs;
 use indexmap::IndexMap;
 use lazy_static::lazy_static;
 use tokio::fs;
 use tokio::sync::RwLock;
 use tracing::{info, warn};
+
+use super::paths;
 
 const HIDDEN_SERIES_FILENAME: &str = "hidden-series";
 
@@ -25,10 +26,12 @@ pub struct HiddenSeries {
 
 impl HiddenSeries {
     fn new() -> Self {
-        let proj_dirs = ProjectDirs::from("", "", env!("CARGO_PKG_NAME"))
-            .expect("could not get the hidden series filepath");
+        let mut hidden_series_filepath = paths::PATHS
+            .get()
+            .expect("paths should be initialized")
+            .get_config_dir_path()
+            .to_path_buf();
 
-        let mut hidden_series_filepath = std::path::PathBuf::from(proj_dirs.config_dir());
         hidden_series_filepath.push(HIDDEN_SERIES_FILENAME);
 
         Self {

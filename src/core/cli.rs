@@ -8,12 +8,17 @@ pub mod cli_handler {
 
     use super::cli_data::*;
     use crate::core::database;
+    use crate::core::paths;
 
     /// Handles all the logic for the command line arguments
     pub fn handle_cli() -> anyhow::Result<()> {
-        let cli = Cli::parse();
+        let mut cli = Cli::parse();
 
-        if let Some(command) = cli.command {
+        let command = cli.command.take();
+
+        setup_custom_paths(cli);
+
+        if let Some(command) = command {
             match command {
                 Command::ImportData { file_path } => {
                     database::database_transfer::TransferData::blocking_import_to_db(file_path)?;
@@ -33,6 +38,25 @@ pub mod cli_handler {
         }
         Ok(())
     }
+
+    fn setup_custom_paths(cli: Cli) {
+        let mut paths = paths::Paths::default();
+
+        if let Some(data_dir_path) = cli.data_dir {
+            paths.set_data_dir_path(data_dir_path)
+        }
+
+        if let Some(cache_dir_path) = cli.cache_dir {
+            paths.set_cache_dir_path(cache_dir_path)
+        }
+        if let Some(config_dir_path) = cli.config_dir {
+            paths.set_config_dir_path(config_dir_path)
+        }
+
+        paths::PATHS
+            .set(paths)
+            .expect("paths should be initalized only once");
+    }
 }
 
 pub mod cli_data {
@@ -44,17 +68,17 @@ pub mod cli_data {
     #[derive(Parser)]
     #[command(author, version, about)]
     pub struct Cli {
-        /// Custom cache folder path
+        /// Custom config directory path
+        #[clap(short, long)]
+        pub config_dir: Option<PathBuf>,
+
+        /// Custom cache directory path
         #[clap(short = 'a', long)]
-        cache_folder: Option<PathBuf>,
+        pub cache_dir: Option<PathBuf>,
 
-        /// Custom data folder path
+        /// Custom data directory path
         #[clap(short, long)]
-        data_folder: Option<PathBuf>,
-
-        /// Custom config folder path
-        #[clap(short, long)]
-        config_folder: Option<PathBuf>,
+        pub data_dir: Option<PathBuf>,
 
         #[clap(subcommand)]
         pub command: Option<Command>,

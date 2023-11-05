@@ -213,12 +213,12 @@ pub mod user_credentials {
     use std::env::VarError;
 
     use chrono::Local;
-    use directories::ProjectDirs;
     use serde::{Deserialize, Serialize};
     use thiserror::Error;
     use tokio::fs;
 
     use super::{authenication::TokenResponse, user_settings::UserSettings, ApiError};
+    use crate::core::paths;
 
     const CREDENTIALS_FILENAME: &str = "credentials";
 
@@ -357,8 +357,8 @@ pub mod user_credentials {
 
         /// Get the filepath of the credentials file
         fn credentials_filepath() -> Option<std::path::PathBuf> {
-            ProjectDirs::from("", "", env!("CARGO_PKG_NAME")).map(|proj_dir| {
-                let mut credentials_filepath = std::path::PathBuf::from(&proj_dir.data_dir());
+            paths::PATHS.get().map(|paths| {
+                let mut credentials_filepath = paths.get_data_dir_path().to_path_buf();
                 credentials_filepath.push(CREDENTIALS_FILENAME);
                 credentials_filepath
             })
