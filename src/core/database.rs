@@ -24,8 +24,8 @@ pub struct Database {
 impl Database {
     fn init() -> Self {
         let mut database_path = paths::PATHS
-            .get()
-            .expect("paths should be initialized")
+            .read()
+            .expect("failed to read paths")
             .get_data_dir_path()
             .to_path_buf();
 

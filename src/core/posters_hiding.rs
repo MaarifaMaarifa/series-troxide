@@ -27,8 +27,8 @@ pub struct HiddenSeries {
 impl HiddenSeries {
     fn new() -> Self {
         let mut hidden_series_filepath = paths::PATHS
-            .get()
-            .expect("paths should be initialized")
+            .read()
+            .expect("failed to read paths")
             .get_config_dir_path()
             .to_path_buf();
 

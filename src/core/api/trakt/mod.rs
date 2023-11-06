@@ -357,11 +357,14 @@ pub mod user_credentials {
 
         /// Get the filepath of the credentials file
         fn credentials_filepath() -> Option<std::path::PathBuf> {
-            paths::PATHS.get().map(|paths| {
-                let mut credentials_filepath = paths.get_data_dir_path().to_path_buf();
-                credentials_filepath.push(CREDENTIALS_FILENAME);
-                credentials_filepath
-            })
+            paths::PATHS
+                .read()
+                .map(|paths| {
+                    let mut credentials_filepath = paths.get_data_dir_path().to_path_buf();
+                    credentials_filepath.push(CREDENTIALS_FILENAME);
+                    credentials_filepath
+                })
+                .ok()
         }
 
         /// Save the credentials to the filesystem

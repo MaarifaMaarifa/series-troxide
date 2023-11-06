@@ -9,6 +9,7 @@ pub mod cli_handler {
     use super::cli_data::*;
     use crate::core::database;
     use crate::core::paths;
+    use crate::core::settings_config;
 
     /// Handles all the logic for the command line arguments
     pub fn handle_cli() -> anyhow::Result<()> {
@@ -40,22 +41,38 @@ pub mod cli_handler {
     }
 
     fn setup_custom_paths(cli: Cli) {
-        let mut paths = paths::Paths::default();
+        // Setting the config file path first before we read other custom paths from the settings
+        if let Some(config_dir_path) = cli.config_dir {
+            paths::PATHS
+                .write()
+                .expect("failed to write to paths")
+                .set_config_dir_path(config_dir_path);
+        }
+
+        let settings = settings_config::SETTINGS
+            .read()
+            .expect("failed to read settings");
+
+        let settings_custom_paths = &settings
+            .get_current_settings()
+            .custom_paths
+            .clone()
+            .unwrap_or_default();
+
+        let mut paths = paths::PATHS.write().expect("failed to write to paths");
+
+        // Priotizing the cli paths over the settings config paths
+        if let Some(cache_dir_path) = cli.cache_dir {
+            paths.set_cache_dir_path(cache_dir_path)
+        } else if let Some(cache_dir_path) = settings_custom_paths.cache_dir.clone() {
+            paths.set_cache_dir_path(cache_dir_path)
+        }
 
         if let Some(data_dir_path) = cli.data_dir {
             paths.set_data_dir_path(data_dir_path)
+        } else if let Some(data_dir_path) = settings_custom_paths.data_dir.clone() {
+            paths.set_data_dir_path(data_dir_path)
         }
-
-        if let Some(cache_dir_path) = cli.cache_dir {
-            paths.set_cache_dir_path(cache_dir_path)
-        }
-        if let Some(config_dir_path) = cli.config_dir {
-            paths.set_config_dir_path(config_dir_path)
-        }
-
-        paths::PATHS
-            .set(paths)
-            .expect("paths should be initalized only once");
     }
 }
 

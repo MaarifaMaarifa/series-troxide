@@ -1,19 +1,19 @@
 use std::borrow::Cow;
 use std::path::PathBuf;
-use std::sync::OnceLock;
+use std::sync::RwLock;
 
 use directories::ProjectDirs;
 use lazy_static::lazy_static;
 
 lazy_static! {
-    pub static ref PATHS: OnceLock<Paths> = OnceLock::new();
+    pub static ref PATHS: RwLock<Paths> = RwLock::new(Paths::default());
 }
 
 /// Various Data paths for the program
 ///
 /// Stores custom paths, while providing platform specific paths
 /// when no custom one(s) provided
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Paths {
     custom_data_dir_path: Option<PathBuf>,
     custom_config_dir_path: Option<PathBuf>,

@@ -77,8 +77,8 @@ pub struct Cacher {
 impl Cacher {
     pub fn init() -> Self {
         let cache_path = paths::PATHS
-            .get()
-            .expect("paths should be initialized")
+            .read()
+            .expect("failed to read paths")
             .get_cache_dir_path()
             .to_path_buf();
 

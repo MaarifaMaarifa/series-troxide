@@ -1,5 +1,6 @@
 use std::{
     io::ErrorKind,
+    path::PathBuf,
     sync::{Arc, RwLock},
 };
 
@@ -34,6 +35,7 @@ pub struct Config {
     pub appearance: AppearanceSettings,
     pub locale: LocaleSettings,
     pub notifications: NotificationSettings,
+    pub custom_paths: Option<CustomPaths>,
 }
 
 #[derive(Clone, Default, Debug, Serialize, Deserialize, Eq, PartialEq)]
@@ -64,6 +66,12 @@ impl Default for NotificationSettings {
     fn default() -> Self {
         Self { time_to_notify: 60 }
     }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq, Default)]
+pub struct CustomPaths {
+    pub data_dir: Option<PathBuf>,
+    pub cache_dir: Option<PathBuf>,
 }
 
 lazy_static! {
@@ -131,8 +139,8 @@ pub const CONFIG_FILE_NAME: &str = "config.toml";
 
 fn load_config() -> Config {
     let config_directory = paths::PATHS
-        .get()
-        .expect("paths should be initialized")
+        .read()
+        .expect("failed to read paths")
         .get_config_dir_path()
         .to_path_buf();
 
@@ -177,8 +185,8 @@ fn load_config() -> Config {
 
 fn save_config(settings_config: &Config) {
     let mut config_file = paths::PATHS
-        .get()
-        .expect("paths should be initialized")
+        .read()
+        .expect("failed to read paths")
         .get_config_dir_path()
         .to_path_buf();
 
