@@ -1,4 +1,3 @@
-use directories::ProjectDirs;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use sled::Db;
@@ -9,6 +8,7 @@ use std::{
 use tracing::info;
 
 use super::{api::tv_maze::series_information::SeriesMainInformation, caching};
+use crate::core::paths;
 
 // The last digit represents the version of the database.
 const DATABASE_FOLDER_NAME: &str = "series-troxide-db-1";
@@ -23,17 +23,20 @@ pub struct Database {
 
 impl Database {
     fn init() -> Self {
-        info!("opening database");
-        if let Some(proj_dir) = ProjectDirs::from("", "", env!("CARGO_PKG_NAME")) {
-            let mut database_path = std::path::PathBuf::from(&proj_dir.data_dir());
-            database_path.push(DATABASE_FOLDER_NAME);
-            let db = sled::open(database_path).unwrap();
-            if !db.was_recovered() {
-                info!("created a fresh database as none was found");
-            }
-            return Self { db };
+        let mut database_path = paths::PATHS
+            .read()
+            .expect("failed to read paths")
+            .get_data_dir_path()
+            .to_path_buf();
+
+        info!("initializing database at {}", database_path.display());
+
+        database_path.push(DATABASE_FOLDER_NAME);
+        let db = sled::open(database_path).unwrap();
+        if !db.was_recovered() {
+            info!("created a fresh database as none was found");
         }
-        panic!("could not get the path to database");
+        Self { db }
     }
 
     /// Adds the given series to the database.

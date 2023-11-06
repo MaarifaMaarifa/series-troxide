@@ -33,7 +33,7 @@ use crate::core::api::tv_maze::{self, deserialize_json};
 
 use super::api::tv_maze::{series_information::SeriesMainInformation, ApiError};
 pub use super::api::tv_maze::{ImageType, OriginalType};
-use directories::ProjectDirs;
+use super::paths;
 use lazy_static::lazy_static;
 use tokio::fs;
 use tracing::{error, info};
@@ -76,10 +76,14 @@ pub struct Cacher {
 
 impl Cacher {
     pub fn init() -> Self {
-        let proj_dir = ProjectDirs::from("", "", env!("CARGO_PKG_NAME"))
-            .expect("could not get the cache path");
+        let cache_path = paths::PATHS
+            .read()
+            .expect("failed to read paths")
+            .get_cache_dir_path()
+            .to_path_buf();
 
-        let cache_path = path::PathBuf::from(&proj_dir.cache_dir());
+        info!("initializing cache at {}", cache_path.display());
+
         Self { cache_path }
     }
 
