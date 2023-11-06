@@ -4,10 +4,10 @@ mod gui;
 use iced::{window, Application, Settings};
 
 fn main() -> anyhow::Result<()> {
-    core::cli::cli_handler::handle_cli()?;
-
     let subscriber = tracing_subscriber::FmtSubscriber::new();
     tracing::subscriber::set_global_default(subscriber)?;
+
+    core::cli::cli_handler::handle_cli()?;
 
     tracing::info!("starting '{}'", env!("CARGO_PKG_NAME"));
 
