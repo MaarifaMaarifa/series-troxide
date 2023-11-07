@@ -69,8 +69,11 @@ impl SeriesSuggestion {
                 let mut posters = Vec::with_capacity(series_infos.len());
                 let mut posters_commands = Vec::with_capacity(series_infos.len());
                 for (index, series_info) in series_infos.into_iter().enumerate() {
-                    let (poster, poster_command) =
-                        SeriesPoster::new(index, series_info, self.series_page_sender.clone());
+                    let (poster, poster_command) = SeriesPoster::new(
+                        index,
+                        series_info.clone(),
+                        self.series_page_sender.clone(),
+                    );
                     posters.push(poster);
                     posters_commands.push(poster_command);
                 }

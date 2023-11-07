@@ -116,7 +116,10 @@ impl FullSchedulePosters {
 
                 let (daily_local_posters, daily_local_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        full_schedule.get_daily_local_series(DAILY_POSTERS_AMOUNT, &country_code),
+                        clone_series(
+                            full_schedule
+                                .get_daily_local_series(DAILY_POSTERS_AMOUNT, &country_code),
+                        ),
                         self.series_page_sender.clone(),
                     );
 
@@ -139,38 +142,44 @@ impl FullSchedulePosters {
 
                 let (monthly_new_posters, monthly_new_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        full_schedule
-                            .get_monthly_new_series(SECTIONS_POSTERS_AMOUNT, get_current_month()),
+                        clone_series(
+                            full_schedule.get_monthly_new_series(
+                                SECTIONS_POSTERS_AMOUNT,
+                                get_current_month(),
+                            ),
+                        ),
                         self.series_page_sender.clone(),
                     );
 
                 let (monthly_returning_posters, monthly_returning_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        full_schedule.get_monthly_returning_series(
+                        clone_series(full_schedule.get_monthly_returning_series(
                             SECTIONS_POSTERS_AMOUNT,
                             get_current_month(),
-                        ),
+                        )),
                         self.series_page_sender.clone(),
                     );
 
                 let (popular_posters, popular_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        full_schedule.get_popular_series(Some(SECTIONS_POSTERS_AMOUNT)),
+                        clone_series(
+                            full_schedule.get_popular_series(Some(SECTIONS_POSTERS_AMOUNT)),
+                        ),
                         self.series_page_sender.clone(),
                     );
 
                 let (daily_global_posters, daily_global_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        full_schedule.get_daily_global_series(DAILY_POSTERS_AMOUNT),
+                        clone_series(full_schedule.get_daily_global_series(DAILY_POSTERS_AMOUNT)),
                         self.series_page_sender.clone(),
                     );
 
                 let (daily_local_posters, daily_local_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        full_schedule.get_daily_local_series(
+                        clone_series(full_schedule.get_daily_local_series(
                             DAILY_POSTERS_AMOUNT,
                             &locale_settings::get_country_code_from_settings(),
-                        ),
+                        )),
                         self.series_page_sender.clone(),
                     );
 
@@ -188,7 +197,7 @@ impl FullSchedulePosters {
                             .get_popular_series_by_network(Some(SECTIONS_POSTERS_AMOUNT), &network);
                         self.network_posters.push_section_posters(
                             network,
-                            series_infos,
+                            clone_series(series_infos),
                             Message::NetworkPosters,
                         )
                     })
@@ -201,7 +210,7 @@ impl FullSchedulePosters {
                             .get_popular_series_by_genre(Some(SECTIONS_POSTERS_AMOUNT), &genre);
                         self.genre_posters.push_section_posters(
                             genre,
-                            series_infos,
+                            clone_series(series_infos),
                             Message::GenrePosters,
                         )
                     })
@@ -216,7 +225,7 @@ impl FullSchedulePosters {
                         );
                         self.web_channel_posters.push_section_posters(
                             webchannel,
-                            series_infos,
+                            clone_series(series_infos),
                             Message::WebChannelPosters,
                         )
                     })
@@ -365,6 +374,10 @@ impl FullSchedulePosters {
         }
         (posters, posters_commands)
     }
+}
+
+fn clone_series(series: Vec<&SeriesMainInformation>) -> Vec<SeriesMainInformation> {
+    series.into_iter().cloned().collect()
 }
 
 fn get_current_month() -> chrono::Month {
