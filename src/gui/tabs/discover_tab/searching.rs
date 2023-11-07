@@ -130,7 +130,11 @@ impl Search {
                     .collect();
 
                 Some(if result_items.is_empty() {
-                    container(text("No results")).padding(10).into()
+                    container(text("No results"))
+                        .width(Length::Fill)
+                        .center_x()
+                        .padding(10)
+                        .into()
                 } else {
                     Column::with_children(result_items)
                         .padding(20)
@@ -138,16 +142,23 @@ impl Search {
                         .into()
                 })
             }
-            LoadState::Loading => Some(Spinner::new().into()),
+            LoadState::Loading => Some(
+                container(Spinner::new())
+                    .width(Length::Fill)
+                    .center_x()
+                    .into(),
+            ),
             LoadState::NotLoaded => None,
         };
 
         let search_results = search_results.map(|search_results| {
             container(
                 scrollable(search_results)
+                    .width(Length::Fill)
                     .direction(styles::scrollable_styles::vertical_direction()),
             )
             .padding(5)
+            .width(500)
             .style(styles::container_styles::first_class_container_rounded_theme())
             .into()
         });
@@ -167,6 +178,7 @@ mod search_result {
     use crate::core::api::tv_maze::Rating;
     use crate::core::{api::tv_maze::series_searching, caching};
     use crate::gui::assets::icons::STAR_FILL;
+    use crate::gui::helpers::empty_image;
     pub use crate::gui::message::IndexedMessage;
     use crate::gui::{helpers, styles};
 
@@ -227,7 +239,7 @@ mod search_result {
                 let image_handle = image::Handle::from_memory(image_bytes);
                 row = row.push(image(image_handle).height(60))
             } else {
-                row = row.push(Space::new(43, 60))
+                row = row.push(empty_image::empty_image().height(60).width(43))
             };
 
             // Getting the series genres
