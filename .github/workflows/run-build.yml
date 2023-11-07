@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: installing libgtk-3-dev (rfd crate dependency)
-        if: matrix.os== 'ubuntu-latest,'
+        if: matrix.os== 'ubuntu-latest'
         run: sudo apt update && sudo apt install libgtk-3-dev
 
       - name: Cache setup
