@@ -130,7 +130,11 @@ impl Search {
                     .collect();
 
                 Some(if result_items.is_empty() {
-                    container(text("No results")).padding(10).into()
+                    container(text("No results"))
+                        .width(Length::Fill)
+                        .center_x()
+                        .padding(10)
+                        .into()
                 } else {
                     Column::with_children(result_items)
                         .padding(20)
@@ -138,16 +142,23 @@ impl Search {
                         .into()
                 })
             }
-            LoadState::Loading => Some(Spinner::new().into()),
+            LoadState::Loading => Some(
+                container(Spinner::new())
+                    .width(Length::Fill)
+                    .center_x()
+                    .into(),
+            ),
             LoadState::NotLoaded => None,
         };
 
         let search_results = search_results.map(|search_results| {
             container(
                 scrollable(search_results)
+                    .width(Length::Fill)
                     .direction(styles::scrollable_styles::vertical_direction()),
             )
             .padding(5)
+            .width(500)
             .style(styles::container_styles::first_class_container_rounded_theme())
             .into()
         });
