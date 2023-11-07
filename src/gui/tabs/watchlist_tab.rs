@@ -30,15 +30,15 @@ enum LoadState {
     Loaded,
 }
 
-pub struct WatchlistTab {
+pub struct WatchlistTab<'a> {
     load_state: LoadState,
-    watchlist_posters: Vec<WatchlistPoster>,
+    watchlist_posters: Vec<WatchlistPoster<'a>>,
     watchlist_summary: Option<WatchlistSummary>,
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
     scrollable_offset: RelativeOffset,
 }
 
-impl WatchlistTab {
+impl<'a> WatchlistTab<'a> {
     pub fn new(
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
         scrollable_offset: Option<RelativeOffset>,
@@ -89,7 +89,7 @@ impl WatchlistTab {
                 {
                     let (poster, command) = WatchlistPoster::new(
                         index,
-                        info,
+                        std::borrow::Cow::Owned(info),
                         episode,
                         total_episodes,
                         self.series_page_sender.clone(),
@@ -206,7 +206,7 @@ async fn get_series_informations_and_watched_episodes(
         .collect()
 }
 
-impl Tab for WatchlistTab {
+impl<'a> Tab for WatchlistTab<'a> {
     type Message = Message;
 
     fn title() -> &'static str {
@@ -251,19 +251,19 @@ mod watchlist_poster {
         ToggleEpisodeInfo,
     }
 
-    pub struct WatchlistPoster {
+    pub struct WatchlistPoster<'a> {
         index: usize,
-        poster: GenericPoster,
+        poster: GenericPoster<'a>,
         episode_list: EpisodeList,
         total_series_episodes: usize,
         episode_poster: Option<EpisodePoster>,
         show_episode_info: bool,
     }
 
-    impl WatchlistPoster {
+    impl<'a> WatchlistPoster<'a> {
         pub fn new(
             index: usize,
-            series_info: SeriesMainInformation,
+            series_info: std::borrow::Cow<'a, SeriesMainInformation>,
             episode_list: EpisodeList,
             total_series_episodes: usize,
             series_page_sender: mpsc::Sender<SeriesMainInformation>,

@@ -60,22 +60,22 @@ enum LoadState {
     Loaded,
 }
 
-pub struct FullSchedulePosters {
+pub struct FullSchedulePosters<'a> {
     load_state: LoadState,
     full_schedule: Option<&'static FullSchedule>,
-    monthly_new_poster: Vec<SeriesPoster>,
-    monthly_returning_posters: Vec<SeriesPoster>,
-    daily_global_series: Vec<SeriesPoster>,
-    daily_local_series: Vec<SeriesPoster>,
-    popular_posters: Vec<SeriesPoster>,
-    network_posters: Posters<ShowNetwork>,
-    web_channel_posters: Posters<ShowWebChannel>,
-    genre_posters: Posters<Genre>,
+    monthly_new_poster: Vec<SeriesPoster<'a>>,
+    monthly_returning_posters: Vec<SeriesPoster<'a>>,
+    daily_global_series: Vec<SeriesPoster<'a>>,
+    daily_local_series: Vec<SeriesPoster<'a>>,
+    popular_posters: Vec<SeriesPoster<'a>>,
+    network_posters: Posters<'a, ShowNetwork>,
+    web_channel_posters: Posters<'a, ShowWebChannel>,
+    genre_posters: Posters<'a, Genre>,
     country_name: String,
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
 }
 
-impl FullSchedulePosters {
+impl<'a> FullSchedulePosters<'a> {
     pub fn new(
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (Self, Command<Message>) {
@@ -116,10 +116,7 @@ impl FullSchedulePosters {
 
                 let (daily_local_posters, daily_local_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        clone_series(
-                            full_schedule
-                                .get_daily_local_series(DAILY_POSTERS_AMOUNT, &country_code),
-                        ),
+                        full_schedule.get_daily_local_series(DAILY_POSTERS_AMOUNT, &country_code),
                         self.series_page_sender.clone(),
                     );
 
@@ -142,44 +139,38 @@ impl FullSchedulePosters {
 
                 let (monthly_new_posters, monthly_new_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        clone_series(
-                            full_schedule.get_monthly_new_series(
-                                SECTIONS_POSTERS_AMOUNT,
-                                get_current_month(),
-                            ),
-                        ),
+                        full_schedule
+                            .get_monthly_new_series(SECTIONS_POSTERS_AMOUNT, get_current_month()),
                         self.series_page_sender.clone(),
                     );
 
                 let (monthly_returning_posters, monthly_returning_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        clone_series(full_schedule.get_monthly_returning_series(
+                        full_schedule.get_monthly_returning_series(
                             SECTIONS_POSTERS_AMOUNT,
                             get_current_month(),
-                        )),
+                        ),
                         self.series_page_sender.clone(),
                     );
 
                 let (popular_posters, popular_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        clone_series(
-                            full_schedule.get_popular_series(Some(SECTIONS_POSTERS_AMOUNT)),
-                        ),
+                        full_schedule.get_popular_series(Some(SECTIONS_POSTERS_AMOUNT)),
                         self.series_page_sender.clone(),
                     );
 
                 let (daily_global_posters, daily_global_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        clone_series(full_schedule.get_daily_global_series(DAILY_POSTERS_AMOUNT)),
+                        full_schedule.get_daily_global_series(DAILY_POSTERS_AMOUNT),
                         self.series_page_sender.clone(),
                     );
 
                 let (daily_local_posters, daily_local_posters_commands) =
                     Self::generate_posters_and_commands_from_series_infos(
-                        clone_series(full_schedule.get_daily_local_series(
+                        full_schedule.get_daily_local_series(
                             DAILY_POSTERS_AMOUNT,
                             &locale_settings::get_country_code_from_settings(),
-                        )),
+                        ),
                         self.series_page_sender.clone(),
                     );
 
@@ -197,7 +188,7 @@ impl FullSchedulePosters {
                             .get_popular_series_by_network(Some(SECTIONS_POSTERS_AMOUNT), &network);
                         self.network_posters.push_section_posters(
                             network,
-                            clone_series(series_infos),
+                            series_infos,
                             Message::NetworkPosters,
                         )
                     })
@@ -210,7 +201,7 @@ impl FullSchedulePosters {
                             .get_popular_series_by_genre(Some(SECTIONS_POSTERS_AMOUNT), &genre);
                         self.genre_posters.push_section_posters(
                             genre,
-                            clone_series(series_infos),
+                            series_infos,
                             Message::GenrePosters,
                         )
                     })
@@ -225,7 +216,7 @@ impl FullSchedulePosters {
                         );
                         self.web_channel_posters.push_section_posters(
                             webchannel,
-                            clone_series(series_infos),
+                            series_infos,
                             Message::WebChannelPosters,
                         )
                     })
@@ -255,18 +246,18 @@ impl FullSchedulePosters {
             .map(Message::MonthlyReturningPosters),
             Message::NetworkPosters(message) => self
                 .network_posters
-                .get_series_poster_mut(message.index())
-                .update(message)
+                .update_poster(message)
+                // .update(message)
                 .map(Message::NetworkPosters),
             Message::WebChannelPosters(message) => self
                 .web_channel_posters
-                .get_series_poster_mut(message.index())
-                .update(message)
+                .update_poster(message)
+                // .update(message)
                 .map(Message::WebChannelPosters),
             Message::GenrePosters(message) => self
                 .genre_posters
-                .get_series_poster_mut(message.index())
-                .update(message)
+                .update_poster(message)
+                // .update(message)
                 .map(Message::GenrePosters),
             Message::GlobalSeries(message) => self.daily_global_series[message.index()]
                 .update(message)
@@ -358,26 +349,25 @@ impl FullSchedulePosters {
     }
 
     fn generate_posters_and_commands_from_series_infos(
-        series_infos: Vec<SeriesMainInformation>,
+        series_infos: Vec<&'a SeriesMainInformation>,
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (
-        Vec<SeriesPoster>,
+        Vec<SeriesPoster<'a>>,
         Vec<Command<SeriesPosterIndexedMessage<SeriesPosterMessage>>>,
     ) {
         let mut posters = Vec::with_capacity(series_infos.len());
         let mut posters_commands = Vec::with_capacity(series_infos.len());
         for (index, series_info) in series_infos.into_iter().enumerate() {
-            let (poster, command) =
-                SeriesPoster::new(index, series_info, series_page_sender.clone());
+            let (poster, command) = SeriesPoster::new(
+                index,
+                std::borrow::Cow::Borrowed(series_info),
+                series_page_sender.clone(),
+            );
             posters.push(poster);
             posters_commands.push(command);
         }
         (posters, posters_commands)
     }
-}
-
-fn clone_series(series: Vec<&SeriesMainInformation>) -> Vec<SeriesMainInformation> {
-    series.into_iter().cloned().collect()
 }
 
 fn get_current_month() -> chrono::Month {
@@ -432,14 +422,14 @@ fn series_posters_viewer<'a>(
     }
 }
 
-struct Posters<T> {
+struct Posters<'a, T> {
     index: HashMap<T, RangeInclusive<usize>>,
-    posters: Vec<SeriesPoster>,
+    posters: Vec<SeriesPoster<'a>>,
 
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
 }
 
-impl<T> Posters<T>
+impl<'a, T> Posters<'a, T>
 where
     T: Eq + std::hash::Hash + std::fmt::Display,
 {
@@ -453,7 +443,7 @@ where
     pub fn push_section_posters(
         &mut self,
         section_id: T,
-        series_infos: Vec<SeriesMainInformation>,
+        series_infos: Vec<&'a SeriesMainInformation>,
         message: fn(SeriesPosterIndexedMessage<SeriesPosterMessage>) -> Message,
     ) -> Command<Message> {
         if self.posters.is_empty() {
@@ -482,10 +472,10 @@ where
 
     fn generate_posters_and_commands_from_series_infos(
         range: &RangeInclusive<usize>,
-        series_infos: Vec<SeriesMainInformation>,
+        series_infos: Vec<&'a SeriesMainInformation>,
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (
-        Vec<SeriesPoster>,
+        Vec<SeriesPoster<'a>>,
         Vec<Command<SeriesPosterIndexedMessage<SeriesPosterMessage>>>,
     ) {
         assert_eq!(range.clone().count(), series_infos.len());
@@ -494,8 +484,11 @@ where
         let mut posters_commands = Vec::with_capacity(series_infos.len());
 
         for (index, series_info) in range.clone().zip(series_infos.into_iter()) {
-            let (poster, command) =
-                SeriesPoster::new(index, series_info, series_page_sender.clone());
+            let (poster, command) = SeriesPoster::new(
+                index,
+                std::borrow::Cow::Borrowed(series_info),
+                series_page_sender.clone(),
+            );
             posters.push(poster);
             posters_commands.push(command);
         }
@@ -538,7 +531,11 @@ where
             .into()
     }
 
-    pub fn get_series_poster_mut(&mut self, index: usize) -> &mut SeriesPoster {
-        &mut self.posters[index]
+    pub fn update_poster(
+        &mut self,
+        message: SeriesPosterIndexedMessage<SeriesPosterMessage>,
+    ) -> Command<SeriesPosterIndexedMessage<SeriesPosterMessage>> {
+        let index = message.index();
+        self.posters[index].update(message)
     }
 }

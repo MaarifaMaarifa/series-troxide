@@ -25,15 +25,15 @@ pub enum Message {
     PageScrolled(Viewport),
 }
 
-pub struct MyShowsTab {
-    waiting_releases: MyShows,
-    upcoming_releases: UpcomingReleases,
-    ended_releases: MyShows,
-    untracked_releases: MyShows,
+pub struct MyShowsTab<'a> {
+    waiting_releases: MyShows<'a>,
+    upcoming_releases: UpcomingReleases<'a>,
+    ended_releases: MyShows<'a>,
+    untracked_releases: MyShows<'a>,
     scrollable_offset: RelativeOffset,
 }
 
-impl MyShowsTab {
+impl<'a> MyShowsTab<'a> {
     pub fn new(
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
         scrollable_offset: Option<RelativeOffset>,
@@ -136,7 +136,7 @@ impl MyShowsTab {
     }
 }
 
-impl Tab for MyShowsTab {
+impl<'a> Tab for MyShowsTab<'a> {
     type Message = Message;
 
     fn title() -> &'static str {

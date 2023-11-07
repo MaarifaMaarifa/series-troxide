@@ -26,13 +26,13 @@ enum LoadState {
     Loaded,
 }
 
-pub struct UpcomingReleases {
+pub struct UpcomingReleases<'a> {
     load_state: LoadState,
-    upcoming_posters: Vec<UpcomingPoster>,
+    upcoming_posters: Vec<UpcomingPoster<'a>>,
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
 }
 
-impl UpcomingReleases {
+impl<'a> UpcomingReleases<'a> {
     pub fn new(
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (Self, Command<Message>) {
@@ -86,7 +86,7 @@ impl UpcomingReleases {
                 {
                     let (poster, command) = UpcomingPoster::new(
                         index,
-                        series_info,
+                        std::borrow::Cow::Owned(series_info),
                         self.series_page_sender.clone(),
                         episode,
                         release_time,
@@ -170,17 +170,18 @@ mod upcoming_poster {
         Poster(GenericPosterMessage),
         SeriesPosterPressed,
     }
-    pub struct UpcomingPoster {
+
+    pub struct UpcomingPoster<'a> {
         index: usize,
-        poster: GenericPoster,
+        poster: GenericPoster<'a>,
         upcoming_episode: Episode,
         episode_release_time: EpisodeReleaseTime,
     }
 
-    impl UpcomingPoster {
+    impl<'a> UpcomingPoster<'a> {
         pub fn new(
             index: usize,
-            series_info: SeriesMainInformation,
+            series_info: std::borrow::Cow<'a, SeriesMainInformation>,
             series_page_sender: mpsc::Sender<SeriesMainInformation>,
             upcoming_episode: Episode,
             episode_release_time: EpisodeReleaseTime,

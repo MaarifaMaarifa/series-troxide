@@ -193,16 +193,16 @@ pub mod series_banner {
         Selected,
     }
 
-    pub struct SeriesBanner {
+    pub struct SeriesBanner<'a> {
         index: usize,
-        poster: GenericPoster,
+        poster: GenericPoster<'a>,
         watch_time: Option<u32>,
     }
 
-    impl SeriesBanner {
+    impl<'a> SeriesBanner<'a> {
         pub fn new(
             index: usize,
-            series_info: SeriesMainInformation,
+            series_info: std::borrow::Cow<'a, SeriesMainInformation>,
             watch_time: Option<u32>,
             series_page_sender: mpsc::Sender<SeriesMainInformation>,
         ) -> (Self, Command<IndexedMessage<Message>>) {
