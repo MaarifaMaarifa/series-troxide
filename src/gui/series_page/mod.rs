@@ -15,13 +15,13 @@ pub enum Message {
     SeriesCacheFileWritten,
 }
 
-pub struct SeriesPageController {
-    series_pages: IndexMap<u32, Series>,
+pub struct SeriesPageController<'a> {
+    series_pages: IndexMap<u32, Series<'a>>,
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
     series_page_receiver: mpsc::Receiver<SeriesMainInformation>,
 }
 
-impl SeriesPageController {
+impl<'a> SeriesPageController<'a> {
     pub fn new(
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
         series_page_receiver: mpsc::Receiver<SeriesMainInformation>,

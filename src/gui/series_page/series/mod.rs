@@ -202,7 +202,7 @@ enum LoadState {
     Loaded,
 }
 
-pub struct Series {
+pub struct Series<'a> {
     series_id: u32,
     seasons_load_state: LoadState,
     series_information: SeriesMainInformation,
@@ -212,12 +212,12 @@ pub struct Series {
     next_episode_release_time: Option<(Episode, EpisodeReleaseTime)>,
     season_widgets: Vec<season_widget::Season>,
     casts_widget: CastWidget,
-    series_suggestion_widget: SeriesSuggestion,
+    series_suggestion_widget: SeriesSuggestion<'a>,
     scroll_offset: RelativeOffset,
     scroller_id: Id,
 }
 
-impl Series {
+impl<'a> Series<'a> {
     /// Counstruct the series page by providing it with SeriesMainInformation
     pub fn new(
         series_information: SeriesMainInformation,

@@ -250,6 +250,7 @@ pub mod episode_widget {
 }
 
 pub mod series_poster {
+    use std::borrow::Cow;
     use std::sync::mpsc;
 
     use crate::core::api::tv_maze::series_information::{Rating, SeriesMainInformation};
@@ -273,15 +274,15 @@ pub mod series_poster {
         ImageLoaded(Option<Bytes>),
     }
 
-    pub struct GenericPoster {
-        series_information: SeriesMainInformation,
+    pub struct GenericPoster<'a> {
+        series_information: Cow<'a, SeriesMainInformation>,
         image: Option<Bytes>,
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
     }
 
-    impl GenericPoster {
+    impl<'a> GenericPoster<'a> {
         pub fn new(
-            series_information: SeriesMainInformation,
+            series_information: Cow<'a, SeriesMainInformation>,
             series_page_sender: mpsc::Sender<SeriesMainInformation>,
         ) -> (Self, Command<GenericPosterMessage>) {
             let image_url = series_information.image.clone();
@@ -306,8 +307,9 @@ pub mod series_poster {
         }
 
         pub fn open_series_page(&self) {
+            let series = self.series_information.clone().into_owned();
             self.series_page_sender
-                .send(self.series_information.clone())
+                .send(series)
                 .expect("failed to send series page info");
         }
 
@@ -339,17 +341,17 @@ pub mod series_poster {
         SeriesHidden,
     }
 
-    pub struct SeriesPoster {
+    pub struct SeriesPoster<'a> {
         index: usize,
-        poster: GenericPoster,
+        poster: GenericPoster<'a>,
         expanded: bool,
         hidden: bool,
     }
 
-    impl SeriesPoster {
+    impl<'a> SeriesPoster<'a> {
         pub fn new(
             index: usize,
-            series_information: SeriesMainInformation,
+            series_information: Cow<'a, SeriesMainInformation>,
             series_page_sender: mpsc::Sender<SeriesMainInformation>,
         ) -> (Self, Command<IndexedMessage<Message>>) {
             let (poster, poster_command) =

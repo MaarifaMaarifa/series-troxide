@@ -20,15 +20,15 @@ enum LoadState {
     Loading,
     Loaded,
 }
-pub struct SeriesSuggestion {
+pub struct SeriesSuggestion<'a> {
     series_id: u32,
     genres: Vec<Genre>,
     load_state: LoadState,
-    suggested_series: Vec<SeriesPoster>,
+    suggested_series: Vec<SeriesPoster<'a>>,
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
 }
 
-impl SeriesSuggestion {
+impl<'a> SeriesSuggestion<'a> {
     pub fn new(
         series_id: u32,
         genres: Vec<Genre>,
@@ -69,8 +69,11 @@ impl SeriesSuggestion {
                 let mut posters = Vec::with_capacity(series_infos.len());
                 let mut posters_commands = Vec::with_capacity(series_infos.len());
                 for (index, series_info) in series_infos.into_iter().enumerate() {
-                    let (poster, poster_command) =
-                        SeriesPoster::new(index, series_info, self.series_page_sender.clone());
+                    let (poster, poster_command) = SeriesPoster::new(
+                        index,
+                        std::borrow::Cow::Borrowed(series_info),
+                        self.series_page_sender.clone(),
+                    );
                     posters.push(poster);
                     posters_commands.push(poster_command);
                 }

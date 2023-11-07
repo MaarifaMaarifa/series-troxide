@@ -24,13 +24,13 @@ enum LoadState {
     Loaded,
 }
 
-pub struct MyShows {
+pub struct MyShows<'a> {
     load_state: LoadState,
-    series_posters: Vec<SeriesPoster>,
+    series_posters: Vec<SeriesPoster<'a>>,
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
 }
 
-impl MyShows {
+impl<'a> MyShows<'a> {
     pub fn new_as_ended_tracked_series(
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (Self, Command<Message>) {
@@ -104,8 +104,11 @@ impl MyShows {
                 let mut series_posters = Vec::with_capacity(series_infos.len());
 
                 for (index, series_info) in series_infos.into_iter().enumerate() {
-                    let (poster, command) =
-                        SeriesPoster::new(index, series_info, self.series_page_sender.clone());
+                    let (poster, command) = SeriesPoster::new(
+                        index,
+                        std::borrow::Cow::Owned(series_info),
+                        self.series_page_sender.clone(),
+                    );
                     series_posters.push(poster);
                     series_posters_commands.push(command);
                 }

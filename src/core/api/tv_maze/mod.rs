@@ -33,6 +33,10 @@ struct BadResponse {
     // status: u32,
 }
 
+pub trait Rated {
+    fn rating(&self) -> f32;
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Rating {
     pub average: Option<f32>,

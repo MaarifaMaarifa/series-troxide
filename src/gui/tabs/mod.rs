@@ -94,22 +94,22 @@ pub enum Message {
     Settings(SettingsMessage),
 }
 
-enum ReloadableTab {
-    Watchlist(WatchlistTab),
-    MyShows(MyShowsTab),
-    Statistics(StatisticsTab),
+enum ReloadableTab<'a> {
+    Watchlist(WatchlistTab<'a>),
+    MyShows(MyShowsTab<'a>),
+    Statistics(StatisticsTab<'a>),
 }
 
-pub struct TabsController {
+pub struct TabsController<'a> {
     current_tab: TabId,
-    discover_tab: DiscoverTab,
+    discover_tab: DiscoverTab<'a>,
     settings_tab: SettingsTab,
-    reloadable_tab: Option<ReloadableTab>,
+    reloadable_tab: Option<ReloadableTab<'a>>,
     tabs_scrollable_offsets: [RelativeOffset; 5],
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
 }
 
-impl TabsController {
+impl<'a> TabsController<'a> {
     pub fn new(
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (Self, Command<Message>) {

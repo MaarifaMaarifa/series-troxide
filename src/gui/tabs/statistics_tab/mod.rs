@@ -25,14 +25,14 @@ pub enum Message {
     PageScrolled(Viewport),
 }
 
-pub struct StatisticsTab {
+pub struct StatisticsTab<'a> {
     series_infos_and_time: Vec<(SeriesMainInformation, Option<u32>)>,
-    series_banners: Vec<SeriesBanner>,
+    series_banners: Vec<SeriesBanner<'a>>,
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
     scrollable_offset: RelativeOffset,
 }
 
-impl StatisticsTab {
+impl<'a> StatisticsTab<'a> {
     pub fn new(
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
         scrollable_offset: Option<RelativeOffset>,
@@ -65,7 +65,7 @@ impl StatisticsTab {
                 for (index, series_info_and_time) in series_infos_and_time.into_iter().enumerate() {
                     let (banner, banner_command) = SeriesBanner::new(
                         index,
-                        series_info_and_time.0,
+                        std::borrow::Cow::Owned(series_info_and_time.0),
                         series_info_and_time.1,
                         self.series_page_sender.clone(),
                     );
@@ -153,7 +153,7 @@ async fn get_series_with_runtime() -> Vec<(SeriesMainInformation, Option<u32>)> 
     infos_and_time
 }
 
-impl Tab for StatisticsTab {
+impl<'a> Tab for StatisticsTab<'a> {
     type Message = Message;
 
     fn title() -> &'static str {

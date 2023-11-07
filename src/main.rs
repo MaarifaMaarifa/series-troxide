@@ -1,7 +1,7 @@
+use iced::{window, Application, Settings};
+
 pub mod core;
 mod gui;
-
-use iced::{window, Application, Settings};
 
 fn main() -> anyhow::Result<()> {
     let subscriber = tracing_subscriber::FmtSubscriber::new();
