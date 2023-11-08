@@ -21,7 +21,7 @@ mod mini_widgets;
 #[derive(Clone, Debug)]
 pub enum Message {
     SeriesInfosAndTimeReceived(Vec<(SeriesMainInformation, Option<u32>)>),
-    SeriesBanner(SeriesBannerIndexedMessage<SeriesBannerMessage>),
+    SeriesBanner(SeriesBannerIndexedMessage<usize, SeriesBannerMessage>),
     PageScrolled(Viewport),
 }
 

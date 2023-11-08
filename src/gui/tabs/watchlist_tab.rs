@@ -19,7 +19,7 @@ use watchlist_summary::WatchlistSummary;
 #[derive(Debug, Clone)]
 pub enum Message {
     SeriesInformationLoaded(Vec<(SeriesMainInformation, EpisodeList, usize)>),
-    WatchlistPoster(IndexedMessage<WatchlistPosterMessage>),
+    WatchlistPoster(IndexedMessage<usize, WatchlistPosterMessage>),
     PageScrolled(Viewport),
 }
 
@@ -267,7 +267,7 @@ mod watchlist_poster {
             episode_list: EpisodeList,
             total_series_episodes: usize,
             series_page_sender: mpsc::Sender<SeriesMainInformation>,
-        ) -> (Self, Command<IndexedMessage<Message>>) {
+        ) -> (Self, Command<IndexedMessage<usize, Message>>) {
             let (poster, poster_command) = GenericPoster::new(series_info, series_page_sender);
 
             (
@@ -287,8 +287,8 @@ mod watchlist_poster {
 
         pub fn update(
             &mut self,
-            message: IndexedMessage<Message>,
-        ) -> Command<IndexedMessage<Message>> {
+            message: IndexedMessage<usize, Message>,
+        ) -> Command<IndexedMessage<usize, Message>> {
             let command = match message.message() {
                 Message::Poster(message) => {
                     self.poster.update(message);
@@ -334,7 +334,7 @@ mod watchlist_poster {
             Command::batch([episode_update_command, command])
         }
 
-        fn update_episode_poster(&mut self) -> Command<IndexedMessage<Message>> {
+        fn update_episode_poster(&mut self) -> Command<IndexedMessage<usize, Message>> {
             if let Some(episode) = self.episode_list.get_next_episode_to_watch() {
                 let (episode_poster, episode_poster_command) = EpisodePoster::new(
                     0,
@@ -352,7 +352,7 @@ mod watchlist_poster {
             }
         }
 
-        pub fn view(&self) -> Element<'_, IndexedMessage<Message>, Renderer> {
+        pub fn view(&self) -> Element<'_, IndexedMessage<usize, Message>, Renderer> {
             let mut content = row!().padding(2).spacing(5);
             if let Some(image_bytes) = self.poster.get_image() {
                 let image_handle = image::Handle::from_memory(image_bytes.clone());

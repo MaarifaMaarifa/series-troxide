@@ -12,7 +12,7 @@ const INITIAL_CAST_NUMBER: usize = 20;
 #[derive(Clone, Debug)]
 pub enum Message {
     CastReceived(Vec<Cast>),
-    Cast(IndexedCastMessage<CastMessage>),
+    Cast(IndexedCastMessage<usize, CastMessage>),
     Expand,
     Shrink,
 }
@@ -192,7 +192,7 @@ mod cast_poster {
     }
 
     impl CastPoster {
-        pub fn new(id: usize, cast: Cast) -> (Self, Command<IndexedMessage<Message>>) {
+        pub fn new(id: usize, cast: Cast) -> (Self, Command<IndexedMessage<usize, Message>>) {
             let image = cast.person.image.clone();
             let poster = Self {
                 index: id,
@@ -211,8 +211,8 @@ mod cast_poster {
 
         pub fn update(
             &mut self,
-            message: IndexedMessage<Message>,
-        ) -> Command<IndexedMessage<Message>> {
+            message: IndexedMessage<usize, Message>,
+        ) -> Command<IndexedMessage<usize, Message>> {
             let command = match message.message() {
                 Message::PersonImageLoaded(image) => {
                     self.person_image = image;
@@ -244,7 +244,7 @@ mod cast_poster {
             command.map(move |message| IndexedMessage::new(index, message))
         }
 
-        pub fn view(&self) -> Element<'_, IndexedMessage<Message>, Renderer> {
+        pub fn view(&self) -> Element<'_, IndexedMessage<usize, Message>, Renderer> {
             let mut content = Row::new().spacing(10);
 
             let empty_image = helpers::empty_image::empty_image().width(100).height(140);

@@ -13,7 +13,7 @@ use iced_aw::{Spinner, Wrap};
 #[derive(Debug, Clone)]
 pub enum Message {
     FullScheduleLoaded(&'static full_schedule::FullSchedule),
-    SeriesPoster(SeriesPosterIndexedMessage<SeriesPosterMessage>),
+    SeriesPoster(SeriesPosterIndexedMessage<usize, SeriesPosterMessage>),
 }
 
 enum LoadState {

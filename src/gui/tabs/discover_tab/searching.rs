@@ -25,7 +25,7 @@ pub enum Message {
     TermSearched,
     SearchSuccess(Vec<series_searching::SeriesSearchResult>),
     SearchFail,
-    SearchResult(SearchResultIndexedMessage<SearchResultMessage>),
+    SearchResult(SearchResultIndexedMessage<usize, SearchResultMessage>),
     EscapeKeyPressed,
 }
 
@@ -200,7 +200,7 @@ mod search_result {
             index: usize,
             search_result: series_searching::SeriesSearchResult,
             series_page_sender: mpsc::Sender<SeriesMainInformation>,
-        ) -> (Self, Command<IndexedMessage<Message>>) {
+        ) -> (Self, Command<IndexedMessage<usize, Message>>) {
             let image_url = search_result.show.image.clone();
             (
                 Self {
@@ -221,7 +221,7 @@ mod search_result {
             )
         }
 
-        pub fn update(&mut self, message: IndexedMessage<Message>) {
+        pub fn update(&mut self, message: IndexedMessage<usize, Message>) {
             match message.message() {
                 Message::ImageLoaded(image) => self.image = image,
                 Message::SeriesResultPressed => {
@@ -232,7 +232,7 @@ mod search_result {
             }
         }
 
-        pub fn view(&self) -> Element<'_, IndexedMessage<Message>, Renderer> {
+        pub fn view(&self) -> Element<'_, IndexedMessage<usize, Message>, Renderer> {
             let mut row = row!().spacing(5).padding(5);
 
             if let Some(image_bytes) = self.image.clone() {
