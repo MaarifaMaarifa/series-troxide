@@ -131,13 +131,13 @@ async fn should_update() -> anyhow::Result<bool> {
             Ok(val) => val,
             Err(err) => {
                 error!("failed to parse 'last-cache-update' file: {}", err);
-                warn!("assuming a day has lasted since last cache update");
+                warn!("assuming at least a day has passed since last cache update");
                 return Ok(true);
             }
         },
         Err(err) => {
             error!("could not read 'last-cache-update' file: {}", err);
-            warn!("assuming a day has lasted since last cache update");
+            warn!("assuming at least a day has passed since last cache update");
             return Ok(true);
         }
     };

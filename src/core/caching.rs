@@ -29,11 +29,10 @@ use bytes::Bytes;
 use std::io::{self, ErrorKind};
 use std::path;
 
-use crate::core::api::tv_maze::{self, deserialize_json};
-
 use super::api::tv_maze::{series_information::SeriesMainInformation, ApiError};
 pub use super::api::tv_maze::{ImageType, OriginalType};
 use super::paths;
+use crate::core::api::tv_maze::{self, deserialize_json};
 use lazy_static::lazy_static;
 use tokio::fs;
 use tracing::{error, info};
@@ -82,7 +81,7 @@ impl Cacher {
             .get_cache_dir_path()
             .to_path_buf();
 
-        info!("initializing cache at {}", cache_path.display());
+        info!("using cache at {}", cache_path.display());
 
         Self { cache_path }
     }
