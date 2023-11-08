@@ -159,37 +159,12 @@ fn tracking_button(series_id: u32) -> Button<'static, Message, Renderer> {
     .style(styles::button_styles::transparent_button_theme())
 }
 
-/// This Series Message is useful to make sure that the appropiate
-/// series page receives it's exact series message. Since the series
-/// page can be switched rapidly by the user, some of the commands
-/// might be running in the background and my complete when a new instance
-/// of series page has been opened updating it with wrong data.
-#[derive(Clone, Debug)]
-pub struct IdentifiableMessage {
-    pub id: u32,
-    pub message: Message,
-}
-
-impl IdentifiableMessage {
-    pub fn new(id: u32, message: Message) -> Self {
-        Self { id, message }
-    }
-
-    pub fn get_id(&self) -> u32 {
-        self.id
-    }
-
-    pub fn get_message(self) -> Message {
-        self.message
-    }
-}
-
 #[derive(Clone, Debug)]
 pub enum Message {
     SeriesImageLoaded(Option<Bytes>),
     SeriesBackgroundLoaded(Option<Bytes>),
     EpisodeListLoaded(caching::episode_list::EpisodeList),
-    Season(SeasonIndexedMessage<SeasonMessage>),
+    Season(SeasonIndexedMessage<usize, SeasonMessage>),
     CastWidgetAction(CastWidgetMessage),
     SeriesSuggestion(SeriesSuggestionMessage),
     PageScrolled(Viewport),

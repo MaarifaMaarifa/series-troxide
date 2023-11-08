@@ -45,14 +45,14 @@ const GENRE_SECTIONS: [Genre; 8] = [
 #[derive(Debug, Clone)]
 pub enum Message {
     FullScheduleLoaded(&'static caching::tv_schedule::full_schedule::FullSchedule),
-    MonthlyNewPosters(SeriesPosterIndexedMessage<SeriesPosterMessage>),
-    MonthlyReturningPosters(SeriesPosterIndexedMessage<SeriesPosterMessage>),
-    GlobalSeries(SeriesPosterIndexedMessage<SeriesPosterMessage>),
-    LocalSeries(SeriesPosterIndexedMessage<SeriesPosterMessage>),
-    PopularPosters(SeriesPosterIndexedMessage<SeriesPosterMessage>),
-    NetworkPosters(SeriesPosterIndexedMessage<SeriesPosterMessage>),
-    WebChannelPosters(SeriesPosterIndexedMessage<SeriesPosterMessage>),
-    GenrePosters(SeriesPosterIndexedMessage<SeriesPosterMessage>),
+    MonthlyNewPosters(SeriesPosterIndexedMessage<usize, SeriesPosterMessage>),
+    MonthlyReturningPosters(SeriesPosterIndexedMessage<usize, SeriesPosterMessage>),
+    GlobalSeries(SeriesPosterIndexedMessage<usize, SeriesPosterMessage>),
+    LocalSeries(SeriesPosterIndexedMessage<usize, SeriesPosterMessage>),
+    PopularPosters(SeriesPosterIndexedMessage<usize, SeriesPosterMessage>),
+    NetworkPosters(SeriesPosterIndexedMessage<usize, SeriesPosterMessage>),
+    WebChannelPosters(SeriesPosterIndexedMessage<usize, SeriesPosterMessage>),
+    GenrePosters(SeriesPosterIndexedMessage<usize, SeriesPosterMessage>),
 }
 
 enum LoadState {
@@ -353,7 +353,7 @@ impl<'a> FullSchedulePosters<'a> {
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (
         Vec<SeriesPoster<'a>>,
-        Vec<Command<SeriesPosterIndexedMessage<SeriesPosterMessage>>>,
+        Vec<Command<SeriesPosterIndexedMessage<usize, SeriesPosterMessage>>>,
     ) {
         let mut posters = Vec::with_capacity(series_infos.len());
         let mut posters_commands = Vec::with_capacity(series_infos.len());
@@ -391,7 +391,7 @@ fn no_series_found() -> Element<'static, Message, Renderer> {
 fn series_posters_viewer<'a>(
     title: &str,
     posters: &'a [SeriesPoster],
-) -> Element<'a, SeriesPosterIndexedMessage<SeriesPosterMessage>, Renderer> {
+) -> Element<'a, SeriesPosterIndexedMessage<usize, SeriesPosterMessage>, Renderer> {
     let title = text(title).size(21);
 
     if posters.is_empty() {
@@ -444,7 +444,7 @@ where
         &mut self,
         section_id: T,
         series_infos: Vec<&'a SeriesMainInformation>,
-        message: fn(SeriesPosterIndexedMessage<SeriesPosterMessage>) -> Message,
+        message: fn(SeriesPosterIndexedMessage<usize, SeriesPosterMessage>) -> Message,
     ) -> Command<Message> {
         if self.posters.is_empty() {
             let range = 0..=(series_infos.len() - 1);
@@ -476,7 +476,7 @@ where
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (
         Vec<SeriesPoster<'a>>,
-        Vec<Command<SeriesPosterIndexedMessage<SeriesPosterMessage>>>,
+        Vec<Command<SeriesPosterIndexedMessage<usize, SeriesPosterMessage>>>,
     ) {
         assert_eq!(range.clone().count(), series_infos.len());
 
@@ -507,7 +507,7 @@ where
     pub fn get_section_view(
         &self,
         section_id: &T,
-        message: fn(SeriesPosterIndexedMessage<SeriesPosterMessage>) -> Message,
+        message: fn(SeriesPosterIndexedMessage<usize, SeriesPosterMessage>) -> Message,
     ) -> Element<'_, Message, Renderer> {
         let series_posters = self.get_section(section_id);
 
@@ -533,8 +533,8 @@ where
 
     pub fn update_poster(
         &mut self,
-        message: SeriesPosterIndexedMessage<SeriesPosterMessage>,
-    ) -> Command<SeriesPosterIndexedMessage<SeriesPosterMessage>> {
+        message: SeriesPosterIndexedMessage<usize, SeriesPosterMessage>,
+    ) -> Command<SeriesPosterIndexedMessage<usize, SeriesPosterMessage>> {
         let index = message.index();
         self.posters[index].update(message)
     }

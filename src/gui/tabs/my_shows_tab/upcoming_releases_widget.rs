@@ -14,7 +14,7 @@ use upcoming_poster::{Message as UpcomingPosterMessage, UpcomingPoster};
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    UpcomingPoster(IndexedMessage<UpcomingPosterMessage>),
+    UpcomingPoster(IndexedMessage<usize, UpcomingPosterMessage>),
     SeriesInformationReceived(Option<Vec<(SeriesMainInformation, Episode, EpisodeReleaseTime)>>),
     Refresh,
 }
@@ -185,7 +185,7 @@ mod upcoming_poster {
             series_page_sender: mpsc::Sender<SeriesMainInformation>,
             upcoming_episode: Episode,
             episode_release_time: EpisodeReleaseTime,
-        ) -> (Self, Command<IndexedMessage<Message>>) {
+        ) -> (Self, Command<IndexedMessage<usize, Message>>) {
             let (poster, poster_command) = GenericPoster::new(series_info, series_page_sender);
             (
                 Self {
@@ -206,8 +206,8 @@ mod upcoming_poster {
 
         pub fn update(
             &mut self,
-            message: IndexedMessage<Message>,
-        ) -> Command<IndexedMessage<Message>> {
+            message: IndexedMessage<usize, Message>,
+        ) -> Command<IndexedMessage<usize, Message>> {
             match message.message() {
                 Message::Poster(message) => {
                     self.poster.update(message);
@@ -220,7 +220,7 @@ mod upcoming_poster {
             }
         }
 
-        pub fn view(&self) -> Element<'_, IndexedMessage<Message>, Renderer> {
+        pub fn view(&self) -> Element<'_, IndexedMessage<usize, Message>, Renderer> {
             let mut content = row!().padding(2).spacing(7);
             if let Some(image_bytes) = self.poster.get_image() {
                 let image_handle = image::Handle::from_memory(image_bytes.clone());

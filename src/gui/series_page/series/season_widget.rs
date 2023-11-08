@@ -19,7 +19,7 @@ pub enum Message {
     TrackCommandComplete(AddResult),
     Expand,
     EpisodesLoaded(Vec<EpisodeInfo>),
-    Episode(EpisodeIndexedMessage<EpisodeMessage>),
+    Episode(EpisodeIndexedMessage<usize, EpisodeMessage>),
 }
 
 #[derive(Clone)]
@@ -51,7 +51,10 @@ impl Season {
             is_expanded: false,
         }
     }
-    pub fn update(&mut self, message: IndexedMessage<Message>) -> Command<IndexedMessage<Message>> {
+    pub fn update(
+        &mut self,
+        message: IndexedMessage<usize, Message>,
+    ) -> Command<IndexedMessage<usize, Message>> {
         match message.message() {
             Message::CheckboxPressed => {
                 let series_id = self.series_id;
@@ -96,14 +99,16 @@ impl Season {
                 .map(move |message| IndexedMessage::new(series_index, message));
             }
             Message::EpisodesLoaded(episode_infos) => {
-                let epis: Vec<(Episode, Command<EpisodeIndexedMessage<EpisodeMessage>>)> =
-                    episode_infos
-                        .into_iter()
-                        .enumerate()
-                        .map(|(index, info)| {
-                            Episode::new(index, self.series_id, self.series_name.clone(), info)
-                        })
-                        .collect();
+                let epis: Vec<(
+                    Episode,
+                    Command<EpisodeIndexedMessage<usize, EpisodeMessage>>,
+                )> = episode_infos
+                    .into_iter()
+                    .enumerate()
+                    .map(|(index, info)| {
+                        Episode::new(index, self.series_id, self.series_name.clone(), info)
+                    })
+                    .collect();
 
                 let index = self.index;
                 let mut commands = Vec::with_capacity(epis.len());
@@ -136,7 +141,7 @@ impl Season {
         Command::none()
     }
 
-    pub fn view(&self) -> Element<'_, IndexedMessage<Message>, Renderer> {
+    pub fn view(&self) -> Element<'_, IndexedMessage<usize, Message>, Renderer> {
         let tracked_episodes = database::DB
             .get_series(self.series_id)
             .map(|series| {

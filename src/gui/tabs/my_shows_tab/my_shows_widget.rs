@@ -13,7 +13,7 @@ use crate::gui::troxide_widget::series_poster::{
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    SeriesPosters(SeriesPosterIndexedMessage<SeriesPosterMessage>),
+    SeriesPosters(SeriesPosterIndexedMessage<usize, SeriesPosterMessage>),
     SeriesInformationReceived(Option<Vec<SeriesMainInformation>>),
 }
 

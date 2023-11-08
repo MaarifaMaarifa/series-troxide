@@ -43,7 +43,7 @@ pub mod episode_widget {
             series_id: u32,
             series_name: String,
             episode_information: EpisodeInfo,
-        ) -> (Self, Command<IndexedMessage<Message>>) {
+        ) -> (Self, Command<IndexedMessage<usize, Message>>) {
             let episode_image = episode_information.image.clone();
             let episode = Self {
                 index,
@@ -73,8 +73,8 @@ pub mod episode_widget {
 
         pub fn update(
             &mut self,
-            message: IndexedMessage<Message>,
-        ) -> Command<IndexedMessage<Message>> {
+            message: IndexedMessage<usize, Message>,
+        ) -> Command<IndexedMessage<usize, Message>> {
             match message.message() {
                 Message::ImageLoaded(image) => {
                     self.episode_image = image;
@@ -130,7 +130,7 @@ pub mod episode_widget {
         pub fn view(
             &self,
             poster_type: PosterType,
-        ) -> Element<'_, IndexedMessage<Message>, Renderer> {
+        ) -> Element<'_, IndexedMessage<usize, Message>, Renderer> {
             let (poster_width, image_width, image_height) = match poster_type {
                 PosterType::Watchlist => (800_f32, 124_f32, 70_f32),
                 PosterType::Season => (700_f32, 107_f32, 60_f32),
@@ -353,7 +353,7 @@ pub mod series_poster {
             index: usize,
             series_information: Cow<'a, SeriesMainInformation>,
             series_page_sender: mpsc::Sender<SeriesMainInformation>,
-        ) -> (Self, Command<IndexedMessage<Message>>) {
+        ) -> (Self, Command<IndexedMessage<usize, Message>>) {
             let (poster, poster_command) =
                 GenericPoster::new(series_information, series_page_sender);
             let poster = Self {
@@ -373,8 +373,8 @@ pub mod series_poster {
 
         pub fn update(
             &mut self,
-            message: IndexedMessage<Message>,
-        ) -> Command<IndexedMessage<Message>> {
+            message: IndexedMessage<usize, Message>,
+        ) -> Command<IndexedMessage<usize, Message>> {
             match message.message() {
                 Message::SeriesPosterPressed => {
                     self.poster.open_series_page();
@@ -410,7 +410,10 @@ pub mod series_poster {
             self.hidden
         }
 
-        pub fn view(&self, expandable: bool) -> Element<'_, IndexedMessage<Message>, Renderer> {
+        pub fn view(
+            &self,
+            expandable: bool,
+        ) -> Element<'_, IndexedMessage<usize, Message>, Renderer> {
             let poster_image: Element<'_, Message, Renderer> = {
                 let image_height = if self.expanded { 170 } else { 140 };
                 if let Some(image_bytes) = self.poster.get_image() {
