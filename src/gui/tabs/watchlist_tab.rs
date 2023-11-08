@@ -246,7 +246,7 @@ mod watchlist_poster {
     #[derive(Debug, Clone)]
     pub enum Message {
         Poster(GenericPosterMessage),
-        EpisodePoster(EpisodePosterMessage),
+        EpisodePoster(IndexedMessage<usize, EpisodePosterMessage>),
         SeriesPosterPressed,
         ToggleEpisodeInfo,
     }
@@ -257,6 +257,7 @@ mod watchlist_poster {
         episode_list: EpisodeList,
         total_series_episodes: usize,
         episode_poster: Option<EpisodePoster>,
+        current_poster_id: usize,
         show_episode_info: bool,
     }
 
@@ -277,6 +278,7 @@ mod watchlist_poster {
                     episode_list,
                     total_series_episodes,
                     episode_poster: None,
+                    current_poster_id: 0,
                     show_episode_info: false,
                 },
                 poster_command
@@ -308,14 +310,17 @@ mod watchlist_poster {
                     }
                 }
                 Message::EpisodePoster(message) => {
-                    let index = self.index;
-                    self.episode_poster
-                        .as_mut()
-                        .expect("there should be episode poster when receiving it's message")
-                        .update(IndexedMessage::new(0, message))
-                        .map(move |message| {
-                            IndexedMessage::new(index, Message::EpisodePoster(message.message()))
+                    if message.index() != self.current_poster_id {
+                        Command::none()
+                    } else if let Some(episode_poster) = self.episode_poster.as_mut() {
+                        let index = self.index;
+                        episode_poster.update(message).map(move |message| {
+                            IndexedMessage::new(index, Message::EpisodePoster(message))
                         })
+                    } else {
+                        // This situation can happen when all the episodes have been marked watched
+                        Command::none()
+                    }
                 }
             };
 
@@ -335,18 +340,19 @@ mod watchlist_poster {
         }
 
         fn update_episode_poster(&mut self) -> Command<IndexedMessage<usize, Message>> {
+            self.current_poster_id += 1;
+
             if let Some(episode) = self.episode_list.get_next_episode_to_watch() {
                 let (episode_poster, episode_poster_command) = EpisodePoster::new(
-                    0,
+                    self.current_poster_id,
                     self.poster.get_series_info().id,
                     self.poster.get_series_info().name.clone(),
                     episode.clone(),
                 );
                 let index = self.index;
                 self.episode_poster = Some(episode_poster);
-                episode_poster_command.map(move |message| {
-                    IndexedMessage::new(index, Message::EpisodePoster(message.message()))
-                })
+                episode_poster_command
+                    .map(move |message| IndexedMessage::new(index, Message::EpisodePoster(message)))
             } else {
                 Command::none()
             }
@@ -426,7 +432,7 @@ mod watchlist_poster {
                     content = content.push(horizontal_rule(1));
                     let episode_view = episode_poster
                         .view(PosterType::Watchlist)
-                        .map(|message| Message::EpisodePoster(message.message()));
+                        .map(Message::EpisodePoster);
 
                     content = content.push(container(episode_view).width(Length::Fill).center_x());
                 }
