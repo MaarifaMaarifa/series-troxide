@@ -181,13 +181,6 @@ pub fn network_widget(
     series_info: &SeriesMainInformation,
     data_grid: &mut Grid<'_, Message, Renderer>,
 ) {
-    // if let Some(network) = series_info.network.as_ref() {
-    //     if let Some(network_name) = network.country.name.as_ref() {
-    //         data_grid.insert(text("Network"));
-    //         data_grid.insert(text(format!("{} ({})", &network.name, network_name)));
-    //     }
-    // };
-
     series_info.network.as_ref().map(|network| {
         network.country.name.as_ref().map(|network_name| {
             // TODO: Add a clickable link
@@ -209,7 +202,7 @@ pub fn webchannel_widget(
 }
 
 pub fn next_episode_release_time_widget(
-    next_episode_release_time: Option<&(Episode, EpisodeReleaseTime)>,
+    next_episode_release_time: Option<(&Episode, EpisodeReleaseTime)>,
 ) -> Element<'_, Message, Renderer> {
     if let Some((episode, release_time)) = next_episode_release_time {
         let season = episode.season;
