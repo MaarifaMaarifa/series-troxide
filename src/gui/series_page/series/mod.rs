@@ -13,7 +13,7 @@ use cast_widget::{CastWidget, Message as CastWidgetMessage};
 use data_widgets::*;
 use iced::widget::scrollable::{Id, RelativeOffset, Viewport};
 use image;
-use season_widget::{IndexedMessage as SeasonIndexedMessage, Message as SeasonMessage};
+use season_widget::{IndexedMessage, Message as SeasonMessage};
 use series_suggestion_widget::{Message as SeriesSuggestionMessage, SeriesSuggestion};
 
 use iced::widget::{
@@ -164,7 +164,7 @@ pub enum Message {
     SeriesImageLoaded(Option<Bytes>),
     SeriesBackgroundLoaded(Option<Bytes>),
     EpisodeListLoaded(caching::episode_list::EpisodeList),
-    Season(SeasonIndexedMessage<usize, SeasonMessage>),
+    Season(IndexedMessage<usize, SeasonMessage>),
     CastWidgetAction(CastWidgetMessage),
     SeriesSuggestion(SeriesSuggestionMessage),
     PageScrolled(Viewport),

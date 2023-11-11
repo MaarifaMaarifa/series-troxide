@@ -8,12 +8,12 @@ use crate::core::api::tv_maze::series_information::SeriesMainInformation;
 use crate::core::caching;
 use crate::gui::styles;
 use crate::gui::troxide_widget::series_poster::{
-    IndexedMessage as SeriesPosterIndexedMessage, Message as SeriesPosterMessage, SeriesPoster,
+    IndexedMessage, Message as SeriesPosterMessage, SeriesPoster,
 };
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    SeriesPosters(SeriesPosterIndexedMessage<usize, SeriesPosterMessage>),
+    SeriesPosters(IndexedMessage<usize, SeriesPosterMessage>),
     SeriesInformationReceived(Option<Vec<SeriesMainInformation>>),
 }
 

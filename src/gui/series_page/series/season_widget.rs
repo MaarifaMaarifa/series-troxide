@@ -9,9 +9,7 @@ use crate::core::{caching, database};
 use crate::gui::assets::icons::{CHEVRON_DOWN, CHEVRON_UP};
 pub use crate::gui::message::IndexedMessage;
 use crate::gui::styles;
-use crate::gui::troxide_widget::episode_widget::{
-    Episode, IndexedMessage as EpisodeIndexedMessage, Message as EpisodeMessage, PosterType,
-};
+use crate::gui::troxide_widget::episode_widget::{Episode, Message as EpisodeMessage, PosterType};
 
 #[derive(Clone, Debug)]
 pub enum Message {
@@ -19,7 +17,7 @@ pub enum Message {
     TrackCommandComplete(AddResult),
     Expand,
     EpisodesLoaded(Vec<EpisodeInfo>),
-    Episode(EpisodeIndexedMessage<usize, EpisodeMessage>),
+    Episode(IndexedMessage<usize, EpisodeMessage>),
 }
 
 #[derive(Clone)]
@@ -99,16 +97,14 @@ impl Season {
                 .map(move |message| IndexedMessage::new(series_index, message));
             }
             Message::EpisodesLoaded(episode_infos) => {
-                let epis: Vec<(
-                    Episode,
-                    Command<EpisodeIndexedMessage<usize, EpisodeMessage>>,
-                )> = episode_infos
-                    .into_iter()
-                    .enumerate()
-                    .map(|(index, info)| {
-                        Episode::new(index, self.series_id, self.series_name.clone(), info)
-                    })
-                    .collect();
+                let epis: Vec<(Episode, Command<IndexedMessage<usize, EpisodeMessage>>)> =
+                    episode_infos
+                        .into_iter()
+                        .enumerate()
+                        .map(|(index, info)| {
+                            Episode::new(index, self.series_id, self.series_name.clone(), info)
+                        })
+                        .collect();
 
                 let index = self.index;
                 let mut commands = Vec::with_capacity(epis.len());

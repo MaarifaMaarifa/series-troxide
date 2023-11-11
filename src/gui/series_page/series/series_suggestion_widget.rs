@@ -3,7 +3,7 @@ use std::sync::mpsc;
 use crate::core::api::tv_maze::series_information::{Genre, SeriesMainInformation};
 use crate::core::caching::tv_schedule::full_schedule;
 use crate::gui::troxide_widget::series_poster::{
-    IndexedMessage as SeriesPosterIndexedMessage, Message as SeriesPosterMessage, SeriesPoster,
+    IndexedMessage, Message as SeriesPosterMessage, SeriesPoster,
 };
 
 use iced::widget::{column, container, text, Space};
@@ -13,7 +13,7 @@ use iced_aw::{Spinner, Wrap};
 #[derive(Debug, Clone)]
 pub enum Message {
     FullScheduleLoaded(&'static full_schedule::FullSchedule),
-    SeriesPoster(SeriesPosterIndexedMessage<usize, SeriesPosterMessage>),
+    SeriesPoster(IndexedMessage<usize, SeriesPosterMessage>),
 }
 
 enum LoadState {

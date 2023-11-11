@@ -8,9 +8,7 @@ use iced_aw::Wrap;
 use crate::core::{api::tv_maze::series_information::SeriesMainInformation, database};
 use crate::gui::assets::icons::GRAPH_UP_ARROW;
 use crate::gui::styles;
-use series_banner::{
-    IndexedMessage as SeriesBannerIndexedMessage, Message as SeriesBannerMessage, SeriesBanner,
-};
+use series_banner::{IndexedMessage, Message as SeriesBannerMessage, SeriesBanner};
 
 use mini_widgets::*;
 
@@ -21,7 +19,7 @@ mod mini_widgets;
 #[derive(Clone, Debug)]
 pub enum Message {
     SeriesInfosAndTimeReceived(Vec<(SeriesMainInformation, Option<u32>)>),
-    SeriesBanner(SeriesBannerIndexedMessage<usize, SeriesBannerMessage>),
+    SeriesBanner(IndexedMessage<usize, SeriesBannerMessage>),
     PageScrolled(Viewport),
 }
 
