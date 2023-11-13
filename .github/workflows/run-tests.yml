@@ -3,11 +3,6 @@ name: Run Tests and Linters
 on:
   workflow_call:
 
-# since opt-level of 3 is used for dependencies in dev profile as
-# configured through Cargo.toml, we explicitly set it to 0
-env:
-  RUSTFLAGS: "-C opt-level=0"
-
 jobs:
   fmt:
     name: Run rustfmt in check mode

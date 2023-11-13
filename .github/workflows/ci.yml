@@ -8,7 +8,9 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  RUSTFLAGS: -Dwarnings
+  # since opt-level of 3 is used for dependencies in dev profile as
+  # configured through Cargo.toml, we explicitly set it to 0
+  RUSTFLAGS: -Dwarnings -C opt-level=0
 
 jobs:
 
