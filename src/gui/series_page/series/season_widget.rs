@@ -60,6 +60,8 @@ impl Seasons {
                 let season_and_total_episodes =
                     episode_list.get_season_numbers_with_total_episode();
 
+                self.episode_list = Some(episode_list);
+
                 self.seasons = season_and_total_episodes
                     .into_iter()
                     .enumerate()
@@ -67,14 +69,15 @@ impl Seasons {
                         Season::new(
                             index,
                             self.series_id,
+                            self.episode_list
+                                .clone()
+                                .unwrap_or_else(|| unreachable!("EpisodeList should be present")),
                             self.series_name.to_string(),
                             season.0,
                             season.1,
                         )
                     })
                     .collect();
-
-                self.episode_list = Some(episode_list);
 
                 Command::none()
             }
@@ -127,9 +130,9 @@ mod season {
     use iced_aw::Spinner;
 
     use crate::core::api::tv_maze::episodes_information::Episode as EpisodeInfo;
-    use crate::core::caching::episode_list::TotalEpisodes;
+    use crate::core::caching::episode_list::{EpisodeList, TotalEpisodes};
+    use crate::core::database;
     use crate::core::database::AddResult;
-    use crate::core::{caching, database};
     use crate::gui::assets::icons::{CHEVRON_DOWN, CHEVRON_UP};
     use crate::gui::message::IndexedMessage;
     use crate::gui::styles;
@@ -142,7 +145,6 @@ mod season {
         CheckboxPressed,
         TrackCommandComplete(AddResult),
         Expand,
-        EpisodesLoaded(Vec<EpisodeInfo>),
         Episode(IndexedMessage<usize, EpisodeMessage>),
     }
 
@@ -150,6 +152,7 @@ mod season {
     pub struct Season {
         index: usize,
         series_id: u32,
+        episode_list: EpisodeList,
         series_name: String,
         season_number: u32,
         total_episodes: TotalEpisodes,
@@ -161,6 +164,7 @@ mod season {
         pub fn new(
             index: usize,
             series_id: u32,
+            episode_list: EpisodeList,
             series_name: String,
             season_number: u32,
             total_episodes: TotalEpisodes,
@@ -168,6 +172,7 @@ mod season {
             Self {
                 index,
                 series_id,
+                episode_list,
                 series_name,
                 season_number,
                 total_episodes,
@@ -213,16 +218,13 @@ mod season {
                         return Command::none();
                     }
 
-                    let series_id = self.series_id;
-                    let season_number = self.season_number;
-                    let series_index = self.index;
-                    return Command::perform(
-                        async move { load_episode_infos(series_id, season_number).await },
-                        Message::EpisodesLoaded,
-                    )
-                    .map(move |message| IndexedMessage::new(series_index, message));
-                }
-                Message::EpisodesLoaded(episode_infos) => {
+                    let episode_infos: Vec<EpisodeInfo> = self
+                        .episode_list
+                        .get_episodes(self.season_number)
+                        .into_iter()
+                        .cloned()
+                        .collect();
+
                     let epis: Vec<(Episode, Command<IndexedMessage<usize, EpisodeMessage>>)> =
                         episode_infos
                             .into_iter()
@@ -270,9 +272,9 @@ mod season {
                     series
                         .get_season(self.season_number)
                         .map(|season| season.get_total_episodes())
-                        .unwrap_or(0)
+                        .unwrap_or_default()
                 })
-                .unwrap_or(0);
+                .unwrap_or_default();
 
             let track_checkbox = checkbox(
                 "",
@@ -345,17 +347,5 @@ mod season {
             let element: Element<'_, Message, Renderer> = content.into();
             element.map(|message| IndexedMessage::new(self.index, message))
         }
-    }
-
-    async fn load_episode_infos(series_id: u32, season_number: u32) -> Vec<EpisodeInfo> {
-        let episode_list = caching::episode_list::EpisodeList::new(series_id)
-            .await
-            .unwrap_or_else(|_| panic!("failed to get episodes for season {}", season_number));
-
-        episode_list
-            .get_episodes(season_number)
-            .into_iter()
-            .cloned()
-            .collect()
     }
 }
