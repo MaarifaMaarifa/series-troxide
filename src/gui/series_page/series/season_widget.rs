@@ -57,12 +57,11 @@ impl Seasons {
                 .update(message)
                 .map(Message::Season),
             Message::EpisodeListLoaded(episode_list) => {
-                let season_and_total_episodes =
-                    episode_list.get_season_numbers_with_total_episode();
+                let season_numbers = episode_list.get_season_numbers();
 
                 self.episode_list = Some(episode_list);
 
-                self.seasons = season_and_total_episodes
+                self.seasons = season_numbers
                     .into_iter()
                     .enumerate()
                     .map(|(index, season)| {
@@ -73,8 +72,7 @@ impl Seasons {
                                 .clone()
                                 .unwrap_or_else(|| unreachable!("EpisodeList should be present")),
                             self.series_name.to_string(),
-                            season.0,
-                            season.1,
+                            season,
                         )
                     })
                     .collect();
@@ -167,8 +165,8 @@ mod season {
             episode_list: EpisodeList,
             series_name: String,
             season_number: u32,
-            total_episodes: TotalEpisodes,
         ) -> Self {
+            let total_episodes = episode_list.get_season_total_episodes(season_number);
             Self {
                 index,
                 series_id,
