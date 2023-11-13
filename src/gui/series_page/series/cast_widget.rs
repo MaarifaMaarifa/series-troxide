@@ -1,4 +1,4 @@
-use cast_poster::{CastPoster, IndexedMessage as IndexedCastMessage, Message as CastMessage};
+use cast_poster::{CastPoster, IndexedMessage, Message as CastMessage};
 use iced::widget::{button, column, container, horizontal_space, row, svg, text, Space};
 use iced::{Command, Element, Length, Renderer};
 use iced_aw::{Spinner, Wrap};
@@ -12,7 +12,7 @@ const INITIAL_CAST_NUMBER: usize = 20;
 #[derive(Clone, Debug)]
 pub enum Message {
     CastReceived(Vec<Cast>),
-    Cast(IndexedCastMessage<usize, CastMessage>),
+    Cast(IndexedMessage<usize, CastMessage>),
     Expand,
     Shrink,
 }

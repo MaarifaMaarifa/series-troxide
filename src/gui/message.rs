@@ -2,13 +2,13 @@
 /// or in any form that needs to distinguish one from the other when multiple
 /// of the same widgets are used.
 #[derive(Debug, Clone)]
-pub struct IndexedMessage<I, T> {
+pub struct IndexedMessage<I, M> {
     index: I,
-    message: T,
+    message: M,
 }
 
-impl<I, T> IndexedMessage<I, T> {
-    pub fn new(index: I, message: T) -> Self {
+impl<I, M> IndexedMessage<I, M> {
+    pub fn new(index: I, message: M) -> Self {
         Self { index, message }
     }
 
@@ -19,7 +19,7 @@ impl<I, T> IndexedMessage<I, T> {
         self.index
     }
 
-    pub fn message(self) -> T {
+    pub fn message(self) -> M {
         self.message
     }
 }

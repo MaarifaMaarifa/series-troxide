@@ -13,7 +13,7 @@ use crate::core::caching;
 use crate::core::caching::tv_schedule::full_schedule::FullSchedule;
 use crate::core::settings_config::locale_settings;
 use crate::gui::troxide_widget::series_poster::{
-    IndexedMessage as SeriesPosterIndexedMessage, Message as SeriesPosterMessage, SeriesPoster,
+    IndexedMessage, Message as SeriesPosterMessage, SeriesPoster,
 };
 
 const SECTIONS_POSTERS_AMOUNT: usize = 20;
@@ -45,14 +45,14 @@ const GENRE_SECTIONS: [Genre; 8] = [
 #[derive(Debug, Clone)]
 pub enum Message {
     FullScheduleLoaded(&'static caching::tv_schedule::full_schedule::FullSchedule),
-    MonthlyNewPosters(SeriesPosterIndexedMessage<usize, SeriesPosterMessage>),
-    MonthlyReturningPosters(SeriesPosterIndexedMessage<usize, SeriesPosterMessage>),
-    GlobalSeries(SeriesPosterIndexedMessage<usize, SeriesPosterMessage>),
-    LocalSeries(SeriesPosterIndexedMessage<usize, SeriesPosterMessage>),
-    PopularPosters(SeriesPosterIndexedMessage<usize, SeriesPosterMessage>),
-    NetworkPosters(SeriesPosterIndexedMessage<usize, SeriesPosterMessage>),
-    WebChannelPosters(SeriesPosterIndexedMessage<usize, SeriesPosterMessage>),
-    GenrePosters(SeriesPosterIndexedMessage<usize, SeriesPosterMessage>),
+    MonthlyNewPosters(IndexedMessage<usize, SeriesPosterMessage>),
+    MonthlyReturningPosters(IndexedMessage<usize, SeriesPosterMessage>),
+    GlobalSeries(IndexedMessage<usize, SeriesPosterMessage>),
+    LocalSeries(IndexedMessage<usize, SeriesPosterMessage>),
+    PopularPosters(IndexedMessage<usize, SeriesPosterMessage>),
+    NetworkPosters(IndexedMessage<usize, SeriesPosterMessage>),
+    WebChannelPosters(IndexedMessage<usize, SeriesPosterMessage>),
+    GenrePosters(IndexedMessage<usize, SeriesPosterMessage>),
 }
 
 enum LoadState {
@@ -353,7 +353,7 @@ impl<'a> FullSchedulePosters<'a> {
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (
         Vec<SeriesPoster<'a>>,
-        Vec<Command<SeriesPosterIndexedMessage<usize, SeriesPosterMessage>>>,
+        Vec<Command<IndexedMessage<usize, SeriesPosterMessage>>>,
     ) {
         let mut posters = Vec::with_capacity(series_infos.len());
         let mut posters_commands = Vec::with_capacity(series_infos.len());
@@ -391,7 +391,7 @@ fn no_series_found() -> Element<'static, Message, Renderer> {
 fn series_posters_viewer<'a>(
     title: &str,
     posters: &'a [SeriesPoster],
-) -> Element<'a, SeriesPosterIndexedMessage<usize, SeriesPosterMessage>, Renderer> {
+) -> Element<'a, IndexedMessage<usize, SeriesPosterMessage>, Renderer> {
     let title = text(title).size(21);
 
     if posters.is_empty() {
@@ -444,7 +444,7 @@ where
         &mut self,
         section_id: T,
         series_infos: Vec<&'a SeriesMainInformation>,
-        message: fn(SeriesPosterIndexedMessage<usize, SeriesPosterMessage>) -> Message,
+        message: fn(IndexedMessage<usize, SeriesPosterMessage>) -> Message,
     ) -> Command<Message> {
         if self.posters.is_empty() {
             let range = 0..=(series_infos.len() - 1);
@@ -476,7 +476,7 @@ where
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (
         Vec<SeriesPoster<'a>>,
-        Vec<Command<SeriesPosterIndexedMessage<usize, SeriesPosterMessage>>>,
+        Vec<Command<IndexedMessage<usize, SeriesPosterMessage>>>,
     ) {
         assert_eq!(range.clone().count(), series_infos.len());
 
@@ -507,7 +507,7 @@ where
     pub fn get_section_view(
         &self,
         section_id: &T,
-        message: fn(SeriesPosterIndexedMessage<usize, SeriesPosterMessage>) -> Message,
+        message: fn(IndexedMessage<usize, SeriesPosterMessage>) -> Message,
     ) -> Element<'_, Message, Renderer> {
         let series_posters = self.get_section(section_id);
 
@@ -533,8 +533,8 @@ where
 
     pub fn update_poster(
         &mut self,
-        message: SeriesPosterIndexedMessage<usize, SeriesPosterMessage>,
-    ) -> Command<SeriesPosterIndexedMessage<usize, SeriesPosterMessage>> {
+        message: IndexedMessage<usize, SeriesPosterMessage>,
+    ) -> Command<IndexedMessage<usize, SeriesPosterMessage>> {
         let index = message.index();
         self.posters[index].update(message)
     }

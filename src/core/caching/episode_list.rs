@@ -70,11 +70,6 @@ impl EpisodeList {
         &self.episodes
     }
 
-    // /// Get the total number of all episodes in the Series
-    // pub fn get_total_episodes(&self) -> usize {
-    //     self.episodes.len()
-    // }
-
     /// Get the total number of all watchable episodes in the Series
     pub fn get_total_watchable_episodes(&self) -> usize {
         self.episodes
@@ -83,27 +78,20 @@ impl EpisodeList {
             .count()
     }
 
-    /// Returns the number of all seasons available and their total episodes as a tuple (season_no, total_episodes)
-    pub fn get_season_numbers_with_total_episode(&self) -> Vec<(u32, TotalEpisodes)> {
-        let seasons: HashSet<u32> = self.episodes.iter().map(|episode| episode.season).collect();
-        let mut seasons: Vec<u32> = seasons.iter().copied().collect();
-        seasons.sort();
-
+    pub fn get_season_numbers(&self) -> Vec<u32> {
+        let mut seasons: Vec<u32> = self.episodes.iter().map(|episode| episode.season).collect();
+        seasons.dedup();
         seasons
+    }
+
+    pub fn get_season_total_episodes(&self, season_number: u32) -> TotalEpisodes {
+        let total_episodes = self.get_episodes(season_number).len();
+        let total_watchable_episodes = self
+            .get_episodes(season_number)
             .into_iter()
-            .map(|season| {
-                let total_episodes = self.get_episodes(season).len();
-                let total_watchable_episodes = self
-                    .get_episodes(season)
-                    .into_iter()
-                    .filter(|episode| Self::is_episode_watchable(episode) == Some(true))
-                    .count();
-                (
-                    season,
-                    TotalEpisodes::new(total_episodes, total_watchable_episodes),
-                )
-            })
-            .collect()
+            .filter(|episode| Self::is_episode_watchable(episode) == Some(true))
+            .count();
+        TotalEpisodes::new(total_episodes, total_watchable_episodes)
     }
 
     /// Returns the number of all seasons available and their total episodes as a tuple (season_no, total_episodes)

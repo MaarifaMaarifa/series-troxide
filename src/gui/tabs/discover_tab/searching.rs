@@ -3,9 +3,7 @@ use std::sync::mpsc;
 use iced::widget::{column, container, scrollable, text, text_input, vertical_space, Column};
 use iced::{Command, Element, Length, Renderer};
 use iced_aw::Spinner;
-use search_result::{
-    IndexedMessage as SearchResultIndexedMessage, Message as SearchResultMessage, SearchResult,
-};
+use search_result::{IndexedMessage, Message as SearchResultMessage, SearchResult};
 
 use crate::core::api::tv_maze::series_information::SeriesMainInformation;
 use crate::core::api::tv_maze::series_searching;
@@ -25,7 +23,7 @@ pub enum Message {
     TermSearched,
     SearchSuccess(Vec<series_searching::SeriesSearchResult>),
     SearchFail,
-    SearchResult(SearchResultIndexedMessage<usize, SearchResultMessage>),
+    SearchResult(IndexedMessage<usize, SearchResultMessage>),
     EscapeKeyPressed,
 }
 
