@@ -55,6 +55,19 @@ jobs:
         with:
             command: clippy
 
+  spell-check:
+    name: Run spell check
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: crate-ci/typos
+
+      - name: checking for typos
+        run: typos
+
   # test:
   #   name: Run tests
   #   runs-on: ubuntu-latest
