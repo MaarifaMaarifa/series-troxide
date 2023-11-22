@@ -64,7 +64,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: typos setup
-        uses: crate-ci/typos
+        uses: crate-ci/typos@v1
 
       - name: checking for typos
         run: typos
