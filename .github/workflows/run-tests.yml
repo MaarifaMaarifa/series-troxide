@@ -63,11 +63,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: typos setup
-        uses: crate-ci/typos@v1
-
       - name: checking for typos
-        run: typos
+        uses: crate-ci/typos@v1.16.23
+        with:
+          command: typos
 
   # test:
   #   name: Run tests
