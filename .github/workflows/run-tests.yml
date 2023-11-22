@@ -65,8 +65,6 @@ jobs:
 
       - name: checking for typos
         uses: crate-ci/typos@v1.16.23
-        with:
-          command: typos
 
   # test:
   #   name: Run tests
