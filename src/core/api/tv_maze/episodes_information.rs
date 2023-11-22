@@ -9,7 +9,7 @@ const EPISODE_LIST_ADDRESS: &str = "https://api.tvmaze.com/shows/SERIES-ID/episo
 
 /// # An `Episode` data according to the TVmaze api
 ///
-/// This data discribes an episode found in a season of a particular series
+/// This data describes an episode found in a season of a particular series
 ///
 /// ## Note
 

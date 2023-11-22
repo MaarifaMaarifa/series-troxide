@@ -85,7 +85,7 @@ impl Database {
             .collect()
     }
 
-    /// get series ids and their corrensponding series structures
+    /// get series ids and their corresponding series structures
     pub fn get_ids_and_series(&self) -> Vec<(String, Series)> {
         self.db
             .iter()
@@ -190,7 +190,7 @@ impl Series {
     /// # Note
     /// This method is automatically called when Series object goes out of scope
     /// as self.update() is called in it's drop implementation, hence no need of
-    /// calling it unless if you want imediate update i.e. there is some code that
+    /// calling it unless if you want immediate update i.e. there is some code that
     /// would take time to run before the object is dropped.
     pub fn update(&self) {
         DB.add_series(self.id, self);

@@ -281,7 +281,7 @@ mod cast_poster {
                 text(format!("as {}", &self.cast.character.name)).size(11)
             ]);
 
-            // A little bit of space between cast name and other informations
+            // A little bit of space between cast name and other information
             cast_info = cast_info.push(horizontal_space(20));
 
             if let Some(gender) = self.cast.person.gender.as_ref() {

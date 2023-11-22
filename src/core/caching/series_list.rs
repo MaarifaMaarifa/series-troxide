@@ -8,7 +8,7 @@ use crate::core::{
 use lazy_static::lazy_static;
 
 lazy_static! {
-    static ref TRACKED_SERIES_INFORMATIONS_REQUEST_LOCK: tokio::sync::Mutex<()> =
+    static ref TRACKED_SERIES_INFORMATION_REQUEST_LOCK: tokio::sync::Mutex<()> =
         tokio::sync::Mutex::new(());
 }
 
@@ -39,7 +39,7 @@ impl SeriesList {
             .collect()
     }
 
-    pub async fn get_untracked_series_informations(
+    pub async fn get_untracked_series_information(
         &self,
     ) -> anyhow::Result<Vec<SeriesMainInformation>> {
         let untracked_ids: Vec<u32> = self
@@ -61,22 +61,22 @@ impl SeriesList {
             .map(|id| tokio::spawn(series_information::get_series_main_info_with_id(*id)))
             .collect();
 
-        let mut series_informations = Vec::with_capacity(handles.len());
+        let mut series_information = Vec::with_capacity(handles.len());
         for handle in handles {
-            series_informations.push(handle.await??)
+            series_information.push(handle.await??)
         }
 
-        Ok(series_informations)
+        Ok(series_information)
     }
 
-    pub async fn get_tracked_series_informations(
+    pub async fn get_tracked_series_information(
         &self,
     ) -> anyhow::Result<Vec<SeriesMainInformation>> {
-        // Since diferrent methods can end up calling this same method, they will end up doing
-        // multiple unecessary api request if the data is not cached, this lock makes the first
+        // Since different methods can end up calling this same method, they will end up doing
+        // multiple unnecessary api request if the data is not cached, this lock makes the first
         // code to call this method to do all the work first and the other methods will eventually
         // read from the cache
-        let _ = TRACKED_SERIES_INFORMATIONS_REQUEST_LOCK.lock().await;
+        let _ = TRACKED_SERIES_INFORMATION_REQUEST_LOCK.lock().await;
 
         let tracked_ids: Vec<u32> = self
             .get_tracked_series_ids()
@@ -95,17 +95,17 @@ impl SeriesList {
             .map(|id| tokio::spawn(series_information::get_series_main_info_with_id(*id)))
             .collect();
 
-        let mut series_informations = Vec::with_capacity(handles.len());
+        let mut series_information = Vec::with_capacity(handles.len());
         for handle in handles {
-            series_informations.push(handle.await??)
+            series_information.push(handle.await??)
         }
 
-        Ok(series_informations)
+        Ok(series_information)
     }
 
-    /// Gets the series informations of all the series in the database
-    pub async fn get_all_series_informations(&self) -> anyhow::Result<Vec<SeriesMainInformation>> {
-        let _ = TRACKED_SERIES_INFORMATIONS_REQUEST_LOCK.lock().await;
+    /// Gets the series information of all the series in the database
+    pub async fn get_all_series_information(&self) -> anyhow::Result<Vec<SeriesMainInformation>> {
+        let _ = TRACKED_SERIES_INFORMATION_REQUEST_LOCK.lock().await;
 
         let handles: Vec<_> = self
             .series_list
@@ -116,40 +116,40 @@ impl SeriesList {
             })
             .collect();
 
-        let mut series_informations = Vec::with_capacity(handles.len());
+        let mut series_information = Vec::with_capacity(handles.len());
         for handle in handles {
-            series_informations.push(handle.await??)
+            series_information.push(handle.await??)
         }
 
-        Ok(series_informations)
+        Ok(series_information)
     }
 
-    pub async fn get_running_tracked_series_informations(
+    pub async fn get_running_tracked_series_information(
         &self,
     ) -> anyhow::Result<Vec<SeriesMainInformation>> {
         Ok(self
-            .get_tracked_series_informations()
+            .get_tracked_series_information()
             .await?
             .into_iter()
             .filter(|series_info| series_info.status != "Ended")
             .collect())
     }
 
-    pub async fn get_ended_tracked_series_informations(
+    pub async fn get_ended_tracked_series_information(
         &self,
     ) -> anyhow::Result<Vec<SeriesMainInformation>> {
         Ok(self
-            .get_tracked_series_informations()
+            .get_tracked_series_information()
             .await?
             .into_iter()
             .filter(|series_info| series_info.status == "Ended")
             .collect())
     }
 
-    pub async fn get_waiting_release_series_informations(
+    pub async fn get_waiting_release_series_information(
         &self,
     ) -> anyhow::Result<Vec<SeriesMainInformation>> {
-        let series_infos = self.get_running_tracked_series_informations().await?;
+        let series_infos = self.get_running_tracked_series_information().await?;
 
         let mut episode_list_handles = Vec::with_capacity(series_infos.len());
         for series_info in series_infos.iter() {
@@ -171,10 +171,10 @@ impl SeriesList {
         Ok(waiting_releases_series_infos)
     }
 
-    pub async fn get_upcoming_release_series_informations_and_episodes(
+    pub async fn get_upcoming_release_series_information_and_episodes(
         &self,
     ) -> anyhow::Result<Vec<(SeriesMainInformation, Episode, EpisodeReleaseTime)>> {
-        let series_infos = self.get_running_tracked_series_informations().await?;
+        let series_infos = self.get_running_tracked_series_information().await?;
         let mut waiting_releases_series_infos = Vec::with_capacity(series_infos.len());
 
         let handles: Vec<_> = series_infos

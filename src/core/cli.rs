@@ -61,7 +61,7 @@ pub mod cli_handler {
 
         let mut paths = paths::PATHS.write().expect("failed to write to paths");
 
-        // Priotizing the cli paths over the settings config paths
+        // Prioritizing the cli paths over the settings config paths
         if let Some(cache_dir_path) = cli.cache_dir {
             paths.set_cache_dir_path(cache_dir_path)
         } else if let Some(cache_dir_path) = settings_custom_paths.cache_dir.clone() {

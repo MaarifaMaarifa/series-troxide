@@ -58,7 +58,7 @@ pub mod import_shows {
 }
 
 mod convert {
-    //! Convert Trakt Shows to SerieTroxides' database Shows
+    //! Convert Trakt Shows to SeriesTroxides' database Shows
 
     use std::mem::ManuallyDrop;
 
@@ -217,7 +217,7 @@ pub mod user_credentials {
     use thiserror::Error;
     use tokio::fs;
 
-    use super::{authenication::TokenResponse, user_settings::UserSettings, ApiError};
+    use super::{authentication::TokenResponse, user_settings::UserSettings, ApiError};
     use crate::core::paths;
 
     const CREDENTIALS_FILENAME: &str = "credentials";
@@ -560,7 +560,7 @@ pub mod trakt_data {
     }
 }
 
-pub mod authenication {
+pub mod authentication {
     //! Authenticate the program to access user's trakt account
 
     use super::{trakt_data::TraktStatusCode, ApiError};

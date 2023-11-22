@@ -257,7 +257,7 @@ fn credit_widget() -> Element<'static, Message, Renderer> {
         mouse_area(go_to_site_text.clone()).on_press(Message::TvMaze)
     ];
     let bootstrap_icons = row![
-        text("- The Icons used have been provided by boostrap icons, you can check out the site ")
+        text("- The Icons used have been provided by bootstrap icons, you can check out the site ")
             .size(11),
         mouse_area(go_to_site_text.clone()).on_press(Message::BootstrapIcons)
     ];
