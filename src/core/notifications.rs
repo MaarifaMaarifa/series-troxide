@@ -86,7 +86,7 @@ impl TroxideNotify {
                     Signal::NotificationSent => {
                         /*
                         When a new episode has been notified, when can't keep on using the same obtained episode releases as it might
-                        turn out that that series is being released regulary(weekly) and thus the currently obtained releases won't
+                        turn out that that series is being released regularly(weekly) and thus the currently obtained releases won't
                         have that information. So we just abort all the handles to reobtain all the releases information in the next
                         iteration of the loop.
                         */
@@ -134,7 +134,7 @@ impl TroxideNotify {
 async fn get_releases_with_duration_to_release() -> Vec<(SeriesMainInformation, Episode, Duration)>
 {
     series_list::SeriesList::new()
-        .get_upcoming_release_series_informations_and_episodes()
+        .get_upcoming_release_series_information_and_episodes()
         .await
         .context("failed to get upcoming series releases")
         .unwrap()

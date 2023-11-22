@@ -140,7 +140,7 @@ fn load_upcoming_releases() -> Command<Message> {
     Command::perform(
         async {
             caching::series_list::SeriesList::new()
-                .get_upcoming_release_series_informations_and_episodes()
+                .get_upcoming_release_series_information_and_episodes()
                 .await
         },
         |res| Message::SeriesInformationReceived(res.ok()),

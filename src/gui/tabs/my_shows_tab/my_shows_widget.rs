@@ -43,7 +43,7 @@ impl<'a> MyShows<'a> {
             Command::perform(
                 async {
                     caching::series_list::SeriesList::new()
-                        .get_ended_tracked_series_informations()
+                        .get_ended_tracked_series_information()
                         .await
                 },
                 move |res| Message::SeriesInformationReceived(res.ok()),
@@ -63,7 +63,7 @@ impl<'a> MyShows<'a> {
             Command::perform(
                 async {
                     caching::series_list::SeriesList::new()
-                        .get_waiting_release_series_informations()
+                        .get_waiting_release_series_information()
                         .await
                 },
                 |res| Message::SeriesInformationReceived(res.ok()),
@@ -83,7 +83,7 @@ impl<'a> MyShows<'a> {
             Command::perform(
                 async {
                     caching::series_list::SeriesList::new()
-                        .get_untracked_series_informations()
+                        .get_untracked_series_information()
                         .await
                 },
                 |res| Message::SeriesInformationReceived(res.ok()),

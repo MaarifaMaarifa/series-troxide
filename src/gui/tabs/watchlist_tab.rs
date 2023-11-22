@@ -52,7 +52,7 @@ impl<'a> WatchlistTab<'a> {
                 scrollable_offset: scrollable_offset.unwrap_or(RelativeOffset::START),
             },
             Command::perform(
-                get_series_informations_and_watched_episodes(),
+                get_series_information_and_watched_episodes(),
                 Message::SeriesInformationLoaded,
             ),
         )
@@ -170,14 +170,14 @@ fn has_pending_episodes(database_series: &database::Series, episodes_list: &Epis
     episodes_list.get_total_watchable_episodes() != database_series.get_total_episodes()
 }
 
-async fn get_series_informations_and_watched_episodes(
+async fn get_series_information_and_watched_episodes(
 ) -> Vec<(SeriesMainInformation, EpisodeList, usize)> {
-    let tracked_series_informations = series_list::SeriesList::new()
-        .get_tracked_series_informations()
+    let tracked_series_information = series_list::SeriesList::new()
+        .get_tracked_series_information()
         .await
         .unwrap();
 
-    let episode_lists_handles: Vec<_> = tracked_series_informations
+    let episode_lists_handles: Vec<_> = tracked_series_information
         .iter()
         .map(|series_info| tokio::spawn(caching::episode_list::EpisodeList::new(series_info.id)))
         .collect();
@@ -192,7 +192,7 @@ async fn get_series_informations_and_watched_episodes(
         episodes_lists.push(episode_list);
     }
 
-    tracked_series_informations
+    tracked_series_information
         .into_iter()
         .zip(episodes_lists.into_iter())
         .filter(|(series_info, episode_list)| {

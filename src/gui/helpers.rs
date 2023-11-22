@@ -120,7 +120,7 @@ pub mod time {
         ///
         /// For example, if in the split you got 5 days as the longest duration, the duration
         /// returned will be 1 day
-        /// This is usefull in refreshing the upcoming episodes in the gui as if an episode is released
+        /// This is useful in refreshing the upcoming episodes in the gui as if an episode is released
         /// in 5 hours, we want to refresh every 1 hour, or say 10 minutes, we will want to refresh in every
         /// minute and so on
         pub fn get_longest_unit_duration(&self) -> Option<Duration> {
