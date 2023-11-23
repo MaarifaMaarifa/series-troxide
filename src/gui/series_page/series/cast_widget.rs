@@ -347,7 +347,7 @@ mod cast_poster {
         fn load_person_image(image: Option<Image>) -> Command<Message> {
             if let Some(image) = image {
                 Command::perform(
-                    caching::load_image(image.medium_image_url, caching::ImageType::Medium),
+                    caching::load_image(image.medium_image_url, caching::ImageResolution::Medium),
                     Message::PersonImageLoaded,
                 )
             } else {
@@ -358,7 +358,7 @@ mod cast_poster {
         fn load_character_image(image: Option<Image>) -> Command<Message> {
             if let Some(image) = image {
                 Command::perform(
-                    caching::load_image(image.medium_image_url, caching::ImageType::Medium),
+                    caching::load_image(image.medium_image_url, caching::ImageResolution::Medium),
                     Message::CharacterImageLoaded,
                 )
             } else {

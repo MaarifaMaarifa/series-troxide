@@ -29,8 +29,8 @@ use bytes::Bytes;
 use std::io::{self, ErrorKind};
 use std::path;
 
+pub use super::api::tv_maze::image::{ImageKind, ImageResolution};
 use super::api::tv_maze::{series_information::SeriesMainInformation, ApiError};
-pub use super::api::tv_maze::{ImageType, OriginalType};
 use super::paths;
 use crate::core::api::tv_maze::{self, deserialize_json};
 use lazy_static::lazy_static;
@@ -136,7 +136,7 @@ impl Cacher {
 }
 
 /// Loads the image from the provided url
-pub async fn load_image(image_url: String, image_type: ImageType) -> Option<Bytes> {
+pub async fn load_image(image_url: String, image_type: ImageResolution) -> Option<Bytes> {
     // Hashing the image url as a file name as the forward slashes in web urls
     // mimic paths
     use sha2::{Digest, Sha256};
@@ -153,7 +153,7 @@ pub async fn load_image(image_url: String, image_type: ImageType) -> Option<Byte
         Err(err) => {
             if err.kind() == ErrorKind::NotFound {
                 info!("falling back online for image with link {}", image_url);
-                if let Some(image_bytes) = tv_maze::load_image(image_url, image_type).await {
+                if let Some(image_bytes) = tv_maze::image::load_image(image_url, image_type).await {
                     write_cache(&image_bytes, &image_path).await;
                     Some(image_bytes)
                 } else {
