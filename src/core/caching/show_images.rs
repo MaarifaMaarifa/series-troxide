@@ -1,8 +1,7 @@
 use std::io::ErrorKind;
 
 use super::{
-    load_image, read_cache, write_cache, CacheFilePath, ImageType as ImageKind, OriginalType,
-    CACHER,
+    load_image, read_cache, write_cache, CacheFilePath, ImageKind, ImageResolution, CACHER,
 };
 use crate::core::api::tv_maze::{
     deserialize_json,
@@ -45,7 +44,7 @@ pub async fn get_recent_banner(series_id: u32) -> Option<bytes::Bytes> {
     {
         return load_image(
             recent_background.resolutions.original.url.clone(),
-            ImageKind::Original(OriginalType::Background),
+            ImageResolution::Original(ImageKind::Background),
         )
         .await;
     };
@@ -58,7 +57,7 @@ pub async fn get_recent_banner(series_id: u32) -> Option<bytes::Bytes> {
 
     load_image(
         recent_banner.resolutions.original.url,
-        ImageKind::Original(OriginalType::Background),
+        ImageResolution::Original(ImageKind::Background),
     )
     .await
 }

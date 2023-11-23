@@ -203,7 +203,7 @@ fn load_images(series_info_image: Option<Image>, series_id: u32) -> [Command<Mes
         Command::perform(
             caching::load_image(
                 image_url.original_image_url,
-                caching::ImageType::Original(caching::OriginalType::Poster),
+                caching::ImageResolution::Original(caching::ImageKind::Poster),
             ),
             Message::SeriesImageLoaded,
         )
