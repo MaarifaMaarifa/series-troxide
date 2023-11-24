@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Custom program data paths. [#76](https://github.com/MaarifaMaarifa/series-troxide/pull/76)
+
+### Changed
+- Prevent image resolution from being lowered when already low. [#93](https://github.com/MaarifaMaarifa/series-troxide/pull/93)
+- Watchlist episode info improvement. [#82](https://github.com/MaarifaMaarifa/series-troxide/pull/82)
+- Search results improvement. [#79](https://github.com/MaarifaMaarifa/series-troxide/pull/79)
+
 ## [0.4.1] - 2023-10-27
 
 ### Fixed
