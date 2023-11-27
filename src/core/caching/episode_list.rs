@@ -112,24 +112,6 @@ impl EpisodeList {
             .collect()
     }
 
-    /// Returns the previous episode to air from the current time
-    ///
-    /// This method is also useful when finding the maximum watchable episode
-    /// as you can not watch an episode that is released in the future.
-    pub fn get_previous_episode_to_air(&self) -> Option<&Episode> {
-        let mut episodes_iter = self.episodes.iter().peekable();
-        while let Some(episode) = episodes_iter.next() {
-            if let Some(peeked_episode) = episodes_iter.peek() {
-                if !peeked_episode.is_future_release().ok()? {
-                    return Some(episode);
-                }
-            } else {
-                return Some(episode);
-            }
-        }
-        None
-    }
-
     /// Returns the next episode to air from the current time
     pub fn get_next_episode_to_air(&self) -> Option<&Episode> {
         self.episodes
