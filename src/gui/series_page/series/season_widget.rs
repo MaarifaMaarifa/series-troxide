@@ -46,11 +46,9 @@ impl Seasons {
     }
 
     pub fn get_next_episode_and_release_time(&self) -> Option<(&Episode, EpisodeReleaseTime)> {
-        self.episode_list.as_ref().and_then(|episode_list| {
-            episode_list
-                .get_next_episode_to_air_and_time()
-                .map(|(episode, release_time)| (episode, release_time))
-        })
+        self.episode_list
+            .as_ref()
+            .and_then(|episode_list| episode_list.get_next_episode_to_air_and_time())
     }
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
