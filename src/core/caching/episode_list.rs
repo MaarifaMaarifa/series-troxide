@@ -1,4 +1,4 @@
-use std::{collections::HashSet, io::ErrorKind};
+use std::io::ErrorKind;
 
 use tracing::info;
 
@@ -91,25 +91,6 @@ impl EpisodeList {
             .filter(|episode| !episode.is_future_release().unwrap_or_default())
             .count();
         TotalEpisodes::new(total_episodes, total_watchable_episodes)
-    }
-
-    /// Returns the number of all seasons available and their total episodes as a tuple (season_no, total_episodes)
-    pub fn get_season_numbers_with_total_watchable_episode(&self) -> Vec<(u32, usize)> {
-        let seasons: HashSet<u32> = self.episodes.iter().map(|episode| episode.season).collect();
-        let mut seasons: Vec<u32> = seasons.iter().copied().collect();
-        seasons.sort();
-
-        seasons
-            .into_iter()
-            .map(|season| {
-                let total_episodes = self
-                    .get_episodes(season)
-                    .into_iter()
-                    .filter(|episode| !episode.is_future_release().unwrap_or_default())
-                    .count();
-                (season, total_episodes)
-            })
-            .collect()
     }
 
     /// Returns the next episode to air from the current time
