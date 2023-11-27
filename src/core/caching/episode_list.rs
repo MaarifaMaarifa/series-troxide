@@ -1,6 +1,5 @@
 use std::{collections::HashSet, io::ErrorKind};
 
-use chrono::{Local, Utc};
 use tracing::info;
 
 use super::{read_cache, write_cache, CacheFilePath};
@@ -74,7 +73,7 @@ impl EpisodeList {
     pub fn get_total_watchable_episodes(&self) -> usize {
         self.episodes
             .iter()
-            .filter(|episode| Self::is_episode_watchable(episode) == Some(true))
+            .filter(|episode| !episode.is_future_release().unwrap_or_default())
             .count()
     }
 
@@ -89,7 +88,7 @@ impl EpisodeList {
         let total_watchable_episodes = self
             .get_episodes(season_number)
             .into_iter()
-            .filter(|episode| Self::is_episode_watchable(episode) == Some(true))
+            .filter(|episode| !episode.is_future_release().unwrap_or_default())
             .count();
         TotalEpisodes::new(total_episodes, total_watchable_episodes)
     }
@@ -106,21 +105,11 @@ impl EpisodeList {
                 let total_episodes = self
                     .get_episodes(season)
                     .into_iter()
-                    .filter(|episode| Self::is_episode_watchable(episode) == Some(true))
+                    .filter(|episode| !episode.is_future_release().unwrap_or_default())
                     .count();
                 (season, total_episodes)
             })
             .collect()
-    }
-
-    /// Tells if the episode is watchable or not based on the current time and the episode release time
-    ///
-    /// This method returns an optional bool as an episode my not have airstamp associated with it hence
-    /// the method can not infer that information.
-    pub fn is_episode_watchable(episode: &Episode) -> Option<bool> {
-        let airstamp = episode.local_date_time().ok()?;
-        let local_time = Utc::now().with_timezone(&Local);
-        Some(airstamp <= local_time)
     }
 
     /// Returns the previous episode to air from the current time
@@ -131,7 +120,7 @@ impl EpisodeList {
         let mut episodes_iter = self.episodes.iter().peekable();
         while let Some(episode) = episodes_iter.next() {
             if let Some(peeked_episode) = episodes_iter.peek() {
-                if !Self::is_episode_watchable(peeked_episode)? {
+                if !peeked_episode.is_future_release().ok()? {
                     return Some(episode);
                 }
             } else {
@@ -145,7 +134,7 @@ impl EpisodeList {
     pub fn get_next_episode_to_air(&self) -> Option<&Episode> {
         self.episodes
             .iter()
-            .find(|episode| Self::is_episode_watchable(episode) == Some(false))
+            .find(|episode| episode.is_future_release().unwrap_or_default())
     }
 
     pub fn get_next_episode_to_watch(&self) -> Option<&Episode> {
@@ -155,7 +144,7 @@ impl EpisodeList {
 
         self.get_all_episodes()
             .iter()
-            .filter(|episode| Self::is_episode_watchable(episode) == Some(true))
+            .filter(|episode| !episode.is_future_release().unwrap_or_default())
             .find(|episode| {
                 series
                     .get_season(episode.season)
