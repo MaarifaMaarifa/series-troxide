@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use iced::widget::{column, container, text, Column};
 use iced::{Alignment, Command, Element, Length};
 use iced_aw::Spinner;
@@ -19,7 +21,7 @@ pub enum Message {
 pub struct Seasons {
     series_name: String,
     series_id: u32,
-    episode_list: Option<EpisodeList>,
+    episode_list: Option<Rc<EpisodeList>>,
     seasons: Vec<Season>,
 }
 
@@ -59,7 +61,7 @@ impl Seasons {
             Message::EpisodeListLoaded(episode_list) => {
                 let season_numbers = episode_list.get_season_numbers();
 
-                self.episode_list = Some(episode_list);
+                self.episode_list = Some(Rc::new(episode_list));
 
                 self.seasons = season_numbers
                     .into_iter()
@@ -123,6 +125,8 @@ impl Seasons {
 }
 
 mod season {
+    use std::rc::Rc;
+
     use iced::widget::{button, checkbox, column, container, progress_bar, row, svg, text, Column};
     use iced::{Command, Element, Length, Renderer};
     use iced_aw::Spinner;
@@ -150,7 +154,7 @@ mod season {
     pub struct Season {
         index: usize,
         series_id: u32,
-        episode_list: EpisodeList,
+        episode_list: Rc<EpisodeList>,
         series_name: String,
         season_number: u32,
         total_episodes: TotalEpisodes,
@@ -162,7 +166,7 @@ mod season {
         pub fn new(
             index: usize,
             series_id: u32,
-            episode_list: EpisodeList,
+            episode_list: Rc<EpisodeList>,
             series_name: String,
             season_number: u32,
         ) -> Self {
