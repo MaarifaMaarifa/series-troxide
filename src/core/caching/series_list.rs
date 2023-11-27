@@ -184,8 +184,9 @@ impl SeriesList {
 
         for (handle, series_info) in handles.into_iter().zip(series_infos.into_iter()) {
             let episode_list = handle.await??;
-            if let Some((next_episode, release_time)) =
-                episode_list.get_next_episode_to_air_and_time()
+            if let Some((next_episode, Some(release_time))) = episode_list
+                .get_next_episode_to_air()
+                .map(|episode| (episode, episode.release_time().ok()))
             {
                 waiting_releases_series_infos.push((
                     series_info,

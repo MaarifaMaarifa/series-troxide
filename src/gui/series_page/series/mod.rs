@@ -169,7 +169,7 @@ impl<'a> Series<'a> {
         let series_metadata = series_metadata(
             &self.series_information,
             self.series_image.clone(),
-            self.seasons.get_next_episode_and_release_time(),
+            self.seasons.get_next_episode_to_air(),
         );
 
         let seasons_widget = self.seasons.view().map(Message::Seasons);

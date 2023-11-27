@@ -148,13 +148,6 @@ impl EpisodeList {
             .find(|episode| Self::is_episode_watchable(episode) == Some(false))
     }
 
-    /// Returns the next episode to air and it's release time
-    pub fn get_next_episode_to_air_and_time(&self) -> Option<(&Episode, EpisodeReleaseTime)> {
-        let next_episode = self.get_next_episode_to_air()?;
-        let release_time = next_episode.episode_release_time().ok()?;
-        Some((next_episode, release_time))
-    }
-
     pub fn get_next_episode_to_watch(&self) -> Option<&Episode> {
         let series = database::DB
             .get_series(self.series_id)

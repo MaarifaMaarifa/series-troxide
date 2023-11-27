@@ -182,7 +182,7 @@ pub mod episode_widget {
     }
 
     fn date_time_widget(episode_information: &EpisodeInfo) -> Element<'_, Message, Renderer> {
-        if let Ok(release_time) = episode_information.episode_release_time() {
+        if let Ok(release_time) = episode_information.release_time() {
             let prefix = match release_time.is_future() {
                 true => "Airing on",
                 false => "Aired on",

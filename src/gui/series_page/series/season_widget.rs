@@ -5,9 +5,7 @@ use iced::{Alignment, Command, Element, Length};
 use iced_aw::Spinner;
 
 use crate::core::api::tv_maze::episodes_information::Episode;
-use crate::core::{
-    api::tv_maze::episodes_information::EpisodeReleaseTime, caching::episode_list::EpisodeList,
-};
+use crate::core::caching::episode_list::EpisodeList;
 use crate::gui::message::IndexedMessage;
 use crate::gui::styles;
 use season::{Message as SeasonMessage, Season};
@@ -45,10 +43,10 @@ impl Seasons {
         )
     }
 
-    pub fn get_next_episode_and_release_time(&self) -> Option<(&Episode, EpisodeReleaseTime)> {
+    pub fn get_next_episode_to_air(&self) -> Option<&Episode> {
         self.episode_list
             .as_ref()
-            .and_then(|episode_list| episode_list.get_next_episode_to_air_and_time())
+            .and_then(|episode_list| episode_list.get_next_episode_to_air())
     }
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
