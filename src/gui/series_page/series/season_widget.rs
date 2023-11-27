@@ -1,11 +1,11 @@
+use std::rc::Rc;
+
 use iced::widget::{column, container, text, Column};
 use iced::{Alignment, Command, Element, Length};
 use iced_aw::Spinner;
 
 use crate::core::api::tv_maze::episodes_information::Episode;
-use crate::core::{
-    api::tv_maze::episodes_information::EpisodeReleaseTime, caching::episode_list::EpisodeList,
-};
+use crate::core::caching::episode_list::EpisodeList;
 use crate::gui::message::IndexedMessage;
 use crate::gui::styles;
 use season::{Message as SeasonMessage, Season};
@@ -19,7 +19,7 @@ pub enum Message {
 pub struct Seasons {
     series_name: String,
     series_id: u32,
-    episode_list: Option<EpisodeList>,
+    episode_list: Option<Rc<EpisodeList>>,
     seasons: Vec<Season>,
 }
 
@@ -43,12 +43,10 @@ impl Seasons {
         )
     }
 
-    pub fn get_next_episode_and_release_time(&self) -> Option<(&Episode, EpisodeReleaseTime)> {
-        self.episode_list.as_ref().and_then(|episode_list| {
-            episode_list
-                .get_next_episode_to_air_and_time()
-                .map(|(episode, release_time)| (episode, release_time))
-        })
+    pub fn get_next_episode_to_air(&self) -> Option<&Episode> {
+        self.episode_list
+            .as_ref()
+            .and_then(|episode_list| episode_list.get_next_episode_to_air())
     }
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
@@ -59,7 +57,7 @@ impl Seasons {
             Message::EpisodeListLoaded(episode_list) => {
                 let season_numbers = episode_list.get_season_numbers();
 
-                self.episode_list = Some(episode_list);
+                self.episode_list = Some(Rc::new(episode_list));
 
                 self.seasons = season_numbers
                     .into_iter()
@@ -123,6 +121,8 @@ impl Seasons {
 }
 
 mod season {
+    use std::rc::Rc;
+
     use iced::widget::{button, checkbox, column, container, progress_bar, row, svg, text, Column};
     use iced::{Command, Element, Length, Renderer};
     use iced_aw::Spinner;
@@ -150,7 +150,7 @@ mod season {
     pub struct Season {
         index: usize,
         series_id: u32,
-        episode_list: EpisodeList,
+        episode_list: Rc<EpisodeList>,
         series_name: String,
         season_number: u32,
         total_episodes: TotalEpisodes,
@@ -162,7 +162,7 @@ mod season {
         pub fn new(
             index: usize,
             series_id: u32,
-            episode_list: EpisodeList,
+            episode_list: Rc<EpisodeList>,
             series_name: String,
             season_number: u32,
         ) -> Self {

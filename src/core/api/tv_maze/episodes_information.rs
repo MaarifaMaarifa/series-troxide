@@ -83,8 +83,13 @@ impl Episode {
             .with_timezone(&Local))
     }
 
-    pub fn episode_release_time(&self) -> Result<EpisodeReleaseTime, EpisodeDateError> {
+    pub fn release_time(&self) -> Result<EpisodeReleaseTime, EpisodeDateError> {
         Ok(EpisodeReleaseTime::new(self.local_date_time()?))
+    }
+
+    pub fn is_future_release(&self) -> Result<bool, EpisodeDateError> {
+        self.release_time()
+            .map(|release_time| release_time.is_future())
     }
 }
 

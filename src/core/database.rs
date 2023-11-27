@@ -352,7 +352,7 @@ impl Season {
             .expect("failed to get episode list");
 
         if let Some(episode) = episode_list.get_episode(season_number, episode_number) {
-            if caching::episode_list::EpisodeList::is_episode_watchable(episode) == Some(true) {
+            if !episode.is_future_release().unwrap_or_default() {
                 return self.episodes.insert(episode_number);
             }
         }
