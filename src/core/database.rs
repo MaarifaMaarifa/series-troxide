@@ -352,7 +352,7 @@ impl Season {
             .expect("failed to get episode list");
 
         if let Some(episode) = episode_list.get_episode(season_number, episode_number) {
-            if !episode.is_future_release().unwrap_or_default() {
+            if let Ok(false) = episode.is_future_release() {
                 return self.episodes.insert(episode_number);
             }
         }

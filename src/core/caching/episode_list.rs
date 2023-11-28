@@ -73,7 +73,7 @@ impl EpisodeList {
     pub fn get_total_watchable_episodes(&self) -> usize {
         self.episodes
             .iter()
-            .filter(|episode| !episode.is_future_release().unwrap_or_default())
+            .filter(|episode| episode.is_future_release() == Ok(false))
             .count()
     }
 
@@ -88,7 +88,7 @@ impl EpisodeList {
         let total_watchable_episodes = self
             .get_episodes(season_number)
             .into_iter()
-            .filter(|episode| !episode.is_future_release().unwrap_or_default())
+            .filter(|episode| episode.is_future_release() == Ok(false))
             .count();
         TotalEpisodes::new(total_episodes, total_watchable_episodes)
     }
@@ -97,7 +97,7 @@ impl EpisodeList {
     pub fn get_next_episode_to_air(&self) -> Option<&Episode> {
         self.episodes
             .iter()
-            .find(|episode| episode.is_future_release().unwrap_or_default())
+            .find(|episode| episode.is_future_release() == Ok(true))
     }
 
     pub fn get_next_episode_to_watch(&self) -> Option<&Episode> {
@@ -107,7 +107,7 @@ impl EpisodeList {
 
         self.get_all_episodes()
             .iter()
-            .filter(|episode| !episode.is_future_release().unwrap_or_default())
+            .filter(|episode| episode.is_future_release() == Ok(false))
             .find(|episode| {
                 series
                     .get_season(episode.season)
