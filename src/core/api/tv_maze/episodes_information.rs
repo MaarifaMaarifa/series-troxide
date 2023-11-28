@@ -62,7 +62,7 @@ pub struct Show {
     pub href: String,
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum EpisodeDateError {
     #[error("no date was found in the episode")]
     NotFound,
