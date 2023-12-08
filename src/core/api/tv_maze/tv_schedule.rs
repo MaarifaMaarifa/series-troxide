@@ -10,7 +10,7 @@ const SCHEDULE_ON_DATE_ADDRESS: &str = "https://api.tvmaze.com/schedule/web?date
 // replace "COUNTRY" with an actual country ISO in ISO 3166-1 format
 const SCHEDULE_WITH_COUNTRY: &str = "https://api.tvmaze.com/schedule?country=COUNTRY";
 
-// retreives list of all future episodes known to TVmaze, regardless of their country
+// retrieves list of all future episodes known to TVmaze, regardless of their country
 const FULL_SCHEDULE: &str = "https://api.tvmaze.com/schedule/full";
 
 /// Retrieves episodes aired on a specific date through the provided optional &str

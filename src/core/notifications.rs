@@ -1,11 +1,10 @@
 use super::{
     api::tv_maze::{episodes_information::Episode, series_information::SeriesMainInformation},
     caching::series_list,
-    settings_config,
+    paths, settings_config,
 };
 use anyhow::Context;
 use chrono::Duration;
-use directories::ProjectDirs;
 use notify::{recommended_watcher, EventHandler, Watcher};
 use std::sync::mpsc;
 use tokio::task::JoinHandle;
@@ -87,7 +86,7 @@ impl TroxideNotify {
                     Signal::NotificationSent => {
                         /*
                         When a new episode has been notified, when can't keep on using the same obtained episode releases as it might
-                        turn out that that series is being released regulary(weekly) and thus the currently obtained releases won't
+                        turn out that that series is being released regularly(weekly) and thus the currently obtained releases won't
                         have that information. So we just abort all the handles to reobtain all the releases information in the next
                         iteration of the loop.
                         */
@@ -115,25 +114,27 @@ impl TroxideNotify {
             .context("failed to create settings file watcher")
             .unwrap();
 
-        if let Some(proj_dirs) = ProjectDirs::from("", "", env!("CARGO_PKG_NAME")) {
-            let config_directory = std::path::PathBuf::from(proj_dirs.config_dir());
-            let mut config_file = config_directory.clone();
-            config_file.push(super::settings_config::CONFIG_FILE_NAME);
+        let mut config_file = paths::PATHS
+            .read()
+            .expect("failed to read paths")
+            .get_config_dir_path()
+            .to_path_buf();
 
-            if let Err(err) =
-                settings_file_watcher.watch(&config_file, notify::RecursiveMode::NonRecursive)
-            {
-                tracing::error!("error watching the config file: {}", err)
-            };
-            std::thread::park();
-        }
+        config_file.push(super::settings_config::CONFIG_FILE_NAME);
+
+        if let Err(err) =
+            settings_file_watcher.watch(&config_file, notify::RecursiveMode::NonRecursive)
+        {
+            tracing::error!("error watching the config file: {}", err)
+        };
+        std::thread::park();
     }
 }
 
 async fn get_releases_with_duration_to_release() -> Vec<(SeriesMainInformation, Episode, Duration)>
 {
     series_list::SeriesList::new()
-        .get_upcoming_release_series_informations_and_episodes()
+        .get_upcoming_release_series_information_and_episodes()
         .await
         .context("failed to get upcoming series releases")
         .unwrap()

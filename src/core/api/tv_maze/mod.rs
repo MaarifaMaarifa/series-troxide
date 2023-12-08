@@ -1,11 +1,8 @@
-use std::io::Write;
-
-use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use tracing::error;
 
 pub mod episodes_information;
+pub mod image;
 pub mod seasons_list;
 pub mod series_information;
 pub mod series_searching;
@@ -33,6 +30,10 @@ struct BadResponse {
     // status: u32,
 }
 
+pub trait Rated {
+    fn rating(&self) -> f32;
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Rating {
     pub average: Option<f32>,
@@ -44,67 +45,6 @@ pub struct Image {
     pub original_image_url: String,
     #[serde(rename = "medium")]
     pub medium_image_url: String,
-}
-
-pub enum ImageType {
-    Original(OriginalType),
-    Medium,
-}
-
-pub enum OriginalType {
-    Poster,
-    Background,
-}
-
-/// Loads the image from the provided url
-///
-/// Since Original images from TvMaze may have extremely high resultion up to 4k which can cause `wgpu` to crash,
-/// this function will thumbnail the original image to the size that is good enough to be displayed in the GUI.
-pub async fn load_image(image_url: String, image_type: ImageType) -> Option<Bytes> {
-    loop {
-        match reqwest::get(&image_url).await {
-            Ok(response) => {
-                if let Ok(bytes) = response.bytes().await {
-                    break Some(if let ImageType::Original(original_type) = image_type {
-                        let img = image::load_from_memory(&bytes)
-                            .map_err(|err| error!("failed to load image from the api: {}", err))
-                            .ok()?;
-
-                        let img = match original_type {
-                            OriginalType::Poster => img.thumbnail(480, 853),
-                            OriginalType::Background => img.thumbnail(1280, 720),
-                        };
-
-                        let mut writer = std::io::BufWriter::new(vec![]);
-
-                        let mut jpeg_encoder =
-                            image::codecs::jpeg::JpegEncoder::new_with_quality(&mut writer, 100);
-
-                        jpeg_encoder
-                            .encode_image(&img)
-                            .map_err(|err| error!("failed to encode image: {}", err))
-                            .ok()?;
-
-                        writer
-                            .flush()
-                            .map_err(|err| error!("failed to flush image bytes: {}", err))
-                            .ok()?;
-
-                        bytes::Bytes::copy_from_slice(writer.get_ref())
-                    } else {
-                        bytes
-                    });
-                }
-            }
-            Err(ref err) => {
-                if err.is_request() {
-                    random_async_sleep().await;
-                } else {
-                    break None;
-                }
-            }
-        }
-    }
 }
 
 /// T

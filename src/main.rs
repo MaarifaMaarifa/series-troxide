@@ -1,22 +1,15 @@
-use clap::Parser;
+use iced::{window, Application, Settings};
 
 pub mod core;
 mod gui;
 
-use iced::{window, Application, Settings};
-
 fn main() -> anyhow::Result<()> {
-    let cli_command = core::cli::cli_data::Cli::parse().command;
-
-    if let Some(command) = cli_command {
-        core::cli::handle_cli::handle_cli(command)?;
-        std::process::exit(0);
-    }
-
     let subscriber = tracing_subscriber::FmtSubscriber::new();
     tracing::subscriber::set_global_default(subscriber)?;
 
     tracing::info!("starting '{}'", env!("CARGO_PKG_NAME"));
+
+    core::cli::cli_handler::handle_cli()?;
 
     std::thread::spawn(|| {
         if let Err(err) = tokio::runtime::Runtime::new()

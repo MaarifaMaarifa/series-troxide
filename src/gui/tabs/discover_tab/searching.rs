@@ -3,9 +3,7 @@ use std::sync::mpsc;
 use iced::widget::{column, container, scrollable, text, text_input, vertical_space, Column};
 use iced::{Command, Element, Length, Renderer};
 use iced_aw::Spinner;
-use search_result::{
-    IndexedMessage as SearchResultIndexedMessage, Message as SearchResultMessage, SearchResult,
-};
+use search_result::{IndexedMessage, Message as SearchResultMessage, SearchResult};
 
 use crate::core::api::tv_maze::series_information::SeriesMainInformation;
 use crate::core::api::tv_maze::series_searching;
@@ -25,7 +23,7 @@ pub enum Message {
     TermSearched,
     SearchSuccess(Vec<series_searching::SeriesSearchResult>),
     SearchFail,
-    SearchResult(SearchResultIndexedMessage<SearchResultMessage>),
+    SearchResult(IndexedMessage<usize, SearchResultMessage>),
     EscapeKeyPressed,
 }
 
@@ -130,7 +128,11 @@ impl Search {
                     .collect();
 
                 Some(if result_items.is_empty() {
-                    container(text("No results")).padding(10).into()
+                    container(text("No results"))
+                        .width(Length::Fill)
+                        .center_x()
+                        .padding(10)
+                        .into()
                 } else {
                     Column::with_children(result_items)
                         .padding(20)
@@ -138,16 +140,23 @@ impl Search {
                         .into()
                 })
             }
-            LoadState::Loading => Some(Spinner::new().into()),
+            LoadState::Loading => Some(
+                container(Spinner::new())
+                    .width(Length::Fill)
+                    .center_x()
+                    .into(),
+            ),
             LoadState::NotLoaded => None,
         };
 
         let search_results = search_results.map(|search_results| {
             container(
                 scrollable(search_results)
+                    .width(Length::Fill)
                     .direction(styles::scrollable_styles::vertical_direction()),
             )
             .padding(5)
+            .width(500)
             .style(styles::container_styles::first_class_container_rounded_theme())
             .into()
         });
@@ -167,6 +176,7 @@ mod search_result {
     use crate::core::api::tv_maze::Rating;
     use crate::core::{api::tv_maze::series_searching, caching};
     use crate::gui::assets::icons::STAR_FILL;
+    use crate::gui::helpers::empty_image;
     pub use crate::gui::message::IndexedMessage;
     use crate::gui::{helpers, styles};
 
@@ -188,7 +198,7 @@ mod search_result {
             index: usize,
             search_result: series_searching::SeriesSearchResult,
             series_page_sender: mpsc::Sender<SeriesMainInformation>,
-        ) -> (Self, Command<IndexedMessage<Message>>) {
+        ) -> (Self, Command<IndexedMessage<usize, Message>>) {
             let image_url = search_result.show.image.clone();
             (
                 Self {
@@ -200,7 +210,10 @@ mod search_result {
                 image_url
                     .map(|url| {
                         Command::perform(
-                            caching::load_image(url.medium_image_url, caching::ImageType::Medium),
+                            caching::load_image(
+                                url.medium_image_url,
+                                caching::ImageResolution::Medium,
+                            ),
                             Message::ImageLoaded,
                         )
                         .map(move |message| IndexedMessage::new(index, message))
@@ -209,7 +222,7 @@ mod search_result {
             )
         }
 
-        pub fn update(&mut self, message: IndexedMessage<Message>) {
+        pub fn update(&mut self, message: IndexedMessage<usize, Message>) {
             match message.message() {
                 Message::ImageLoaded(image) => self.image = image,
                 Message::SeriesResultPressed => {
@@ -220,14 +233,14 @@ mod search_result {
             }
         }
 
-        pub fn view(&self) -> Element<'_, IndexedMessage<Message>, Renderer> {
+        pub fn view(&self) -> Element<'_, IndexedMessage<usize, Message>, Renderer> {
             let mut row = row!().spacing(5).padding(5);
 
             if let Some(image_bytes) = self.image.clone() {
                 let image_handle = image::Handle::from_memory(image_bytes);
                 row = row.push(image(image_handle).height(60))
             } else {
-                row = row.push(Space::new(43, 60))
+                row = row.push(empty_image::empty_image().height(60).width(43))
             };
 
             // Getting the series genres

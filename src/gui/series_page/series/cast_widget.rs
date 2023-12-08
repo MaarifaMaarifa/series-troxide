@@ -1,4 +1,4 @@
-use cast_poster::{CastPoster, IndexedMessage as IndexedCastMessage, Message as CastMessage};
+use cast_poster::{CastPoster, IndexedMessage, Message as CastMessage};
 use iced::widget::{button, column, container, horizontal_space, row, svg, text, Space};
 use iced::{Command, Element, Length, Renderer};
 use iced_aw::{Spinner, Wrap};
@@ -12,7 +12,7 @@ const INITIAL_CAST_NUMBER: usize = 20;
 #[derive(Clone, Debug)]
 pub enum Message {
     CastReceived(Vec<Cast>),
-    Cast(IndexedCastMessage<CastMessage>),
+    Cast(IndexedMessage<usize, CastMessage>),
     Expand,
     Shrink,
 }
@@ -192,7 +192,7 @@ mod cast_poster {
     }
 
     impl CastPoster {
-        pub fn new(id: usize, cast: Cast) -> (Self, Command<IndexedMessage<Message>>) {
+        pub fn new(id: usize, cast: Cast) -> (Self, Command<IndexedMessage<usize, Message>>) {
             let image = cast.person.image.clone();
             let poster = Self {
                 index: id,
@@ -211,8 +211,8 @@ mod cast_poster {
 
         pub fn update(
             &mut self,
-            message: IndexedMessage<Message>,
-        ) -> Command<IndexedMessage<Message>> {
+            message: IndexedMessage<usize, Message>,
+        ) -> Command<IndexedMessage<usize, Message>> {
             let command = match message.message() {
                 Message::PersonImageLoaded(image) => {
                     self.person_image = image;
@@ -244,7 +244,7 @@ mod cast_poster {
             command.map(move |message| IndexedMessage::new(index, message))
         }
 
-        pub fn view(&self) -> Element<'_, IndexedMessage<Message>, Renderer> {
+        pub fn view(&self) -> Element<'_, IndexedMessage<usize, Message>, Renderer> {
             let mut content = Row::new().spacing(10);
 
             let empty_image = helpers::empty_image::empty_image().width(100).height(140);
@@ -281,7 +281,7 @@ mod cast_poster {
                 text(format!("as {}", &self.cast.character.name)).size(11)
             ]);
 
-            // A little bit of space between cast name and other informations
+            // A little bit of space between cast name and other information
             cast_info = cast_info.push(horizontal_space(20));
 
             if let Some(gender) = self.cast.person.gender.as_ref() {
@@ -347,7 +347,7 @@ mod cast_poster {
         fn load_person_image(image: Option<Image>) -> Command<Message> {
             if let Some(image) = image {
                 Command::perform(
-                    caching::load_image(image.medium_image_url, caching::ImageType::Medium),
+                    caching::load_image(image.medium_image_url, caching::ImageResolution::Medium),
                     Message::PersonImageLoaded,
                 )
             } else {
@@ -358,7 +358,7 @@ mod cast_poster {
         fn load_character_image(image: Option<Image>) -> Command<Message> {
             if let Some(image) = image {
                 Command::perform(
-                    caching::load_image(image.medium_image_url, caching::ImageType::Medium),
+                    caching::load_image(image.medium_image_url, caching::ImageResolution::Medium),
                     Message::CharacterImageLoaded,
                 )
             } else {
