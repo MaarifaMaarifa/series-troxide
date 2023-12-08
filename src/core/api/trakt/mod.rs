@@ -412,7 +412,7 @@ pub mod trakt_data {
     #[derive(Deserialize, Debug, Clone)]
     pub struct Show {
         pub title: String,
-        pub year: u32,
+        pub year: Option<u32>,
         pub ids: Ids,
     }
 
