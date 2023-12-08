@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Watchlist episode info improvement. [#82](https://github.com/MaarifaMaarifa/series-troxide/pull/82)
 - Search results improvement. [#79](https://github.com/MaarifaMaarifa/series-troxide/pull/79)
 
+## [0.4.3] - 2023-12-09
+
+### Fixed
+- Unable to import trakt shows with no external ids (i.e imdb, tvdb)
+
 ## [0.4.2] - 2023-12-09
 
 ### Fixed
