@@ -309,6 +309,12 @@ impl Hash for SeriesMainInformation {
     }
 }
 
+impl Rated for SeriesMainInformation {
+    fn rating(&self) -> f32 {
+        self.rating.average.unwrap_or_default()
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct WebChannel {
     pub name: String,

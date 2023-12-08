@@ -14,7 +14,7 @@ use upcoming_poster::{Message as UpcomingPosterMessage, UpcomingPoster};
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    UpcomingPoster(IndexedMessage<UpcomingPosterMessage>),
+    UpcomingPoster(IndexedMessage<usize, UpcomingPosterMessage>),
     SeriesInformationReceived(Option<Vec<(SeriesMainInformation, Episode, EpisodeReleaseTime)>>),
     Refresh,
 }
@@ -26,13 +26,13 @@ enum LoadState {
     Loaded,
 }
 
-pub struct UpcomingReleases {
+pub struct UpcomingReleases<'a> {
     load_state: LoadState,
-    upcoming_posters: Vec<UpcomingPoster>,
+    upcoming_posters: Vec<UpcomingPoster<'a>>,
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
 }
 
-impl UpcomingReleases {
+impl<'a> UpcomingReleases<'a> {
     pub fn new(
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (Self, Command<Message>) {
@@ -86,7 +86,7 @@ impl UpcomingReleases {
                 {
                     let (poster, command) = UpcomingPoster::new(
                         index,
-                        series_info,
+                        std::borrow::Cow::Owned(series_info),
                         self.series_page_sender.clone(),
                         episode,
                         release_time,
@@ -140,7 +140,7 @@ fn load_upcoming_releases() -> Command<Message> {
     Command::perform(
         async {
             caching::series_list::SeriesList::new()
-                .get_upcoming_release_series_informations_and_episodes()
+                .get_upcoming_release_series_information_and_episodes()
                 .await
         },
         |res| Message::SeriesInformationReceived(res.ok()),
@@ -170,21 +170,22 @@ mod upcoming_poster {
         Poster(GenericPosterMessage),
         SeriesPosterPressed,
     }
-    pub struct UpcomingPoster {
+
+    pub struct UpcomingPoster<'a> {
         index: usize,
-        poster: GenericPoster,
+        poster: GenericPoster<'a>,
         upcoming_episode: Episode,
         episode_release_time: EpisodeReleaseTime,
     }
 
-    impl UpcomingPoster {
+    impl<'a> UpcomingPoster<'a> {
         pub fn new(
             index: usize,
-            series_info: SeriesMainInformation,
+            series_info: std::borrow::Cow<'a, SeriesMainInformation>,
             series_page_sender: mpsc::Sender<SeriesMainInformation>,
             upcoming_episode: Episode,
             episode_release_time: EpisodeReleaseTime,
-        ) -> (Self, Command<IndexedMessage<Message>>) {
+        ) -> (Self, Command<IndexedMessage<usize, Message>>) {
             let (poster, poster_command) = GenericPoster::new(series_info, series_page_sender);
             (
                 Self {
@@ -205,8 +206,8 @@ mod upcoming_poster {
 
         pub fn update(
             &mut self,
-            message: IndexedMessage<Message>,
-        ) -> Command<IndexedMessage<Message>> {
+            message: IndexedMessage<usize, Message>,
+        ) -> Command<IndexedMessage<usize, Message>> {
             match message.message() {
                 Message::Poster(message) => {
                     self.poster.update(message);
@@ -219,7 +220,7 @@ mod upcoming_poster {
             }
         }
 
-        pub fn view(&self) -> Element<'_, IndexedMessage<Message>, Renderer> {
+        pub fn view(&self) -> Element<'_, IndexedMessage<usize, Message>, Renderer> {
             let mut content = row!().padding(2).spacing(7);
             if let Some(image_bytes) = self.poster.get_image() {
                 let image_handle = image::Handle::from_memory(image_bytes.clone());

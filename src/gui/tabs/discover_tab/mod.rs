@@ -25,13 +25,13 @@ pub enum Message {
     PageScrolled(Viewport),
 }
 
-pub struct DiscoverTab {
+pub struct DiscoverTab<'a> {
     search: searching::Search,
-    full_schedule_series: FullSchedulePosters,
+    full_schedule_series: FullSchedulePosters<'a>,
     scrollable_offset: RelativeOffset,
 }
 
-impl DiscoverTab {
+impl<'a> DiscoverTab<'a> {
     pub fn new(
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (Self, Command<Message>) {
@@ -118,7 +118,7 @@ impl DiscoverTab {
     }
 }
 
-impl Tab for DiscoverTab {
+impl<'a> Tab for DiscoverTab<'a> {
     type Message = Message;
 
     fn title() -> &'static str {

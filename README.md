@@ -71,6 +71,6 @@ Dockerized `Series Troxide` can be obtained [here](https://github.com/linuxserve
 
 ## Credits
 - The API used has been provided by TVmaze, you can check out the site [here](https://www.tvmaze.com/).
-- The Icons used have been provided by boostrap icons, you can check out the site [here](https://icons.getbootstrap.com/).
+- The Icons used have been provided by bootstrap icons, you can check out the site [here](https://icons.getbootstrap.com/).
 - The Graphical User Interface has been made using Iced, you can check out the site [here](https://iced.rs/).
 - The UI design has been inspired by the [Hobi Mobile app](https://hobiapp.com/)

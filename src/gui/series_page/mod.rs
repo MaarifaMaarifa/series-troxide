@@ -3,25 +3,27 @@ use std::sync::mpsc;
 use iced::{Command, Element, Renderer};
 use indexmap::IndexMap;
 
-use series::{IdentifiableMessage, Series};
+use series::{Message as SeriesMessage, Series};
 
 use crate::core::api::tv_maze::series_information::SeriesMainInformation;
+
+use super::troxide_widget::series_poster::IndexedMessage;
 
 mod series;
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    Series(IdentifiableMessage),
+    Series(IndexedMessage<u32, SeriesMessage>),
     SeriesCacheFileWritten,
 }
 
-pub struct SeriesPageController {
-    series_pages: IndexMap<u32, Series>,
+pub struct SeriesPageController<'a> {
+    series_pages: IndexMap<u32, Series<'a>>,
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
     series_page_receiver: mpsc::Receiver<SeriesMainInformation>,
 }
 
-impl SeriesPageController {
+impl<'a> SeriesPageController<'a> {
     pub fn new(
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
         series_page_receiver: mpsc::Receiver<SeriesMainInformation>,
@@ -52,7 +54,7 @@ impl SeriesPageController {
                 let id = *id;
                 series_page
                     .restore_scroller_relative_offset()
-                    .map(move |message| Message::Series(IdentifiableMessage::new(id, message)))
+                    .map(move |message| Message::Series(IndexedMessage::new(id, message)))
             })
             .unwrap_or(Command::none())
     }
@@ -76,7 +78,7 @@ impl SeriesPageController {
                     self.series_pages.insert(series_page_id, series_page);
 
                     restore_scroller_command.map(move |message| {
-                        Message::Series(IdentifiableMessage::new(series_page_id, message))
+                        Message::Series(IndexedMessage::new(series_page_id, message))
                     })
                 } else {
                     let (series_page, series_page_command) =
@@ -84,7 +86,7 @@ impl SeriesPageController {
                     self.series_pages.insert(series_page_id, series_page);
 
                     series_page_command.map(move |message| {
-                        Message::Series(IdentifiableMessage::new(series_page_id, message))
+                        Message::Series(IndexedMessage::new(series_page_id, message))
                     })
                 };
 
@@ -145,14 +147,14 @@ impl SeriesPageController {
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Series(identifiable_message) => {
-                let series_page_id = identifiable_message.get_id();
+                let series_page_id = identifiable_message.index();
 
                 let command = if let Some(series_page) = self.series_pages.get_mut(&series_page_id)
                 {
                     series_page
-                        .update(identifiable_message.get_message())
+                        .update(identifiable_message.message())
                         .map(move |message| {
-                            Message::Series(IdentifiableMessage::new(series_page_id, message))
+                            Message::Series(IndexedMessage::new(series_page_id, message))
                         })
                 } else {
                     Command::none()
@@ -168,7 +170,7 @@ impl SeriesPageController {
         self.series_pages.last().map(|(id, series_page)| {
             series_page
                 .view()
-                .map(|message| Message::Series(IdentifiableMessage::new(*id, message)))
+                .map(|message| Message::Series(IndexedMessage::new(*id, message)))
         })
     }
 }

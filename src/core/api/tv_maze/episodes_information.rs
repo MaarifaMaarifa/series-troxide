@@ -9,7 +9,7 @@ const EPISODE_LIST_ADDRESS: &str = "https://api.tvmaze.com/shows/SERIES-ID/episo
 
 /// # An `Episode` data according to the TVmaze api
 ///
-/// This data discribes an episode found in a season of a particular series
+/// This data describes an episode found in a season of a particular series
 ///
 /// ## Note
 
@@ -62,7 +62,7 @@ pub struct Show {
     pub href: String,
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum EpisodeDateError {
     #[error("no date was found in the episode")]
     NotFound,
@@ -83,8 +83,13 @@ impl Episode {
             .with_timezone(&Local))
     }
 
-    pub fn episode_release_time(&self) -> Result<EpisodeReleaseTime, EpisodeDateError> {
+    pub fn release_time(&self) -> Result<EpisodeReleaseTime, EpisodeDateError> {
         Ok(EpisodeReleaseTime::new(self.local_date_time()?))
+    }
+
+    pub fn is_future_release(&self) -> Result<bool, EpisodeDateError> {
+        self.release_time()
+            .map(|release_time| release_time.is_future())
     }
 }
 

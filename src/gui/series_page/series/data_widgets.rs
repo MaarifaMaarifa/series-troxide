@@ -1,15 +1,150 @@
+use bytes::Bytes;
+
+use super::Message;
 use crate::core::api::tv_maze::episodes_information::Episode;
 use crate::core::api::tv_maze::series_information::{SeriesMainInformation, ShowStatus};
-use crate::core::caching::episode_list::EpisodeReleaseTime;
-use crate::gui::assets::icons::{CLOCK_FILL, STAR, STAR_FILL, STAR_HALF};
+use crate::core::database;
+use crate::gui::assets::icons::{
+    CLOCK_FILL, PATCH_PLUS, PATCH_PLUS_FILL, STAR, STAR_FILL, STAR_HALF,
+};
 use crate::gui::helpers::{self, season_episode_str_gen};
 use crate::gui::styles;
 
-use iced::widget::{container, horizontal_space, row, svg, text, Space};
-use iced::{Element, Length, Renderer};
+use iced::widget::{
+    button, column, container, horizontal_rule, horizontal_space, row, svg, text, vertical_space,
+    Button, Space,
+};
+use iced::{Alignment, Element, Length, Renderer};
 use iced_aw::Grid;
 
-use super::Message;
+/// Generates the Series Metadata
+pub fn series_metadata<'a>(
+    series_information: &'a SeriesMainInformation,
+    image_bytes: Option<Bytes>,
+    next_episode_to_air: Option<&'a Episode>,
+) -> Element<'a, Message, Renderer> {
+    let mut main_info = row!().padding(5).spacing(10);
+
+    if let Some(image_bytes) = image_bytes {
+        let image_handle = iced::widget::image::Handle::from_memory(image_bytes);
+        let image = iced::widget::image(image_handle).width(180);
+
+        main_info = main_info.push(image);
+    } else {
+        main_info = main_info.push(helpers::empty_image::empty_image().width(180).height(253));
+    };
+
+    let mut series_data_grid = Grid::with_columns(2);
+
+    status_widget(series_information, &mut series_data_grid);
+    series_type_widget(series_information, &mut series_data_grid);
+    genres_widget(series_information, &mut series_data_grid);
+    language_widget(series_information, &mut series_data_grid);
+    average_runtime_widget(series_information, &mut series_data_grid);
+    network_widget(series_information, &mut series_data_grid);
+    webchannel_widget(series_information, &mut series_data_grid);
+    premiered_widget(series_information, &mut series_data_grid);
+    ended_widget(series_information, &mut series_data_grid);
+
+    let rating_widget = rating_widget(series_information);
+    let summary = summary_widget(series_information);
+
+    let series_name = text(series_information.name.clone())
+        .size(31)
+        .style(styles::text_styles::accent_color_theme());
+
+    let title_bar = row![
+        series_name.width(Length::FillPortion(10)),
+        tracking_button(series_information.id)
+    ];
+
+    let next_episode_widget = next_episode_to_air_widget(next_episode_to_air);
+
+    let rating_and_release_widget = row![
+        rating_widget,
+        horizontal_space(Length::Fill),
+        next_episode_widget
+    ]
+    .padding(3);
+
+    let series_data = column![
+        title_bar,
+        rating_and_release_widget,
+        horizontal_rule(1),
+        series_data_grid,
+        vertical_space(10),
+    ]
+    .width(700)
+    .spacing(5);
+
+    main_info = main_info.push(series_data);
+
+    let content = container(
+        column![main_info, summary]
+            .align_items(Alignment::Center)
+            .padding(5)
+            .width(Length::Fill),
+    )
+    .style(styles::container_styles::first_class_container_square_theme());
+
+    container(content)
+        .width(Length::Fill)
+        .padding(10)
+        .center_x()
+        .into()
+}
+
+pub fn background(
+    background_bytes: Option<Bytes>,
+    series_image_blurred: Option<image::DynamicImage>,
+) -> Element<'static, Message, Renderer> {
+    if let Some(image_bytes) = background_bytes {
+        let image_handle = iced::widget::image::Handle::from_memory(image_bytes);
+        iced::widget::image(image_handle)
+            .width(Length::Fill)
+            .height(300)
+            .content_fit(iced::ContentFit::Cover)
+            .into()
+    } else {
+        // using the blurred series image when the background is not yet present(or still loading)
+        if let Some(image) = series_image_blurred {
+            let image_handle = iced::widget::image::Handle::from_pixels(
+                image.width(),
+                image.height(),
+                image.into_rgba8().into_vec(),
+            );
+            return iced::widget::image(image_handle)
+                .width(Length::Fill)
+                .height(300)
+                .content_fit(iced::ContentFit::Cover)
+                .into();
+        }
+        Space::new(0, 300).into()
+    }
+}
+
+pub fn tracking_button(series_id: u32) -> Button<'static, Message, Renderer> {
+    if database::DB
+        .get_series(series_id)
+        .map(|series| series.is_tracked())
+        .unwrap_or(false)
+    {
+        let tracked_icon_handle = svg::Handle::from_memory(PATCH_PLUS_FILL);
+        let icon = svg(tracked_icon_handle)
+            .width(30)
+            .height(30)
+            .style(styles::svg_styles::colored_svg_theme());
+        button(icon).on_press(Message::UntrackSeries)
+    } else {
+        let tracked_icon_handle = svg::Handle::from_memory(PATCH_PLUS);
+        let icon = svg(tracked_icon_handle)
+            .width(30)
+            .height(30)
+            .style(styles::svg_styles::colored_svg_theme());
+        button(icon).on_press(Message::TrackSeries)
+    }
+    .style(styles::button_styles::transparent_button_theme())
+}
 
 pub fn status_widget(
     series_info: &SeriesMainInformation,
@@ -181,13 +316,6 @@ pub fn network_widget(
     series_info: &SeriesMainInformation,
     data_grid: &mut Grid<'_, Message, Renderer>,
 ) {
-    // if let Some(network) = series_info.network.as_ref() {
-    //     if let Some(network_name) = network.country.name.as_ref() {
-    //         data_grid.insert(text("Network"));
-    //         data_grid.insert(text(format!("{} ({})", &network.name, network_name)));
-    //     }
-    // };
-
     series_info.network.as_ref().map(|network| {
         network.country.name.as_ref().map(|network_name| {
             // TODO: Add a clickable link
@@ -208,10 +336,12 @@ pub fn webchannel_widget(
     };
 }
 
-pub fn next_episode_release_time_widget(
-    next_episode_release_time: Option<&(Episode, EpisodeReleaseTime)>,
+pub fn next_episode_to_air_widget(
+    next_episode_to_air: Option<&Episode>,
 ) -> Element<'_, Message, Renderer> {
-    if let Some((episode, release_time)) = next_episode_release_time {
+    if let Some((episode, Some(release_time))) =
+        next_episode_to_air.map(|episode| (episode, episode.release_time().ok()))
+    {
         let season = episode.season;
         let episode = episode.number.expect("Could not get episode number");
 

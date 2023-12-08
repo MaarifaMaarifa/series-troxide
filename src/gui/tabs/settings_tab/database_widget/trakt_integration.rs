@@ -5,7 +5,7 @@ use iced::widget::{
 use iced::{Alignment, Command, Element, Length, Renderer};
 use iced_aw::Spinner;
 
-use crate::core::api::trakt::authenication::{self, CodeResponse, TokenResponse};
+use crate::core::api::trakt::authentication::{self, CodeResponse, TokenResponse};
 use crate::core::api::trakt::trakt_data::TraktShow;
 use crate::core::api::trakt::user_credentials::{self, Client, Credentials, CredentialsError};
 use crate::core::api::trakt::user_settings::{self, UserSettings};
@@ -99,10 +99,10 @@ impl TraktIntegration {
                 }
             }
             Message::ProgramAuthenticationPage(message) => {
-                if let Some(SetupStep::ProgramAuthentication(program_authenication_page)) =
+                if let Some(SetupStep::ProgramAuthentication(program_authentication_page)) =
                     self.setup_page.as_mut()
                 {
-                    program_authenication_page
+                    program_authentication_page
                         .update(message, &mut next_page)
                         .map(Message::ProgramAuthenticationPage)
                 } else {
@@ -415,13 +415,13 @@ impl ClientPage {
                 return match self.client_page_mode {
                     ClientPageMode::AccountConfiguration => match &self.client {
                         Ok(client) => Command::perform(
-                            authenication::get_device_code_response(client.client_id.clone()),
+                            authentication::get_device_code_response(client.client_id.clone()),
                             |res| {
                                 ClientPageMessage::CodeReceived(res.map_err(|err| err.to_string()))
                             },
                         ),
                         Err(_) => Command::perform(
-                            authenication::get_device_code_response(self.client_id.clone()),
+                            authentication::get_device_code_response(self.client_id.clone()),
                             |res| {
                                 ClientPageMessage::CodeReceived(res.map_err(|err| err.to_string()))
                             },
@@ -901,7 +901,9 @@ impl ImportPage {
 }
 
 mod code_authentication {
-    use crate::core::api::trakt::authenication::{get_token_response, CodeResponse, TokenResponse};
+    use crate::core::api::trakt::authentication::{
+        get_token_response, CodeResponse, TokenResponse,
+    };
     use crate::core::api::trakt::user_credentials::Client;
 
     use iced::futures::channel::mpsc;

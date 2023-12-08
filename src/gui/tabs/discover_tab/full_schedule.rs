@@ -13,7 +13,7 @@ use crate::core::caching;
 use crate::core::caching::tv_schedule::full_schedule::FullSchedule;
 use crate::core::settings_config::locale_settings;
 use crate::gui::troxide_widget::series_poster::{
-    IndexedMessage as SeriesPosterIndexedMessage, Message as SeriesPosterMessage, SeriesPoster,
+    IndexedMessage, Message as SeriesPosterMessage, SeriesPoster,
 };
 
 const SECTIONS_POSTERS_AMOUNT: usize = 20;
@@ -45,14 +45,14 @@ const GENRE_SECTIONS: [Genre; 8] = [
 #[derive(Debug, Clone)]
 pub enum Message {
     FullScheduleLoaded(&'static caching::tv_schedule::full_schedule::FullSchedule),
-    MonthlyNewPosters(SeriesPosterIndexedMessage<SeriesPosterMessage>),
-    MonthlyReturningPosters(SeriesPosterIndexedMessage<SeriesPosterMessage>),
-    GlobalSeries(SeriesPosterIndexedMessage<SeriesPosterMessage>),
-    LocalSeries(SeriesPosterIndexedMessage<SeriesPosterMessage>),
-    PopularPosters(SeriesPosterIndexedMessage<SeriesPosterMessage>),
-    NetworkPosters(SeriesPosterIndexedMessage<SeriesPosterMessage>),
-    WebChannelPosters(SeriesPosterIndexedMessage<SeriesPosterMessage>),
-    GenrePosters(SeriesPosterIndexedMessage<SeriesPosterMessage>),
+    MonthlyNewPosters(IndexedMessage<usize, SeriesPosterMessage>),
+    MonthlyReturningPosters(IndexedMessage<usize, SeriesPosterMessage>),
+    GlobalSeries(IndexedMessage<usize, SeriesPosterMessage>),
+    LocalSeries(IndexedMessage<usize, SeriesPosterMessage>),
+    PopularPosters(IndexedMessage<usize, SeriesPosterMessage>),
+    NetworkPosters(IndexedMessage<usize, SeriesPosterMessage>),
+    WebChannelPosters(IndexedMessage<usize, SeriesPosterMessage>),
+    GenrePosters(IndexedMessage<usize, SeriesPosterMessage>),
 }
 
 enum LoadState {
@@ -60,22 +60,22 @@ enum LoadState {
     Loaded,
 }
 
-pub struct FullSchedulePosters {
+pub struct FullSchedulePosters<'a> {
     load_state: LoadState,
     full_schedule: Option<&'static FullSchedule>,
-    monthly_new_poster: Vec<SeriesPoster>,
-    monthly_returning_posters: Vec<SeriesPoster>,
-    daily_global_series: Vec<SeriesPoster>,
-    daily_local_series: Vec<SeriesPoster>,
-    popular_posters: Vec<SeriesPoster>,
-    network_posters: Posters<ShowNetwork>,
-    web_channel_posters: Posters<ShowWebChannel>,
-    genre_posters: Posters<Genre>,
+    monthly_new_poster: Vec<SeriesPoster<'a>>,
+    monthly_returning_posters: Vec<SeriesPoster<'a>>,
+    daily_global_series: Vec<SeriesPoster<'a>>,
+    daily_local_series: Vec<SeriesPoster<'a>>,
+    popular_posters: Vec<SeriesPoster<'a>>,
+    network_posters: Posters<'a, ShowNetwork>,
+    web_channel_posters: Posters<'a, ShowWebChannel>,
+    genre_posters: Posters<'a, Genre>,
     country_name: String,
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
 }
 
-impl FullSchedulePosters {
+impl<'a> FullSchedulePosters<'a> {
     pub fn new(
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (Self, Command<Message>) {
@@ -246,18 +246,18 @@ impl FullSchedulePosters {
             .map(Message::MonthlyReturningPosters),
             Message::NetworkPosters(message) => self
                 .network_posters
-                .get_series_poster_mut(message.index())
-                .update(message)
+                .update_poster(message)
+                // .update(message)
                 .map(Message::NetworkPosters),
             Message::WebChannelPosters(message) => self
                 .web_channel_posters
-                .get_series_poster_mut(message.index())
-                .update(message)
+                .update_poster(message)
+                // .update(message)
                 .map(Message::WebChannelPosters),
             Message::GenrePosters(message) => self
                 .genre_posters
-                .get_series_poster_mut(message.index())
-                .update(message)
+                .update_poster(message)
+                // .update(message)
                 .map(Message::GenrePosters),
             Message::GlobalSeries(message) => self.daily_global_series[message.index()]
                 .update(message)
@@ -349,17 +349,20 @@ impl FullSchedulePosters {
     }
 
     fn generate_posters_and_commands_from_series_infos(
-        series_infos: Vec<SeriesMainInformation>,
+        series_infos: Vec<&'a SeriesMainInformation>,
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (
-        Vec<SeriesPoster>,
-        Vec<Command<SeriesPosterIndexedMessage<SeriesPosterMessage>>>,
+        Vec<SeriesPoster<'a>>,
+        Vec<Command<IndexedMessage<usize, SeriesPosterMessage>>>,
     ) {
         let mut posters = Vec::with_capacity(series_infos.len());
         let mut posters_commands = Vec::with_capacity(series_infos.len());
         for (index, series_info) in series_infos.into_iter().enumerate() {
-            let (poster, command) =
-                SeriesPoster::new(index, series_info, series_page_sender.clone());
+            let (poster, command) = SeriesPoster::new(
+                index,
+                std::borrow::Cow::Borrowed(series_info),
+                series_page_sender.clone(),
+            );
             posters.push(poster);
             posters_commands.push(command);
         }
@@ -388,7 +391,7 @@ fn no_series_found() -> Element<'static, Message, Renderer> {
 fn series_posters_viewer<'a>(
     title: &str,
     posters: &'a [SeriesPoster],
-) -> Element<'a, SeriesPosterIndexedMessage<SeriesPosterMessage>, Renderer> {
+) -> Element<'a, IndexedMessage<usize, SeriesPosterMessage>, Renderer> {
     let title = text(title).size(21);
 
     if posters.is_empty() {
@@ -419,14 +422,14 @@ fn series_posters_viewer<'a>(
     }
 }
 
-struct Posters<T> {
+struct Posters<'a, T> {
     index: HashMap<T, RangeInclusive<usize>>,
-    posters: Vec<SeriesPoster>,
+    posters: Vec<SeriesPoster<'a>>,
 
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
 }
 
-impl<T> Posters<T>
+impl<'a, T> Posters<'a, T>
 where
     T: Eq + std::hash::Hash + std::fmt::Display,
 {
@@ -440,8 +443,8 @@ where
     pub fn push_section_posters(
         &mut self,
         section_id: T,
-        series_infos: Vec<SeriesMainInformation>,
-        message: fn(SeriesPosterIndexedMessage<SeriesPosterMessage>) -> Message,
+        series_infos: Vec<&'a SeriesMainInformation>,
+        message: fn(IndexedMessage<usize, SeriesPosterMessage>) -> Message,
     ) -> Command<Message> {
         if self.posters.is_empty() {
             let range = 0..=(series_infos.len() - 1);
@@ -469,11 +472,11 @@ where
 
     fn generate_posters_and_commands_from_series_infos(
         range: &RangeInclusive<usize>,
-        series_infos: Vec<SeriesMainInformation>,
+        series_infos: Vec<&'a SeriesMainInformation>,
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (
-        Vec<SeriesPoster>,
-        Vec<Command<SeriesPosterIndexedMessage<SeriesPosterMessage>>>,
+        Vec<SeriesPoster<'a>>,
+        Vec<Command<IndexedMessage<usize, SeriesPosterMessage>>>,
     ) {
         assert_eq!(range.clone().count(), series_infos.len());
 
@@ -481,8 +484,11 @@ where
         let mut posters_commands = Vec::with_capacity(series_infos.len());
 
         for (index, series_info) in range.clone().zip(series_infos.into_iter()) {
-            let (poster, command) =
-                SeriesPoster::new(index, series_info, series_page_sender.clone());
+            let (poster, command) = SeriesPoster::new(
+                index,
+                std::borrow::Cow::Borrowed(series_info),
+                series_page_sender.clone(),
+            );
             posters.push(poster);
             posters_commands.push(command);
         }
@@ -501,7 +507,7 @@ where
     pub fn get_section_view(
         &self,
         section_id: &T,
-        message: fn(SeriesPosterIndexedMessage<SeriesPosterMessage>) -> Message,
+        message: fn(IndexedMessage<usize, SeriesPosterMessage>) -> Message,
     ) -> Element<'_, Message, Renderer> {
         let series_posters = self.get_section(section_id);
 
@@ -525,7 +531,11 @@ where
             .into()
     }
 
-    pub fn get_series_poster_mut(&mut self, index: usize) -> &mut SeriesPoster {
-        &mut self.posters[index]
+    pub fn update_poster(
+        &mut self,
+        message: IndexedMessage<usize, SeriesPosterMessage>,
+    ) -> Command<IndexedMessage<usize, SeriesPosterMessage>> {
+        let index = message.index();
+        self.posters[index].update(message)
     }
 }

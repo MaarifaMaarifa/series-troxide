@@ -19,7 +19,7 @@ use watchlist_summary::WatchlistSummary;
 #[derive(Debug, Clone)]
 pub enum Message {
     SeriesInformationLoaded(Vec<(SeriesMainInformation, EpisodeList, usize)>),
-    WatchlistPoster(IndexedMessage<WatchlistPosterMessage>),
+    WatchlistPoster(IndexedMessage<usize, WatchlistPosterMessage>),
     PageScrolled(Viewport),
 }
 
@@ -30,15 +30,15 @@ enum LoadState {
     Loaded,
 }
 
-pub struct WatchlistTab {
+pub struct WatchlistTab<'a> {
     load_state: LoadState,
-    watchlist_posters: Vec<WatchlistPoster>,
+    watchlist_posters: Vec<WatchlistPoster<'a>>,
     watchlist_summary: Option<WatchlistSummary>,
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
     scrollable_offset: RelativeOffset,
 }
 
-impl WatchlistTab {
+impl<'a> WatchlistTab<'a> {
     pub fn new(
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
         scrollable_offset: Option<RelativeOffset>,
@@ -52,7 +52,7 @@ impl WatchlistTab {
                 scrollable_offset: scrollable_offset.unwrap_or(RelativeOffset::START),
             },
             Command::perform(
-                get_series_informations_and_watched_episodes(),
+                get_series_information_and_watched_episodes(),
                 Message::SeriesInformationLoaded,
             ),
         )
@@ -89,7 +89,7 @@ impl WatchlistTab {
                 {
                     let (poster, command) = WatchlistPoster::new(
                         index,
-                        info,
+                        std::borrow::Cow::Owned(info),
                         episode,
                         total_episodes,
                         self.series_page_sender.clone(),
@@ -170,14 +170,14 @@ fn has_pending_episodes(database_series: &database::Series, episodes_list: &Epis
     episodes_list.get_total_watchable_episodes() != database_series.get_total_episodes()
 }
 
-async fn get_series_informations_and_watched_episodes(
+async fn get_series_information_and_watched_episodes(
 ) -> Vec<(SeriesMainInformation, EpisodeList, usize)> {
-    let tracked_series_informations = series_list::SeriesList::new()
-        .get_tracked_series_informations()
+    let tracked_series_information = series_list::SeriesList::new()
+        .get_tracked_series_information()
         .await
         .unwrap();
 
-    let episode_lists_handles: Vec<_> = tracked_series_informations
+    let episode_lists_handles: Vec<_> = tracked_series_information
         .iter()
         .map(|series_info| tokio::spawn(caching::episode_list::EpisodeList::new(series_info.id)))
         .collect();
@@ -192,7 +192,7 @@ async fn get_series_informations_and_watched_episodes(
         episodes_lists.push(episode_list);
     }
 
-    tracked_series_informations
+    tracked_series_information
         .into_iter()
         .zip(episodes_lists.into_iter())
         .filter(|(series_info, episode_list)| {
@@ -206,7 +206,7 @@ async fn get_series_informations_and_watched_episodes(
         .collect()
 }
 
-impl Tab for WatchlistTab {
+impl<'a> Tab for WatchlistTab<'a> {
     type Message = Message;
 
     fn title() -> &'static str {
@@ -246,28 +246,29 @@ mod watchlist_poster {
     #[derive(Debug, Clone)]
     pub enum Message {
         Poster(GenericPosterMessage),
-        EpisodePoster(EpisodePosterMessage),
+        EpisodePoster(IndexedMessage<usize, EpisodePosterMessage>),
         SeriesPosterPressed,
         ToggleEpisodeInfo,
     }
 
-    pub struct WatchlistPoster {
+    pub struct WatchlistPoster<'a> {
         index: usize,
-        poster: GenericPoster,
+        poster: GenericPoster<'a>,
         episode_list: EpisodeList,
         total_series_episodes: usize,
         episode_poster: Option<EpisodePoster>,
+        current_poster_id: usize,
         show_episode_info: bool,
     }
 
-    impl WatchlistPoster {
+    impl<'a> WatchlistPoster<'a> {
         pub fn new(
             index: usize,
-            series_info: SeriesMainInformation,
+            series_info: std::borrow::Cow<'a, SeriesMainInformation>,
             episode_list: EpisodeList,
             total_series_episodes: usize,
             series_page_sender: mpsc::Sender<SeriesMainInformation>,
-        ) -> (Self, Command<IndexedMessage<Message>>) {
+        ) -> (Self, Command<IndexedMessage<usize, Message>>) {
             let (poster, poster_command) = GenericPoster::new(series_info, series_page_sender);
 
             (
@@ -277,6 +278,7 @@ mod watchlist_poster {
                     episode_list,
                     total_series_episodes,
                     episode_poster: None,
+                    current_poster_id: 0,
                     show_episode_info: false,
                 },
                 poster_command
@@ -287,8 +289,8 @@ mod watchlist_poster {
 
         pub fn update(
             &mut self,
-            message: IndexedMessage<Message>,
-        ) -> Command<IndexedMessage<Message>> {
+            message: IndexedMessage<usize, Message>,
+        ) -> Command<IndexedMessage<usize, Message>> {
             let command = match message.message() {
                 Message::Poster(message) => {
                     self.poster.update(message);
@@ -308,14 +310,17 @@ mod watchlist_poster {
                     }
                 }
                 Message::EpisodePoster(message) => {
-                    let index = self.index;
-                    self.episode_poster
-                        .as_mut()
-                        .expect("there should be episode poster when receiving it's message")
-                        .update(IndexedMessage::new(0, message))
-                        .map(move |message| {
-                            IndexedMessage::new(index, Message::EpisodePoster(message.message()))
+                    if message.index() != self.current_poster_id {
+                        Command::none()
+                    } else if let Some(episode_poster) = self.episode_poster.as_mut() {
+                        let index = self.index;
+                        episode_poster.update(message).map(move |message| {
+                            IndexedMessage::new(index, Message::EpisodePoster(message))
                         })
+                    } else {
+                        // This situation can happen when all the episodes have been marked watched
+                        Command::none()
+                    }
                 }
             };
 
@@ -334,25 +339,26 @@ mod watchlist_poster {
             Command::batch([episode_update_command, command])
         }
 
-        fn update_episode_poster(&mut self) -> Command<IndexedMessage<Message>> {
+        fn update_episode_poster(&mut self) -> Command<IndexedMessage<usize, Message>> {
+            self.current_poster_id += 1;
+
             if let Some(episode) = self.episode_list.get_next_episode_to_watch() {
                 let (episode_poster, episode_poster_command) = EpisodePoster::new(
-                    0,
+                    self.current_poster_id,
                     self.poster.get_series_info().id,
                     self.poster.get_series_info().name.clone(),
                     episode.clone(),
                 );
                 let index = self.index;
                 self.episode_poster = Some(episode_poster);
-                episode_poster_command.map(move |message| {
-                    IndexedMessage::new(index, Message::EpisodePoster(message.message()))
-                })
+                episode_poster_command
+                    .map(move |message| IndexedMessage::new(index, Message::EpisodePoster(message)))
             } else {
                 Command::none()
             }
         }
 
-        pub fn view(&self) -> Element<'_, IndexedMessage<Message>, Renderer> {
+        pub fn view(&self) -> Element<'_, IndexedMessage<usize, Message>, Renderer> {
             let mut content = row!().padding(2).spacing(5);
             if let Some(image_bytes) = self.poster.get_image() {
                 let image_handle = image::Handle::from_memory(image_bytes.clone());
@@ -426,7 +432,7 @@ mod watchlist_poster {
                     content = content.push(horizontal_rule(1));
                     let episode_view = episode_poster
                         .view(PosterType::Watchlist)
-                        .map(|message| Message::EpisodePoster(message.message()));
+                        .map(Message::EpisodePoster);
 
                     content = content.push(container(episode_view).width(Length::Fill).center_x());
                 }

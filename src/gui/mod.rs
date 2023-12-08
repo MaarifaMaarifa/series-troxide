@@ -23,14 +23,14 @@ pub enum Message {
     FontLoaded(Result<(), iced::font::Error>),
 }
 
-pub struct TroxideGui {
+pub struct TroxideGui<'a> {
     active_tab: TabId,
     title_bar: TitleBar,
-    tabs_controller: TabsController,
-    series_page_controller: SeriesPageController,
+    tabs_controller: TabsController<'a>,
+    series_page_controller: SeriesPageController<'a>,
 }
 
-impl Application for TroxideGui {
+impl<'a> Application for TroxideGui<'a> {
     type Executor = iced::executor::Default;
     type Message = Message;
     type Theme = iced::Theme;

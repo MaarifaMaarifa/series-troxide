@@ -23,7 +23,7 @@ pub async fn get_shows_updates_index(
         SERIES_UPDATES_ADDRESS.to_string()
     };
 
-    tracing::info!("fetching show updates");
+    tracing::info!("fetching shows updates");
 
     let prettified_json = get_pretty_json_from_url(url)
         .await

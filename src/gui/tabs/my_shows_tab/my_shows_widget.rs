@@ -8,12 +8,12 @@ use crate::core::api::tv_maze::series_information::SeriesMainInformation;
 use crate::core::caching;
 use crate::gui::styles;
 use crate::gui::troxide_widget::series_poster::{
-    IndexedMessage as SeriesPosterIndexedMessage, Message as SeriesPosterMessage, SeriesPoster,
+    IndexedMessage, Message as SeriesPosterMessage, SeriesPoster,
 };
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    SeriesPosters(SeriesPosterIndexedMessage<SeriesPosterMessage>),
+    SeriesPosters(IndexedMessage<usize, SeriesPosterMessage>),
     SeriesInformationReceived(Option<Vec<SeriesMainInformation>>),
 }
 
@@ -24,13 +24,13 @@ enum LoadState {
     Loaded,
 }
 
-pub struct MyShows {
+pub struct MyShows<'a> {
     load_state: LoadState,
-    series_posters: Vec<SeriesPoster>,
+    series_posters: Vec<SeriesPoster<'a>>,
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
 }
 
-impl MyShows {
+impl<'a> MyShows<'a> {
     pub fn new_as_ended_tracked_series(
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (Self, Command<Message>) {
@@ -43,7 +43,7 @@ impl MyShows {
             Command::perform(
                 async {
                     caching::series_list::SeriesList::new()
-                        .get_ended_tracked_series_informations()
+                        .get_ended_tracked_series_information()
                         .await
                 },
                 move |res| Message::SeriesInformationReceived(res.ok()),
@@ -63,7 +63,7 @@ impl MyShows {
             Command::perform(
                 async {
                     caching::series_list::SeriesList::new()
-                        .get_waiting_release_series_informations()
+                        .get_waiting_release_series_information()
                         .await
                 },
                 |res| Message::SeriesInformationReceived(res.ok()),
@@ -83,7 +83,7 @@ impl MyShows {
             Command::perform(
                 async {
                     caching::series_list::SeriesList::new()
-                        .get_untracked_series_informations()
+                        .get_untracked_series_information()
                         .await
                 },
                 |res| Message::SeriesInformationReceived(res.ok()),
@@ -104,8 +104,11 @@ impl MyShows {
                 let mut series_posters = Vec::with_capacity(series_infos.len());
 
                 for (index, series_info) in series_infos.into_iter().enumerate() {
-                    let (poster, command) =
-                        SeriesPoster::new(index, series_info, self.series_page_sender.clone());
+                    let (poster, command) = SeriesPoster::new(
+                        index,
+                        std::borrow::Cow::Owned(series_info),
+                        self.series_page_sender.clone(),
+                    );
                     series_posters.push(poster);
                     series_posters_commands.push(command);
                 }

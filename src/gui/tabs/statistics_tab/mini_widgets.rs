@@ -193,19 +193,19 @@ pub mod series_banner {
         Selected,
     }
 
-    pub struct SeriesBanner {
+    pub struct SeriesBanner<'a> {
         index: usize,
-        poster: GenericPoster,
+        poster: GenericPoster<'a>,
         watch_time: Option<u32>,
     }
 
-    impl SeriesBanner {
+    impl<'a> SeriesBanner<'a> {
         pub fn new(
             index: usize,
-            series_info: SeriesMainInformation,
+            series_info: std::borrow::Cow<'a, SeriesMainInformation>,
             watch_time: Option<u32>,
             series_page_sender: mpsc::Sender<SeriesMainInformation>,
-        ) -> (Self, Command<IndexedMessage<Message>>) {
+        ) -> (Self, Command<IndexedMessage<usize, Message>>) {
             let (poster, poster_command) = GenericPoster::new(series_info, series_page_sender);
             (
                 Self {
@@ -219,14 +219,14 @@ pub mod series_banner {
             )
         }
 
-        pub fn update(&mut self, message: IndexedMessage<Message>) {
+        pub fn update(&mut self, message: IndexedMessage<usize, Message>) {
             match message.message() {
                 Message::Selected => self.poster.open_series_page(),
                 Message::Poster(message) => self.poster.update(message),
             }
         }
 
-        pub fn view(&self) -> Element<'_, IndexedMessage<Message>, Renderer> {
+        pub fn view(&self) -> Element<'_, IndexedMessage<usize, Message>, Renderer> {
             let series_id = self.poster.get_series_info().id;
             let series = database::DB.get_series(series_id).unwrap();
 

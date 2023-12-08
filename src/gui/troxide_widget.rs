@@ -43,7 +43,7 @@ pub mod episode_widget {
             series_id: u32,
             series_name: String,
             episode_information: EpisodeInfo,
-        ) -> (Self, Command<IndexedMessage<Message>>) {
+        ) -> (Self, Command<IndexedMessage<usize, Message>>) {
             let episode_image = episode_information.image.clone();
             let episode = Self {
                 index,
@@ -56,7 +56,7 @@ pub mod episode_widget {
 
             let command = if let Some(image) = episode_image {
                 Command::perform(
-                    caching::load_image(image.medium_image_url, caching::ImageType::Medium),
+                    caching::load_image(image.medium_image_url, caching::ImageResolution::Medium),
                     Message::ImageLoaded,
                 )
                 .map(move |message| IndexedMessage::new(index, message))
@@ -73,8 +73,8 @@ pub mod episode_widget {
 
         pub fn update(
             &mut self,
-            message: IndexedMessage<Message>,
-        ) -> Command<IndexedMessage<Message>> {
+            message: IndexedMessage<usize, Message>,
+        ) -> Command<IndexedMessage<usize, Message>> {
             match message.message() {
                 Message::ImageLoaded(image) => {
                     self.episode_image = image;
@@ -130,7 +130,7 @@ pub mod episode_widget {
         pub fn view(
             &self,
             poster_type: PosterType,
-        ) -> Element<'_, IndexedMessage<Message>, Renderer> {
+        ) -> Element<'_, IndexedMessage<usize, Message>, Renderer> {
             let (poster_width, image_width, image_height) = match poster_type {
                 PosterType::Watchlist => (800_f32, 124_f32, 70_f32),
                 PosterType::Season => (700_f32, 107_f32, 60_f32),
@@ -182,7 +182,7 @@ pub mod episode_widget {
     }
 
     fn date_time_widget(episode_information: &EpisodeInfo) -> Element<'_, Message, Renderer> {
-        if let Ok(release_time) = episode_information.episode_release_time() {
+        if let Ok(release_time) = episode_information.release_time() {
             let prefix = match release_time.is_future() {
                 true => "Airing on",
                 false => "Aired on",
@@ -250,6 +250,7 @@ pub mod episode_widget {
 }
 
 pub mod series_poster {
+    use std::borrow::Cow;
     use std::sync::mpsc;
 
     use crate::core::api::tv_maze::series_information::{Rating, SeriesMainInformation};
@@ -273,15 +274,15 @@ pub mod series_poster {
         ImageLoaded(Option<Bytes>),
     }
 
-    pub struct GenericPoster {
-        series_information: SeriesMainInformation,
+    pub struct GenericPoster<'a> {
+        series_information: Cow<'a, SeriesMainInformation>,
         image: Option<Bytes>,
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
     }
 
-    impl GenericPoster {
+    impl<'a> GenericPoster<'a> {
         pub fn new(
-            series_information: SeriesMainInformation,
+            series_information: Cow<'a, SeriesMainInformation>,
             series_page_sender: mpsc::Sender<SeriesMainInformation>,
         ) -> (Self, Command<GenericPosterMessage>) {
             let image_url = series_information.image.clone();
@@ -306,8 +307,9 @@ pub mod series_poster {
         }
 
         pub fn open_series_page(&self) {
+            let series = self.series_information.clone().into_owned();
             self.series_page_sender
-                .send(self.series_information.clone())
+                .send(series)
                 .expect("failed to send series page info");
         }
 
@@ -319,8 +321,11 @@ pub mod series_poster {
             if let Some(image) = image {
                 Command::perform(
                     async move {
-                        caching::load_image(image.medium_image_url, caching::ImageType::Medium)
-                            .await
+                        caching::load_image(
+                            image.medium_image_url,
+                            caching::ImageResolution::Medium,
+                        )
+                        .await
                     },
                     GenericPosterMessage::ImageLoaded,
                 )
@@ -339,19 +344,19 @@ pub mod series_poster {
         SeriesHidden,
     }
 
-    pub struct SeriesPoster {
+    pub struct SeriesPoster<'a> {
         index: usize,
-        poster: GenericPoster,
+        poster: GenericPoster<'a>,
         expanded: bool,
         hidden: bool,
     }
 
-    impl SeriesPoster {
+    impl<'a> SeriesPoster<'a> {
         pub fn new(
             index: usize,
-            series_information: SeriesMainInformation,
+            series_information: Cow<'a, SeriesMainInformation>,
             series_page_sender: mpsc::Sender<SeriesMainInformation>,
-        ) -> (Self, Command<IndexedMessage<Message>>) {
+        ) -> (Self, Command<IndexedMessage<usize, Message>>) {
             let (poster, poster_command) =
                 GenericPoster::new(series_information, series_page_sender);
             let poster = Self {
@@ -371,8 +376,8 @@ pub mod series_poster {
 
         pub fn update(
             &mut self,
-            message: IndexedMessage<Message>,
-        ) -> Command<IndexedMessage<Message>> {
+            message: IndexedMessage<usize, Message>,
+        ) -> Command<IndexedMessage<usize, Message>> {
             match message.message() {
                 Message::SeriesPosterPressed => {
                     self.poster.open_series_page();
@@ -408,7 +413,10 @@ pub mod series_poster {
             self.hidden
         }
 
-        pub fn view(&self, expandable: bool) -> Element<'_, IndexedMessage<Message>, Renderer> {
+        pub fn view(
+            &self,
+            expandable: bool,
+        ) -> Element<'_, IndexedMessage<usize, Message>, Renderer> {
             let poster_image: Element<'_, Message, Renderer> = {
                 let image_height = if self.expanded { 170 } else { 140 };
                 if let Some(image_bytes) = self.poster.get_image() {
