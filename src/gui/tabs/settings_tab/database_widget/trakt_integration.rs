@@ -864,7 +864,12 @@ impl ImportPage {
                     .map(|trakt_show| {
                         text(format!(
                             "{} ({})",
-                            trakt_show.show.title, trakt_show.show.year
+                            trakt_show.show.title,
+                            trakt_show
+                                .show
+                                .year
+                                .map(|year| year.to_string())
+                                .unwrap_or("unknown".to_string())
                         ))
                         .into()
                     })
