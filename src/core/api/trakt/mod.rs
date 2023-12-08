@@ -65,23 +65,44 @@ mod convert {
     use tokio::sync::mpsc;
 
     use super::trakt_data::TraktShow;
+    use crate::core::api::tv_maze::series_information::SeriesMainInformation;
     use crate::core::api::tv_maze::show_lookup::{show_lookup, Id};
     use crate::core::api::tv_maze::ApiError as TvMazeApiError;
     use crate::core::caching::series_information::cache_series_information;
     use crate::core::database::Series;
 
+    async fn show_lookup_tvdb_id(
+        tvdb_id: Option<u32>,
+    ) -> Result<Option<SeriesMainInformation>, TvMazeApiError> {
+        if let Some(tvdb_id) = tvdb_id {
+            let tvdb_id = Id::Tvdb(tvdb_id);
+            show_lookup(tvdb_id).await
+        } else {
+            Ok(None)
+        }
+    }
+
+    async fn show_lookup_imdb_id(
+        imdb_id: Option<String>,
+    ) -> Result<Option<SeriesMainInformation>, TvMazeApiError> {
+        if let Some(imdb_id) = imdb_id {
+            let imdb_id = Id::Imdb(imdb_id);
+            show_lookup(imdb_id).await
+        } else {
+            Ok(None)
+        }
+    }
+
     async fn trakt_show_to_troxide(
         trakt_show: &TraktShow,
     ) -> Result<Option<(u32, ManuallyDrop<Series>)>, TvMazeApiError> {
-        let imdb_id = Id::Imdb(trakt_show.show.ids.imdb.clone());
-
-        let tvmaze_series_info = if let Some(tvmaze_series_info) = show_lookup(imdb_id).await? {
+        let tvmaze_series_info = if let Some(tvmaze_series_info) =
+            show_lookup_imdb_id(trakt_show.show.ids.imdb.clone()).await?
+        {
             tvmaze_series_info
         } else {
             // Falling back to the tvdb id when imdb id fails
-            let tvdb_id = Id::Tvdb(trakt_show.show.ids.tvdb);
-
-            if let Some(tvmaze_series_info) = show_lookup(tvdb_id).await? {
+            if let Some(tvmaze_series_info) = show_lookup_tvdb_id(trakt_show.show.ids.tvdb).await? {
                 tvmaze_series_info
             } else {
                 return Ok(None);
@@ -416,8 +437,8 @@ pub mod trakt_data {
     #[derive(Deserialize, Debug, Clone)]
     pub struct Ids {
         pub trakt: u32,
-        pub imdb: String,
-        pub tvdb: u32,
+        pub imdb: Option<String>,
+        pub tvdb: Option<u32>,
     }
 
     #[derive(Deserialize, Debug, Clone)]
