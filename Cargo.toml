@@ -21,7 +21,7 @@ serde = { version = "1.0.193", features = ["derive"] }
 serde_json = "1.0.108"
 toml = "0.8.2"
 json = "0.12.4"
-tokio = { version = "1.35.0", features = ["full"] }
+tokio = { version = "1.35.1", features = ["full"] }
 tracing-subscriber = "0.3.18"
 tracing = "0.1.40"
 sled = "0.34.7"
