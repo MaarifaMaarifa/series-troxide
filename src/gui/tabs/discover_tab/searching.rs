@@ -29,6 +29,7 @@ pub enum Message {
 
 pub struct Search {
     search_term: String,
+    searched_term: String,
     search_results: Vec<SearchResult>,
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
     pub load_state: LoadState,
@@ -38,6 +39,7 @@ impl Search {
     pub fn new(series_page_sender: mpsc::Sender<SeriesMainInformation>) -> Self {
         Self {
             search_term: String::new(),
+            searched_term: String::new(),
             search_results: vec![],
             load_state: LoadState::NotLoaded,
             series_page_sender,
@@ -66,14 +68,22 @@ impl Search {
                 self.load_state = LoadState::NotLoaded;
             }
             Message::TermSearched => {
-                self.load_state = LoadState::Loading;
+                if self.search_term == self.searched_term {
+                    if !self.search_results.is_empty() {
+                        self.load_state = LoadState::Loaded;
+                    }
+                    return Command::none();
+                } else {
+                    self.load_state = LoadState::Loading;
+                    self.searched_term = self.search_term.clone();
 
-                let series_result = series_searching::search_series(self.search_term.clone());
+                    let series_result = series_searching::search_series(self.search_term.clone());
 
-                return Command::perform(series_result, |res| match res {
-                    Ok(res) => Message::SearchSuccess(res),
-                    Err(_) => Message::SearchFail,
-                });
+                    return Command::perform(series_result, |res| match res {
+                        Ok(res) => Message::SearchSuccess(res),
+                        Err(_) => Message::SearchFail,
+                    });
+                }
             }
             Message::SearchSuccess(results) => {
                 self.load_state = LoadState::Loaded;
