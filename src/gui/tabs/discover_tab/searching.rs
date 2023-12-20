@@ -66,23 +66,24 @@ impl Search {
             Message::TermChanged(term) => {
                 self.search_term = term;
                 self.load_state = LoadState::NotLoaded;
+                Command::none()
             }
             Message::TermSearched => {
                 if self.search_term == self.searched_term {
                     if !self.search_results.is_empty() {
                         self.load_state = LoadState::Loaded;
                     }
-                    return Command::none();
+                    Command::none()
                 } else {
                     self.load_state = LoadState::Loading;
                     self.searched_term = self.search_term.clone();
 
                     let series_result = series_searching::search_series(self.search_term.clone());
 
-                    return Command::perform(series_result, |res| match res {
+                    Command::perform(series_result, |res| match res {
                         Ok(res) => Message::SearchSuccess(res),
                         Err(_) => Message::SearchFail,
-                    });
+                    })
                 }
             }
             Message::SearchSuccess(results) => {
@@ -99,18 +100,21 @@ impl Search {
 
                 self.search_results = search_results;
 
-                return Command::batch(search_results_commands);
+                Command::batch(search_results_commands)
             }
             Message::SearchFail => panic!("Series Search Failed"),
             Message::SearchResult(message) => {
                 if let SearchResultMessage::SeriesResultPressed = message.clone().message() {
                     self.load_state = LoadState::NotLoaded;
                 }
-                self.search_results[message.index()].update(message)
+                self.search_results[message.index()].update(message);
+                Command::none()
             }
-            Message::EscapeKeyPressed => self.load_state = LoadState::NotLoaded,
+            Message::EscapeKeyPressed => {
+                self.load_state = LoadState::NotLoaded;
+                Command::none()
+            }
         }
-        Command::none()
     }
 
     pub fn view(
