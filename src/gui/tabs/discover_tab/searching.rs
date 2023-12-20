@@ -21,8 +21,7 @@ pub enum LoadState {
 pub enum Message {
     TermChanged(String),
     TermSearched,
-    SearchSuccess(Vec<series_searching::SeriesSearchResult>),
-    SearchFail,
+    SearchSuccess(Result<Vec<series_searching::SeriesSearchResult>, String>),
     SearchResult(IndexedMessage<usize, SearchResultMessage>),
     EscapeKeyPressed,
 }
@@ -30,7 +29,7 @@ pub enum Message {
 pub struct Search {
     search_term: String,
     searched_term: String,
-    search_results: Vec<SearchResult>,
+    search_results: Result<Vec<SearchResult>, String>,
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
     pub load_state: LoadState,
 }
@@ -40,7 +39,7 @@ impl Search {
         Self {
             search_term: String::new(),
             searched_term: String::new(),
-            search_results: vec![],
+            search_results: Ok(vec![]),
             load_state: LoadState::NotLoaded,
             series_page_sender,
         }
@@ -70,7 +69,12 @@ impl Search {
             }
             Message::TermSearched => {
                 if self.search_term == self.searched_term {
-                    if !self.search_results.is_empty() {
+                    if self
+                        .search_results
+                        .as_ref()
+                        .map(|results| !results.is_empty())
+                        .unwrap_or(false)
+                    {
                         self.load_state = LoadState::Loaded;
                     }
                     Command::none()
@@ -80,34 +84,42 @@ impl Search {
 
                     let series_result = series_searching::search_series(self.search_term.clone());
 
-                    Command::perform(series_result, |res| match res {
-                        Ok(res) => Message::SearchSuccess(res),
-                        Err(_) => Message::SearchFail,
+                    Command::perform(series_result, |res| {
+                        Message::SearchSuccess(res.map_err(|err| err.to_string()))
                     })
                 }
             }
             Message::SearchSuccess(results) => {
                 self.load_state = LoadState::Loaded;
 
-                let mut search_results = Vec::with_capacity(results.len());
-                let mut search_results_commands = Vec::with_capacity(results.len());
-                results.into_iter().enumerate().for_each(|(index, result)| {
-                    let (search_result, search_result_command) =
-                        SearchResult::new(index, result, self.series_page_sender.clone());
-                    search_results.push(search_result);
-                    search_results_commands.push(search_result_command.map(Message::SearchResult));
-                });
+                match results {
+                    Ok(results) => {
+                        let mut search_results = Vec::with_capacity(results.len());
+                        let mut search_results_commands = Vec::with_capacity(results.len());
 
-                self.search_results = search_results;
-
-                Command::batch(search_results_commands)
-            }
-            Message::SearchFail => panic!("Series Search Failed"),
-            Message::SearchResult(message) => {
-                if let SearchResultMessage::SeriesResultPressed = message.clone().message() {
-                    self.load_state = LoadState::NotLoaded;
+                        for (index, result) in results.into_iter().enumerate() {
+                            let (search_result, search_result_command) =
+                                SearchResult::new(index, result, self.series_page_sender.clone());
+                            search_results.push(search_result);
+                            search_results_commands
+                                .push(search_result_command.map(Message::SearchResult));
+                        }
+                        self.search_results = Ok(search_results);
+                        Command::batch(search_results_commands)
+                    }
+                    Err(err) => {
+                        self.search_results = Err(err);
+                        Command::none()
+                    }
                 }
-                self.search_results[message.index()].update(message);
+            }
+            Message::SearchResult(message) => {
+                if let Ok(ref mut search_results) = self.search_results {
+                    if let SearchResultMessage::SeriesResultPressed = message.clone().message() {
+                        self.load_state = LoadState::NotLoaded;
+                    }
+                    search_results[message.index()].update(message);
+                }
                 Command::none()
             }
             Message::EscapeKeyPressed => {
@@ -135,24 +147,33 @@ impl Search {
 
         let search_results: Option<Element<'_, Message, Renderer>> = match self.load_state {
             LoadState::Loaded => {
-                let result_items: Vec<_> = self
-                    .search_results
-                    .iter()
-                    .map(|result| result.view().map(Message::SearchResult))
-                    .collect();
-
-                Some(if result_items.is_empty() {
-                    container(text("No results"))
+                let results_display = match &self.search_results {
+                    Ok(search_results) => {
+                        if search_results.is_empty() {
+                            container(text("No results"))
+                                .width(Length::Fill)
+                                .center_x()
+                                .padding(10)
+                                .into()
+                        } else {
+                            let result_items: Vec<_> = search_results
+                                .iter()
+                                .map(|result| result.view().map(Message::SearchResult))
+                                .collect();
+                            Column::with_children(result_items)
+                                .padding(20)
+                                .spacing(5)
+                                .into()
+                        }
+                    }
+                    Err(err) => container(text(err))
                         .width(Length::Fill)
                         .center_x()
                         .padding(10)
-                        .into()
-                } else {
-                    Column::with_children(result_items)
-                        .padding(20)
-                        .spacing(5)
-                        .into()
-                })
+                        .into(),
+                };
+
+                Some(results_display)
             }
             LoadState::Loading => Some(
                 container(Spinner::new())
