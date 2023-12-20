@@ -59,6 +59,14 @@ impl<'a> SeriesPageController<'a> {
             .unwrap_or(Command::none())
     }
 
+    /// Retrieves the `Series Name` for the current active series page if available
+    pub fn get_series_page_name(&self) -> Option<&str> {
+        self.series_pages
+            .last()
+            .as_ref()
+            .map(|(_, series)| series.get_series_main_information().name.as_str())
+    }
+
     /// Tries to switch to series page if any has been received
     pub fn try_series_page_switch(&mut self) -> Command<Message> {
         use crate::core::caching::{CacheFilePath, CACHER};

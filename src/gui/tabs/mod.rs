@@ -74,6 +74,20 @@ impl From<TabId> for usize {
     }
 }
 
+impl std::fmt::Display for TabId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let text = match self {
+            TabId::Discover => "Discover",
+            TabId::Watchlist => "Watchlist",
+            TabId::MyShows => "MyShows",
+            TabId::Statistics => "Statistics",
+            TabId::Settings => "Settings",
+        };
+
+        write!(f, "{text}")
+    }
+}
+
 pub struct TabLabel {
     pub text: &'static str,
     pub icon: &'static [u8],
