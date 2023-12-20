@@ -91,6 +91,10 @@ impl<'a> Series<'a> {
         (series, Command::batch(commands))
     }
 
+    pub fn get_series_main_information(&self) -> &SeriesMainInformation {
+        &self.series_information
+    }
+
     /// Restores the last `RelativeOffset` of the series page scroller.
     pub fn restore_scroller_relative_offset(&self) -> Command<Message> {
         scrollable::snap_to(self.scroller_id.clone(), self.scroll_offset)

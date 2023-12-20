@@ -56,7 +56,15 @@ impl<'a> Application for TroxideGui<'a> {
     }
 
     fn title(&self) -> String {
-        "Series Troxide".to_string()
+        let mut program_title = String::from("Series Troxide - ");
+
+        if let Some(series_page_name) = self.series_page_controller.get_series_page_name() {
+            program_title.push_str(series_page_name)
+        } else {
+            program_title.push_str(&self.active_tab.to_string())
+        }
+
+        program_title
     }
 
     fn theme(&self) -> iced::Theme {
