@@ -21,7 +21,7 @@ pub enum LoadState {
 pub enum Message {
     TermChanged(String),
     TermSearched,
-    SearchSuccess(Result<Vec<series_searching::SeriesSearchResult>, String>),
+    SearchResultsReceived(Result<Vec<series_searching::SeriesSearchResult>, String>),
     SearchResult(IndexedMessage<usize, SearchResultMessage>),
     EscapeKeyPressed,
 }
@@ -85,11 +85,11 @@ impl Search {
                     let series_result = series_searching::search_series(self.search_term.clone());
 
                     Command::perform(series_result, |res| {
-                        Message::SearchSuccess(res.map_err(|err| err.to_string()))
+                        Message::SearchResultsReceived(res.map_err(|err| err.to_string()))
                     })
                 }
             }
-            Message::SearchSuccess(results) => {
+            Message::SearchResultsReceived(results) => {
                 self.load_state = LoadState::Loaded;
 
                 match results {
