@@ -164,7 +164,10 @@ mod cast_poster {
     pub use crate::gui::message::IndexedMessage;
     use crate::{
         core::{
-            api::tv_maze::{show_cast::Cast, Image},
+            api::tv_maze::{
+                show_cast::{AgeError, Cast},
+                Image,
+            },
             caching,
         },
         gui::{assets::icons::ARROW_REPEAT, helpers, styles},
@@ -288,19 +291,37 @@ mod cast_poster {
                 cast_info = cast_info.push(cast_info_field("Gender: ", gender));
             }
 
-            if self.cast.person.deathday.is_none() {
-                if let Ok(duration_since_birth) = self.cast.duration_since_birth() {
+            match self.cast.age_duration_before_death() {
+                Ok(age_duration_before_death) => {
                     if let Some(age) =
-                        helpers::time::SaneTime::new(duration_since_birth.num_minutes() as u32)
+                        helpers::time::SaneTime::new(age_duration_before_death.num_minutes() as u32)
                             .get_time_plurized()
                             .last()
                     {
-                        cast_info = cast_info
-                            .push(cast_info_field("Age: ", format!("{} {}", age.1, age.0)));
+                        cast_info = cast_info.push(cast_info_field(
+                            "Lived to: ",
+                            format!("{} {}", age.1, age.0),
+                        ));
                     } else {
-                        cast_info = cast_info.push(text("Just born"));
+                        cast_info =
+                            cast_info.push(cast_info_field("Lived to: ", "Just passed away"));
                     }
                 }
+                Err(AgeError::DeathdateNotFound) => {
+                    if let Ok(duration_since_birth) = self.cast.duration_since_birth() {
+                        if let Some(age) =
+                            helpers::time::SaneTime::new(duration_since_birth.num_minutes() as u32)
+                                .get_time_plurized()
+                                .last()
+                        {
+                            cast_info = cast_info
+                                .push(cast_info_field("Age: ", format!("{} {}", age.1, age.0)));
+                        } else {
+                            cast_info = cast_info.push(cast_info_field("Age: ", "Just born!"));
+                        }
+                    }
+                }
+                Err(_) => {}
             }
 
             if let Some(birthday) = self.cast.person.birthday.as_ref() {
