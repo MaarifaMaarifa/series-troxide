@@ -21,21 +21,49 @@ pub struct Person {
 #[derive(Debug, thiserror::Error)]
 pub enum AgeError {
     #[error("no birthdate found in cast information")]
-    NotFound,
+    BirthdateNotFound,
+
+    #[error("no deathdate found in cast information")]
+    DeathdateNotFound,
 
     #[error("failed to parse the birthdate")]
     Parse(chrono::ParseError),
 }
 
 impl Cast {
+    pub fn birth_naive_date(&self) -> Result<chrono::NaiveDate, AgeError> {
+        let date = self
+            .person
+            .birthday
+            .as_ref()
+            .ok_or(AgeError::BirthdateNotFound)?;
+
+        chrono::NaiveDate::parse_from_str(date, "%Y-%m-%d").map_err(AgeError::Parse)
+    }
+
+    pub fn death_naive_date(&self) -> Result<chrono::NaiveDate, AgeError> {
+        let date = self
+            .person
+            .deathday
+            .as_ref()
+            .ok_or(AgeError::DeathdateNotFound)?;
+
+        chrono::NaiveDate::parse_from_str(date, "%Y-%m-%d").map_err(AgeError::Parse)
+    }
+
     pub fn duration_since_birth(&self) -> Result<chrono::Duration, AgeError> {
-        let date = self.person.birthday.as_ref().ok_or(AgeError::NotFound)?;
-        let birthdate =
-            chrono::NaiveDate::parse_from_str(date, "%Y-%m-%d").map_err(AgeError::Parse)?;
+        let birthdate = self.birth_naive_date()?;
 
         let current_date = chrono::Local::now().date_naive();
 
         Ok(current_date.signed_duration_since(birthdate))
+    }
+
+    pub fn age_duration_before_death(&self) -> Result<chrono::Duration, AgeError> {
+        let birthdate = self.birth_naive_date()?;
+        let deathdate = self.death_naive_date()?;
+
+        Ok(deathdate.signed_duration_since(birthdate))
     }
 }
 
