@@ -57,7 +57,7 @@ impl<'a> UpcomingReleases<'a> {
                     .get_remaining_release_duration()
                     .num_minutes();
                 let duration =
-                    helpers::time::SaneTime::new(num_minutes as u32).get_longest_unit_duration();
+                    helpers::time::NaiveTime::new(num_minutes as u32).get_longest_unit_duration();
 
                 if let Some(duration) = duration {
                     iced::time::every(std::time::Duration::from_secs(duration.num_seconds() as u64))
@@ -260,15 +260,13 @@ mod upcoming_poster {
             content = content.push(horizontal_space(Length::Fill));
             let release_time_widget = container(
                 container(
-                    helpers::time::SaneTime::new(
+                    helpers::time::NaiveTime::new(
                         self.episode_release_time
                             .get_remaining_release_duration()
                             .num_minutes() as u32,
                     )
-                    .get_time_plurized()
-                    .into_iter()
-                    .last()
-                    .map(|(time_text, time_value)| {
+                    .largest_part()
+                    .map(|(time_value, time_text)| {
                         column![text(time_value), text(time_text),]
                             .align_items(iced::Alignment::Center)
                     })

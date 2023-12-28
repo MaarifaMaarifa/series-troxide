@@ -38,95 +38,113 @@ pub fn genres_with_pipes(genres: &[String]) -> String {
 pub mod time {
     //! Time related helpers
     use chrono::Duration;
+    use smallvec::SmallVec;
 
-    #[derive(Clone)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub enum TimeKind {
-        Minute,
-        Hour,
-        Day,
-        Month,
         Year,
+        Month,
+        Day,
+        Hour,
+        Minute,
     }
 
     impl std::fmt::Display for TimeKind {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             let time_str = match self {
-                TimeKind::Minute => "Minute",
-                TimeKind::Hour => "Hour",
-                TimeKind::Day => "Day",
-                TimeKind::Month => "Month",
                 TimeKind::Year => "Year",
+                TimeKind::Month => "Month",
+                TimeKind::Day => "Day",
+                TimeKind::Hour => "Hour",
+                TimeKind::Minute => "Minute",
             };
 
             write!(f, "{}", time_str)
         }
     }
 
-    pub struct SaneTime {
-        time_in_minutes: u32,
+    #[derive(Debug, PartialEq, Eq)]
+    struct NaiveDuration {
+        time_value: u32,
+        time_kind: TimeKind,
     }
 
-    impl SaneTime {
-        pub fn new(time_in_minutes: u32) -> Self {
-            Self { time_in_minutes }
+    impl NaiveDuration {
+        fn new(time_value: u32, time_kind: TimeKind) -> Self {
+            Self {
+                time_kind,
+                time_value,
+            }
         }
 
-        /// Return a `Vec` of time values and their texts starting from
-        /// the smallest to the largest
-        ///
-        /// This is useful if you want to get the highest sane time(a year for example)
-        /// and all of it's remaining portions split in months days, hours and finally minutes.
-        ///
-        /// # Note
-        /// The `Vec` returned will be empty if the time is smaller than 1 minute as that's the
-        /// smallest amount time that can be returned in the collection.
-        pub fn get_time_plurized(&self) -> Vec<(String, u32)> {
-            self.get_time()
-                .into_iter()
-                .map(|(time_kind, time_value)| plurize_time((&time_kind.to_string(), time_value)))
+        fn plurized(&self) -> (u32, String) {
+            plurize_time(self.time_value, &self.time_kind.to_string())
+        }
+    }
+
+    /// `Time` split into it's remainder parts in the order of
+    /// years, months, days, hours, minutes
+    ///
+    /// The components with value of 0 in `NaiveTime` parts won't be included
+    /// but the order will be preserved
+    ///
+    /// `NaiveTime` is designed to make it easy to understand time with fractional parts
+    /// so instead of saying 2.5 days, we can express this as 2 Days 12 Hours
+    pub struct NaiveTime {
+        // an array consisting of durations in the order of
+        // years, months, days, hours, minutes
+        time_parts: SmallVec<[NaiveDuration; 5]>,
+    }
+
+    impl NaiveTime {
+        pub fn new(time_in_minutes: u32) -> Self {
+            let mut time_parts = SmallVec::new();
+
+            let years = time_in_minutes / (60 * 24 * 365);
+            let months = (time_in_minutes / (60 * 24 * 30)) % 12;
+            let days = (time_in_minutes / (60 * 24)) % 30;
+            let hours = (time_in_minutes / 60) % 24;
+
+            let float_hours = (time_in_minutes as f32 / 60.0) % 24.0;
+            let minutes = (float_hours.fract() * 60.0) as u32;
+
+            if years > 0 {
+                time_parts.push(NaiveDuration::new(years, TimeKind::Year))
+            }
+            if months > 0 {
+                time_parts.push(NaiveDuration::new(months, TimeKind::Month))
+            }
+
+            if days > 0 {
+                time_parts.push(NaiveDuration::new(days, TimeKind::Day))
+            }
+            if hours > 0 {
+                time_parts.push(NaiveDuration::new(hours, TimeKind::Hour))
+            }
+            if minutes > 0 {
+                time_parts.push(NaiveDuration::new(minutes, TimeKind::Minute))
+            }
+
+            Self { time_parts }
+        }
+
+        pub fn as_parts(&self) -> SmallVec<[(u32, String); 5]> {
+            self.time_parts
+                .iter()
+                .map(|sane_duration| sane_duration.plurized())
                 .collect()
         }
 
-        pub fn get_time(&self) -> Vec<(TimeKind, u32)> {
-            let mut time = vec![];
-
-            let years = self.time_in_minutes / (60 * 24 * 365);
-            let months = (self.time_in_minutes / (60 * 24 * 30)) % 12;
-            let days = (self.time_in_minutes / (60 * 24)) % 30;
-            let hours = (self.time_in_minutes / 60) % 24;
-
-            let float_hours = (self.time_in_minutes as f32 / 60.0) % 24.0;
-            let minutes = (float_hours.fract() * 60.0) as u32;
-
-            if minutes > 0 {
-                time.push((TimeKind::Minute, minutes))
-            }
-            if hours > 0 {
-                time.push((TimeKind::Hour, hours))
-            }
-            if days > 0 {
-                time.push((TimeKind::Day, days))
-            }
-            if months > 0 {
-                time.push((TimeKind::Month, months))
-            }
-            if years > 0 {
-                time.push((TimeKind::Year, years))
-            }
-            time
+        pub fn largest_part(&self) -> Option<(u32, String)> {
+            self.time_parts
+                .first()
+                .map(|sane_duration| sane_duration.plurized())
         }
 
-        /// This returns the longest time after the split in it's unit value
-        ///
-        /// For example, if in the split you got 5 days as the longest duration, the duration
-        /// returned will be 1 day
-        /// This is useful in refreshing the upcoming episodes in the gui as if an episode is released
-        /// in 5 hours, we want to refresh every 1 hour, or say 10 minutes, we will want to refresh in every
-        /// minute and so on
         pub fn get_longest_unit_duration(&self) -> Option<Duration> {
-            self.get_time()
-                .last()
-                .map(|(time_kind, _)| Self::to_chrono_duration_unit(time_kind))
+            self.time_parts
+                .first()
+                .map(|sane_duration| Self::to_chrono_duration_unit(&sane_duration.time_kind))
         }
 
         /// Returns the Unit of the `TimeKind`
@@ -145,27 +163,79 @@ pub mod time {
 
     /// Takes the time and it's name i.e week, day, hour and concatenates the
     /// two terms handling the condition when the time is above 1 (plural)
-    fn plurize_time(it: (&str, u32)) -> (String, u32) {
-        let (time_text, time_value) = it;
+    fn plurize_time(time_value: u32, time_text: &str) -> (u32, String) {
         let word = if time_value > 1 {
             format!("{}s", time_text)
         } else {
             time_text.to_string()
         };
-        (word, time_value)
+        (time_value, word)
     }
 
-    impl std::fmt::Display for SaneTime {
+    impl std::fmt::Display for NaiveTime {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             let str = self
-                .get_time_plurized()
-                .into_iter()
-                .rev()
-                .fold(String::new(), |acc, (time_text, time_value)| {
+                .time_parts
+                .iter()
+                .map(|sane_duration| sane_duration.plurized())
+                .fold(String::new(), |acc, (time_value, time_text)| {
                     acc + &format!("{} {} ", time_value, time_text)
                 });
 
             write!(f, "{}", str)
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::{NaiveDuration, NaiveTime, TimeKind};
+
+        #[test]
+        fn minute_test() {
+            let time_parts = NaiveTime::new(1).time_parts.into_vec();
+            assert_eq!(time_parts, vec![NaiveDuration::new(1, TimeKind::Minute)])
+        }
+
+        #[test]
+        fn hour_test() {
+            let time_parts = NaiveTime::new(60).time_parts.into_vec();
+            assert_eq!(time_parts, vec![NaiveDuration::new(1, TimeKind::Hour)])
+        }
+
+        #[test]
+        fn day_test() {
+            let time_parts = NaiveTime::new(60 * 24).time_parts.into_vec();
+            assert_eq!(time_parts, vec![NaiveDuration::new(1, TimeKind::Day)])
+        }
+
+        #[test]
+        fn month_test() {
+            let time_parts = NaiveTime::new(60 * 24 * 30).time_parts.into_vec();
+            assert_eq!(time_parts, vec![NaiveDuration::new(1, TimeKind::Month)])
+        }
+
+        #[test]
+        fn year_test() {
+            let time_parts = NaiveTime::new(365 * 24 * 60).time_parts.into_vec();
+            assert_eq!(
+                time_parts,
+                vec![
+                    NaiveDuration::new(1, TimeKind::Year),
+                    NaiveDuration::new(5, TimeKind::Day)
+                ]
+            )
+        }
+
+        #[test]
+        fn fractional_day_test() {
+            let time_parts = NaiveTime::new((24 * 60) + (12 * 60)).time_parts.into_vec();
+            assert_eq!(
+                time_parts,
+                vec![
+                    NaiveDuration::new(1, TimeKind::Day,),
+                    NaiveDuration::new(12, TimeKind::Hour)
+                ]
+            )
         }
     }
 }

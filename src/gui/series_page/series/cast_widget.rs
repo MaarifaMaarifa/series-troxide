@@ -293,14 +293,14 @@ mod cast_poster {
 
             match self.cast.age_duration_before_death() {
                 Ok(age_duration_before_death) => {
-                    if let Some(age) =
-                        helpers::time::SaneTime::new(age_duration_before_death.num_minutes() as u32)
-                            .get_time_plurized()
-                            .last()
+                    if let Some(age) = helpers::time::NaiveTime::new(
+                        age_duration_before_death.num_minutes() as u32,
+                    )
+                    .largest_part()
                     {
                         cast_info = cast_info.push(cast_info_field(
                             "Lived to: ",
-                            format!("{} {}", age.1, age.0),
+                            format!("{} {}", age.0, age.1),
                         ));
                     } else {
                         cast_info =
@@ -310,12 +310,11 @@ mod cast_poster {
                 Err(AgeError::DeathdateNotFound) => {
                     if let Ok(duration_since_birth) = self.cast.duration_since_birth() {
                         if let Some(age) =
-                            helpers::time::SaneTime::new(duration_since_birth.num_minutes() as u32)
-                                .get_time_plurized()
-                                .last()
+                            helpers::time::NaiveTime::new(duration_since_birth.num_minutes() as u32)
+                                .largest_part()
                         {
                             cast_info = cast_info
-                                .push(cast_info_field("Age: ", format!("{} {}", age.1, age.0)));
+                                .push(cast_info_field("Age: ", format!("{} {}", age.0, age.1)));
                         } else {
                             cast_info = cast_info.push(cast_info_field("Age: ", "Just born!"));
                         }
