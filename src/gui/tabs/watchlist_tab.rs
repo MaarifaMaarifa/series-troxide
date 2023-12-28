@@ -416,7 +416,7 @@ mod watchlist_poster {
             metadata = metadata.push(text(format!("{} episodes left", episodes_left)));
 
             if let Some(runtime) = self.poster.get_series_info().average_runtime {
-                metadata = metadata.push(text(helpers::time::SaneTime::new(
+                metadata = metadata.push(text(helpers::time::NaiveTime::new(
                     runtime * episodes_left as u32,
                 )));
             };
@@ -465,7 +465,7 @@ mod watchlist_poster {
 
 mod watchlist_summary {
     use crate::core::database;
-    use crate::gui::helpers::time::SaneTime;
+    use crate::gui::helpers::time::NaiveTime;
     use crate::gui::styles;
 
     use super::Message;
@@ -492,7 +492,7 @@ mod watchlist_summary {
 
             let total_time_to_watch = Self::summary_item(
                 "Total Time Required to Watch",
-                SaneTime::new(
+                NaiveTime::new(
                     self.series_ids
                         .iter()
                         .map(|(id, total_episodes, time)| {

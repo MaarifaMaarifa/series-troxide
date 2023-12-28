@@ -75,15 +75,14 @@ pub fn time_count(
     ]
     .align_items(Alignment::Center);
 
-    let times = helpers::time::SaneTime::new(total_average_minutes).get_time_plurized();
+    let times = helpers::time::NaiveTime::new(total_average_minutes).as_parts();
 
     let complete_time_count: Element<'_, Message, Renderer> = if times.is_empty() {
         Space::new(0, 0).into()
     } else {
         let time_values: Vec<_> = times
             .into_iter()
-            .rev()
-            .map(|(time_text, time_value)| {
+            .map(|(time_value, time_text)| {
                 column![
                     text(time_value)
                         .size(31)
@@ -237,7 +236,7 @@ pub mod series_banner {
             );
             let times = self
                 .watch_time
-                .map(|time| helpers::time::SaneTime::new(time).get_time_plurized())
+                .map(|time| helpers::time::NaiveTime::new(time).as_parts())
                 .unwrap_or_default();
 
             let seasons = series.get_total_seasons();
@@ -246,8 +245,7 @@ pub mod series_banner {
             let time_stats = Row::with_children(
                 times
                     .into_iter()
-                    .rev()
-                    .map(|(time_text, time_value)| {
+                    .map(|(time_value, time_text)| {
                         column![
                             text(time_value)
                                 .size(20)

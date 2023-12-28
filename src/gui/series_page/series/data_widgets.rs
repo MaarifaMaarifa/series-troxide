@@ -354,7 +354,7 @@ pub fn next_episode_to_air_widget(
         let text = text(format!(
             "{} in {}",
             next_episode,
-            helpers::time::SaneTime::new(
+            helpers::time::NaiveTime::new(
                 release_time.get_remaining_release_duration().num_minutes() as u32
             )
         ))
