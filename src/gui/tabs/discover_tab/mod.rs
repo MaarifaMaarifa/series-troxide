@@ -7,10 +7,10 @@ use full_schedule::{FullSchedulePosters, Message as FullSchedulePostersMessage};
 use searching::Message as SearchMessage;
 
 use iced::widget::scrollable::{RelativeOffset, Viewport};
-use iced::widget::{column, scrollable, Space};
+use iced::widget::{column, container, scrollable, Space};
 use iced::{Command, Element, Length, Renderer};
 
-use iced_aw::floating_element;
+use iced_aw::{floating_element, Spinner};
 
 use super::Tab;
 
@@ -91,16 +91,22 @@ impl<'a> DiscoverTab<'a> {
     }
 
     pub fn view(&self) -> Element<'_, Message, Renderer> {
-        let underlay: Element<'_, Message, Renderer> = scrollable(
-            self.full_schedule_series
-                .view()
-                .map(Message::FullSchedulePosters),
-        )
-        .direction(styles::scrollable_styles::vertical_direction())
-        .id(Self::scrollable_id())
-        .on_scroll(Message::PageScrolled)
-        .width(Length::Fill)
-        .into();
+        let underlay: Element<'_, Message, Renderer> =
+            if let Some(full_schedule_series) = self.full_schedule_series.view() {
+                scrollable(full_schedule_series.map(Message::FullSchedulePosters))
+                    .direction(styles::scrollable_styles::vertical_direction())
+                    .id(Self::scrollable_id())
+                    .on_scroll(Message::PageScrolled)
+                    .width(Length::Fill)
+                    .into()
+            } else {
+                container(Spinner::new())
+                    .width(Length::Fill)
+                    .height(Length::Fill)
+                    .center_x()
+                    .center_y()
+                    .into()
+            };
 
         let content = floating_element::FloatingElement::new(
             underlay,
