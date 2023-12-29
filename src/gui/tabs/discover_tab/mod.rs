@@ -108,15 +108,15 @@ impl<'a> DiscoverTab<'a> {
                     .into()
             };
 
-        let content = floating_element::FloatingElement::new(
-            underlay,
-            self.search
-                .view()
-                .1
-                .map(|element| element.map(Message::Search))
-                .unwrap_or(Space::new(0, 0).into()),
-        )
-        .anchor(floating_element::Anchor::North);
+        let overlay = self
+            .search
+            .view()
+            .1
+            .map(|element| element.map(Message::Search))
+            .unwrap_or(Space::new(0, 0).into());
+
+        let content = floating_element::FloatingElement::new(underlay, overlay)
+            .anchor(floating_element::Anchor::North);
 
         column![self.search.view().0.map(Message::Search), content]
             .spacing(2)
