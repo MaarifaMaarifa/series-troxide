@@ -4,7 +4,7 @@ use std::sync::mpsc;
 
 use iced::widget::{column, container, text, vertical_space, Column};
 use iced::{Command, Element, Length, Renderer};
-use iced_aw::{Spinner, Wrap};
+use iced_aw::Wrap;
 
 use crate::core::api::tv_maze::series_information::{
     Genre, SeriesMainInformation, ShowNetwork, ShowWebChannel,
