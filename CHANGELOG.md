@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Custom program data paths. [#76](https://github.com/MaarifaMaarifa/series-troxide/pull/76)
+- Dynamic program title. [#115](https://github.com/MaarifaMaarifa/series-troxide/pull/115)
+- Cast age before death information. [#116](https://github.com/MaarifaMaarifa/series-troxide/pull/116)
 
 ### Changed
 - Prevent image resolution from being lowered when already low. [#93](https://github.com/MaarifaMaarifa/series-troxide/pull/93)
