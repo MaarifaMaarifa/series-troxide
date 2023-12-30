@@ -49,6 +49,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
             command: clippy
+            args: -- -D warnings
 
   spell-check:
     name: Run spell check
