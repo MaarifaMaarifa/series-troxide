@@ -141,9 +141,7 @@ pub fn genre_stats(series_infos: Vec<&SeriesMainInformation>) -> Element<'_, Mes
         })
     });
 
-    let mut genre_count: Vec<(Genre, usize)> = genre_count
-        .into_iter()
-        // .collect();
+    let mut genre_count: Vec<(Genre, usize)> = genre_count.into_iter().collect();
 
     genre_count.sort_unstable_by(|a, b| b.1.cmp(&a.1));
 
