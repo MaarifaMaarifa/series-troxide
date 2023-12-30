@@ -8,7 +8,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  RUSTFLAGS: "-Dwarnings -C opt-level=0"
+  RUSTFLAGS: "-D warnings -C opt-level=0"
 
 jobs:
 
