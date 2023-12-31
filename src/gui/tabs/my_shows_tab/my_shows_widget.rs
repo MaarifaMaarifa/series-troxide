@@ -1,12 +1,13 @@
 use std::sync::mpsc;
 
-use iced::widget::{container, text};
+use iced::widget::container;
 use iced::{Command, Element, Length, Renderer};
 use iced_aw::{Spinner, Wrap};
 
 use crate::core::api::tv_maze::series_information::SeriesMainInformation;
 use crate::core::caching;
 use crate::gui::styles;
+use crate::gui::tabs::tab_searching::{unavailable_posters, Searchable};
 use crate::gui::troxide_widget::series_poster::{
     IndexedMessage, Message as SeriesPosterMessage, SeriesPoster,
 };
@@ -28,6 +29,8 @@ pub struct MyShows<'a> {
     load_state: LoadState,
     series_posters: Vec<SeriesPoster<'a>>,
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
+    /// A collection of matched series id after a fuzzy search
+    matched_id_collection: Option<Vec<u32>>,
 }
 
 impl<'a> MyShows<'a> {
@@ -39,6 +42,7 @@ impl<'a> MyShows<'a> {
                 load_state: LoadState::default(),
                 series_posters: vec![],
                 series_page_sender,
+                matched_id_collection: None,
             },
             Command::perform(
                 async {
@@ -59,6 +63,7 @@ impl<'a> MyShows<'a> {
                 load_state: LoadState::default(),
                 series_posters: vec![],
                 series_page_sender,
+                matched_id_collection: None,
             },
             Command::perform(
                 async {
@@ -79,6 +84,7 @@ impl<'a> MyShows<'a> {
                 load_state: LoadState::default(),
                 series_posters: vec![],
                 series_page_sender,
+                matched_id_collection: None,
             },
             Command::perform(
                 async {
@@ -131,23 +137,58 @@ impl<'a> MyShows<'a> {
                 .into();
         }
         if self.series_posters.is_empty() {
-            container(text("Nothing to show"))
-                .style(styles::container_styles::first_class_container_square_theme())
-                .center_x()
-                .center_y()
-                .height(200)
-                .width(Length::Fill)
-                .into()
+            Self::empty_myshows_posters()
         } else {
-            Wrap::with_elements(
-                self.series_posters
-                    .iter()
-                    .map(|poster| poster.view(false).map(Message::SeriesPosters))
-                    .collect(),
-            )
-            .line_spacing(5.0)
-            .spacing(5.0)
-            .into()
+            let series_posters: Vec<Element<'_, Message, Renderer>> = self
+                .series_posters
+                .iter()
+                .filter(|poster| {
+                    if let Some(matched_id_collection) = &self.matched_id_collection {
+                        self.is_matched_id(matched_id_collection, poster.get_series_info().id)
+                    } else {
+                        true
+                    }
+                })
+                .map(|poster| poster.view(false).map(Message::SeriesPosters))
+                .collect();
+
+            if series_posters.is_empty() {
+                Self::no_search_matches()
+            } else {
+                Wrap::with_elements(series_posters)
+                    .line_spacing(5.0)
+                    .spacing(5.0)
+                    .into()
+            }
         }
+    }
+
+    fn empty_myshows_posters() -> Element<'static, Message, Renderer> {
+        unavailable_posters("Nothing to show")
+            .style(styles::container_styles::first_class_container_square_theme())
+            .height(200)
+            .width(Length::Fill)
+            .into()
+    }
+
+    fn no_search_matches() -> Element<'static, Message, Renderer> {
+        unavailable_posters("No matches found!")
+            .style(styles::container_styles::first_class_container_square_theme())
+            .height(200)
+            .width(Length::Fill)
+            .into()
+    }
+}
+
+impl<'a> Searchable for MyShows<'a> {
+    fn get_series_information_collection(&self) -> Vec<&SeriesMainInformation> {
+        self.series_posters
+            .iter()
+            .map(|poster| poster.get_series_info())
+            .collect()
+    }
+
+    fn matches_id_collection(&mut self) -> &mut Option<Vec<u32>> {
+        &mut self.matched_id_collection
     }
 }

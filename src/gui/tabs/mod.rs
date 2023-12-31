@@ -13,6 +13,7 @@ pub mod discover_tab;
 pub mod my_shows_tab;
 pub mod settings_tab;
 pub mod statistics_tab;
+pub mod tab_searching;
 pub mod watchlist_tab;
 
 pub trait Tab {

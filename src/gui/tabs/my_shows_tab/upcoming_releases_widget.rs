@@ -1,6 +1,6 @@
 use std::sync::mpsc;
 
-use iced::widget::{container, text, Column};
+use iced::widget::{container, Column};
 use iced::{Command, Element, Length, Renderer};
 use iced_aw::Spinner;
 
@@ -9,6 +9,7 @@ use crate::core::api::tv_maze::series_information::SeriesMainInformation;
 use crate::core::caching;
 use crate::core::caching::episode_list::EpisodeReleaseTime;
 use crate::gui::message::IndexedMessage;
+use crate::gui::tabs::tab_searching::{unavailable_posters, Searchable};
 use crate::gui::{helpers, styles};
 use upcoming_poster::{Message as UpcomingPosterMessage, UpcomingPoster};
 
@@ -30,6 +31,8 @@ pub struct UpcomingReleases<'a> {
     load_state: LoadState,
     upcoming_posters: Vec<UpcomingPoster<'a>>,
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
+    /// A collection of matched series id after a fuzzy search
+    matched_id_collection: Option<Vec<u32>>,
 }
 
 impl<'a> UpcomingReleases<'a> {
@@ -41,6 +44,7 @@ impl<'a> UpcomingReleases<'a> {
                 load_state: LoadState::default(),
                 upcoming_posters: vec![],
                 series_page_sender,
+                matched_id_collection: None,
             },
             load_upcoming_releases(),
         )
@@ -114,25 +118,60 @@ impl<'a> UpcomingReleases<'a> {
                 .into();
         }
         if self.upcoming_posters.is_empty() {
-            container(text("No Upcoming Episodes"))
-                .style(styles::container_styles::first_class_container_square_theme())
-                .center_x()
-                .center_y()
-                .height(200)
-                .width(Length::Fill)
-                .into()
+            Self::empty_upcoming_posters()
         } else {
-            Column::with_children(
-                self.upcoming_posters
-                    .iter()
-                    .map(|poster| poster.view().map(Message::UpcomingPoster))
-                    .collect(),
-            )
-            .spacing(5)
-            .width(Length::Fill)
-            .align_items(iced::Alignment::Center)
-            .into()
+            let upcoming_posters: Vec<Element<'_, Message, Renderer>> = self
+                .upcoming_posters
+                .iter()
+                .filter(|poster| {
+                    if let Some(matched_id_collection) = &self.matched_id_collection {
+                        self.is_matched_id(matched_id_collection, poster.get_series_info().id)
+                    } else {
+                        true
+                    }
+                })
+                .map(|poster| poster.view().map(Message::UpcomingPoster))
+                .collect();
+
+            if upcoming_posters.is_empty() {
+                Self::no_search_matches()
+            } else {
+                Column::with_children(upcoming_posters)
+                    .spacing(5)
+                    .width(Length::Fill)
+                    .align_items(iced::Alignment::Center)
+                    .into()
+            }
         }
+    }
+
+    fn empty_upcoming_posters() -> Element<'static, Message, Renderer> {
+        unavailable_posters("No Upcoming Episodes")
+            .style(styles::container_styles::first_class_container_square_theme())
+            .height(200)
+            .width(Length::Fill)
+            .into()
+    }
+
+    fn no_search_matches() -> Element<'static, Message, Renderer> {
+        unavailable_posters("No matches found!")
+            .style(styles::container_styles::first_class_container_square_theme())
+            .height(200)
+            .width(Length::Fill)
+            .into()
+    }
+}
+
+impl<'a> Searchable for UpcomingReleases<'a> {
+    fn get_series_information_collection(&self) -> Vec<&SeriesMainInformation> {
+        self.upcoming_posters
+            .iter()
+            .map(|poster| poster.get_series_info())
+            .collect()
+    }
+
+    fn matches_id_collection(&mut self) -> &mut Option<Vec<u32>> {
+        &mut self.matched_id_collection
     }
 }
 
@@ -198,6 +237,10 @@ mod upcoming_poster {
                     .map(Message::Poster)
                     .map(move |message| IndexedMessage::new(index, message)),
             )
+        }
+
+        pub fn get_series_info(&self) -> &SeriesMainInformation {
+            self.poster.get_series_info()
         }
 
         pub fn get_episode_release_time(&self) -> &EpisodeReleaseTime {
