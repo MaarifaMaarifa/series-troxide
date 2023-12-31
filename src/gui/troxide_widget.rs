@@ -374,6 +374,10 @@ pub mod series_poster {
             )
         }
 
+        pub fn get_series_info(&self) -> &SeriesMainInformation {
+            self.poster.get_series_info()
+        }
+
         pub fn update(
             &mut self,
             message: IndexedMessage<usize, Message>,
