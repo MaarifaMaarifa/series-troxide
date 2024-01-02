@@ -7,8 +7,8 @@ use crate::core::api::tv_maze::series_information::SeriesMainInformation;
 use crate::core::api::tv_maze::Image;
 use crate::core::{caching, database};
 use crate::gui::styles;
-use cast_widget::{CastWidget, Message as CastWidgetMessage};
 use data_widgets::*;
+use people_widget::{Message as PeopleWidgetMessage, PeopleWidget};
 use season_widget::{Message as SeasonsMessage, Seasons};
 use series_suggestion_widget::{Message as SeriesSuggestionMessage, SeriesSuggestion};
 
@@ -17,8 +17,8 @@ use iced::widget::vertical_space;
 use iced::widget::{column, scrollable};
 use iced::{Command, Element, Renderer};
 
-mod cast_widget;
 mod data_widgets;
+mod people_widget;
 mod season_widget;
 mod series_suggestion_widget;
 
@@ -27,7 +27,7 @@ pub enum Message {
     SeriesImageLoaded(Option<Bytes>),
     SeriesBackgroundLoaded(Option<Bytes>),
     Seasons(SeasonsMessage),
-    CastWidgetAction(CastWidgetMessage),
+    PeopleWidget(PeopleWidgetMessage),
     SeriesSuggestion(SeriesSuggestionMessage),
     PageScrolled(Viewport),
     TrackSeries,
@@ -41,7 +41,7 @@ pub struct Series<'a> {
     series_image_blurred: Option<image::DynamicImage>,
     series_background: Option<Bytes>,
     seasons: Seasons,
-    casts_widget: CastWidget,
+    people_widget: PeopleWidget,
     series_suggestion_widget: SeriesSuggestion<'a>,
     scroll_offset: RelativeOffset,
     scroller_id: Id,
@@ -54,7 +54,7 @@ impl<'a> Series<'a> {
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (Self, Command<Message>) {
         let series_id = series_information.id;
-        let (casts_widget, casts_widget_command) = CastWidget::new(series_id);
+        let (people_widget, people_widget_command) = PeopleWidget::new(series_id);
         let (seasons, seasons_command) = Seasons::new(series_id, series_information.name.clone());
 
         let (series_suggestion_widget, series_suggestion_widget_command) = SeriesSuggestion::new(
@@ -72,7 +72,7 @@ impl<'a> Series<'a> {
             series_image_blurred: None,
             series_background: None,
             seasons,
-            casts_widget,
+            people_widget,
             series_suggestion_widget,
             scroll_offset: RelativeOffset::default(),
             scroller_id: scroller_id.clone(),
@@ -83,7 +83,7 @@ impl<'a> Series<'a> {
         let commands = [
             Command::batch(load_images(series_image, series_id)),
             seasons_command.map(Message::Seasons),
-            casts_widget_command.map(Message::CastWidgetAction),
+            people_widget_command.map(Message::PeopleWidget),
             series_suggestion_widget_command.map(Message::SeriesSuggestion),
             scroller_command,
         ];
@@ -144,12 +144,6 @@ impl<'a> Series<'a> {
                     series.mark_untracked();
                 }
             }
-            Message::CastWidgetAction(message) => {
-                return self
-                    .casts_widget
-                    .update(message)
-                    .map(Message::CastWidgetAction)
-            }
             Message::SeriesBackgroundLoaded(background) => self.series_background = background,
             Message::SeriesSuggestion(message) => {
                 return self
@@ -159,6 +153,12 @@ impl<'a> Series<'a> {
             }
             Message::PageScrolled(view_port) => {
                 self.scroll_offset = view_port.relative_offset();
+            }
+            Message::PeopleWidget(message) => {
+                return self
+                    .people_widget
+                    .update(message)
+                    .map(Message::PeopleWidget)
             }
         }
         Command::none()
@@ -178,7 +178,8 @@ impl<'a> Series<'a> {
 
         let seasons_widget = self.seasons.view().map(Message::Seasons);
 
-        let casts_widget = self.casts_widget.view().map(Message::CastWidgetAction);
+        let people_widget = self.people_widget.view().map(Message::PeopleWidget);
+
         let series_suggestion_widget = self
             .series_suggestion_widget
             .view()
@@ -189,7 +190,7 @@ impl<'a> Series<'a> {
             series_metadata,
             vertical_space(10),
             seasons_widget,
-            casts_widget,
+            people_widget,
             series_suggestion_widget
         ];
 
