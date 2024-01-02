@@ -7,9 +7,9 @@ fn main() -> anyhow::Result<()> {
     let subscriber = tracing_subscriber::FmtSubscriber::new();
     tracing::subscriber::set_global_default(subscriber)?;
 
-    tracing::info!("starting '{}'", env!("CARGO_PKG_NAME"));
-
     core::cli::cli_handler::handle_cli()?;
+
+    tracing::info!("starting '{}'", env!("CARGO_PKG_NAME"));
 
     std::thread::spawn(|| {
         if let Err(err) = tokio::runtime::Runtime::new()
