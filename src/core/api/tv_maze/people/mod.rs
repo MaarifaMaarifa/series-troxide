@@ -1,11 +1,12 @@
+use crate::core::api::tv_maze::Image;
 use serde::Deserialize;
 
-use super::{get_pretty_json_from_url, ApiError, Image};
+pub mod show_cast;
+pub mod show_crew;
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct Cast {
-    pub person: Person,
-    pub character: Character,
+pub struct Country {
+    pub name: String,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -30,23 +31,15 @@ pub enum AgeError {
     Parse(chrono::ParseError),
 }
 
-impl Cast {
+impl Person {
     pub fn birth_naive_date(&self) -> Result<chrono::NaiveDate, AgeError> {
-        let date = self
-            .person
-            .birthday
-            .as_ref()
-            .ok_or(AgeError::BirthdateNotFound)?;
+        let date = self.birthday.as_ref().ok_or(AgeError::BirthdateNotFound)?;
 
         chrono::NaiveDate::parse_from_str(date, "%Y-%m-%d").map_err(AgeError::Parse)
     }
 
     pub fn death_naive_date(&self) -> Result<chrono::NaiveDate, AgeError> {
-        let date = self
-            .person
-            .deathday
-            .as_ref()
-            .ok_or(AgeError::DeathdateNotFound)?;
+        let date = self.deathday.as_ref().ok_or(AgeError::DeathdateNotFound)?;
 
         chrono::NaiveDate::parse_from_str(date, "%Y-%m-%d").map_err(AgeError::Parse)
     }
@@ -65,26 +58,4 @@ impl Cast {
 
         Ok(deathdate.signed_duration_since(birthdate))
     }
-}
-
-#[derive(Deserialize, Debug, Clone)]
-pub struct Country {
-    pub name: String,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-pub struct Character {
-    pub name: String,
-    pub image: Option<Image>,
-}
-
-// replace ID with the actual show id
-const SHOW_CAST_ADDRESS: &str = "https://api.tvmaze.com/shows/ID/cast";
-
-pub async fn get_show_cast(series_id: u32) -> Result<String, ApiError> {
-    let url = SHOW_CAST_ADDRESS.replace("ID", &series_id.to_string());
-
-    get_pretty_json_from_url(url)
-        .await
-        .map_err(ApiError::Network)
 }

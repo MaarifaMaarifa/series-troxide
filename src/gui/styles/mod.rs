@@ -5,3 +5,4 @@ pub mod scrollable_styles;
 pub mod svg_styles;
 pub mod text_styles;
 pub mod theme;
+pub mod toggler_styles;
