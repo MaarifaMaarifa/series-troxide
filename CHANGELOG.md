@@ -11,11 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Custom program data paths. [#76](https://github.com/MaarifaMaarifa/series-troxide/pull/76)
 - Dynamic program title. [#115](https://github.com/MaarifaMaarifa/series-troxide/pull/115)
 - Cast age before death information. [#116](https://github.com/MaarifaMaarifa/series-troxide/pull/116)
+- Crew information in `Series Page`. [#139](https://github.com/MaarifaMaarifa/series-troxide/pull/139)
+- Searching functionality in `Watchlist`, `My Shows` and `Statistics` Tabs. [#129](https://github.com/MaarifaMaarifa/series-troxide/pull/129)
 
 ### Changed
 - Prevent image resolution from being lowered when already low. [#93](https://github.com/MaarifaMaarifa/series-troxide/pull/93)
 - Watchlist episode info improvement. [#82](https://github.com/MaarifaMaarifa/series-troxide/pull/82)
 - Search results improvement. [#79](https://github.com/MaarifaMaarifa/series-troxide/pull/79)
+
+### Fixed
+- Center `Discover Tab` loading spinner. [#127](https://github.com/MaarifaMaarifa/series-troxide/pull/127)
 
 ## [0.4.3] - 2023-12-09
 
