@@ -60,11 +60,15 @@ impl Default for LocaleSettings {
 pub struct NotificationSettings {
     // the time is in minutes
     pub time_to_notify: u32,
+    pub notify_when_outdated: bool,
 }
 
 impl Default for NotificationSettings {
     fn default() -> Self {
-        Self { time_to_notify: 60 }
+        Self {
+            time_to_notify: 60,
+            notify_when_outdated: true,
+        }
     }
 }
 

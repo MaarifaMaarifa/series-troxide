@@ -64,7 +64,8 @@ impl TroxideNotify {
                                 &series_info,
                                 &episode,
                                 current_notification_time_setting,
-                            );
+                            )
+                            .await;
                             signal_sender.send(Signal::NotificationSent).unwrap();
                         })
                     })
@@ -149,7 +150,7 @@ async fn get_releases_with_duration_to_release() -> Vec<(SeriesMainInformation, 
         .collect()
 }
 
-fn notify_episode_release(
+async fn notify_episode_release(
     series_info: &SeriesMainInformation,
     episode: &Episode,
     release_time_in_minute: u32,
@@ -170,14 +171,56 @@ fn notify_episode_release(
         episode_order, episode_name, release_time_in_minute
     );
 
-    notify_rust::Notification::new()
+    notify_async(&notification_summary, &notification_body).await;
+}
+
+fn notification_setup(
+    notification: &mut notify_rust::Notification,
+    notification_summary: &str,
+    notification_body: &str,
+) {
+    notification
         .appname("Series Troxide")
-        .summary(&notification_summary)
-        .body(&notification_body)
+        .summary(notification_summary)
+        .body(notification_body)
         .timeout(0)
-        .auto_icon()
-        .show()
-        .expect("failed to show notification");
+        .auto_icon();
+}
+
+pub fn notify_sync(notification_summary: &str, notification_body: &str) {
+    let mut notification = notify_rust::Notification::new();
+
+    notification_setup(&mut notification, notification_summary, notification_body);
+
+    let res = notification.show();
+
+    log_nofitification_error(res, notification_summary);
+}
+
+pub async fn notify_async(notification_summary: &str, notification_body: &str) {
+    let mut notification = notify_rust::Notification::new();
+
+    notification_setup(&mut notification, notification_summary, notification_body);
+
+    println!("notifying");
+
+    let res = notification.show_async().await;
+    println!("finished notifying");
+
+    log_nofitification_error(res, notification_summary);
+}
+
+fn log_nofitification_error(
+    notification_result: Result<notify_rust::NotificationHandle, notify_rust::error::Error>,
+    notification_summary: &str,
+) {
+    if let Err(err) = notification_result {
+        tracing::error!(
+            "failed to show notification for \"{}\": {}",
+            notification_summary,
+            err
+        );
+    }
 }
 
 struct FileWatcherEventHandler {
