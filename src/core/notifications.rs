@@ -201,10 +201,7 @@ pub async fn notify_async(notification_summary: &str, notification_body: &str) {
 
     notification_setup(&mut notification, notification_summary, notification_body);
 
-    println!("notifying");
-
     let res = notification.show_async().await;
-    println!("finished notifying");
 
     log_nofitification_error(res, notification_summary);
 }
