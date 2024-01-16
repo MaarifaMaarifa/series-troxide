@@ -172,7 +172,7 @@ async fn get_releases_with_duration_to_release() -> Vec<(SeriesMainInformation, 
         .collect()
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(not(target_os = "linux"))]
 fn notify_episode_release_sync(
     series_info: &SeriesMainInformation,
     episode: &Episode,
@@ -184,6 +184,7 @@ fn notify_episode_release_sync(
     notify_sync(&notification_summary, &notification_body);
 }
 
+#[cfg(target_os = "linux")]
 async fn notify_episode_release_async(
     series_info: &SeriesMainInformation,
     episode: &Episode,
@@ -242,6 +243,7 @@ pub fn notify_sync(notification_summary: &str, notification_body: &str) {
     log_nofitification_error(res, notification_summary);
 }
 
+#[cfg(target_os = "linux")]
 pub async fn notify_async(notification_summary: &str, notification_body: &str) {
     let mut notification = notify_rust::Notification::new();
 
