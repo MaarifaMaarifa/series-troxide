@@ -63,8 +63,8 @@ impl TroxideNotify {
                             tokio::time::sleep(duration.to_std().unwrap()).await;
 
                             // For some reasons, async version of notify-rust = "4.9.0" does not work on macos
-                            // so we use the sync version here and async for the rest
-                            #[cfg(target_os = "macos")]
+                            // and windows so we use the sync version here and async for the linux
+                            #[cfg(not(target_os = "linux"))]
                             {
                                 let handle = tokio::task::spawn_blocking(move || {
                                     let series_info = series_info;
@@ -79,7 +79,7 @@ impl TroxideNotify {
                                 handle.await;
                             }
 
-                            #[cfg(not(target_os = "macos"))]
+                            #[cfg(target_os = "linux")]
                             {
                                 notify_episode_release_async(
                                     &series_info,

@@ -75,8 +75,8 @@ impl About {
                         Command::perform(
                             async move {
                                 // For some reasons, async version of notify-rust = "4.9.0" does not work on macos
-                                // so we use the sync version here and async for the rest
-                                #[cfg(target_os = "macos")]
+                                // and windows so we use the sync version here and async for the linux
+                                #[cfg(not(target_os = "linux"))]
                                 {
                                     use crate::core::notifications::notify_sync;
 
@@ -90,7 +90,7 @@ impl About {
                                     handle.await;
                                 }
 
-                                #[cfg(not(target_os = "macos"))]
+                                #[cfg(target_os = "linux")]
                                 {
                                     notify_async(notification_summary, &notification_body).await
                                 }
