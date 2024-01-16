@@ -59,12 +59,35 @@ impl TroxideNotify {
                                 duration.num_minutes(),
                                 series_info.name,
                             );
+
                             tokio::time::sleep(duration.to_std().unwrap()).await;
-                            notify_episode_release(
-                                &series_info,
-                                &episode,
-                                current_notification_time_setting,
-                            );
+
+                            // For some reasons, async version of notify-rust = "4.9.0" does not work on macos
+                            // so we use the sync version here and async for the rest
+                            #[cfg(target_os = "macos")]
+                            {
+                                let handle = tokio::task::spawn_blocking(move || {
+                                    let series_info = series_info;
+                                    let episode = episode;
+                                    notify_episode_release_sync(
+                                        &series_info,
+                                        &episode,
+                                        current_notification_time_setting,
+                                    )
+                                });
+
+                                handle.await;
+                            }
+
+                            #[cfg(not(target_os = "macos"))]
+                            {
+                                notify_episode_release_async(
+                                    &series_info,
+                                    &episode,
+                                    current_notification_time_setting,
+                                )
+                                .await;
+                            }
                             signal_sender.send(Signal::NotificationSent).unwrap();
                         })
                     })
@@ -149,11 +172,34 @@ async fn get_releases_with_duration_to_release() -> Vec<(SeriesMainInformation, 
         .collect()
 }
 
-fn notify_episode_release(
+#[cfg(target_os = "macos")]
+fn notify_episode_release_sync(
     series_info: &SeriesMainInformation,
     episode: &Episode,
     release_time_in_minute: u32,
 ) {
+    let (notification_summary, notification_body) =
+        notify_episode_release_setup(series_info, episode, release_time_in_minute);
+
+    notify_sync(&notification_summary, &notification_body);
+}
+
+async fn notify_episode_release_async(
+    series_info: &SeriesMainInformation,
+    episode: &Episode,
+    release_time_in_minute: u32,
+) {
+    let (notification_summary, notification_body) =
+        notify_episode_release_setup(series_info, episode, release_time_in_minute);
+
+    notify_async(&notification_summary, &notification_body).await;
+}
+
+fn notify_episode_release_setup(
+    series_info: &SeriesMainInformation,
+    episode: &Episode,
+    release_time_in_minute: u32,
+) -> (String, String) {
     let series_name = series_info.name.as_str();
     let episode_name = episode.name.as_str();
     let episode_order = crate::gui::helpers::season_episode_str_gen(
@@ -170,7 +216,7 @@ fn notify_episode_release(
         episode_order, episode_name, release_time_in_minute
     );
 
-    notify_sync(&notification_summary, &notification_body);
+    (notification_summary, notification_body)
 }
 
 fn notification_setup(

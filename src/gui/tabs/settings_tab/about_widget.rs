@@ -66,17 +66,34 @@ impl About {
                         .notify_when_outdated;
 
                     if !info_result.package.is_up_to_date() && notify_when_outdated {
-                        let newest_version = info_result.package.newest_version().to_string();
+                        let notification_summary = "Series Troxide Update";
+                        let notification_body = format!(
+                            "Version {} of Series Troxide is available",
+                            info_result.package.newest_version()
+                        );
 
                         Command::perform(
                             async move {
-                                let notification_summary = "Series Troxide Update";
-                                let notification_body = format!(
-                                    "Version {} of Series Troxide is available",
-                                    newest_version
-                                );
+                                // For some reasons, async version of notify-rust = "4.9.0" does not work on macos
+                                // so we use the sync version here and async for the rest
+                                #[cfg(target_os = "macos")]
+                                {
+                                    use crate::core::notifications::notify_sync;
 
-                                notify_async(notification_summary, &notification_body).await
+                                    let handle = tokio::task::spawn_blocking(move || {
+                                        let notification_summary = notification_summary;
+                                        let notification_body = notification_body;
+
+                                        notify_sync(notification_summary, &notification_body)
+                                    });
+
+                                    handle.await;
+                                }
+
+                                #[cfg(not(target_os = "macos"))]
+                                {
+                                    notify_async(notification_summary, &notification_body).await
+                                }
                             },
                             |_| Message::NotificationSent,
                         )
