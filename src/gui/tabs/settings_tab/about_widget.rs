@@ -1,5 +1,4 @@
 use crate::core::api::crates::{get_program_info, CrateInformation};
-use crate::core::notifications::notify_async;
 use crate::core::settings_config::SETTINGS;
 use crate::gui::assets::icons::{ARROW_REPEAT, CUP_HOT_FILL, GITHUB_ICON, SERIES_TROXIDE_ICON};
 use crate::gui::styles;
@@ -92,6 +91,7 @@ impl About {
 
                                 #[cfg(target_os = "linux")]
                                 {
+                                    use crate::core::notifications::notify_async;
                                     notify_async(notification_summary, &notification_body).await
                                 }
                             },
