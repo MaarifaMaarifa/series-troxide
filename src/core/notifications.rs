@@ -66,22 +66,17 @@ impl TroxideNotify {
                             // and windows so we use the sync version here and async for the linux
                             #[cfg(not(target_os = "linux"))]
                             {
-                                let handle = tokio::task::spawn_blocking(move || {
-                                    let series_info = series_info;
-                                    let episode = episode;
-                                    notify_episode_release_sync(
-                                        &series_info,
-                                        &episode,
-                                        current_notification_time_setting,
-                                    )
-                                });
-
-                                handle.await;
+                                platform_notify::not_linux::notify_episode_release(
+                                    &series_info,
+                                    &episode,
+                                    current_notification_time_setting,
+                                )
+                                .await;
                             }
 
                             #[cfg(target_os = "linux")]
                             {
-                                notify_episode_release_async(
+                                platform_notify::linux::notify_episode_release(
                                     &series_info,
                                     &episode,
                                     current_notification_time_setting,
@@ -172,101 +167,6 @@ async fn get_releases_with_duration_to_release() -> Vec<(SeriesMainInformation, 
         .collect()
 }
 
-#[cfg(not(target_os = "linux"))]
-fn notify_episode_release_sync(
-    series_info: &SeriesMainInformation,
-    episode: &Episode,
-    release_time_in_minute: u32,
-) {
-    let (notification_summary, notification_body) =
-        notify_episode_release_setup(series_info, episode, release_time_in_minute);
-
-    notify_sync(&notification_summary, &notification_body);
-}
-
-#[cfg(target_os = "linux")]
-async fn notify_episode_release_async(
-    series_info: &SeriesMainInformation,
-    episode: &Episode,
-    release_time_in_minute: u32,
-) {
-    let (notification_summary, notification_body) =
-        notify_episode_release_setup(series_info, episode, release_time_in_minute);
-
-    notify_async(&notification_summary, &notification_body).await;
-}
-
-fn notify_episode_release_setup(
-    series_info: &SeriesMainInformation,
-    episode: &Episode,
-    release_time_in_minute: u32,
-) -> (String, String) {
-    let series_name = series_info.name.as_str();
-    let episode_name = episode.name.as_str();
-    let episode_order = crate::gui::helpers::season_episode_str_gen(
-        episode.season,
-        episode
-            .number
-            .expect("an episode should have a valid number"),
-    );
-
-    let notification_summary = format!("\"{}\" episode release", series_name);
-
-    let notification_body = format!(
-        "{}: {}, will be released in {} minutes",
-        episode_order, episode_name, release_time_in_minute
-    );
-
-    (notification_summary, notification_body)
-}
-
-fn notification_setup(
-    notification: &mut notify_rust::Notification,
-    notification_summary: &str,
-    notification_body: &str,
-) {
-    notification
-        .appname("Series Troxide")
-        .summary(notification_summary)
-        .body(notification_body)
-        .timeout(0)
-        .auto_icon();
-}
-
-pub fn notify_sync(notification_summary: &str, notification_body: &str) {
-    let mut notification = notify_rust::Notification::new();
-
-    notification_setup(&mut notification, notification_summary, notification_body);
-
-    let res = notification.show();
-
-    log_nofitification_error(res, notification_summary);
-}
-
-#[cfg(target_os = "linux")]
-pub async fn notify_async(notification_summary: &str, notification_body: &str) {
-    let mut notification = notify_rust::Notification::new();
-
-    notification_setup(&mut notification, notification_summary, notification_body);
-
-    let res = notification.show_async().await;
-
-    log_nofitification_error(res, notification_summary);
-}
-
-fn log_nofitification_error(
-    notification_result: Result<notify_rust::NotificationHandle, notify_rust::error::Error>,
-    notification_summary: &str,
-) {
-    if let Err(err) = notification_result {
-        tracing::error!(
-            "failed to show notification for \"{}\": {}",
-            notification_summary,
-            err
-        );
-    }
-}
-
 struct FileWatcherEventHandler {
     sender: mpsc::Sender<Signal>,
 }
@@ -294,5 +194,146 @@ impl EventHandler for FileWatcherEventHandler {
         if let notify::EventKind::Modify(_) = event.kind {
             self.sender.send(Signal::SettingsFileChanged).unwrap();
         };
+    }
+}
+
+mod notify_setup {
+    //! Reusable useful functions for `platform_notify` module
+
+    use crate::core::api::tv_maze::episodes_information::Episode;
+    use crate::core::api::tv_maze::series_information::SeriesMainInformation;
+
+    pub fn notification_setup(
+        notification: &mut notify_rust::Notification,
+        notification_summary: &str,
+        notification_body: &str,
+    ) {
+        notification
+            .appname("Series Troxide")
+            .summary(notification_summary)
+            .body(notification_body)
+            .timeout(0)
+            .auto_icon();
+    }
+
+    pub fn notify_episode_release_setup(
+        series_info: &SeriesMainInformation,
+        episode: &Episode,
+        release_time_in_minute: u32,
+    ) -> (String, String) {
+        let series_name = series_info.name.as_str();
+        let episode_name = episode.name.as_str();
+        let episode_order = crate::gui::helpers::season_episode_str_gen(
+            episode.season,
+            episode
+                .number
+                .expect("an episode should have a valid number"),
+        );
+
+        let notification_summary = format!("\"{}\" episode release", series_name);
+
+        let notification_body = format!(
+            "{}: {}, will be released in {} minutes",
+            episode_order, episode_name, release_time_in_minute
+        );
+
+        (notification_summary, notification_body)
+    }
+
+    pub fn log_nofitification_error(
+        notification_result: Result<notify_rust::NotificationHandle, notify_rust::error::Error>,
+        notification_summary: &str,
+    ) {
+        if let Err(err) = notification_result {
+            tracing::error!(
+                "failed to show notification for \"{}\": {}",
+                notification_summary,
+                err
+            );
+        }
+    }
+}
+
+pub mod platform_notify {
+    //! For some reasons, async version of notify-rust = "4.9.0" does not work on macos
+    //! and windows so we handle 'notify' and 'notify_episode_release' functions separately
+    //! for linux and other oses
+
+    #[cfg(target_os = "linux")]
+    pub mod linux {
+        //! 'notify' and 'notification_episode_release' implementations for linux
+
+        use crate::core::api::tv_maze::episodes_information::Episode;
+        use crate::core::api::tv_maze::series_information::SeriesMainInformation;
+
+        pub async fn notify(notification_summary: &str, notification_body: &str) {
+            let mut notification = notify_rust::Notification::new();
+
+            super::super::notify_setup::notification_setup(
+                &mut notification,
+                notification_summary,
+                notification_body,
+            );
+
+            let res = notification.show_async().await;
+
+            super::super::notify_setup::log_nofitification_error(res, notification_summary);
+        }
+
+        pub async fn notify_episode_release(
+            series_info: &SeriesMainInformation,
+            episode: &Episode,
+            release_time_in_minute: u32,
+        ) {
+            let (notification_summary, notification_body) =
+                super::super::notify_setup::notify_episode_release_setup(
+                    series_info,
+                    episode,
+                    release_time_in_minute,
+                );
+
+            notify(&notification_summary, &notification_body).await;
+        }
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    pub mod not_linux {
+        //! 'notify' and 'notification_episode_release' implementations for linux
+
+        use crate::core::api::tv_maze::episodes_information::Episode;
+        use crate::core::api::tv_maze::series_information::SeriesMainInformation;
+
+        pub async fn notify(notification_summary: &str, notification_body: &str) {
+            let mut notification = notify_rust::Notification::new();
+
+            super::super::notify_setup::notification_setup(
+                &mut notification,
+                notification_summary,
+                notification_body,
+            );
+
+            let handle = tokio::task::spawn_blocking(move || notification.show());
+
+            let res = handle.await.expect("failed to await notification handle");
+
+            // let res = notification.show();
+
+            super::super::notify_setup::log_nofitification_error(res, notification_summary);
+        }
+
+        pub async fn notify_episode_release(
+            series_info: &SeriesMainInformation,
+            episode: &Episode,
+            release_time_in_minute: u32,
+        ) {
+            let (notification_summary, notification_body) =
+                super::super::notify_setup::notify_episode_release_setup(
+                    series_info,
+                    episode,
+                    release_time_in_minute,
+                );
+
+            notify(&notification_summary, &notification_body).await;
+        }
     }
 }

@@ -73,26 +73,25 @@ impl About {
 
                         Command::perform(
                             async move {
+                                use crate::core::notifications::platform_notify;
                                 // For some reasons, async version of notify-rust = "4.9.0" does not work on macos
                                 // and windows so we use the sync version here and async for the linux
                                 #[cfg(not(target_os = "linux"))]
                                 {
-                                    use crate::core::notifications::notify_sync;
-
-                                    let handle = tokio::task::spawn_blocking(move || {
-                                        let notification_summary = notification_summary;
-                                        let notification_body = notification_body;
-
-                                        notify_sync(notification_summary, &notification_body)
-                                    });
-
-                                    handle.await;
+                                    platform_notify::not_linux::notify(
+                                        notification_summary,
+                                        &notification_body,
+                                    )
+                                    .await
                                 }
 
                                 #[cfg(target_os = "linux")]
                                 {
-                                    use crate::core::notifications::notify_async;
-                                    notify_async(notification_summary, &notification_body).await
+                                    platform_notify::linux::notify(
+                                        notification_summary,
+                                        &notification_body,
+                                    )
+                                    .await
                                 }
                             },
                             |_| Message::NotificationSent,
