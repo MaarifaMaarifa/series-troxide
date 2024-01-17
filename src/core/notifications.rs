@@ -240,8 +240,8 @@ mod notify_setup {
         (notification_summary, notification_body)
     }
 
-    pub fn log_nofitification_error(
-        notification_result: Result<notify_rust::NotificationHandle, notify_rust::error::Error>,
+    pub fn log_notification_error(
+        notification_result: Result<(), notify_rust::error::Error>,
         notification_summary: &str,
     ) {
         if let Err(err) = notification_result {
@@ -277,7 +277,10 @@ pub mod platform_notify {
 
             let res = notification.show_async().await;
 
-            super::super::notify_setup::log_nofitification_error(res, notification_summary);
+            super::super::notify_setup::log_notification_error(
+                res.map(|_| ()),
+                notification_summary,
+            );
         }
 
         pub async fn notify_episode_release(
@@ -318,7 +321,10 @@ pub mod platform_notify {
 
             // let res = notification.show();
 
-            super::super::notify_setup::log_nofitification_error(res, notification_summary);
+            super::super::notify_setup::log_nofitification_error(
+                res.map(|_| ()),
+                notification_summary,
+            );
         }
 
         pub async fn notify_episode_release(
