@@ -43,7 +43,7 @@ notify = "6.1.1"
 num-traits = "0.2.17"
 semver = "1.0.21"
 ron = "0.8.1"
-smallvec = "1.12.0"
+smallvec = "1.13.1"
 fuzzy-matcher = "0.3.7"
 
 [build-dependencies]
