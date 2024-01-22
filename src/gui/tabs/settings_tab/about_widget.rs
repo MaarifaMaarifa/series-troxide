@@ -1,4 +1,5 @@
 use crate::core::api::crates::{get_program_info, CrateInformation};
+use crate::core::settings_config::SETTINGS;
 use crate::gui::assets::icons::{ARROW_REPEAT, CUP_HOT_FILL, GITHUB_ICON, SERIES_TROXIDE_ICON};
 use crate::gui::styles;
 
@@ -20,6 +21,7 @@ pub enum Message {
     CrateInfoLoaded(Result<CrateInformation, String>),
     RecheckUpdate,
     Coffee,
+    NotificationSent,
 }
 
 pub struct About {
@@ -53,7 +55,56 @@ impl About {
                 webbrowser::open("https://iced.rs/")
                     .unwrap_or_else(|err| error!("failed to open Iced site: {}", err));
             }
-            Message::CrateInfoLoaded(info_result) => self.crate_information = Some(info_result),
+            Message::CrateInfoLoaded(info_result) => {
+                let command = if let Ok(info_result) = info_result.as_ref() {
+                    let notify_when_outdated = SETTINGS
+                        .read()
+                        .expect("failed to read settings")
+                        .get_current_settings()
+                        .notifications
+                        .notify_when_outdated;
+
+                    if !info_result.package.is_up_to_date() && notify_when_outdated {
+                        let notification_summary = "Series Troxide Update";
+                        let notification_body = format!(
+                            "Version {} of Series Troxide is available",
+                            info_result.package.newest_version()
+                        );
+
+                        Command::perform(
+                            async move {
+                                use crate::core::notifications::platform_notify;
+                                // For some reasons, async version of notify-rust = "4.9.0" does not work on macos
+                                // and windows so we use the sync version here and async for the linux
+                                #[cfg(not(target_os = "linux"))]
+                                {
+                                    platform_notify::not_linux::notify(
+                                        notification_summary,
+                                        &notification_body,
+                                    )
+                                    .await
+                                }
+
+                                #[cfg(target_os = "linux")]
+                                {
+                                    platform_notify::linux::notify(
+                                        notification_summary,
+                                        &notification_body,
+                                    )
+                                    .await
+                                }
+                            },
+                            |_| Message::NotificationSent,
+                        )
+                    } else {
+                        Command::none()
+                    }
+                } else {
+                    Command::none()
+                };
+                self.crate_information = Some(info_result);
+                return command;
+            }
             Message::RecheckUpdate => {
                 self.crate_information = None;
                 return Self::check_update();
@@ -62,6 +113,7 @@ impl About {
                 webbrowser::open("https://www.patreon.com/MaarifaMaarifa")
                     .unwrap_or_else(|err| error!("failed to open patreon site: {}", err));
             }
+            Message::NotificationSent => {}
         };
 
         Command::none()
