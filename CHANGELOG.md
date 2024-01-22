@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cast age before death information. [#116](https://github.com/MaarifaMaarifa/series-troxide/pull/116)
 - Crew information in `Series Page`. [#139](https://github.com/MaarifaMaarifa/series-troxide/pull/139)
 - Searching functionality in `Watchlist`, `My Shows` and `Statistics` Tabs. [#129](https://github.com/MaarifaMaarifa/series-troxide/pull/129)
+- Implement notification when update available. [#148](https://github.com/MaarifaMaarifa/series-troxide/pull/148)
 
 ### Changed
 - Prevent image resolution from being lowered when already low. [#93](https://github.com/MaarifaMaarifa/series-troxide/pull/93)
