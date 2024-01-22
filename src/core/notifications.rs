@@ -319,9 +319,7 @@ pub mod platform_notify {
 
             let res = handle.await.expect("failed to await notification handle");
 
-            // let res = notification.show();
-
-            super::super::notify_setup::log_nofitification_error(
+            super::super::notify_setup::log_notification_error(
                 res.map(|_| ()),
                 notification_summary,
             );
