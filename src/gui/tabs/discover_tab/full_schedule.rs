@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::ops::RangeInclusive;
+use std::ops::Range;
 use std::sync::mpsc;
 
 use iced::widget::{column, container, text, vertical_space, Column};
@@ -419,7 +419,7 @@ fn series_posters_viewer<'a>(
 }
 
 struct Posters<'a, T> {
-    index: HashMap<T, RangeInclusive<usize>>,
+    index: HashMap<T, Range<usize>>,
     posters: Vec<SeriesPoster<'a>>,
 
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
@@ -443,7 +443,7 @@ where
         message: fn(IndexedMessage<usize, SeriesPosterMessage>) -> Message,
     ) -> Command<Message> {
         if self.posters.is_empty() {
-            let range = 0..=(series_infos.len() - 1);
+            let range = 0..(series_infos.len());
             let (posters, poster_commands) = Self::generate_posters_and_commands_from_series_infos(
                 &range,
                 series_infos,
@@ -453,7 +453,7 @@ where
             self.posters = posters;
             Command::batch(poster_commands).map(message)
         } else {
-            let range = self.posters.len()..=(self.posters.len() + series_infos.len() - 1);
+            let range = self.posters.len()..(self.posters.len() + series_infos.len());
             let (mut posters, poster_commands) =
                 Self::generate_posters_and_commands_from_series_infos(
                     &range,
@@ -467,7 +467,7 @@ where
     }
 
     fn generate_posters_and_commands_from_series_infos(
-        range: &RangeInclusive<usize>,
+        range: &Range<usize>,
         series_infos: Vec<&'a SeriesMainInformation>,
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (
