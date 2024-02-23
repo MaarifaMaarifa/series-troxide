@@ -1761,9 +1761,9 @@ dependencies = [
 
 [[package]]
 name = "html2text"
-version = "0.12.0"
+version = "0.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22f0de8bd2c9fe69eb3fa29e41ae1396c9d2e1b807735acaecafb4c86888674f"
+checksum = "0496b3c636850f1e90a46918c4e6c92c4ab57387dd9f32714f55d741d4273064"
 dependencies = [
  "dashmap",
  "html5ever",
@@ -1771,7 +1771,6 @@ dependencies = [
  "tendril",
  "thiserror",
  "unicode-width",
- "xml5ever",
 ]
 
 [[package]]
@@ -5639,17 +5638,6 @@ name = "xml-rs"
 version = "0.8.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bab77e97b50aee93da431f2cee7cd0f43b4d1da3c408042f2d7d164187774f0a"
-
-[[package]]
-name = "xml5ever"
-version = "0.17.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4034e1d05af98b51ad7214527730626f019682d797ba38b51689212118d8e650"
-dependencies = [
- "log",
- "mac",
- "markup5ever",
-]
 
 [[package]]
 name = "xmlparser"
