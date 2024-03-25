@@ -33,7 +33,7 @@ lazy_static = "1.4.0"
 sha2 = "0.10.8"
 chrono = { version = "0.4.34", features = ["serde"] }
 html2text = "0.12.4"
-bytes = "1.4.0"
+bytes = "1.6.0"
 rfd = "0.13.0"
 rust_iso3166 = "0.1.12"
 image = "0.24.9"
