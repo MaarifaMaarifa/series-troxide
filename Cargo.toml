@@ -47,7 +47,7 @@ smallvec = "1.13.2"
 fuzzy-matcher = "0.3.7"
 
 [build-dependencies]
-built = { version = "0.7.1", features = ["git2", "chrono"] }
+built = { version = "0.7.2", features = ["git2", "chrono"] }
 
 [profile.release]
 lto = true
