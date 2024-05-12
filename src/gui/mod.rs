@@ -84,6 +84,17 @@ impl<'a> Application for TroxideGui<'a> {
         iced::Theme::Custom(custom_theme)
     }
 
+    fn scale_factor(&self) -> f64 {
+        let scale = SETTINGS
+            .read()
+            .unwrap()
+            .get_current_settings()
+            .appearance
+            .scale
+            .to_owned();
+        Into::<f64>::into(scale) / 100.0
+    }
+
     fn subscription(&self) -> iced::Subscription<Message> {
         self.tabs_controller
             .subscription()
