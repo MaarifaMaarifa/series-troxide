@@ -1,12 +1,13 @@
-use iced::widget::{column, container, horizontal_space, radio, text, Column};
+use iced::widget::{column, container, horizontal_space, radio, slider, text, Column};
 use iced::{Element, Renderer};
 
-use crate::core::settings_config::{Theme, ALL_THEMES, SETTINGS};
+use crate::core::settings_config::{Scale, Theme, ALL_THEMES, SCALE_RANGE, SCALE_RANGE_STEP, SETTINGS};
 use crate::gui::styles;
 
 #[derive(Debug, Clone)]
 pub enum Message {
     ThemeSelected(Theme),
+    ScaleSelected(Scale),
 }
 
 #[derive(Default)]
@@ -17,6 +18,9 @@ impl Appearance {
         match message {
             Message::ThemeSelected(theme) => {
                 SETTINGS.write().unwrap().change_settings().appearance.theme = theme;
+            }
+            Message::ScaleSelected(scale) => {
+                SETTINGS.write().unwrap().change_settings().appearance.scale = scale;
             }
         }
     }
@@ -30,15 +34,15 @@ impl Appearance {
 
         let theme_text = text("Theme").size(18);
 
-        let current_theme = Some(
-            SETTINGS
+        let (current_theme, current_scale) = {
+            let settings = SETTINGS
                 .read()
                 .unwrap()
                 .get_current_settings()
                 .appearance
-                .theme
-                .clone(),
-        );
+                .to_owned();
+            (Some(settings.theme), settings.scale)
+        };
 
         let theme_list = Column::with_children(
             ALL_THEMES
@@ -55,11 +59,26 @@ impl Appearance {
         )
         .spacing(5);
 
-        let content = content.push(
-            column!(theme_text, horizontal_space(20), theme_list)
-                .padding(5)
-                .spacing(5),
-        );
+        let scale_text = text(format!("Scale {}", current_scale.to_string())).size(18);
+    
+        let scale_slider = {
+            slider(SCALE_RANGE, current_scale.into(), |scale| {
+                Message::ScaleSelected(scale.into())
+            })
+            .step(SCALE_RANGE_STEP)
+        };
+
+        let content = content
+            .push(
+                column!(theme_text, horizontal_space(20), theme_list)
+                    .padding(5)
+                    .spacing(5),
+            )
+            .push(
+                column!(scale_text, horizontal_space(20), scale_slider)
+                    .padding(5)
+                    .spacing(5),
+            );
 
         container(content)
             .style(styles::container_styles::first_class_container_rounded_theme())
