@@ -1,7 +1,9 @@
 use iced::widget::{column, container, horizontal_space, radio, slider, text, Column};
 use iced::{Element, Renderer};
 
-use crate::core::settings_config::{Scale, Theme, ALL_THEMES, SCALE_RANGE, SCALE_RANGE_STEP, SETTINGS};
+use crate::core::settings_config::{
+    Scale, Theme, ALL_THEMES, SCALE_RANGE, SCALE_RANGE_STEP, SETTINGS,
+};
 use crate::gui::styles;
 
 #[derive(Debug, Clone)]
@@ -59,8 +61,8 @@ impl Appearance {
         )
         .spacing(5);
 
-        let scale_text = text(format!("Scale {}", current_scale.to_string())).size(18);
-    
+        let scale_text = text(format!("Scale {}", current_scale)).size(18);
+
         let scale_slider = {
             slider(SCALE_RANGE, current_scale.into(), |scale| {
                 Message::ScaleSelected(scale.into())

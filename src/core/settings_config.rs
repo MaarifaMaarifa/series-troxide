@@ -1,5 +1,8 @@
 use std::{
-    io::ErrorKind, ops::RangeInclusive, path::PathBuf, sync::{Arc, RwLock}
+    io::ErrorKind,
+    ops::RangeInclusive,
+    path::PathBuf,
+    sync::{Arc, RwLock},
 };
 
 use lazy_static::lazy_static;
@@ -24,9 +27,9 @@ impl Default for Scale {
     }
 }
 
-impl Into<f64> for Scale {
-    fn into(self) -> f64 {
-        self.0 as f64
+impl From<Scale> for f64 {
+    fn from(value: Scale) -> Self {
+        value.0 as f64
     }
 }
 
@@ -53,7 +56,7 @@ impl std::fmt::Display for Theme {
 
 impl std::fmt::Display for Scale {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}{}", self.0, "%")
+        write!(f, "{}%", self.0)
     }
 }
 
