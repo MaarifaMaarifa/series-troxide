@@ -80,7 +80,7 @@ impl Search {
                     Command::none()
                 } else {
                     self.load_state = LoadState::Loading;
-                    self.searched_term = self.search_term.clone();
+                    self.searched_term.clone_from(&self.search_term);
 
                     let series_result = series_searching::search_series(self.search_term.clone());
 

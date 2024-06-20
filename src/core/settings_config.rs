@@ -1,5 +1,6 @@
 use std::{
     io::ErrorKind,
+    ops::RangeInclusive,
     path::PathBuf,
     sync::{Arc, RwLock},
 };
@@ -17,7 +18,30 @@ pub enum Theme {
     Dark,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
+pub struct Scale(u32);
+
+impl Default for Scale {
+    fn default() -> Self {
+        Self(100)
+    }
+}
+
+impl From<Scale> for f64 {
+    fn from(value: Scale) -> Self {
+        value.0 as f64
+    }
+}
+
+impl From<f64> for Scale {
+    fn from(value: f64) -> Self {
+        Self(value as u32)
+    }
+}
+
 pub const ALL_THEMES: [Theme; 2] = [Theme::Light, Theme::Dark];
+pub const SCALE_RANGE: RangeInclusive<f64> = 75.0..=175.0;
+pub const SCALE_RANGE_STEP: f64 = 25.0;
 
 impl std::fmt::Display for Theme {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -27,6 +51,12 @@ impl std::fmt::Display for Theme {
         };
 
         write!(f, "{}", str)
+    }
+}
+
+impl std::fmt::Display for Scale {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}%", self.0)
     }
 }
 
@@ -41,6 +71,7 @@ pub struct Config {
 #[derive(Clone, Default, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub struct AppearanceSettings {
     pub theme: Theme,
+    pub scale: Scale,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]

@@ -71,7 +71,7 @@ pub fn deserialize_json<'a, T: serde::Deserialize<'a>>(
             .lines()
             .skip(line_number)
             .take(1)
-            .for_each(|line| errored_line = line.to_owned());
+            .for_each(|line| line.clone_into(&mut errored_line));
         ApiError::Deserialization(errored_line, err)
     })
 }

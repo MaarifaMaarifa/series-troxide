@@ -26,7 +26,7 @@ pub async fn get_series_with_date(
 
     let mut series_infos = deduplicate_items(series_infos)
         .into_iter()
-        .filter(|series| hidden_series_ids.get(&series.id).is_none())
+        .filter(|series| !hidden_series_ids.contains(&series.id))
         .collect::<Vec<SeriesMainInformation>>();
 
     sort_by_rating(&mut series_infos);
@@ -53,7 +53,7 @@ pub async fn get_series_with_country(
 
     let mut series_infos = deduplicate_items(series_infos)
         .into_iter()
-        .filter(|series| hidden_series_ids.get(&series.id).is_none())
+        .filter(|series| !hidden_series_ids.contains(&series.id))
         .collect::<Vec<SeriesMainInformation>>();
 
     sort_by_rating(&mut series_infos);

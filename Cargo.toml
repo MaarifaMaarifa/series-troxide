@@ -11,17 +11,17 @@ version = "0.5.1"
 edition = "2021"
 
 [dependencies]
-clap = { version = "4.5.4", features = ["derive"] }
+clap = { version = "4.5.7", features = ["derive"] }
 iced = { version = "0.10.0", features = ["image", "svg", "tokio"] }
 iced_aw = { version = "0.7.0", features = ["spinner"] }
-anyhow = "1.0.81"
-thiserror = "1.0.58"
-reqwest = { version = "0.12.4", features = ["json"] }
-serde = { version = "1.0.197", features = ["derive"] }
-serde_json = "1.0.114"
+anyhow = "1.0.86"
+thiserror = "1.0.61"
+reqwest = { version = "0.12.5", features = ["json"] }
+serde = { version = "1.0.203", features = ["derive"] }
+serde_json = "1.0.117"
 toml = "0.8.2"
 json = "0.12.4"
-tokio = { version = "1.37.0", features = ["full"] }
+tokio = { version = "1.38.0", features = ["full"] }
 tracing-subscriber = "0.3.18"
 tracing = "0.1.40"
 sled = "0.34.7"
@@ -32,16 +32,16 @@ directories = "5.0.1"
 lazy_static = "1.4.0"
 sha2 = "0.10.8"
 chrono = { version = "0.4.38", features = ["serde"] }
-html2text = "0.12.4"
+html2text = "0.12.5"
 bytes = "1.6.0"
 rfd = "0.13.0"
-rust_iso3166 = "0.1.12"
+rust_iso3166 = "0.1.13"
 image = "0.24.9"
-webbrowser = "1.0.0"
+webbrowser = "1.0.1"
 notify-rust = "4.9.0"
 notify = "6.1.1"
-num-traits = "0.2.18"
-semver = "1.0.22"
+num-traits = "0.2.19"
+semver = "1.0.23"
 ron = "0.8.1"
 smallvec = "1.13.2"
 fuzzy-matcher = "0.3.7"
