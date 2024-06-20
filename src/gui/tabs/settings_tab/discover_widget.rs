@@ -36,12 +36,14 @@ impl Discover {
                 let country_code =
                     locale_settings::get_country_code_from_country_name(&country_name).unwrap();
 
-                SETTINGS
-                    .write()
-                    .unwrap()
-                    .change_settings()
-                    .locale
-                    .country_code = country_code.to_owned();
+                country_code.clone_into(
+                    &mut SETTINGS
+                        .write()
+                        .unwrap()
+                        .change_settings()
+                        .locale
+                        .country_code,
+                );
                 Command::none()
             }
             Message::HiddenSeries(message) => self

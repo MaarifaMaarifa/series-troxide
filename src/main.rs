@@ -22,9 +22,7 @@ fn main() -> anyhow::Result<()> {
 
     std::thread::spawn(|| core::notifications::TroxideNotify::new()?.run());
 
-    let icon =
-        window::icon::from_file_data(gui::assets::logos::IMG_LOGO, Some(image::ImageFormat::Png))
-            .ok();
+    let icon = window::icon::from_file_data(gui::assets::logos::IMG_LOGO, None).ok();
 
     gui::TroxideGui::run(Settings {
         window: iced::window::Settings {

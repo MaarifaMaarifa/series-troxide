@@ -59,7 +59,8 @@ impl<'a> StatisticsTab<'a> {
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::SeriesInfosAndTimeReceived(mut series_infos_and_time) => {
-                self.series_infos_and_time = series_infos_and_time.clone();
+                self.series_infos_and_time
+                    .clone_from(&series_infos_and_time);
 
                 series_infos_and_time.sort_by(|(_, average_minutes_a), (_, average_minutes_b)| {
                     average_minutes_b.cmp(average_minutes_a)
