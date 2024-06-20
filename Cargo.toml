@@ -12,7 +12,7 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.5.7", features = ["derive"] }
-iced = { version = "0.10.0", features = ["image", "svg", "tokio"] }
+iced = { version = "0.12.1", features = ["image", "svg", "tokio"] }
 iced_aw = { version = "0.7.0", features = ["spinner"] }
 anyhow = "1.0.86"
 thiserror = "1.0.61"
