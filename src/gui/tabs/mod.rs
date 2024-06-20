@@ -13,6 +13,7 @@ pub mod discover_tab;
 pub mod my_shows_tab;
 pub mod settings_tab;
 pub mod statistics_tab;
+pub mod tab_searching;
 pub mod watchlist_tab;
 
 pub trait Tab {
@@ -71,6 +72,20 @@ impl From<TabId> for usize {
             TabId::Statistics => 3,
             TabId::Settings => 4,
         }
+    }
+}
+
+impl std::fmt::Display for TabId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let text = match self {
+            TabId::Discover => "Discover",
+            TabId::Watchlist => "Watchlist",
+            TabId::MyShows => "MyShows",
+            TabId::Statistics => "Statistics",
+            TabId::Settings => "Settings",
+        };
+
+        write!(f, "{text}")
     }
 }
 

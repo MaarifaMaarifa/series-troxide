@@ -1,10 +1,11 @@
 use std::sync::mpsc;
 
 use iced::widget::scrollable::{RelativeOffset, Viewport};
-use iced::widget::{column, container, scrollable, text, Column, Space};
+use iced::widget::{column, container, scrollable, Column, Space};
 use iced::{Command, Element, Length, Renderer};
 use iced_aw::Spinner;
 
+use super::tab_searching::{unavailable_posters, Message as SearcherMessage, Searchable, Searcher};
 use super::Tab;
 use crate::core::api::tv_maze::series_information::SeriesMainInformation;
 use crate::core::caching::episode_list::EpisodeList;
@@ -21,6 +22,7 @@ pub enum Message {
     SeriesInformationLoaded(Vec<(SeriesMainInformation, EpisodeList, usize)>),
     WatchlistPoster(IndexedMessage<usize, WatchlistPosterMessage>),
     PageScrolled(Viewport),
+    Searcher(SearcherMessage),
 }
 
 #[derive(Default)]
@@ -36,6 +38,9 @@ pub struct WatchlistTab<'a> {
     watchlist_summary: Option<WatchlistSummary>,
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
     scrollable_offset: RelativeOffset,
+    /// A collection of matched series id after a fuzzy search
+    matched_id_collection: Option<Vec<u32>>,
+    searcher: Searcher,
 }
 
 impl<'a> WatchlistTab<'a> {
@@ -50,9 +55,11 @@ impl<'a> WatchlistTab<'a> {
                 load_state: LoadState::Loading,
                 series_page_sender,
                 scrollable_offset: scrollable_offset.unwrap_or(RelativeOffset::START),
+                matched_id_collection: None,
+                searcher: Searcher::new("Search Watchlist".to_owned()),
             },
             Command::perform(
-                get_series_informations_and_watched_episodes(),
+                get_series_information_and_watched_episodes(),
                 Message::SeriesInformationLoaded,
             ),
         )
@@ -109,6 +116,12 @@ impl<'a> WatchlistTab<'a> {
                 self.scrollable_offset = view_port.relative_offset();
                 Command::none()
             }
+            Message::Searcher(message) => {
+                self.searcher.update(message);
+                let current_search_term = self.searcher.current_search_term().to_owned();
+                self.update_matches(&current_search_term);
+                Command::none()
+            }
         }
     }
     pub fn view(&self) -> Element<Message, Renderer> {
@@ -121,46 +134,71 @@ impl<'a> WatchlistTab<'a> {
                 .into(),
             LoadState::Loaded => {
                 if self.watchlist_posters.is_empty() {
-                    container(
-                        text("All Clear!")
-                            .horizontal_alignment(iced::alignment::Horizontal::Center),
-                    )
-                    .center_x()
-                    .center_y()
-                    .height(Length::Fill)
-                    .width(Length::Fill)
-                    .into()
+                    Self::empty_watchlist_posters()
                 } else {
-                    let watchlist_items: Vec<Element<'_, Message, Renderer>> = self
-                        .watchlist_posters
-                        .iter()
-                        .map(|poster| poster.view().map(Message::WatchlistPoster))
-                        .collect();
-
                     let watchlist_summary = self
                         .watchlist_summary
                         .as_ref()
                         .map(|watchlist_summary| watchlist_summary.view())
                         .unwrap_or(Space::new(0, 0).into());
 
-                    let watchlist_items = Column::with_children(watchlist_items)
-                        .spacing(5)
-                        .align_items(iced::Alignment::Center)
-                        .width(Length::Fill);
+                    let watchlist_items: Vec<Element<'_, Message, Renderer>> = self
+                        .watchlist_posters
+                        .iter()
+                        .filter(|poster| {
+                            if let Some(matched_id_collection) = &self.matched_id_collection {
+                                self.is_matched_id(
+                                    matched_id_collection.as_slice(),
+                                    poster.get_series_info().id,
+                                )
+                            } else {
+                                true
+                            }
+                        })
+                        .map(|poster| poster.view().map(Message::WatchlistPoster))
+                        .collect();
 
-                    let content = column![watchlist_summary, watchlist_items]
+                    let watchlist_items = if watchlist_items.is_empty() {
+                        Self::no_search_matches()
+                    } else {
+                        let watchlist_items = Column::with_children(watchlist_items)
+                            .spacing(5)
+                            .align_items(iced::Alignment::Center)
+                            .width(Length::Fill);
+
+                        // We are wrapping the watchlist_items into a container so that the scrollbar does not touch the watchlist
+                        // element by setting up padding in the container
+                        scrollable(container(watchlist_items).padding(10).width(Length::Fill))
+                            .direction(styles::scrollable_styles::vertical_direction())
+                            .id(Self::scrollable_id())
+                            .on_scroll(Message::PageScrolled)
+                            .into()
+                    };
+
+                    let searcher = self.searcher.view().map(Message::Searcher);
+
+                    column![watchlist_summary, searcher, watchlist_items]
                         .padding(5)
                         .spacing(10)
-                        .align_items(iced::Alignment::Center);
-
-                    scrollable(content)
-                        .direction(styles::scrollable_styles::vertical_direction())
-                        .id(Self::scrollable_id())
-                        .on_scroll(Message::PageScrolled)
+                        .align_items(iced::Alignment::Center)
                         .into()
                 }
             }
         }
+    }
+
+    fn empty_watchlist_posters() -> Element<'static, Message, Renderer> {
+        unavailable_posters("All Clear!")
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
+    }
+
+    fn no_search_matches() -> Element<'static, Message, Renderer> {
+        unavailable_posters("No matches found!")
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
     }
 }
 
@@ -170,14 +208,14 @@ fn has_pending_episodes(database_series: &database::Series, episodes_list: &Epis
     episodes_list.get_total_watchable_episodes() != database_series.get_total_episodes()
 }
 
-async fn get_series_informations_and_watched_episodes(
+async fn get_series_information_and_watched_episodes(
 ) -> Vec<(SeriesMainInformation, EpisodeList, usize)> {
-    let tracked_series_informations = series_list::SeriesList::new()
-        .get_tracked_series_informations()
+    let tracked_series_information = series_list::SeriesList::new()
+        .get_tracked_series_information()
         .await
         .unwrap();
 
-    let episode_lists_handles: Vec<_> = tracked_series_informations
+    let episode_lists_handles: Vec<_> = tracked_series_information
         .iter()
         .map(|series_info| tokio::spawn(caching::episode_list::EpisodeList::new(series_info.id)))
         .collect();
@@ -192,7 +230,7 @@ async fn get_series_informations_and_watched_episodes(
         episodes_lists.push(episode_list);
     }
 
-    tracked_series_informations
+    tracked_series_information
         .into_iter()
         .zip(episodes_lists.into_iter())
         .filter(|(series_info, episode_list)| {
@@ -219,6 +257,19 @@ impl<'a> Tab for WatchlistTab<'a> {
 
     fn get_scrollable_offset(&self) -> scrollable::RelativeOffset {
         self.scrollable_offset
+    }
+}
+
+impl<'a> Searchable for WatchlistTab<'a> {
+    fn get_series_information_collection(&self) -> Vec<&SeriesMainInformation> {
+        self.watchlist_posters
+            .iter()
+            .map(|poster| poster.get_series_info())
+            .collect()
+    }
+
+    fn matches_id_collection(&mut self) -> &mut Option<Vec<u32>> {
+        &mut self.matched_id_collection
     }
 }
 
@@ -285,6 +336,10 @@ mod watchlist_poster {
                     .map(Message::Poster)
                     .map(move |message| IndexedMessage::new(index, message)),
             )
+        }
+
+        pub fn get_series_info(&self) -> &SeriesMainInformation {
+            self.poster.get_series_info()
         }
 
         pub fn update(
@@ -416,7 +471,7 @@ mod watchlist_poster {
             metadata = metadata.push(text(format!("{} episodes left", episodes_left)));
 
             if let Some(runtime) = self.poster.get_series_info().average_runtime {
-                metadata = metadata.push(text(helpers::time::SaneTime::new(
+                metadata = metadata.push(text(helpers::time::NaiveTime::new(
                     runtime * episodes_left as u32,
                 )));
             };
@@ -465,7 +520,7 @@ mod watchlist_poster {
 
 mod watchlist_summary {
     use crate::core::database;
-    use crate::gui::helpers::time::SaneTime;
+    use crate::gui::helpers::time::NaiveTime;
     use crate::gui::styles;
 
     use super::Message;
@@ -492,7 +547,7 @@ mod watchlist_summary {
 
             let total_time_to_watch = Self::summary_item(
                 "Total Time Required to Watch",
-                SaneTime::new(
+                NaiveTime::new(
                     self.series_ids
                         .iter()
                         .map(|(id, total_episodes, time)| {

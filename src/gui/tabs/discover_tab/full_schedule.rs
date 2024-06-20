@@ -1,10 +1,10 @@
 use std::collections::HashMap;
-use std::ops::RangeInclusive;
+use std::ops::Range;
 use std::sync::mpsc;
 
 use iced::widget::{column, container, text, vertical_space, Column};
 use iced::{Command, Element, Length, Renderer};
-use iced_aw::{Spinner, Wrap};
+use iced_aw::Wrap;
 
 use crate::core::api::tv_maze::series_information::{
     Genre, SeriesMainInformation, ShowNetwork, ShowWebChannel,
@@ -268,77 +268,73 @@ impl<'a> FullSchedulePosters<'a> {
         }
     }
 
-    pub fn view(&self) -> Element<'_, Message, Renderer> {
-        match self.load_state {
-            LoadState::Loading => container(Spinner::new())
-                .width(Length::Fill)
-                .height(500)
-                .center_x()
-                .center_y()
-                .into(),
-            LoadState::Loaded => {
-                let network_sections = Column::with_children(
-                    NETWORK_SECTIONS
-                        .into_iter()
-                        .map(|network| {
-                            self.network_posters
-                                .get_section_view(&network, Message::NetworkPosters)
-                        })
-                        .collect(),
-                )
-                .spacing(30);
-
-                let genre_sections = Column::with_children(
-                    GENRE_SECTIONS
-                        .into_iter()
-                        .map(|genre| {
-                            self.genre_posters
-                                .get_section_view(&genre, Message::GenrePosters)
-                        })
-                        .collect(),
-                )
-                .spacing(30);
-
-                let webchannel_sections = Column::with_children(
-                    WEB_CHANNEL_SECTIONS
-                        .into_iter()
-                        .map(|webchannel| {
-                            self.web_channel_posters
-                                .get_section_view(&webchannel, Message::WebChannelPosters)
-                        })
-                        .collect(),
-                )
-                .spacing(30);
-
-                column![
-                    series_posters_viewer("Shows Airing Today Globally", &self.daily_global_series)
-                        .map(Message::GlobalSeries),
-                    series_posters_viewer(
-                        &format!("Shows Airing Today in {}", self.country_name),
-                        &self.daily_local_series
-                    )
-                    .map(Message::LocalSeries),
-                    series_posters_viewer("Popular Shows", &self.popular_posters)
-                        .map(Message::PopularPosters),
-                    series_posters_viewer(
-                        &format!("New Shows Airing in {}", get_current_month().name()),
-                        &self.monthly_new_poster,
-                    )
-                    .map(Message::MonthlyNewPosters),
-                    series_posters_viewer(
-                        &format!("Shows Returning in {}", get_current_month().name()),
-                        &self.monthly_returning_posters,
-                    )
-                    .map(Message::MonthlyReturningPosters),
-                    network_sections,
-                    webchannel_sections,
-                    genre_sections
-                ]
-                .spacing(30)
-                .padding(10)
-                .into()
-            }
+    pub fn view(&self) -> Option<Element<'_, Message, Renderer>> {
+        if let LoadState::Loading = self.load_state {
+            return None;
         }
+
+        let network_sections = Column::with_children(
+            NETWORK_SECTIONS
+                .into_iter()
+                .map(|network| {
+                    self.network_posters
+                        .get_section_view(&network, Message::NetworkPosters)
+                })
+                .collect(),
+        )
+        .spacing(30);
+
+        let genre_sections = Column::with_children(
+            GENRE_SECTIONS
+                .into_iter()
+                .map(|genre| {
+                    self.genre_posters
+                        .get_section_view(&genre, Message::GenrePosters)
+                })
+                .collect(),
+        )
+        .spacing(30);
+
+        let webchannel_sections = Column::with_children(
+            WEB_CHANNEL_SECTIONS
+                .into_iter()
+                .map(|webchannel| {
+                    self.web_channel_posters
+                        .get_section_view(&webchannel, Message::WebChannelPosters)
+                })
+                .collect(),
+        )
+        .spacing(30);
+
+        let view = column![
+            series_posters_viewer("Shows Airing Today Globally", &self.daily_global_series)
+                .map(Message::GlobalSeries),
+            series_posters_viewer(
+                &format!("Shows Airing Today in {}", self.country_name),
+                &self.daily_local_series
+            )
+            .map(Message::LocalSeries),
+            series_posters_viewer("Popular Shows", &self.popular_posters)
+                .map(Message::PopularPosters),
+            series_posters_viewer(
+                &format!("New Shows Airing in {}", get_current_month().name()),
+                &self.monthly_new_poster,
+            )
+            .map(Message::MonthlyNewPosters),
+            series_posters_viewer(
+                &format!("Shows Returning in {}", get_current_month().name()),
+                &self.monthly_returning_posters,
+            )
+            .map(Message::MonthlyReturningPosters),
+            network_sections,
+            webchannel_sections,
+            genre_sections
+        ]
+        .spacing(30)
+        .padding(10)
+        .into();
+
+        Some(view)
     }
 
     fn load_full_schedule() -> Command<Message> {
@@ -423,7 +419,7 @@ fn series_posters_viewer<'a>(
 }
 
 struct Posters<'a, T> {
-    index: HashMap<T, RangeInclusive<usize>>,
+    index: HashMap<T, Range<usize>>,
     posters: Vec<SeriesPoster<'a>>,
 
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
@@ -447,7 +443,7 @@ where
         message: fn(IndexedMessage<usize, SeriesPosterMessage>) -> Message,
     ) -> Command<Message> {
         if self.posters.is_empty() {
-            let range = 0..=(series_infos.len() - 1);
+            let range = 0..(series_infos.len());
             let (posters, poster_commands) = Self::generate_posters_and_commands_from_series_infos(
                 &range,
                 series_infos,
@@ -457,7 +453,7 @@ where
             self.posters = posters;
             Command::batch(poster_commands).map(message)
         } else {
-            let range = self.posters.len()..=(self.posters.len() + series_infos.len() - 1);
+            let range = self.posters.len()..(self.posters.len() + series_infos.len());
             let (mut posters, poster_commands) =
                 Self::generate_posters_and_commands_from_series_infos(
                     &range,
@@ -471,7 +467,7 @@ where
     }
 
     fn generate_posters_and_commands_from_series_infos(
-        range: &RangeInclusive<usize>,
+        range: &Range<usize>,
         series_infos: Vec<&'a SeriesMainInformation>,
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (

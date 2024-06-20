@@ -1,7 +1,7 @@
 use std::sync::mpsc;
 
 use iced::widget::scrollable::{RelativeOffset, Viewport};
-use iced::widget::{column, container, row, scrollable, text};
+use iced::widget::{column, container, row, scrollable};
 use iced::{Command, Element, Length, Renderer};
 use iced_aw::Wrap;
 
@@ -12,6 +12,7 @@ use series_banner::{IndexedMessage, Message as SeriesBannerMessage, SeriesBanner
 
 use mini_widgets::*;
 
+use super::tab_searching::{unavailable_posters, Message as SearcherMessage, Searchable, Searcher};
 use super::Tab;
 
 mod mini_widgets;
@@ -21,6 +22,7 @@ pub enum Message {
     SeriesInfosAndTimeReceived(Vec<(SeriesMainInformation, Option<u32>)>),
     SeriesBanner(IndexedMessage<usize, SeriesBannerMessage>),
     PageScrolled(Viewport),
+    Searcher(SearcherMessage),
 }
 
 pub struct StatisticsTab<'a> {
@@ -28,6 +30,9 @@ pub struct StatisticsTab<'a> {
     series_banners: Vec<SeriesBanner<'a>>,
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
     scrollable_offset: RelativeOffset,
+    /// A collection of matched series id after a fuzzy search
+    matched_id_collection: Option<Vec<u32>>,
+    searcher: Searcher,
 }
 
 impl<'a> StatisticsTab<'a> {
@@ -41,6 +46,8 @@ impl<'a> StatisticsTab<'a> {
                 series_banners: vec![],
                 series_page_sender,
                 scrollable_offset: scrollable_offset.unwrap_or(RelativeOffset::START),
+                matched_id_collection: None,
+                searcher: Searcher::new("Search Statistics".to_owned()),
             },
             Command::perform(
                 get_series_with_runtime(),
@@ -52,7 +59,8 @@ impl<'a> StatisticsTab<'a> {
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::SeriesInfosAndTimeReceived(mut series_infos_and_time) => {
-                self.series_infos_and_time = series_infos_and_time.clone();
+                self.series_infos_and_time
+                    .clone_from(&series_infos_and_time);
 
                 series_infos_and_time.sort_by(|(_, average_minutes_a), (_, average_minutes_b)| {
                     average_minutes_b.cmp(average_minutes_a)
@@ -81,24 +89,50 @@ impl<'a> StatisticsTab<'a> {
                 self.scrollable_offset = view_port.relative_offset();
                 Command::none()
             }
+            Message::Searcher(message) => {
+                self.searcher.update(message);
+                let current_search_term = self.searcher.current_search_term().to_owned();
+                self.update_matches(&current_search_term);
+                Command::none()
+            }
         }
     }
     pub fn view(&self) -> Element<Message, Renderer> {
         let series_list: Element<'_, Message, Renderer> = if self.series_banners.is_empty() {
-            text("Your watched series will appear here").into()
+            Self::empty_statistics_posters()
         } else {
-            Wrap::with_elements(
-                self.series_banners
-                    .iter()
-                    .map(|banner| banner.view().map(Message::SeriesBanner))
-                    .collect(),
-            )
-            .spacing(5.0)
-            .line_spacing(5.0)
-            .into()
-        };
+            let series_list: Vec<Element<'_, Message, Renderer>> = self
+                .series_banners
+                .iter()
+                .filter(|banner| {
+                    if let Some(matched_id_collection) = &self.matched_id_collection {
+                        self.is_matched_id(matched_id_collection, banner.get_series_info().id)
+                    } else {
+                        true
+                    }
+                })
+                .map(|banner| banner.view().map(Message::SeriesBanner))
+                .collect();
 
-        let series_list = container(series_list).width(Length::Fill).center_x();
+            if series_list.is_empty() {
+                Self::no_search_matches()
+            } else {
+                let series_list = Wrap::with_elements(series_list)
+                    .spacing(5.0)
+                    .line_spacing(5.0);
+
+                scrollable(
+                    container(series_list)
+                        .padding(10)
+                        .width(Length::Fill)
+                        .center_x(),
+                )
+                .id(Self::scrollable_id())
+                .on_scroll(Message::PageScrolled)
+                .direction(styles::scrollable_styles::vertical_direction())
+                .into()
+            }
+        };
 
         let series_infos: Vec<&SeriesMainInformation> = self
             .series_infos_and_time
@@ -106,7 +140,9 @@ impl<'a> StatisticsTab<'a> {
             .map(|(series_info, _)| series_info)
             .collect();
 
-        let content = column![
+        let searcher = self.searcher.view().map(Message::Searcher);
+
+        column![
             row![
                 watch_count(),
                 genre_stats(series_infos),
@@ -114,20 +150,26 @@ impl<'a> StatisticsTab<'a> {
             ]
             .height(200)
             .spacing(10),
+            searcher,
             series_list
         ]
         .spacing(10)
-        .padding(10);
-
-        container(
-            scrollable(content)
-                .id(Self::scrollable_id())
-                .on_scroll(Message::PageScrolled)
-                .direction(styles::scrollable_styles::vertical_direction()),
-        )
-        .width(Length::Fill)
-        .height(Length::Fill)
+        .padding(10)
         .into()
+    }
+
+    fn empty_statistics_posters() -> Element<'static, Message, Renderer> {
+        unavailable_posters("Your watched series will appear here")
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
+    }
+
+    fn no_search_matches() -> Element<'static, Message, Renderer> {
+        unavailable_posters("No matches found!")
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
     }
 }
 
@@ -164,5 +206,18 @@ impl<'a> Tab for StatisticsTab<'a> {
 
     fn get_scrollable_offset(&self) -> scrollable::RelativeOffset {
         self.scrollable_offset
+    }
+}
+
+impl<'a> Searchable for StatisticsTab<'a> {
+    fn get_series_information_collection(&self) -> Vec<&SeriesMainInformation> {
+        self.series_banners
+            .iter()
+            .map(|banner| banner.get_series_info())
+            .collect()
+    }
+
+    fn matches_id_collection(&mut self) -> &mut Option<Vec<u32>> {
+        &mut self.matched_id_collection
     }
 }

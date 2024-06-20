@@ -56,7 +56,7 @@ pub mod episode_widget {
 
             let command = if let Some(image) = episode_image {
                 Command::perform(
-                    caching::load_image(image.medium_image_url, caching::ImageType::Medium),
+                    caching::load_image(image.medium_image_url, caching::ImageResolution::Medium),
                     Message::ImageLoaded,
                 )
                 .map(move |message| IndexedMessage::new(index, message))
@@ -182,7 +182,7 @@ pub mod episode_widget {
     }
 
     fn date_time_widget(episode_information: &EpisodeInfo) -> Element<'_, Message, Renderer> {
-        if let Ok(release_time) = episode_information.episode_release_time() {
+        if let Ok(release_time) = episode_information.release_time() {
             let prefix = match release_time.is_future() {
                 true => "Airing on",
                 false => "Aired on",
@@ -321,8 +321,11 @@ pub mod series_poster {
             if let Some(image) = image {
                 Command::perform(
                     async move {
-                        caching::load_image(image.medium_image_url, caching::ImageType::Medium)
-                            .await
+                        caching::load_image(
+                            image.medium_image_url,
+                            caching::ImageResolution::Medium,
+                        )
+                        .await
                     },
                     GenericPosterMessage::ImageLoaded,
                 )
@@ -369,6 +372,10 @@ pub mod series_poster {
                     .map(Message::Poster)
                     .map(move |message| IndexedMessage::new(index, message)),
             )
+        }
+
+        pub fn get_series_info(&self) -> &SeriesMainInformation {
+            self.poster.get_series_info()
         }
 
         pub fn update(

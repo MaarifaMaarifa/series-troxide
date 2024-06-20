@@ -3,7 +3,6 @@ use bytes::Bytes;
 use super::Message;
 use crate::core::api::tv_maze::episodes_information::Episode;
 use crate::core::api::tv_maze::series_information::{SeriesMainInformation, ShowStatus};
-use crate::core::caching::episode_list::EpisodeReleaseTime;
 use crate::core::database;
 use crate::gui::assets::icons::{
     CLOCK_FILL, PATCH_PLUS, PATCH_PLUS_FILL, STAR, STAR_FILL, STAR_HALF,
@@ -22,7 +21,7 @@ use iced_aw::Grid;
 pub fn series_metadata<'a>(
     series_information: &'a SeriesMainInformation,
     image_bytes: Option<Bytes>,
-    next_episode_release_time: Option<(&'a Episode, EpisodeReleaseTime)>,
+    next_episode_to_air: Option<&'a Episode>,
 ) -> Element<'a, Message, Renderer> {
     let mut main_info = row!().padding(5).spacing(10);
 
@@ -59,7 +58,7 @@ pub fn series_metadata<'a>(
         tracking_button(series_information.id)
     ];
 
-    let next_episode_widget = next_episode_release_time_widget(next_episode_release_time);
+    let next_episode_widget = next_episode_to_air_widget(next_episode_to_air);
 
     let rating_and_release_widget = row![
         rating_widget,
@@ -337,10 +336,12 @@ pub fn webchannel_widget(
     };
 }
 
-pub fn next_episode_release_time_widget(
-    next_episode_release_time: Option<(&Episode, EpisodeReleaseTime)>,
+pub fn next_episode_to_air_widget(
+    next_episode_to_air: Option<&Episode>,
 ) -> Element<'_, Message, Renderer> {
-    if let Some((episode, release_time)) = next_episode_release_time {
+    if let Some((episode, Some(release_time))) =
+        next_episode_to_air.map(|episode| (episode, episode.release_time().ok()))
+    {
         let season = episode.season;
         let episode = episode.number.expect("Could not get episode number");
 
@@ -353,7 +354,7 @@ pub fn next_episode_release_time_widget(
         let text = text(format!(
             "{} in {}",
             next_episode,
-            helpers::time::SaneTime::new(
+            helpers::time::NaiveTime::new(
                 release_time.get_remaining_release_duration().num_minutes() as u32
             )
         ))

@@ -3,7 +3,7 @@ use iced::widget::{button, column, container, horizontal_space, row, svg, text, 
 use iced::{Command, Element, Length, Renderer};
 use iced_aw::{Spinner, Wrap};
 
-use crate::core::{api::tv_maze::show_cast::Cast, caching};
+use crate::core::{api::tv_maze::people::show_cast::Cast, caching};
 use crate::gui::assets::icons::{CHEVRON_DOWN, CHEVRON_UP};
 use crate::gui::styles;
 
@@ -36,7 +36,7 @@ impl CastWidget {
             is_expanded: false,
         };
 
-        let cast_command = Command::perform(caching::show_cast::get_show_cast(series_id), |cast| {
+        let cast_command = Command::perform(caching::people::get_show_cast(series_id), |cast| {
             Message::CastReceived(cast.expect("Failed to get show cast"))
         });
 
@@ -71,19 +71,20 @@ impl CastWidget {
         }
     }
 
-    pub fn view(&self) -> Element<'_, Message, Renderer> {
+    pub fn view(&self) -> Option<Element<'_, Message, Renderer>> {
         match self.load_state {
             LoadState::Loading => {
-                return container(Spinner::new())
+                let spinner = container(Spinner::new())
                     .center_x()
                     .center_y()
                     .height(100)
                     .width(Length::Fill)
-                    .into()
+                    .into();
+                Some(spinner)
             }
             LoadState::Loaded => {
                 if self.casts.is_empty() {
-                    Space::new(0, 0).into()
+                    None
                 } else {
                     let cast_posters: Vec<_> = self
                         .casts
@@ -93,16 +94,15 @@ impl CastWidget {
                         .map(|(_, poster)| poster.view().map(Message::Cast))
                         .collect();
 
-                    column![
-                        text("Cast").size(21),
+                    let content = column![
                         Wrap::with_elements(cast_posters)
                             .padding(5.0)
                             .line_spacing(10.0)
                             .spacing(10.0),
                         self.expansion_widget(),
                     ]
-                    .padding(5)
-                    .into()
+                    .into();
+                    Some(content)
                 }
             }
         }
@@ -164,7 +164,10 @@ mod cast_poster {
     pub use crate::gui::message::IndexedMessage;
     use crate::{
         core::{
-            api::tv_maze::{show_cast::Cast, Image},
+            api::tv_maze::{
+                people::show_cast::{AgeError, Cast},
+                Image,
+            },
             caching,
         },
         gui::{assets::icons::ARROW_REPEAT, helpers, styles},
@@ -281,26 +284,43 @@ mod cast_poster {
                 text(format!("as {}", &self.cast.character.name)).size(11)
             ]);
 
-            // A little bit of space between cast name and other informations
+            // A little bit of space between cast name and other information
             cast_info = cast_info.push(horizontal_space(20));
 
             if let Some(gender) = self.cast.person.gender.as_ref() {
                 cast_info = cast_info.push(cast_info_field("Gender: ", gender));
             }
 
-            if self.cast.person.deathday.is_none() {
-                if let Ok(duration_since_birth) = self.cast.duration_since_birth() {
-                    if let Some(age) =
-                        helpers::time::SaneTime::new(duration_since_birth.num_minutes() as u32)
-                            .get_time_plurized()
-                            .last()
+            match self.cast.person.age_duration_before_death() {
+                Ok(age_duration_before_death) => {
+                    if let Some(age) = helpers::time::NaiveTime::new(
+                        age_duration_before_death.num_minutes() as u32,
+                    )
+                    .largest_part()
                     {
-                        cast_info = cast_info
-                            .push(cast_info_field("Age: ", format!("{} {}", age.1, age.0)));
+                        cast_info = cast_info.push(cast_info_field(
+                            "Lived to: ",
+                            format!("{} {}", age.0, age.1),
+                        ));
                     } else {
-                        cast_info = cast_info.push(text("Just born"));
+                        cast_info =
+                            cast_info.push(cast_info_field("Lived to: ", "Just passed away"));
                     }
                 }
+                Err(AgeError::DeathdateNotFound) => {
+                    if let Ok(duration_since_birth) = self.cast.person.duration_since_birth() {
+                        if let Some(age) =
+                            helpers::time::NaiveTime::new(duration_since_birth.num_minutes() as u32)
+                                .largest_part()
+                        {
+                            cast_info = cast_info
+                                .push(cast_info_field("Age: ", format!("{} {}", age.0, age.1)));
+                        } else {
+                            cast_info = cast_info.push(cast_info_field("Age: ", "Just born!"));
+                        }
+                    }
+                }
+                Err(_) => {}
             }
 
             if let Some(birthday) = self.cast.person.birthday.as_ref() {
@@ -347,7 +367,7 @@ mod cast_poster {
         fn load_person_image(image: Option<Image>) -> Command<Message> {
             if let Some(image) = image {
                 Command::perform(
-                    caching::load_image(image.medium_image_url, caching::ImageType::Medium),
+                    caching::load_image(image.medium_image_url, caching::ImageResolution::Medium),
                     Message::PersonImageLoaded,
                 )
             } else {
@@ -358,7 +378,7 @@ mod cast_poster {
         fn load_character_image(image: Option<Image>) -> Command<Message> {
             if let Some(image) = image {
                 Command::perform(
-                    caching::load_image(image.medium_image_url, caching::ImageType::Medium),
+                    caching::load_image(image.medium_image_url, caching::ImageResolution::Medium),
                     Message::CharacterImageLoaded,
                 )
             } else {

@@ -56,7 +56,15 @@ impl<'a> Application for TroxideGui<'a> {
     }
 
     fn title(&self) -> String {
-        "Series Troxide".to_string()
+        let mut program_title = String::from("Series Troxide - ");
+
+        if let Some(series_page_name) = self.series_page_controller.get_series_page_name() {
+            program_title.push_str(series_page_name)
+        } else {
+            program_title.push_str(&self.active_tab.to_string())
+        }
+
+        program_title
     }
 
     fn theme(&self) -> iced::Theme {
@@ -74,6 +82,17 @@ impl<'a> Application for TroxideGui<'a> {
             .get_custom_theme(),
         );
         iced::Theme::Custom(custom_theme)
+    }
+
+    fn scale_factor(&self) -> f64 {
+        let scale = SETTINGS
+            .read()
+            .unwrap()
+            .get_current_settings()
+            .appearance
+            .scale
+            .to_owned();
+        Into::<f64>::into(scale) / 100.0
     }
 
     fn subscription(&self) -> iced::Subscription<Message> {

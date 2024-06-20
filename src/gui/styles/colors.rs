@@ -16,3 +16,7 @@ pub fn purple() -> Color {
 pub fn green() -> Color {
     color!(0x008000)
 }
+
+pub fn gray() -> Color {
+    color!(0x282828)
+}

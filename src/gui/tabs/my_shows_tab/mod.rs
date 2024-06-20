@@ -11,6 +11,7 @@ use iced::{Command, Element, Length, Renderer};
 use my_shows_widget::{Message as MyShowsMessage, MyShows};
 use upcoming_releases_widget::{Message as UpcomingReleasesMessage, UpcomingReleases};
 
+use super::tab_searching::{Message as SearcherMessage, Searchable, Searcher};
 use super::Tab;
 
 mod my_shows_widget;
@@ -23,6 +24,7 @@ pub enum Message {
     Upcoming(UpcomingReleasesMessage),
     Untracked(MyShowsMessage),
     PageScrolled(Viewport),
+    Searcher(SearcherMessage),
 }
 
 pub struct MyShowsTab<'a> {
@@ -31,6 +33,7 @@ pub struct MyShowsTab<'a> {
     ended_releases: MyShows<'a>,
     untracked_releases: MyShows<'a>,
     scrollable_offset: RelativeOffset,
+    searcher: Searcher,
 }
 
 impl<'a> MyShowsTab<'a> {
@@ -54,6 +57,7 @@ impl<'a> MyShowsTab<'a> {
                 waiting_releases,
                 upcoming_releases,
                 scrollable_offset: scrollable_offset.unwrap_or(RelativeOffset::START),
+                searcher: Searcher::new("Search My Shows".to_owned()),
             },
             Command::batch([
                 untracked_releases_commands.map(Message::Untracked),
@@ -84,6 +88,17 @@ impl<'a> MyShowsTab<'a> {
                 .map(Message::Untracked),
             Message::PageScrolled(view_port) => {
                 self.scrollable_offset = view_port.relative_offset();
+                Command::none()
+            }
+            Message::Searcher(message) => {
+                self.searcher.update(message);
+                let current_search_term = self.searcher.current_search_term().to_owned();
+
+                self.waiting_releases.update_matches(&current_search_term);
+                self.upcoming_releases.update_matches(&current_search_term);
+                self.ended_releases.update_matches(&current_search_term);
+                self.untracked_releases.update_matches(&current_search_term);
+
                 Command::none()
             }
         }
@@ -117,7 +132,9 @@ impl<'a> MyShowsTab<'a> {
         .spacing(5)
         .into();
 
-        scrollable(
+        let searcher = self.searcher.view().map(Message::Searcher);
+
+        let content = scrollable(
             column![
                 upcoming_releases,
                 waiting_releases,
@@ -131,8 +148,9 @@ impl<'a> MyShowsTab<'a> {
         )
         .direction(styles::scrollable_styles::vertical_direction())
         .id(Self::scrollable_id())
-        .on_scroll(Message::PageScrolled)
-        .into()
+        .on_scroll(Message::PageScrolled);
+
+        column![searcher, content].spacing(10).padding(5).into()
     }
 }
 

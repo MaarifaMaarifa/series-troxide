@@ -1,15 +1,12 @@
-use std::io::Write;
-
-use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use tracing::error;
 
 pub mod episodes_information;
+pub mod image;
+pub mod people;
 pub mod seasons_list;
 pub mod series_information;
 pub mod series_searching;
-pub mod show_cast;
 pub mod show_images;
 pub mod show_lookup;
 pub mod tv_schedule;
@@ -50,67 +47,6 @@ pub struct Image {
     pub medium_image_url: String,
 }
 
-pub enum ImageType {
-    Original(OriginalType),
-    Medium,
-}
-
-pub enum OriginalType {
-    Poster,
-    Background,
-}
-
-/// Loads the image from the provided url
-///
-/// Since Original images from TvMaze may have extremely high resultion up to 4k which can cause `wgpu` to crash,
-/// this function will thumbnail the original image to the size that is good enough to be displayed in the GUI.
-pub async fn load_image(image_url: String, image_type: ImageType) -> Option<Bytes> {
-    loop {
-        match reqwest::get(&image_url).await {
-            Ok(response) => {
-                if let Ok(bytes) = response.bytes().await {
-                    break Some(if let ImageType::Original(original_type) = image_type {
-                        let img = image::load_from_memory(&bytes)
-                            .map_err(|err| error!("failed to load image from the api: {}", err))
-                            .ok()?;
-
-                        let img = match original_type {
-                            OriginalType::Poster => img.thumbnail(480, 853),
-                            OriginalType::Background => img.thumbnail(1280, 720),
-                        };
-
-                        let mut writer = std::io::BufWriter::new(vec![]);
-
-                        let mut jpeg_encoder =
-                            image::codecs::jpeg::JpegEncoder::new_with_quality(&mut writer, 100);
-
-                        jpeg_encoder
-                            .encode_image(&img)
-                            .map_err(|err| error!("failed to encode image: {}", err))
-                            .ok()?;
-
-                        writer
-                            .flush()
-                            .map_err(|err| error!("failed to flush image bytes: {}", err))
-                            .ok()?;
-
-                        bytes::Bytes::copy_from_slice(writer.get_ref())
-                    } else {
-                        bytes
-                    });
-                }
-            }
-            Err(ref err) => {
-                if err.is_request() {
-                    random_async_sleep().await;
-                } else {
-                    break None;
-                }
-            }
-        }
-    }
-}
-
 /// T
 fn try_bad_json(json_string: &str) -> Option<(String, String)> {
     if let Ok(bad_response) = serde_json::from_str::<BadResponse>(json_string) {
@@ -135,7 +71,7 @@ pub fn deserialize_json<'a, T: serde::Deserialize<'a>>(
             .lines()
             .skip(line_number)
             .take(1)
-            .for_each(|line| errored_line = line.to_owned());
+            .for_each(|line| line.clone_into(&mut errored_line));
         ApiError::Deserialization(errored_line, err)
     })
 }

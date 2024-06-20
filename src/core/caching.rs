@@ -15,6 +15,7 @@
 //! - `main-info`. The main series information.
 //! - `episode-list`. The list of all episode of the series.
 //! - `show-cast`. The list of top cast of the series.
+//! - `show-crew`. The list of top crew of the series.
 //! - `image-list`. The list of all images of the series i.e posters, banners, backgrounds etc.
 //!
 //! ## Images cache directory
@@ -29,8 +30,8 @@ use bytes::Bytes;
 use std::io::{self, ErrorKind};
 use std::path;
 
+pub use super::api::tv_maze::image::{ImageKind, ImageResolution};
 use super::api::tv_maze::{series_information::SeriesMainInformation, ApiError};
-pub use super::api::tv_maze::{ImageType, OriginalType};
 use super::paths;
 use crate::core::api::tv_maze::{self, deserialize_json};
 use lazy_static::lazy_static;
@@ -39,10 +40,10 @@ use tracing::{error, info};
 
 pub mod cache_updating;
 pub mod episode_list;
+pub mod people;
 pub mod series_info_and_episode_list;
 pub mod series_information;
 pub mod series_list;
-pub mod show_cast;
 pub mod show_images;
 pub mod tv_schedule;
 
@@ -51,6 +52,7 @@ const IMAGES_CACHE_DIRECTORY: &str = "images-cache";
 const EPISODE_LIST_FILENAME: &str = "episode-list";
 const SERIES_MAIN_INFORMATION_FILENAME: &str = "main-info";
 const SERIES_CAST_FILENAME: &str = "show-cast";
+const SERIES_CREW_FILENAME: &str = "show-crew";
 const SERIES_IMAGE_LIST_FILENAME: &str = "image-list";
 
 lazy_static! {
@@ -66,6 +68,7 @@ pub enum CacheFilePath {
     SeriesMainInformation(u32),
     SeriesEpisodeList(u32),
     SeriesShowCast(u32),
+    SeriesShowCrew(u32),
     SeriesImageList(u32),
 }
 
@@ -119,6 +122,11 @@ impl Cacher {
                 cache_folder.push(SERIES_CAST_FILENAME);
                 cache_folder
             }
+            CacheFilePath::SeriesShowCrew(series_id) => {
+                let mut cache_folder = self.get_series_cache_folder_path(series_id);
+                cache_folder.push(SERIES_CREW_FILENAME);
+                cache_folder
+            }
             CacheFilePath::SeriesImageList(series_id) => {
                 let mut cache_folder = self.get_series_cache_folder_path(series_id);
                 cache_folder.push(SERIES_IMAGE_LIST_FILENAME);
@@ -136,7 +144,7 @@ impl Cacher {
 }
 
 /// Loads the image from the provided url
-pub async fn load_image(image_url: String, image_type: ImageType) -> Option<Bytes> {
+pub async fn load_image(image_url: String, image_type: ImageResolution) -> Option<Bytes> {
     // Hashing the image url as a file name as the forward slashes in web urls
     // mimic paths
     use sha2::{Digest, Sha256};
@@ -153,7 +161,7 @@ pub async fn load_image(image_url: String, image_type: ImageType) -> Option<Byte
         Err(err) => {
             if err.kind() == ErrorKind::NotFound {
                 info!("falling back online for image with link {}", image_url);
-                if let Some(image_bytes) = tv_maze::load_image(image_url, image_type).await {
+                if let Some(image_bytes) = tv_maze::image::load_image(image_url, image_type).await {
                     write_cache(&image_bytes, &image_path).await;
                     Some(image_bytes)
                 } else {

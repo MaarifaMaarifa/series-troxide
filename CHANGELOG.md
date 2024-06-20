@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2024-02-21
+
+### Fixed
+- Fix panic when no series found in a Discover page section.
+
+## [0.5.0] - 2024-01-22
+
+### Added
+- Custom program data paths. [#76](https://github.com/MaarifaMaarifa/series-troxide/pull/76)
+- Dynamic program title. [#115](https://github.com/MaarifaMaarifa/series-troxide/pull/115)
+- Cast age before death information. [#116](https://github.com/MaarifaMaarifa/series-troxide/pull/116)
+- Crew information in `Series Page`. [#139](https://github.com/MaarifaMaarifa/series-troxide/pull/139)
+- Searching functionality in `Watchlist`, `My Shows` and `Statistics` Tabs. [#129](https://github.com/MaarifaMaarifa/series-troxide/pull/129)
+- Implement notification when update available. [#148](https://github.com/MaarifaMaarifa/series-troxide/pull/148)
+
+### Changed
+- Prevent image resolution from being lowered when already low. [#93](https://github.com/MaarifaMaarifa/series-troxide/pull/93)
+- Watchlist episode info improvement. [#82](https://github.com/MaarifaMaarifa/series-troxide/pull/82)
+- Search results improvement. [#79](https://github.com/MaarifaMaarifa/series-troxide/pull/79)
+
+### Fixed
+- Center `Discover Tab` loading spinner. [#127](https://github.com/MaarifaMaarifa/series-troxide/pull/127)
+
+## [0.4.3] - 2023-12-09
+
+### Fixed
+- Unable to import trakt shows with no external ids (i.e imdb, tvdb)
+
+## [0.4.2] - 2023-12-09
+
+### Fixed
+- Unable to import trakt shows with no premiere year.
+
 ## [0.4.1] - 2023-10-27
 
 ### Fixed

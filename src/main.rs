@@ -7,9 +7,9 @@ fn main() -> anyhow::Result<()> {
     let subscriber = tracing_subscriber::FmtSubscriber::new();
     tracing::subscriber::set_global_default(subscriber)?;
 
-    tracing::info!("starting '{}'", env!("CARGO_PKG_NAME"));
-
     core::cli::cli_handler::handle_cli()?;
+
+    tracing::info!("starting '{}'", env!("CARGO_PKG_NAME"));
 
     std::thread::spawn(|| {
         if let Err(err) = tokio::runtime::Runtime::new()
@@ -22,9 +22,7 @@ fn main() -> anyhow::Result<()> {
 
     std::thread::spawn(|| core::notifications::TroxideNotify::new()?.run());
 
-    let icon =
-        window::icon::from_file_data(gui::assets::logos::IMG_LOGO, Some(image::ImageFormat::Png))
-            .ok();
+    let icon = window::icon::from_file_data(gui::assets::logos::IMG_LOGO, None).ok();
 
     gui::TroxideGui::run(Settings {
         window: iced::window::Settings {
