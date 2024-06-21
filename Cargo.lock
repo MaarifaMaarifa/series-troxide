@@ -209,6 +209,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "ashpd"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd884d7c72877a94102c3715f3b1cd09ff4fac28221add3e57cfbe25c236d093"
+dependencies = [
+ "async-fs",
+ "async-net",
+ "enumflags2",
+ "futures-channel",
+ "futures-util",
+ "rand",
+ "serde",
+ "serde_repr",
+ "url",
+ "zbus",
+]
+
+[[package]]
 name = "async-broadcast"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -287,6 +305,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "async-net"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b948000fad4873c1c9339d60f2623323a0cfd3816e5181033c6a5cb68b2accf7"
+dependencies = [
+ "async-io",
+ "blocking",
+ "futures-lite",
+]
+
+[[package]]
 name = "async-process"
 version = "2.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -350,18 +379,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.66",
-]
-
-[[package]]
-name = "atk-sys"
-version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "251e0b7d90e33e0ba930891a505a9a35ece37b2dd37a14f3ffc306c13b980009"
-dependencies = [
- "glib-sys",
- "gobject-sys",
- "libc",
- "system-deps",
 ]
 
 [[package]]
@@ -592,16 +609,6 @@ name = "bytes"
 version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "514de17de45fdb8dc022b1a7975556c53c86f9f0aa5f534b98977b171857c2c9"
-
-[[package]]
-name = "cairo-sys-rs"
-version = "0.18.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "685c9fa8e590b8b3d678873528d83411db17242a73fccaed827770ea0fedda51"
-dependencies = [
- "libc",
- "system-deps",
-]
 
 [[package]]
 name = "calloop"
@@ -1570,36 +1577,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gdk-pixbuf-sys"
-version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f9839ea644ed9c97a34d129ad56d38a25e6756f99f3a88e15cd39c20629caf7"
-dependencies = [
- "gio-sys",
- "glib-sys",
- "gobject-sys",
- "libc",
- "system-deps",
-]
-
-[[package]]
-name = "gdk-sys"
-version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31ff856cb3386dae1703a920f803abafcc580e9b5f711ca62ed1620c25b51ff2"
-dependencies = [
- "cairo-sys-rs",
- "gdk-pixbuf-sys",
- "gio-sys",
- "glib-sys",
- "gobject-sys",
- "libc",
- "pango-sys",
- "pkg-config",
- "system-deps",
-]
-
-[[package]]
 name = "generic-array"
 version = "0.14.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1657,19 +1634,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40ecd4077b5ae9fd2e9e169b102c6c330d0605168eb0e8bf79952b256dbefffd"
 
 [[package]]
-name = "gio-sys"
-version = "0.18.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37566df850baf5e4cb0dfb78af2e4b9898d817ed9263d1090a2df958c64737d2"
-dependencies = [
- "glib-sys",
- "gobject-sys",
- "libc",
- "system-deps",
- "winapi",
-]
-
-[[package]]
 name = "git2"
 version = "0.18.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1698,16 +1662,6 @@ name = "glam"
 version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "151665d9be52f9bb40fc7966565d39666f2d1e69233571b71b87791c7e0528b3"
-
-[[package]]
-name = "glib-sys"
-version = "0.18.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "063ce2eb6a8d0ea93d2bf8ba1957e78dbab6be1c2220dd3daca57d5a9d869898"
-dependencies = [
- "libc",
- "system-deps",
-]
 
 [[package]]
 name = "glow"
@@ -1740,17 +1694,6 @@ dependencies = [
  "etagere",
  "lru",
  "wgpu",
-]
-
-[[package]]
-name = "gobject-sys"
-version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0850127b514d1c4a4654ead6dedadb18198999985908e6ffe4436f53c785ce44"
-dependencies = [
- "glib-sys",
- "libc",
- "system-deps",
 ]
 
 [[package]]
@@ -1803,24 +1746,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6bf0b36e6f090b7e1d8a4b49c0cb81c1f8376f72198c65dd3ad9ff3556b8b78c"
 dependencies = [
  "bitflags 2.5.0",
-]
-
-[[package]]
-name = "gtk-sys"
-version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "771437bf1de2c1c0b496c11505bdf748e26066bbe942dfc8f614c9460f6d7722"
-dependencies = [
- "atk-sys",
- "cairo-sys-rs",
- "gdk-pixbuf-sys",
- "gdk-sys",
- "gio-sys",
- "glib-sys",
- "gobject-sys",
- "libc",
- "pango-sys",
- "system-deps",
 ]
 
 [[package]]
@@ -2130,7 +2055,7 @@ dependencies = [
  "log",
  "num-traits",
  "palette",
- "raw-window-handle 0.6.2",
+ "raw-window-handle",
  "smol_str",
  "thiserror",
  "web-time",
@@ -2168,7 +2093,7 @@ dependencies = [
  "log",
  "lyon_path",
  "once_cell",
- "raw-window-handle 0.6.2",
+ "raw-window-handle",
  "rustc-hash",
  "thiserror",
  "unicode-segmentation",
@@ -2196,7 +2121,7 @@ checksum = "a79f852c01cc6d61663c94379cb3974ac3ad315a28c504e847d573e094f46822"
 dependencies = [
  "iced_core",
  "iced_futures",
- "raw-window-handle 0.6.2",
+ "raw-window-handle",
  "thiserror",
 ]
 
@@ -2960,7 +2885,7 @@ dependencies = [
  "log",
  "ndk-sys",
  "num_enum",
- "raw-window-handle 0.6.2",
+ "raw-window-handle",
  "thiserror",
 ]
 
@@ -3432,18 +3357,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pango-sys"
-version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "436737e391a843e5933d6d9aa102cb126d501e815b83601365a948a518555dc5"
-dependencies = [
- "glib-sys",
- "gobject-sys",
- "libc",
- "system-deps",
-]
-
-[[package]]
 name = "parking"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3664,6 +3577,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "pollster"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "22686f4785f02a4fcc856d3b3bb19bf6c8160d103f7a99cc258bddd0251dc7f2"
+
+[[package]]
 name = "powerfmt"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3865,12 +3784,6 @@ dependencies = [
 
 [[package]]
 name = "raw-window-handle"
-version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f2ff9a1f06a88b01621b7ae906ef0211290d1c8a168a15542486a8f61c0833b9"
-
-[[package]]
-name = "raw-window-handle"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "20675572f6f24e9e76ef639bc5552774ed45f1c30e2951e1e99c59888861c539"
@@ -4026,21 +3939,21 @@ dependencies = [
 
 [[package]]
 name = "rfd"
-version = "0.13.0"
+version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c0d8ab342bcc5436e04d3a4c1e09e17d74958bfaddf8d5fad6f85607df0f994f"
+checksum = "25a73a7337fc24366edfca76ec521f51877b114e42dab584008209cca6719251"
 dependencies = [
+ "ashpd",
  "block",
  "dispatch",
- "glib-sys",
- "gobject-sys",
- "gtk-sys",
  "js-sys",
  "log",
  "objc",
  "objc-foundation",
  "objc_id",
- "raw-window-handle 0.5.2",
+ "pollster",
+ "raw-window-handle",
+ "urlencoding",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -4597,7 +4510,7 @@ dependencies = [
  "objc2-app-kit",
  "objc2-foundation",
  "objc2-quartz-core",
- "raw-window-handle 0.6.2",
+ "raw-window-handle",
  "redox_syscall 0.5.2",
  "rustix",
  "tiny-xlib",
@@ -5279,7 +5192,14 @@ dependencies = [
  "form_urlencoded",
  "idna",
  "percent-encoding",
+ "serde",
 ]
+
+[[package]]
+name = "urlencoding"
+version = "2.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "daf8dba3b7eb870caf1ddeed7bc9d2a049f3cfdfae7cb521b087cc33ae4c49da"
 
 [[package]]
 name = "usvg"
@@ -5662,7 +5582,7 @@ dependencies = [
  "naga",
  "parking_lot 0.12.3",
  "profiling",
- "raw-window-handle 0.6.2",
+ "raw-window-handle",
  "smallvec",
  "static_assertions",
  "wasm-bindgen",
@@ -5690,7 +5610,7 @@ dependencies = [
  "once_cell",
  "parking_lot 0.12.3",
  "profiling",
- "raw-window-handle 0.6.2",
+ "raw-window-handle",
  "rustc-hash",
  "smallvec",
  "thiserror",
@@ -5733,7 +5653,7 @@ dependencies = [
  "parking_lot 0.12.3",
  "profiling",
  "range-alloc",
- "raw-window-handle 0.6.2",
+ "raw-window-handle",
  "renderdoc-sys",
  "rustc-hash",
  "smallvec",
@@ -5802,7 +5722,7 @@ dependencies = [
  "clipboard_macos",
  "clipboard_wayland",
  "clipboard_x11",
- "raw-window-handle 0.6.2",
+ "raw-window-handle",
  "thiserror",
 ]
 
@@ -6119,7 +6039,7 @@ dependencies = [
  "once_cell",
  "orbclient",
  "percent-encoding",
- "raw-window-handle 0.6.2",
+ "raw-window-handle",
  "redox_syscall 0.3.5",
  "rustix",
  "sctk-adwaita",
@@ -6393,6 +6313,7 @@ dependencies = [
  "enumflags2",
  "serde",
  "static_assertions",
+ "url",
  "zvariant_derive",
 ]
 
