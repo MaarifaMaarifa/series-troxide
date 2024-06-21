@@ -280,7 +280,7 @@ mod watchlist_poster {
         button, column, container, horizontal_rule, image, mouse_area, progress_bar, row, text,
         Space,
     };
-    use iced::{Command, Element, Length};
+    use iced::{Alignment, Command, Element, Length};
 
     use crate::core::api::tv_maze::series_information::SeriesMainInformation;
     use crate::core::caching::episode_list::EpisodeList;
@@ -448,6 +448,7 @@ mod watchlist_poster {
                     watched_episodes as f32, self.total_series_episodes as f32
                 ))
             ]
+            .align_items(Alignment::Center)
             .spacing(5);
 
             metadata = metadata.push(progress_bar);
@@ -602,6 +603,7 @@ mod watchlist_summary {
                     total_episodes_watched as f32, self.total_episodes as f32
                 ))
             ]
+            .align_items(Alignment::Center)
             .spacing(5);
 
             let content = column![

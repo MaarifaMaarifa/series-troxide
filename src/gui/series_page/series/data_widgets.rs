@@ -358,10 +358,14 @@ pub fn next_episode_to_air_widget(next_episode_to_air: Option<&Episode>) -> Elem
         ))
         .size(14);
 
-        container(row![clock_icon, text].spacing(5))
-            .style(styles::container_styles::second_class_container_square_theme())
-            .padding(5)
-            .into()
+        container(
+            row![clock_icon, text]
+                .align_items(Alignment::Center)
+                .spacing(5),
+        )
+        .style(styles::container_styles::second_class_container_square_theme())
+        .padding(5)
+        .into()
     } else {
         Space::new(0, 0).into()
     }

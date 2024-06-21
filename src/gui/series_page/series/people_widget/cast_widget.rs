@@ -347,8 +347,10 @@ mod cast_poster {
         fn image_switch_button(&self) -> Element<'_, Message> {
             if self.cast.character.image.is_some() {
                 let image_switch_button_handle = svg::Handle::from_memory(ARROW_REPEAT);
-                let icon =
-                    svg(image_switch_button_handle).style(styles::svg_styles::colored_svg_theme());
+                let icon = svg(image_switch_button_handle)
+                    .style(styles::svg_styles::colored_svg_theme())
+                    .width(20)
+                    .height(20);
 
                 let mut button =
                     button(icon).style(styles::button_styles::transparent_button_theme());
