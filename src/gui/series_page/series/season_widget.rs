@@ -123,7 +123,7 @@ mod season {
     use std::rc::Rc;
 
     use iced::widget::{button, checkbox, column, container, progress_bar, row, svg, text, Column};
-    use iced::{Command, Element, Length};
+    use iced::{Alignment, Command, Element, Length};
     use iced_aw::Spinner;
 
     use crate::core::api::tv_maze::episodes_information::Episode as EpisodeInfo;
@@ -321,6 +321,7 @@ mod season {
                 episodes_progress,
                 expand_button,
             ]
+            .align_items(Alignment::Center)
             .spacing(5);
 
             let mut content = column!(content);
