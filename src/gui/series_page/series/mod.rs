@@ -13,9 +13,9 @@ use season_widget::{Message as SeasonsMessage, Seasons};
 use series_suggestion_widget::{Message as SeriesSuggestionMessage, SeriesSuggestion};
 
 use iced::widget::scrollable::{Id, RelativeOffset, Viewport};
-use iced::widget::vertical_space;
+use iced::widget::Space;
 use iced::widget::{column, scrollable};
-use iced::{Command, Element, Renderer};
+use iced::{Command, Element};
 
 mod data_widgets;
 mod people_widget;
@@ -164,7 +164,7 @@ impl<'a> Series<'a> {
         Command::none()
     }
 
-    pub fn view(&self) -> Element<Message, Renderer> {
+    pub fn view(&self) -> Element<'_, Message> {
         let background = background(
             self.series_background.clone(),
             self.series_image_blurred.clone(),
@@ -188,7 +188,7 @@ impl<'a> Series<'a> {
         let content = column![
             background,
             series_metadata,
-            vertical_space(10),
+            Space::with_height(10),
             seasons_widget,
             people_widget,
             series_suggestion_widget

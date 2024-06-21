@@ -1,5 +1,5 @@
 use iced::widget::{column, container, text, toggler};
-use iced::{Element, Length, Renderer};
+use iced::{Element, Length};
 use iced_aw::NumberInput;
 
 use crate::core::settings_config::SETTINGS;
@@ -35,7 +35,7 @@ impl Notifications {
             }
         }
     }
-    pub fn view(&self) -> Element<'_, Message, Renderer> {
+    pub fn view(&self) -> Element<'_, Message> {
         let notification_settings = SETTINGS
             .read()
             .unwrap()

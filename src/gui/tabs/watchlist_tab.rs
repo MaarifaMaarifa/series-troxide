@@ -2,7 +2,7 @@ use std::sync::mpsc;
 
 use iced::widget::scrollable::{RelativeOffset, Viewport};
 use iced::widget::{column, container, scrollable, Column, Space};
-use iced::{Command, Element, Length, Renderer};
+use iced::{Command, Element, Length};
 use iced_aw::Spinner;
 
 use super::tab_searching::{unavailable_posters, Message as SearcherMessage, Searchable, Searcher};
@@ -124,7 +124,7 @@ impl<'a> WatchlistTab<'a> {
             }
         }
     }
-    pub fn view(&self) -> Element<Message, Renderer> {
+    pub fn view(&self) -> Element<Message> {
         match self.load_state {
             LoadState::Loading => container(Spinner::new())
                 .width(Length::Fill)
@@ -142,7 +142,7 @@ impl<'a> WatchlistTab<'a> {
                         .map(|watchlist_summary| watchlist_summary.view())
                         .unwrap_or(Space::new(0, 0).into());
 
-                    let watchlist_items: Vec<Element<'_, Message, Renderer>> = self
+                    let watchlist_items: Vec<Element<'_, Message>> = self
                         .watchlist_posters
                         .iter()
                         .filter(|poster| {
@@ -187,14 +187,14 @@ impl<'a> WatchlistTab<'a> {
         }
     }
 
-    fn empty_watchlist_posters() -> Element<'static, Message, Renderer> {
+    fn empty_watchlist_posters() -> Element<'static, Message> {
         unavailable_posters("All Clear!")
             .width(Length::Fill)
             .height(Length::Fill)
             .into()
     }
 
-    fn no_search_matches() -> Element<'static, Message, Renderer> {
+    fn no_search_matches() -> Element<'static, Message> {
         unavailable_posters("No matches found!")
             .width(Length::Fill)
             .height(Length::Fill)
@@ -280,7 +280,7 @@ mod watchlist_poster {
         button, column, container, horizontal_rule, image, mouse_area, progress_bar, row, text,
         Space,
     };
-    use iced::{Command, Element, Length, Renderer};
+    use iced::{Command, Element, Length};
 
     use crate::core::api::tv_maze::series_information::SeriesMainInformation;
     use crate::core::caching::episode_list::EpisodeList;
@@ -413,7 +413,7 @@ mod watchlist_poster {
             }
         }
 
-        pub fn view(&self) -> Element<'_, IndexedMessage<usize, Message>, Renderer> {
+        pub fn view(&self) -> Element<'_, IndexedMessage<usize, Message>> {
             let mut content = row!().padding(2).spacing(5);
             if let Some(image_bytes) = self.poster.get_image() {
                 let image_handle = image::Handle::from_memory(image_bytes.clone());
@@ -498,13 +498,13 @@ mod watchlist_poster {
                 .style(styles::container_styles::first_class_container_rounded_theme())
                 .width(1000);
 
-            let element: Element<'_, Message, Renderer> = mouse_area(content)
+            let element: Element<'_, Message> = mouse_area(content)
                 .on_press(Message::SeriesPosterPressed)
                 .into();
             element.map(|message| IndexedMessage::new(self.index, message))
         }
 
-        fn show_episode_info_button(&self) -> Element<'static, Message, Renderer> {
+        fn show_episode_info_button(&self) -> Element<'static, Message> {
             let content = match self.show_episode_info {
                 true => "Hide Episode Info",
                 false => "Show Episode Info",
@@ -525,7 +525,7 @@ mod watchlist_summary {
 
     use super::Message;
     use iced::widget::{column, container, progress_bar, row, text};
-    use iced::{Alignment, Element, Renderer};
+    use iced::{Alignment, Element};
 
     pub struct WatchlistSummary {
         /// Vec<(series id, total_episodes, series runtime)>
@@ -541,7 +541,7 @@ mod watchlist_summary {
             }
         }
 
-        pub fn view(&self) -> Element<'static, Message, Renderer> {
+        pub fn view(&self) -> Element<'static, Message> {
             let total_shows_to_watch =
                 Self::summary_item("Total Series to Watch", self.series_ids.len().to_string());
 
@@ -623,7 +623,7 @@ mod watchlist_summary {
                 .into()
         }
 
-        fn summary_item(title: &'static str, info: String) -> Element<'static, Message, Renderer> {
+        fn summary_item(title: &'static str, info: String) -> Element<'static, Message> {
             column![
                 text(title),
                 text(info)

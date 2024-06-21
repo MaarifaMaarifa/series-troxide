@@ -1,7 +1,5 @@
-use iced::widget::{
-    button, column, container, horizontal_space, progress_bar, row, text, vertical_space, Space,
-};
-use iced::{Command, Element, Length, Renderer};
+use iced::widget::{button, column, container, horizontal_space, progress_bar, row, text, Space};
+use iced::{Command, Element};
 
 use crate::core::database::database_transfer::TransferData;
 use crate::core::database::DB;
@@ -138,8 +136,8 @@ impl Database {
         }
     }
 
-    pub fn view(&self) -> Element<'_, Message, Renderer> {
-        let import_progress: Element<'_, Message, Renderer> = if self.importing {
+    pub fn view(&self) -> Element<'_, Message> {
+        let import_progress: Element<'_, Message> = if self.importing {
             row![
                 text("caching the import").size(11),
                 progress_bar(
@@ -163,7 +161,7 @@ impl Database {
             text("Import Data"),
             row![
                 text("Import your series data into Series Troxide").size(11),
-                horizontal_space(Length::Fill),
+                horizontal_space(),
                 get_status_text(self.import_status.as_ref()),
                 {
                     let mut button = button("Import");
@@ -174,7 +172,7 @@ impl Database {
                 },
             ]
             .spacing(5),
-            vertical_space(5),
+            Space::with_height(5),
             import_progress,
         ];
 
@@ -182,7 +180,7 @@ impl Database {
             text("Export Data"),
             row![
                 text("Export your series data from Series Troxide").size(11),
-                horizontal_space(Length::Fill),
+                horizontal_space(),
                 get_status_text(self.export_status.as_ref()),
                 button("Export").on_press(Message::ExportDatabasePressed)
             ]
@@ -218,7 +216,7 @@ impl Database {
     }
 }
 
-fn get_status_text(status: Option<&Result<(), String>>) -> Element<'_, Message, Renderer> {
+fn get_status_text(status: Option<&Result<(), String>>) -> Element<'_, Message> {
     if let Some(res) = status {
         if let Err(err) = res {
             text(err)

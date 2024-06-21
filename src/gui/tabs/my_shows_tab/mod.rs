@@ -6,7 +6,7 @@ use crate::gui::styles;
 
 use iced::widget::scrollable::{RelativeOffset, Viewport};
 use iced::widget::{column, scrollable, text};
-use iced::{Command, Element, Length, Renderer};
+use iced::{Command, Element, Length};
 
 use my_shows_widget::{Message as MyShowsMessage, MyShows};
 use upcoming_releases_widget::{Message as UpcomingReleasesMessage, UpcomingReleases};
@@ -104,10 +104,10 @@ impl<'a> MyShowsTab<'a> {
         }
     }
 
-    pub fn view(&self) -> Element<Message, Renderer> {
+    pub fn view(&self) -> Element<Message> {
         let upcoming_releases = self.upcoming_releases.view().map(Message::Upcoming);
 
-        let waiting_releases: Element<'_, Message, Renderer> = column![
+        let waiting_releases: Element<'_, Message> = column![
             text("Waiting for release date")
                 .size(21)
                 .style(styles::text_styles::green_text_theme()),
@@ -116,7 +116,7 @@ impl<'a> MyShowsTab<'a> {
         .spacing(5)
         .into();
 
-        let ended_releases: Element<'_, Message, Renderer> = column![
+        let ended_releases: Element<'_, Message> = column![
             text("Ended")
                 .size(21)
                 .style(styles::text_styles::red_text_theme()),
@@ -125,7 +125,7 @@ impl<'a> MyShowsTab<'a> {
         .spacing(5)
         .into();
 
-        let untracked_releases: Element<'_, Message, Renderer> = column![
+        let untracked_releases: Element<'_, Message> = column![
             text("Untracked").size(21),
             self.untracked_releases.view().map(Message::Untracked)
         ]

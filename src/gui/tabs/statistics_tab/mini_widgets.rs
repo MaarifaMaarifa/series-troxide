@@ -1,6 +1,6 @@
-use iced::widget::{column, container, horizontal_space, row, scrollable, text, Row, Space};
-use iced::{Alignment, Element, Length, Renderer};
-use iced_aw::Grid;
+use iced::widget::{column, container, row, scrollable, text, Row, Space};
+use iced::{Alignment, Element, Length};
+use iced_aw::{Grid, GridRow};
 
 use crate::core::api::tv_maze::series_information::SeriesMainInformation;
 use crate::core::database;
@@ -8,7 +8,7 @@ use crate::gui::{helpers, styles};
 
 use super::Message;
 
-pub fn watch_count() -> Element<'static, Message, Renderer> {
+pub fn watch_count() -> Element<'static, Message> {
     let series_total_number = database::DB.get_total_series();
     let seasons_total_number = database::DB.get_total_seasons();
     let episodes_total_number = database::DB.get_total_episodes();
@@ -29,7 +29,7 @@ pub fn watch_count() -> Element<'static, Message, Renderer> {
             text("Series").size(11)
         ]
         .align_items(Alignment::Center),
-        horizontal_space(10),
+        Space::with_width(10),
         column![
             text(seasons_total_number)
                 .size(31)
@@ -61,7 +61,7 @@ pub fn watch_count() -> Element<'static, Message, Renderer> {
 
 pub fn time_count(
     series_infos_and_time: &[(SeriesMainInformation, Option<u32>)],
-) -> Element<'_, Message, Renderer> {
+) -> Element<'_, Message> {
     let total_average_minutes: u32 = series_infos_and_time
         .iter()
         .map(|(_, average_runtime)| average_runtime.unwrap_or(0))
@@ -77,7 +77,7 @@ pub fn time_count(
 
     let times = helpers::time::NaiveTime::new(total_average_minutes).as_parts();
 
-    let complete_time_count: Element<'_, Message, Renderer> = if times.is_empty() {
+    let complete_time_count: Element<'_, Message> = if times.is_empty() {
         Space::new(0, 0).into()
     } else {
         let time_values: Vec<_> = times
@@ -122,7 +122,7 @@ pub fn time_count(
         .into()
 }
 
-pub fn genre_stats(series_infos: Vec<&SeriesMainInformation>) -> Element<'_, Message, Renderer> {
+pub fn genre_stats(series_infos: Vec<&SeriesMainInformation>) -> Element<'_, Message> {
     use crate::core::api::tv_maze::series_information::Genre;
     use std::collections::HashMap;
 
@@ -145,14 +145,17 @@ pub fn genre_stats(series_infos: Vec<&SeriesMainInformation>) -> Element<'_, Mes
 
     genre_count.sort_unstable_by(|a, b| b.1.cmp(&a.1));
 
-    let mut content = Grid::with_columns(2);
+    let mut content = Grid::new();
 
-    genre_count.into_iter().for_each(|(genre, count)| {
-        content.insert(
-            text(format!("{}    ", genre)).style(styles::text_styles::accent_color_theme()),
+    for (genre, count) in genre_count.into_iter() {
+        content = content.push(
+            GridRow::new()
+                .push(
+                    text(format!("{}    ", genre)).style(styles::text_styles::accent_color_theme()),
+                )
+                .push(text(format!("{} series", count))),
         );
-        content.insert(text(format!("{} series", count)));
-    });
+    }
 
     let content = column![text("Genre Stats"), content]
         .align_items(Alignment::Center)
@@ -176,7 +179,7 @@ pub mod series_banner {
     use std::sync::mpsc;
 
     use iced::widget::{column, container, image, mouse_area, row, text, Row};
-    use iced::{Alignment, Command, Element, Length, Renderer};
+    use iced::{Alignment, Command, Element, Length};
 
     use crate::core::{api::tv_maze::series_information::SeriesMainInformation, database};
     pub use crate::gui::message::IndexedMessage;
@@ -226,7 +229,7 @@ pub mod series_banner {
             }
         }
 
-        pub fn view(&self) -> Element<'_, IndexedMessage<usize, Message>, Renderer> {
+        pub fn view(&self) -> Element<'_, IndexedMessage<usize, Message>> {
             let series_id = self.poster.get_series_info().id;
             let series = database::DB.get_series(series_id).unwrap();
 
@@ -243,24 +246,20 @@ pub mod series_banner {
             let seasons = series.get_total_seasons();
             let episodes = series.get_total_episodes();
 
-            let time_stats = Row::with_children(
-                times
-                    .into_iter()
-                    .map(|(time_value, time_text)| {
-                        column![
-                            text(time_value)
-                                .size(20)
-                                .style(styles::text_styles::accent_color_theme()),
-                            text(time_text).size(11)
-                        ]
-                        .align_items(Alignment::Center)
-                        .spacing(5)
-                        .into()
-                    })
-                    .collect(),
-            )
-            .align_items(Alignment::Center)
-            .spacing(5);
+            let time_stats =
+                Row::with_children(times.into_iter().map(|(time_value, time_text)| {
+                    column![
+                        text(time_value)
+                            .size(20)
+                            .style(styles::text_styles::accent_color_theme()),
+                        text(time_text).size(11)
+                    ]
+                    .align_items(Alignment::Center)
+                    .spacing(5)
+                    .into()
+                }))
+                .align_items(Alignment::Center)
+                .spacing(5);
 
             let count_stats = row![
                 column![
@@ -285,16 +284,15 @@ pub mod series_banner {
                 .align_items(Alignment::Center)
                 .spacing(5);
 
-            let banner: Element<'_, Message, Renderer> =
-                if let Some(image_bytes) = self.poster.get_image() {
-                    let image_handle = image::Handle::from_memory(image_bytes.clone());
-                    image(image_handle).height(100).into()
-                } else {
-                    helpers::empty_image::empty_image()
-                        .width(71)
-                        .height(100)
-                        .into()
-                };
+            let banner: Element<'_, Message> = if let Some(image_bytes) = self.poster.get_image() {
+                let image_handle = image::Handle::from_memory(image_bytes.clone());
+                image(image_handle).height(100).into()
+            } else {
+                helpers::empty_image::empty_image()
+                    .width(71)
+                    .height(100)
+                    .into()
+            };
 
             let content = column![text(series_name), metadata]
                 .spacing(5)
@@ -305,7 +303,7 @@ pub mod series_banner {
                 .padding(5)
                 .width(Length::Fill);
 
-            let element: Element<'_, Message, Renderer> = mouse_area(
+            let element: Element<'_, Message> = mouse_area(
                 container(content)
                     .width(300)
                     .style(styles::container_styles::first_class_container_rounded_theme())

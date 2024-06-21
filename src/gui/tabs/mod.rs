@@ -6,7 +6,7 @@ use statistics_tab::{Message as StatisticsMessage, StatisticsTab};
 use watchlist_tab::{Message as WatchlistMessage, WatchlistTab};
 
 use iced::widget::scrollable::{self, Id, RelativeOffset};
-use iced::{Command, Element, Renderer};
+use iced::{Command, Element};
 use std::sync::mpsc;
 
 pub mod discover_tab;
@@ -317,7 +317,7 @@ impl<'a> TabsController<'a> {
         ]
     }
 
-    pub fn view(&self) -> Element<'_, Message, Renderer> {
+    pub fn view(&self) -> Element<'_, Message> {
         match self.current_tab {
             TabId::Discover => self.discover_tab.view().map(Message::Discover),
             TabId::Settings => self.settings_tab.view().map(Message::Settings),

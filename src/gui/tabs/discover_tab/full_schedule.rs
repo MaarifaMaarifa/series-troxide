@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use std::ops::Range;
 use std::sync::mpsc;
 
-use iced::widget::{column, container, text, vertical_space, Column};
-use iced::{Command, Element, Length, Renderer};
+use iced::widget::{column, container, text, Column, Space};
+use iced::{Command, Element, Length};
 use iced_aw::Wrap;
 
 use crate::core::api::tv_maze::series_information::{
@@ -268,43 +268,29 @@ impl<'a> FullSchedulePosters<'a> {
         }
     }
 
-    pub fn view(&self) -> Option<Element<'_, Message, Renderer>> {
+    pub fn view(&self) -> Option<Element<'_, Message>> {
         if let LoadState::Loading = self.load_state {
             return None;
         }
 
-        let network_sections = Column::with_children(
-            NETWORK_SECTIONS
-                .into_iter()
-                .map(|network| {
-                    self.network_posters
-                        .get_section_view(&network, Message::NetworkPosters)
-                })
-                .collect(),
-        )
+        let network_sections = Column::with_children(NETWORK_SECTIONS.into_iter().map(|network| {
+            self.network_posters
+                .get_section_view(&network, Message::NetworkPosters)
+        }))
         .spacing(30);
 
-        let genre_sections = Column::with_children(
-            GENRE_SECTIONS
-                .into_iter()
-                .map(|genre| {
-                    self.genre_posters
-                        .get_section_view(&genre, Message::GenrePosters)
-                })
-                .collect(),
-        )
+        let genre_sections = Column::with_children(GENRE_SECTIONS.into_iter().map(|genre| {
+            self.genre_posters
+                .get_section_view(&genre, Message::GenrePosters)
+        }))
         .spacing(30);
 
-        let webchannel_sections = Column::with_children(
-            WEB_CHANNEL_SECTIONS
-                .into_iter()
-                .map(|webchannel| {
-                    self.web_channel_posters
-                        .get_section_view(&webchannel, Message::WebChannelPosters)
-                })
-                .collect(),
-        )
-        .spacing(30);
+        let webchannel_sections =
+            Column::with_children(WEB_CHANNEL_SECTIONS.into_iter().map(|webchannel| {
+                self.web_channel_posters
+                    .get_section_view(&webchannel, Message::WebChannelPosters)
+            }))
+            .spacing(30);
 
         let view = column![
             series_posters_viewer("Shows Airing Today Globally", &self.daily_global_series)
@@ -375,7 +361,7 @@ fn get_current_month() -> chrono::Month {
 }
 
 /// Show `No Series Found` information in a discover section
-fn no_series_found() -> Element<'static, Message, Renderer> {
+fn no_series_found() -> Element<'static, Message> {
     container(text("No Series Found"))
         .center_x()
         .center_y()
@@ -387,7 +373,7 @@ fn no_series_found() -> Element<'static, Message, Renderer> {
 fn series_posters_viewer<'a>(
     title: &str,
     posters: &'a [SeriesPoster],
-) -> Element<'a, IndexedMessage<usize, SeriesPosterMessage>, Renderer> {
+) -> Element<'a, IndexedMessage<usize, SeriesPosterMessage>> {
     let title = text(title).size(21);
 
     if posters.is_empty() {
@@ -396,7 +382,7 @@ fn series_posters_viewer<'a>(
             .center_y()
             .height(100)
             .width(Length::Fill);
-        column!(title, vertical_space(10), text)
+        column!(title, Space::with_height(10), text)
             .width(Length::Fill)
             .padding(10)
             .into()
@@ -504,10 +490,10 @@ where
         &self,
         section_id: &T,
         message: fn(IndexedMessage<usize, SeriesPosterMessage>) -> Message,
-    ) -> Element<'_, Message, Renderer> {
+    ) -> Element<'_, Message> {
         let series_posters = self.get_section(section_id);
 
-        let posters: Element<'_, Message, Renderer> = if series_posters.is_empty() {
+        let posters: Element<'_, Message> = if series_posters.is_empty() {
             no_series_found()
         } else {
             Wrap::with_elements(

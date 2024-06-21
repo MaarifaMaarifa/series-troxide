@@ -5,11 +5,10 @@ use crate::gui::styles;
 
 use iced::font::Weight;
 use iced::widget::{
-    button, column, container, horizontal_rule, horizontal_space, mouse_area, row, svg, text,
-    vertical_space, Space,
+    button, column, container, horizontal_rule, horizontal_space, mouse_area, row, svg, text, Space,
 };
-use iced::{Command, Element, Font, Length, Renderer};
-use iced_aw::Grid;
+use iced::{Command, Element, Font, Length};
+use iced_aw::{Grid, GridRow};
 use tracing::error;
 
 #[derive(Debug, Clone)]
@@ -119,7 +118,7 @@ impl About {
         Command::none()
     }
 
-    pub fn view(&self) -> Element<'_, Message, Renderer> {
+    pub fn view(&self) -> Element<'_, Message> {
         let content = column![
             text("About")
                 .style(styles::text_styles::accent_color_theme())
@@ -128,7 +127,7 @@ impl About {
             info_widget(),
             social_buttons(),
             horizontal_rule(1),
-            vertical_space(5),
+            Space::with_height(5),
             text("Credits").size(18),
             credit_widget(),
         ]
@@ -148,7 +147,7 @@ impl About {
     }
 }
 
-fn update_widget(about: &About) -> Element<'static, Message, Renderer> {
+fn update_widget(about: &About) -> Element<'static, Message> {
     let series_troxide_icon_handle = svg::Handle::from_memory(SERIES_TROXIDE_ICON);
     let icon = svg(series_troxide_icon_handle).width(40);
     let program_info = column![
@@ -192,7 +191,7 @@ fn update_widget(about: &About) -> Element<'static, Message, Renderer> {
             ),
         };
 
-    let update_status: Element<'_, Message, Renderer> =
+    let update_status: Element<'_, Message> =
         if let Some(is_up_to_date) = latest_version_and_container_style.2 {
             if is_up_to_date {
                 text("Up to date")
@@ -209,7 +208,10 @@ fn update_widget(about: &About) -> Element<'static, Message, Renderer> {
         };
 
     let refresh_icon_handle = svg::Handle::from_memory(ARROW_REPEAT);
-    let refresh_icon = svg(refresh_icon_handle).style(styles::svg_styles::colored_svg_theme());
+    let refresh_icon = svg(refresh_icon_handle)
+        .style(styles::svg_styles::colored_svg_theme())
+        .width(20)
+        .height(20);
 
     let refresh_button = button(refresh_icon)
         .style(styles::button_styles::transparent_button_theme())
@@ -227,7 +229,7 @@ fn update_widget(about: &About) -> Element<'static, Message, Renderer> {
                 text(env!("CARGO_PKG_VERSION"))
             ],
         ],
-        horizontal_space(Length::Fill),
+        horizontal_space(),
         refresh_button
     ])
     .style(latest_version_and_container_style.1)
@@ -239,39 +241,52 @@ fn update_widget(about: &About) -> Element<'static, Message, Renderer> {
         .into()
 }
 
-fn info_widget() -> Element<'static, Message, Renderer> {
-    let mut grid = Grid::with_columns(2);
+fn info_widget() -> Element<'static, Message> {
+    let mut grid = Grid::new();
 
-    grid.insert(text("Author"));
-    grid.insert(text(built_info::PKG_AUTHORS));
+    grid = grid.push(
+        GridRow::new()
+            .push(text("Author"))
+            .push(text(built_info::PKG_AUTHORS)),
+    );
 
-    grid.insert(text("License"));
-    grid.insert(text(built_info::PKG_LICENSE));
+    grid = grid.push(
+        GridRow::new()
+            .push(text("License"))
+            .push(text(built_info::PKG_LICENSE)),
+    );
 
     let repository = mouse_area(
         text(built_info::PKG_REPOSITORY).style(styles::text_styles::accent_color_theme()),
     )
     .on_press(Message::Repository);
-    grid.insert(text("Repository"));
-    grid.insert(repository);
+
+    grid = grid.push(GridRow::new().push(text("Repository")).push(repository));
 
     if !built_info::GIT_DIRTY.unwrap_or(false) {
         if let Some(commit_hash) = built_info::GIT_COMMIT_HASH {
-            grid.insert(text("Commit Hash"));
-            grid.insert(text(commit_hash));
+            grid = grid.push(
+                GridRow::new()
+                    .push(text("Commit Hash"))
+                    .push(text(commit_hash)),
+            );
         }
     }
-
-    grid.insert(text("Build Time"));
-    grid.insert(text(built_info::BUILT_TIME_UTC));
-
-    grid.insert(text("Rust Version    ")); // adding some space in grid since it is the longest text
-    grid.insert(text(built_info::RUSTC_VERSION));
+    grid = grid.push(
+        GridRow::new()
+            .push(text("Build Time"))
+            .push(text(built_info::BUILT_TIME_UTC)),
+    );
+    grid = grid.push(
+        GridRow::new()
+            .push(text("Rust Version    "))
+            .push(text(built_info::RUSTC_VERSION)),
+    );
 
     grid.into()
 }
 
-fn social_buttons() -> Element<'static, Message, Renderer> {
+fn social_buttons() -> Element<'static, Message> {
     let coffee_icon_handle = svg::Handle::from_memory(CUP_HOT_FILL);
     let coffee_icon = svg(coffee_icon_handle)
         .style(styles::svg_styles::colored_svg_theme())
@@ -299,7 +314,7 @@ fn social_buttons() -> Element<'static, Message, Renderer> {
         .into()
 }
 
-fn credit_widget() -> Element<'static, Message, Renderer> {
+fn credit_widget() -> Element<'static, Message> {
     let go_to_site_text = text("here")
         .size(11)
         .style(styles::text_styles::accent_color_theme());

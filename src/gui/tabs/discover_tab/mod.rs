@@ -8,7 +8,7 @@ use searching::Message as SearchMessage;
 
 use iced::widget::scrollable::{RelativeOffset, Viewport};
 use iced::widget::{column, container, scrollable, Space};
-use iced::{Command, Element, Length, Renderer};
+use iced::{Command, Element, Length};
 
 use iced_aw::{floating_element, Spinner};
 
@@ -56,17 +56,14 @@ impl<'a> DiscoverTab<'a> {
 
     pub fn subscription(&self) -> iced::Subscription<Message> {
         iced::Subscription::batch([
-            iced::subscription::events_with(|event, _| {
-                if let iced::Event::Keyboard(iced::keyboard::Event::KeyPressed {
-                    key_code,
-                    modifiers,
-                }) = event
+            iced::keyboard::on_key_press(|key, modifiers| {
+                if key == iced::keyboard::key::Key::Named(iced::keyboard::key::Named::F5)
+                    && modifiers.is_empty()
                 {
-                    if key_code == iced::keyboard::KeyCode::F5 && modifiers.is_empty() {
-                        return Some(Message::Reload);
-                    }
+                    Some(Message::Reload)
+                } else {
+                    None
                 }
-                None
             }),
             self.search.subscription().map(Message::Search),
         ])
@@ -90,8 +87,8 @@ impl<'a> DiscoverTab<'a> {
         }
     }
 
-    pub fn view(&self) -> Element<'_, Message, Renderer> {
-        let underlay: Element<'_, Message, Renderer> =
+    pub fn view(&self) -> Element<'_, Message> {
+        let underlay: Element<'_, Message> =
             if let Some(full_schedule_series) = self.full_schedule_series.view() {
                 scrollable(full_schedule_series.map(Message::FullSchedulePosters))
                     .direction(styles::scrollable_styles::vertical_direction())

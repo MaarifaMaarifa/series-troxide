@@ -1,5 +1,5 @@
 use iced::widget::{column, combo_box, container, text};
-use iced::{Command, Element, Renderer};
+use iced::{Command, Element};
 use locale_settings::{get_country_code_from_settings, get_country_name_from_country_code};
 use rust_iso3166::ALL;
 
@@ -53,7 +53,7 @@ impl Discover {
         }
     }
 
-    pub fn view(&self) -> Element<'_, Message, Renderer> {
+    pub fn view(&self) -> Element<'_, Message> {
         let content = column![
             text("Discover")
                 .size(21)
@@ -70,7 +70,7 @@ impl Discover {
             .into()
     }
 
-    pub fn country_widget(&self) -> Element<'_, Message, Renderer> {
+    pub fn country_widget(&self) -> Element<'_, Message> {
         let selected_country =
             get_country_name_from_country_code(&get_country_code_from_settings())
                 .unwrap()
@@ -102,7 +102,7 @@ impl Default for Discover {
 
 mod hidden_series {
     use iced::widget::{button, column, container, row, scrollable, text, Column, Space};
-    use iced::{Command, Element, Renderer};
+    use iced::{Command, Element};
 
     use crate::{core::posters_hiding::HIDDEN_SERIES, gui::styles};
 
@@ -128,25 +128,22 @@ mod hidden_series {
             }
         }
 
-        pub fn view(&self) -> Element<'_, Message, Renderer> {
+        pub fn view(&self) -> Element<'_, Message> {
             let hidden_series = HIDDEN_SERIES.blocking_read();
 
             let content = if let Some(hidden_series) = hidden_series.get_hidden_series() {
-                let content: Element<'_, Message, Renderer> = if hidden_series.is_empty() {
+                let content: Element<'_, Message> = if hidden_series.is_empty() {
                     Self::empty_posters_widget()
                 } else {
-                    let content = Column::with_children(
-                        hidden_series
-                            .iter()
-                            .map(|(series_id, (series_name, premier_date))| {
-                                Self::series_entry(
-                                    *series_id,
-                                    series_name.clone(),
-                                    premier_date.clone(),
-                                )
-                            })
-                            .collect(),
-                    )
+                    let content = Column::with_children(hidden_series.iter().map(
+                        |(series_id, (series_name, premier_date))| {
+                            Self::series_entry(
+                                *series_id,
+                                series_name.clone(),
+                                premier_date.clone(),
+                            )
+                        },
+                    ))
                     .spacing(5);
 
                     scrollable(container(content).padding(10))
@@ -168,7 +165,7 @@ mod hidden_series {
                 .into()
         }
 
-        fn empty_posters_widget() -> Element<'static, Message, Renderer> {
+        fn empty_posters_widget() -> Element<'static, Message> {
             container(text("No hidden posters"))
                 .center_x()
                 .width(200)
@@ -179,18 +176,17 @@ mod hidden_series {
             series_id: u32,
             series_name: String,
             premier_date: Option<String>,
-        ) -> Element<'static, Message, Renderer> {
+        ) -> Element<'static, Message> {
             let unhide_button = button(text("unhide").size(11))
                 .style(styles::button_styles::transparent_button_with_rounded_border_theme())
                 .on_press(Message::UnhideSeries(series_id));
-            let premier_date: Element<'_, Message, Renderer> =
-                if let Some(premier_date) = premier_date {
-                    text(format!("({})", premier_date))
-                        .style(styles::text_styles::accent_color_theme())
-                        .into()
-                } else {
-                    Space::new(0, 0).into()
-                };
+            let premier_date: Element<'_, Message> = if let Some(premier_date) = premier_date {
+                text(format!("({})", premier_date))
+                    .style(styles::text_styles::accent_color_theme())
+                    .into()
+            } else {
+                Space::new(0, 0).into()
+            };
 
             row![unhide_button, text(series_name), premier_date]
                 .spacing(5)

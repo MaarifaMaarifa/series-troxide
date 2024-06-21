@@ -11,18 +11,17 @@ use crate::gui::helpers::{self, season_episode_str_gen};
 use crate::gui::styles;
 
 use iced::widget::{
-    button, column, container, horizontal_rule, horizontal_space, row, svg, text, vertical_space,
-    Button, Space,
+    button, column, container, horizontal_rule, horizontal_space, row, svg, text, Button, Space,
 };
-use iced::{Alignment, Element, Length, Renderer};
-use iced_aw::Grid;
+use iced::{Alignment, Element, Length};
+use iced_aw::{Grid, GridRow};
 
 /// Generates the Series Metadata
 pub fn series_metadata<'a>(
     series_information: &'a SeriesMainInformation,
     image_bytes: Option<Bytes>,
     next_episode_to_air: Option<&'a Episode>,
-) -> Element<'a, Message, Renderer> {
+) -> Element<'a, Message> {
     let mut main_info = row!().padding(5).spacing(10);
 
     if let Some(image_bytes) = image_bytes {
@@ -34,17 +33,17 @@ pub fn series_metadata<'a>(
         main_info = main_info.push(helpers::empty_image::empty_image().width(180).height(253));
     };
 
-    let mut series_data_grid = Grid::with_columns(2);
+    let mut data_grid = Grid::new();
 
-    status_widget(series_information, &mut series_data_grid);
-    series_type_widget(series_information, &mut series_data_grid);
-    genres_widget(series_information, &mut series_data_grid);
-    language_widget(series_information, &mut series_data_grid);
-    average_runtime_widget(series_information, &mut series_data_grid);
-    network_widget(series_information, &mut series_data_grid);
-    webchannel_widget(series_information, &mut series_data_grid);
-    premiered_widget(series_information, &mut series_data_grid);
-    ended_widget(series_information, &mut series_data_grid);
+    data_grid = status_widget(series_information, data_grid);
+    data_grid = series_type_widget(series_information, data_grid);
+    data_grid = genres_widget(series_information, data_grid);
+    data_grid = language_widget(series_information, data_grid);
+    data_grid = average_runtime_widget(series_information, data_grid);
+    data_grid = network_widget(series_information, data_grid);
+    data_grid = webchannel_widget(series_information, data_grid);
+    data_grid = premiered_widget(series_information, data_grid);
+    data_grid = ended_widget(series_information, data_grid);
 
     let rating_widget = rating_widget(series_information);
     let summary = summary_widget(series_information);
@@ -60,19 +59,15 @@ pub fn series_metadata<'a>(
 
     let next_episode_widget = next_episode_to_air_widget(next_episode_to_air);
 
-    let rating_and_release_widget = row![
-        rating_widget,
-        horizontal_space(Length::Fill),
-        next_episode_widget
-    ]
-    .padding(3);
+    let rating_and_release_widget =
+        row![rating_widget, horizontal_space(), next_episode_widget].padding(3);
 
     let series_data = column![
         title_bar,
         rating_and_release_widget,
         horizontal_rule(1),
-        series_data_grid,
-        vertical_space(10),
+        data_grid,
+        Space::with_height(10),
     ]
     .width(700)
     .spacing(5);
@@ -82,8 +77,7 @@ pub fn series_metadata<'a>(
     let content = container(
         column![main_info, summary]
             .align_items(Alignment::Center)
-            .padding(5)
-            .width(Length::Fill),
+            .padding(5),
     )
     .style(styles::container_styles::first_class_container_square_theme());
 
@@ -97,7 +91,7 @@ pub fn series_metadata<'a>(
 pub fn background(
     background_bytes: Option<Bytes>,
     series_image_blurred: Option<image::DynamicImage>,
-) -> Element<'static, Message, Renderer> {
+) -> Element<'static, Message> {
     if let Some(image_bytes) = background_bytes {
         let image_handle = iced::widget::image::Handle::from_memory(image_bytes);
         iced::widget::image(image_handle)
@@ -123,7 +117,7 @@ pub fn background(
     }
 }
 
-pub fn tracking_button(series_id: u32) -> Button<'static, Message, Renderer> {
+pub fn tracking_button(series_id: u32) -> Button<'static, Message> {
     if database::DB
         .get_series(series_id)
         .map(|series| series.is_tracked())
@@ -146,10 +140,10 @@ pub fn tracking_button(series_id: u32) -> Button<'static, Message, Renderer> {
     .style(styles::button_styles::transparent_button_theme())
 }
 
-pub fn status_widget(
+pub fn status_widget<'b>(
     series_info: &SeriesMainInformation,
-    data_grid: &mut Grid<'_, Message, Renderer>,
-) {
+    data_grid: Grid<'b, Message>,
+) -> Grid<'b, Message> {
     let series_status = series_info.get_status();
 
     let mut status_text = text(&series_status);
@@ -161,24 +155,23 @@ pub fn status_widget(
         status_text = status_text.style(styles::text_styles::red_text_theme())
     }
 
-    data_grid.insert(text("Status"));
-    data_grid.insert(status_text);
+    data_grid.push(GridRow::new().push(text("Status")).push(status_text))
 }
 
-pub fn series_type_widget(
+pub fn series_type_widget<'b>(
     series_info: &SeriesMainInformation,
-    data_grid: &mut Grid<'_, Message, Renderer>,
-) {
+    data_grid: Grid<'b, Message>,
+) -> Grid<'b, Message> {
     if let Some(kind) = series_info.kind.as_ref() {
-        data_grid.insert(text("Type"));
-        data_grid.insert(text(kind));
+        return data_grid.push(GridRow::new().push(text("Type")).push(text(kind)));
     };
+    data_grid
 }
 
-pub fn average_runtime_widget(
+pub fn average_runtime_widget<'b>(
     series_info: &SeriesMainInformation,
-    data_grid: &mut Grid<'_, Message, Renderer>,
-) {
+    data_grid: Grid<'b, Message>,
+) -> Grid<'b, Message> {
     // since the the title part of this widget is the longest, we gonna add some space
     // infront of it to make the separation of column nicer
     let title_text = text("Average runtime    ");
@@ -188,27 +181,27 @@ pub fn average_runtime_widget(
         text("unavailable")
     };
 
-    data_grid.insert(title_text);
-    data_grid.insert(body_widget);
+    data_grid.push(GridRow::new().push(title_text).push(body_widget))
 }
 
-pub fn genres_widget(
+pub fn genres_widget<'b>(
     series_info: &SeriesMainInformation,
-    data_grid: &mut Grid<'_, Message, Renderer>,
-) {
+    data_grid: Grid<'b, Message>,
+) -> Grid<'b, Message> {
     if !series_info.genres.is_empty() {
         let title_text = text("Genres");
         let genres = text(helpers::genres_with_pipes(&series_info.genres));
 
-        data_grid.insert(title_text);
-        data_grid.insert(genres);
+        return data_grid.push(GridRow::new().push(title_text).push(genres));
     }
+
+    data_grid
 }
 
-pub fn language_widget(
+pub fn language_widget<'b>(
     series_info: &SeriesMainInformation,
-    data_grid: &mut Grid<'_, Message, Renderer>,
-) {
+    data_grid: Grid<'b, Message>,
+) -> Grid<'b, Message> {
     let title_text = text("Language");
     let language = if let Some(language) = &series_info.language {
         text(language)
@@ -216,14 +209,13 @@ pub fn language_widget(
         text("unavailable")
     };
 
-    data_grid.insert(title_text);
-    data_grid.insert(language);
+    data_grid.push(GridRow::new().push(title_text).push(language))
 }
 
-pub fn premiered_widget(
+pub fn premiered_widget<'b>(
     series_info: &SeriesMainInformation,
-    data_grid: &mut Grid<'_, Message, Renderer>,
-) {
+    data_grid: Grid<'b, Message>,
+) -> Grid<'b, Message> {
     let title_text = text("Premiered");
     let body_text = if let Some(premier) = &series_info.premiered {
         text(premier)
@@ -231,14 +223,13 @@ pub fn premiered_widget(
         text("unavailable")
     };
 
-    data_grid.insert(title_text);
-    data_grid.insert(body_text);
+    data_grid.push(GridRow::new().push(title_text).push(body_text))
 }
 
-pub fn ended_widget(
+pub fn ended_widget<'b>(
     series_info: &SeriesMainInformation,
-    data_grid: &mut Grid<'_, Message, Renderer>,
-) {
+    data_grid: Grid<'b, Message>,
+) -> Grid<'b, Message> {
     if let ShowStatus::Ended = series_info.get_status() {
         let title_text = text("Ended");
         let body_text = if let Some(ended) = &series_info.ended {
@@ -247,12 +238,12 @@ pub fn ended_widget(
             text("unavailable")
         };
 
-        data_grid.insert(title_text);
-        data_grid.insert(body_text);
+        return data_grid.push(GridRow::new().push(title_text).push(body_text));
     }
+    data_grid
 }
 
-pub fn summary_widget(series_info: &SeriesMainInformation) -> iced::Element<'_, Message, Renderer> {
+pub fn summary_widget(series_info: &SeriesMainInformation) -> iced::Element<'_, Message> {
     if let Some(summary) = &series_info.summary {
         let summary = html2text::from_read(summary.as_bytes(), 1000);
         text(summary).size(11).width(880).into()
@@ -261,7 +252,7 @@ pub fn summary_widget(series_info: &SeriesMainInformation) -> iced::Element<'_, 
     }
 }
 
-pub fn rating_widget(series_info: &SeriesMainInformation) -> Element<'_, Message, Renderer> {
+pub fn rating_widget(series_info: &SeriesMainInformation) -> Element<'_, Message> {
     if let Some(average_rating) = series_info.rating.average {
         let star_handle = svg::Handle::from_memory(STAR);
         let star_half_handle = svg::Handle::from_memory(STAR_HALF);
@@ -303,7 +294,7 @@ pub fn rating_widget(series_info: &SeriesMainInformation) -> Element<'_, Message
             )
         }
 
-        rating = rating.push(horizontal_space(10));
+        rating = rating.push(Space::with_width(10));
         rating = rating.push(rating_text);
 
         rating.into()
@@ -312,33 +303,40 @@ pub fn rating_widget(series_info: &SeriesMainInformation) -> Element<'_, Message
     }
 }
 
-pub fn network_widget(
+pub fn network_widget<'b>(
     series_info: &SeriesMainInformation,
-    data_grid: &mut Grid<'_, Message, Renderer>,
-) {
-    series_info.network.as_ref().map(|network| {
-        network.country.name.as_ref().map(|network_name| {
+    data_grid: Grid<'b, Message>,
+) -> Grid<'b, Message> {
+    if let Some(network) = series_info.network.as_ref() {
+        if let Some(network_name) = network.country.name.as_ref() {
             // TODO: Add a clickable link
-            data_grid.insert(text("Network"));
-            data_grid.insert(text(format!("{} ({})", &network.name, network_name)));
-        })
-    });
+            return data_grid.push(
+                GridRow::new()
+                    .push(text("Network"))
+                    .push(text(format!("{} ({})", &network.name, network_name))),
+            );
+        }
+    };
+
+    data_grid
 }
 
-pub fn webchannel_widget(
+pub fn webchannel_widget<'b>(
     series_info: &SeriesMainInformation,
-    data_grid: &mut Grid<'_, Message, Renderer>,
-) {
+    data_grid: Grid<'b, Message>,
+) -> Grid<'b, Message> {
     if let Some(webchannel) = series_info.web_channel.as_ref() {
         // TODO: Add a clickable link
-        data_grid.insert(text("Webchannel"));
-        data_grid.insert(text(&webchannel.name));
+        return data_grid.push(
+            GridRow::new()
+                .push(text("Webchannel"))
+                .push(text(&webchannel.name)),
+        );
     };
+    data_grid
 }
 
-pub fn next_episode_to_air_widget(
-    next_episode_to_air: Option<&Episode>,
-) -> Element<'_, Message, Renderer> {
+pub fn next_episode_to_air_widget(next_episode_to_air: Option<&Episode>) -> Element<'_, Message> {
     if let Some((episode, Some(release_time))) =
         next_episode_to_air.map(|episode| (episode, episode.release_time().ok()))
     {

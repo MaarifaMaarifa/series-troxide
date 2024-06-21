@@ -24,8 +24,10 @@ impl StyleSheet for AlwaysColoredStyle {
 fn appearance() -> Appearance {
     Appearance {
         background: accent_color(),
-        background_border: None,
         foreground: gray(),
-        foreground_border: None,
+        background_border_width: 1.0,
+        background_border_color: gray(),
+        foreground_border_width: 1.0,
+        foreground_border_color: gray(),
     }
 }

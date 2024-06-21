@@ -1,6 +1,6 @@
 use std::sync::mpsc;
 
-use iced::{Command, Element, Renderer};
+use iced::{Command, Element};
 use indexmap::IndexMap;
 
 use series::{Message as SeriesMessage, Series};
@@ -174,7 +174,7 @@ impl<'a> SeriesPageController<'a> {
         }
     }
 
-    pub fn view(&self) -> Option<Element<'_, Message, Renderer>> {
+    pub fn view(&self) -> Option<Element<'_, Message>> {
         self.series_pages.last().map(|(id, series_page)| {
             series_page
                 .view()

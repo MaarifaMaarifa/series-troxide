@@ -1,6 +1,6 @@
 use iced::widget::{column, container, text, toggler};
 
-use iced::{Command, Element, Length, Renderer};
+use iced::{Command, Element, Length};
 
 use cast_widget::{CastWidget, Message as CastWidgetMessage};
 use crew_widget::{CrewWidget, Message as CrewWidgetMessage};
@@ -95,7 +95,7 @@ impl PeopleWidget {
         }
     }
 
-    pub fn view(&self) -> Element<'_, Message, Renderer> {
+    pub fn view(&self) -> Element<'_, Message> {
         let current_people = match self.current_people {
             People::Cast => self
                 .cast_widget
@@ -127,7 +127,7 @@ impl PeopleWidget {
         .into()
     }
 
-    fn people_not_found(&self) -> Element<'_, Message, Renderer> {
+    fn people_not_found(&self) -> Element<'_, Message> {
         container(text(format!("No {} Found!", self.current_people)))
             .center_x()
             .center_y()

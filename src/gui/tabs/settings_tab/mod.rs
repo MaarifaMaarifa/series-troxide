@@ -1,6 +1,6 @@
 use iced::widget::scrollable::{RelativeOffset, Viewport};
 use iced::widget::{column, scrollable};
-use iced::{Alignment, Command, Element, Length, Renderer};
+use iced::{Alignment, Command, Element, Length};
 
 use crate::gui::assets::icons::GEAR_WIDE_CONNECTED;
 use crate::gui::styles;
@@ -86,7 +86,7 @@ impl SettingsTab {
         }
         Command::none()
     }
-    pub fn view(&self) -> Element<Message, Renderer> {
+    pub fn view(&self) -> Element<Message> {
         let settings_body = scrollable(
             column![
                 self.appearance_settings.view().map(Message::Appearance),

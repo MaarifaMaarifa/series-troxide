@@ -1,6 +1,6 @@
 use crew_poster::{CrewPoster, IndexedMessage, Message as CastMessage};
-use iced::widget::{button, column, container, horizontal_space, row, svg, text, Space};
-use iced::{Command, Element, Length, Renderer};
+use iced::widget::{button, column, container, row, svg, text, Space};
+use iced::{Command, Element, Length};
 use iced_aw::{Spinner, Wrap};
 
 use crate::core::{api::tv_maze::people::show_crew::Crew, caching};
@@ -71,7 +71,7 @@ impl CrewWidget {
         }
     }
 
-    pub fn view(&self) -> Option<Element<'_, Message, Renderer>> {
+    pub fn view(&self) -> Option<Element<'_, Message>> {
         match self.load_state {
             LoadState::Loading => {
                 let spinner = container(Spinner::new())
@@ -108,7 +108,7 @@ impl CrewWidget {
         }
     }
 
-    fn expansion_widget(&self) -> Element<'_, Message, Renderer> {
+    fn expansion_widget(&self) -> Element<'_, Message> {
         if self.casts.len() > INITIAL_CREW_NUMBER {
             let (info, expansion_icon, message) = if self.is_expanded {
                 let svg_handle = svg::Handle::from_memory(CHEVRON_UP);
@@ -125,10 +125,10 @@ impl CrewWidget {
             };
 
             let content = row![
-                horizontal_space(5),
+                Space::with_width(5),
                 info,
                 expansion_icon,
-                horizontal_space(5),
+                Space::with_width(5),
             ]
             .spacing(10)
             .align_items(iced::Alignment::Center);
@@ -155,8 +155,8 @@ mod crew_poster {
     use bytes::Bytes;
     use iced::{
         font::Weight,
-        widget::{column, container, horizontal_space, image, row, text, Column, Row},
-        Command, Element, Font, Renderer,
+        widget::{column, container, image, row, text, Column, Row, Space},
+        Command, Element, Font,
     };
 
     pub use crate::gui::message::IndexedMessage;
@@ -211,7 +211,7 @@ mod crew_poster {
             command.map(move |message| IndexedMessage::new(index, message))
         }
 
-        pub fn view(&self) -> Element<'_, IndexedMessage<usize, Message>, Renderer> {
+        pub fn view(&self) -> Element<'_, IndexedMessage<usize, Message>> {
             let mut content = Row::new().spacing(10);
 
             let empty_image = helpers::empty_image::empty_image().width(100).height(140);
@@ -235,7 +235,7 @@ mod crew_poster {
             ]);
 
             // A little bit of space between cast name and other information
-            cast_info = cast_info.push(horizontal_space(20));
+            cast_info = cast_info.push(Space::with_width(20));
 
             if let Some(gender) = self.crew.person.gender.as_ref() {
                 cast_info = cast_info.push(crew_info_field("Gender: ", gender));
@@ -287,7 +287,7 @@ mod crew_poster {
 
             let content = content.push(cast_info);
 
-            let element: Element<'_, Message, Renderer> = container(content)
+            let element: Element<'_, Message> = container(content)
                 .style(styles::container_styles::first_class_container_square_theme())
                 .padding(7)
                 .into();
@@ -306,10 +306,7 @@ mod crew_poster {
         }
     }
 
-    fn crew_info_field(
-        title: &str,
-        value: impl std::fmt::Display,
-    ) -> Element<'_, Message, Renderer> {
+    fn crew_info_field(title: &str, value: impl std::fmt::Display) -> Element<'_, Message> {
         row![
             text(title)
                 .font(Font {

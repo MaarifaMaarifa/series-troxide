@@ -1,5 +1,5 @@
-use iced::widget::{column, container, horizontal_space, radio, slider, text, Column};
-use iced::{Element, Renderer};
+use iced::widget::{column, container, radio, slider, text, Column, Space};
+use iced::Element;
 
 use crate::core::settings_config::{
     Scale, Theme, ALL_THEMES, SCALE_RANGE, SCALE_RANGE_STEP, SETTINGS,
@@ -27,7 +27,7 @@ impl Appearance {
         }
     }
 
-    pub fn view(&self) -> Element<Message, Renderer> {
+    pub fn view(&self) -> Element<Message> {
         let content = column![text("Appearance")
             .size(21)
             .style(styles::text_styles::accent_color_theme())]
@@ -46,19 +46,14 @@ impl Appearance {
             (Some(settings.theme), settings.scale)
         };
 
-        let theme_list = Column::with_children(
-            ALL_THEMES
-                .iter()
-                .map(|theme| {
-                    let elem: Element<'_, Message, Renderer> =
-                        radio(theme.to_string(), theme, current_theme.as_ref(), |theme| {
-                            Message::ThemeSelected(theme.clone())
-                        })
-                        .into();
-                    elem
+        let theme_list = Column::with_children(ALL_THEMES.iter().map(|theme| {
+            let elem: Element<'_, Message> =
+                radio(theme.to_string(), theme, current_theme.as_ref(), |theme| {
+                    Message::ThemeSelected(theme.clone())
                 })
-                .collect(),
-        )
+                .into();
+            elem
+        }))
         .spacing(5);
 
         let scale_text = text(format!("Scale {}", current_scale)).size(18);
@@ -72,12 +67,12 @@ impl Appearance {
 
         let content = content
             .push(
-                column!(theme_text, horizontal_space(20), theme_list)
+                column!(theme_text, Space::with_width(20), theme_list)
                     .padding(5)
                     .spacing(5),
             )
             .push(
-                column!(scale_text, horizontal_space(20), scale_slider)
+                column!(scale_text, Space::with_width(20), scale_slider)
                     .padding(5)
                     .spacing(5),
             );
