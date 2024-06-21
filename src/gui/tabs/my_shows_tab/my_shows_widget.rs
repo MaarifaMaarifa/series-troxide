@@ -1,7 +1,7 @@
 use std::sync::mpsc;
 
 use iced::widget::container;
-use iced::{Command, Element, Length, Renderer};
+use iced::{Command, Element, Length};
 use iced_aw::{Spinner, Wrap};
 
 use crate::core::api::tv_maze::series_information::SeriesMainInformation;
@@ -127,7 +127,7 @@ impl<'a> MyShows<'a> {
         }
     }
 
-    pub fn view(&self) -> Element<'_, Message, Renderer> {
+    pub fn view(&self) -> Element<'_, Message> {
         if let LoadState::Loading = self.load_state {
             return container(Spinner::new())
                 .center_x()
@@ -139,7 +139,7 @@ impl<'a> MyShows<'a> {
         if self.series_posters.is_empty() {
             Self::empty_myshows_posters()
         } else {
-            let series_posters: Vec<Element<'_, Message, Renderer>> = self
+            let series_posters: Vec<Element<'_, Message>> = self
                 .series_posters
                 .iter()
                 .filter(|poster| {
@@ -163,7 +163,7 @@ impl<'a> MyShows<'a> {
         }
     }
 
-    fn empty_myshows_posters() -> Element<'static, Message, Renderer> {
+    fn empty_myshows_posters() -> Element<'static, Message> {
         unavailable_posters("Nothing to show")
             .style(styles::container_styles::first_class_container_square_theme())
             .height(200)
@@ -171,7 +171,7 @@ impl<'a> MyShows<'a> {
             .into()
     }
 
-    fn no_search_matches() -> Element<'static, Message, Renderer> {
+    fn no_search_matches() -> Element<'static, Message> {
         unavailable_posters("No matches found!")
             .style(styles::container_styles::first_class_container_square_theme())
             .height(200)

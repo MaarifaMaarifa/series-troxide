@@ -1,7 +1,7 @@
 //! Module responsible with fuzzy searching of Series in a particular tab
 
 use iced::widget::{column, container, text, text_input, Container};
-use iced::{Element, Length, Renderer};
+use iced::{Element, Length};
 
 use crate::core::api::tv_maze::series_information::SeriesMainInformation;
 
@@ -97,7 +97,7 @@ impl Searcher {
         }
     }
 
-    pub fn view(&self) -> Element<'_, Message, Renderer> {
+    pub fn view(&self) -> Element<'_, Message> {
         let search_bar = column!(text_input(&self.placeholder, &self.current_search_term)
             .width(300)
             .on_input(Message::SearchTermChanged))

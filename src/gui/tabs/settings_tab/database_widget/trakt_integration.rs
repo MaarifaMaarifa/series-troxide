@@ -1,8 +1,8 @@
 use iced::widget::{
-    button, column, container, horizontal_space, progress_bar, row, svg, text, text_input,
-    vertical_space, Column,
+    button, column, container, horizontal_space, progress_bar, row, svg, text, text_input, Column,
+    Space,
 };
-use iced::{Alignment, Command, Element, Length, Renderer};
+use iced::{Alignment, Command, Element, Length};
 use iced_aw::Spinner;
 
 use crate::core::api::trakt::authentication::{self, CodeResponse, TokenResponse};
@@ -152,7 +152,7 @@ impl TraktIntegration {
         })
     }
 
-    pub fn view(&self) -> Element<'_, Message, Renderer> {
+    pub fn view(&self) -> Element<'_, Message> {
         if let Some(setup_page) = self.setup_page.as_ref() {
             let setup_page = match setup_page {
                 SetupStep::Start(start_page) => start_page.view().map(Message::StartPage),
@@ -183,7 +183,7 @@ impl TraktIntegration {
         } else {
             row![
                 text("Import series data from your Trakt account"),
-                horizontal_space(Length::Fill),
+                horizontal_space(),
                 row![
                     button("Sync Trakt Data").on_press(Message::SyncTraktData),
                     button("Configure Trakt integration").on_press(Message::LoadCredentials),
@@ -274,7 +274,7 @@ impl StartPage {
         }
     }
 
-    pub fn view(&self) -> Element<'_, StartPageMessage, Renderer> {
+    pub fn view(&self) -> Element<'_, StartPageMessage> {
         let content = match &self.page_mode {
             StartPageMode::AccountConfiguration => self.content_when_configuring_account(),
             StartPageMode::TraktDataSync(client) => self.content_when_syncing_data(client),
@@ -289,7 +289,7 @@ impl StartPage {
             .into()
     }
 
-    fn content_when_configuring_account(&self) -> Element<'_, StartPageMessage, Renderer> {
+    fn content_when_configuring_account(&self) -> Element<'_, StartPageMessage> {
         if let Some((user, token)) = self.credentials.get_data() {
             column![
                 text("Trakt Account Status").size(18),
@@ -325,7 +325,7 @@ impl StartPage {
     fn content_when_syncing_data(
         &self,
         client: &Result<Client, String>,
-    ) -> Element<'_, StartPageMessage, Renderer> {
+    ) -> Element<'_, StartPageMessage> {
         match client {
             Ok(_) => {
                 if let Some((_, token)) = self.credentials.get_data() {
@@ -344,7 +344,7 @@ impl StartPage {
                 text(err).style(styles::text_styles::red_text_theme()),
                 text("In order to sync your trakt account, Client information must be configured"),
                 text("through environment variables"),
-                vertical_space(5),
+                Space::with_height(5),
                 button("Setup client information manually")
                     .on_press(StartPageMessage::ClientManualSetup),
             ]
@@ -471,7 +471,7 @@ impl ClientPage {
         Command::none()
     }
 
-    fn view(&self) -> Element<'_, ClientPageMessage, Renderer> {
+    fn view(&self) -> Element<'_, ClientPageMessage> {
         if let Some(error_msg) = self.response_error.as_ref() {
             text(format!("Error: {}", error_msg))
                 .style(styles::text_styles::red_text_theme())
@@ -493,10 +493,9 @@ impl ClientPage {
 
             let content = match &self.client {
                 Ok(client) => {
-                    let (content, button_content): (
-                        Element<'_, ClientPageMessage, Renderer>,
-                        &str,
-                    ) = if self.show_client_information {
+                    let (content, button_content): (Element<'_, ClientPageMessage>, &str) = if self
+                        .show_client_information
+                    {
                         (
                             column![
                                 text("client information").size(18),
@@ -568,7 +567,7 @@ impl ClientPage {
         show_client_field: bool,
         text_input_message: F,
         button_message: ClientPageMessage,
-    ) -> iced::widget::Row<'a, ClientPageMessage, Renderer>
+    ) -> iced::widget::Row<'a, ClientPageMessage>
     where
         F: 'a + Fn(String) -> ClientPageMessage,
     {
@@ -576,7 +575,7 @@ impl ClientPage {
 
         let (button_content, text_input) = match show_client_field {
             true => ("hide", text_input),
-            false => ("show", text_input.password()),
+            false => ("show", text_input.secure(true)),
         };
 
         row![
@@ -676,7 +675,7 @@ impl ProgramAuthenticationPage {
         Command::none()
     }
 
-    fn view(&self) -> Element<'_, ProgramAuthenticationPageMessage, Renderer> {
+    fn view(&self) -> Element<'_, ProgramAuthenticationPageMessage> {
         if self.token_response_loaded {
             if self.token_response.is_some() {
                 column![Spinner::new(), text("Loading account settings"),]
@@ -763,7 +762,7 @@ impl ConfirmationPage {
         }
     }
 
-    fn view(&self) -> Element<'_, ConfirmationPageMessage, Renderer> {
+    fn view(&self) -> Element<'_, ConfirmationPageMessage> {
         column![
             text("Connected Trakt Account"),
             row![
@@ -873,7 +872,7 @@ impl ImportPage {
                         ))
                         .into()
                     })
-                    .collect::<Vec<Element<'_, ImportPageMessage, Renderer>>>(),
+                    .collect::<Vec<Element<'_, ImportPageMessage>>>(),
             )
             .align_items(Alignment::Center)
             .spacing(3);

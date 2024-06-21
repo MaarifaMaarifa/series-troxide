@@ -1,5 +1,5 @@
 use iced::widget::{button, horizontal_space, row};
-use iced::{Element, Length, Renderer};
+use iced::Element;
 
 use crate::core::settings_config::SETTINGS;
 
@@ -21,7 +21,7 @@ impl SettingsControls {
             Message::RestoreDefaults => SETTINGS.write().unwrap().set_default_settings(),
         }
     }
-    pub fn view(&self) -> Element<'_, Message, Renderer> {
+    pub fn view(&self) -> Element<'_, Message> {
         let mut save_settings_button = button("Save");
         let mut reset_settings_button = button("Reset");
         let mut restore_defaults_settings_button = button("Restore Defaults");
@@ -37,7 +37,7 @@ impl SettingsControls {
         }
 
         row![
-            horizontal_space(Length::Fill),
+            horizontal_space(),
             restore_defaults_settings_button,
             reset_settings_button,
             save_settings_button

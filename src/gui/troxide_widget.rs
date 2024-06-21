@@ -9,10 +9,9 @@ pub mod episode_widget {
     use bytes::Bytes;
     use iced::font::Weight;
     use iced::widget::{
-        button, checkbox, column, container, image, row, svg, text, vertical_space, Row, Space,
-        Text,
+        button, checkbox, column, container, image, row, svg, text, Row, Space, Text,
     };
-    use iced::{Command, Element, Font, Length, Renderer};
+    use iced::{Command, Element, Font, Length};
 
     #[derive(Clone, Debug)]
     pub enum Message {
@@ -127,10 +126,7 @@ pub mod episode_widget {
             }
         }
 
-        pub fn view(
-            &self,
-            poster_type: PosterType,
-        ) -> Element<'_, IndexedMessage<usize, Message>, Renderer> {
+        pub fn view(&self, poster_type: PosterType) -> Element<'_, IndexedMessage<usize, Message>> {
             let (poster_width, image_width, image_height) = match poster_type {
                 PosterType::Watchlist => (800_f32, 124_f32, 70_f32),
                 PosterType::Season => (700_f32, 107_f32, 60_f32),
@@ -153,7 +149,7 @@ pub mod episode_widget {
             let episode_details = column!(
                 heading_widget(self.series_id, &self.episode_information, poster_type),
                 date_time_widget(&self.episode_information),
-                vertical_space(5),
+                Space::with_height(5),
                 summary_widget(&self.episode_information)
             );
 
@@ -166,13 +162,13 @@ pub mod episode_widget {
                     content.style(styles::container_styles::second_class_container_rounded_theme());
             }
 
-            let element: Element<'_, Message, Renderer> = content.into();
+            let element: Element<'_, Message> = content.into();
 
             element.map(|message| IndexedMessage::new(self.index, message))
         }
     }
 
-    fn summary_widget(episode_information: &EpisodeInfo) -> Text<'static, Renderer> {
+    fn summary_widget(episode_information: &EpisodeInfo) -> Text<'static> {
         if let Some(summary) = &episode_information.summary {
             let summary = html2text::from_read(summary.as_bytes(), 1000);
             text(summary).size(11)
@@ -181,7 +177,7 @@ pub mod episode_widget {
         }
     }
 
-    fn date_time_widget(episode_information: &EpisodeInfo) -> Element<'_, Message, Renderer> {
+    fn date_time_widget(episode_information: &EpisodeInfo) -> Element<'_, Message> {
         if let Ok(release_time) = episode_information.release_time() {
             let prefix = match release_time.is_future() {
                 true => "Airing on",
@@ -197,8 +193,8 @@ pub mod episode_widget {
         series_id: u32,
         episode_information: &EpisodeInfo,
         poster_type: PosterType,
-    ) -> Row<'static, Message, Renderer> {
-        let mark_watched_widget: Element<'_, Message, Renderer> = match poster_type {
+    ) -> Row<'static, Message> {
+        let mark_watched_widget: Element<'_, Message> = match poster_type {
             PosterType::Watchlist => {
                 let tracked_icon_handle = svg::Handle::from_memory(EYE_FILL);
                 let icon = svg(tracked_icon_handle)
@@ -222,7 +218,8 @@ pub mod episode_widget {
                     })
                     .unwrap_or(false);
 
-                checkbox("", is_tracked, move |_| Message::MarkedWatched(poster_type))
+                checkbox("", is_tracked)
+                    .on_toggle(move |_| Message::MarkedWatched(poster_type))
                     .size(17)
                     .into()
             }
@@ -264,10 +261,8 @@ pub mod series_poster {
 
     use bytes::Bytes;
     use iced::font::Weight;
-    use iced::widget::{
-        button, column, container, image, mouse_area, row, svg, text, vertical_space, Space,
-    };
-    use iced::{Command, Element, Font, Renderer};
+    use iced::widget::{button, column, container, image, mouse_area, row, svg, text, Space};
+    use iced::{Command, Element, Font};
 
     #[derive(Debug, Clone)]
     pub enum GenericPosterMessage {
@@ -417,11 +412,8 @@ pub mod series_poster {
             self.hidden
         }
 
-        pub fn view(
-            &self,
-            expandable: bool,
-        ) -> Element<'_, IndexedMessage<usize, Message>, Renderer> {
-            let poster_image: Element<'_, Message, Renderer> = {
+        pub fn view(&self, expandable: bool) -> Element<'_, IndexedMessage<usize, Message>> {
+            let poster_image: Element<'_, Message> = {
                 let image_height = if self.expanded { 170 } else { 140 };
                 if let Some(image_bytes) = self.poster.get_image() {
                     let image_handle = image::Handle::from_memory(image_bytes.clone());
@@ -434,7 +426,7 @@ pub mod series_poster {
                 }
             };
 
-            let content: Element<'_, Message, Renderer> = if self.expanded {
+            let content: Element<'_, Message> = if self.expanded {
                 let metadata = column![
                     text(&self.poster.get_series_info().name)
                         .size(11)
@@ -446,7 +438,7 @@ pub mod series_poster {
                     Self::genres_widget(&self.poster.get_series_info().genres),
                     Self::premier_widget(self.poster.get_series_info().premiered.as_deref()),
                     Self::rating_widget(&self.poster.get_series_info().rating),
-                    vertical_space(5),
+                    Space::with_height(5),
                     Self::hiding_button(),
                 ]
                 .spacing(2);
@@ -480,11 +472,11 @@ pub mod series_poster {
                 mouse_area = mouse_area.on_right_press(Message::Expand);
             }
 
-            let element: Element<'_, Message, Renderer> = mouse_area.into();
+            let element: Element<'_, Message> = mouse_area.into();
             element.map(|message| IndexedMessage::new(self.index, message))
         }
 
-        fn rating_widget(rating: &Rating) -> Element<'_, Message, Renderer> {
+        fn rating_widget(rating: &Rating) -> Element<'_, Message> {
             if let Some(average_rating) = rating.average {
                 let star_handle = svg::Handle::from_memory(STAR_FILL);
                 let star_icon = svg(star_handle)
@@ -500,7 +492,7 @@ pub mod series_poster {
             }
         }
 
-        fn premier_widget(premier_date: Option<&str>) -> Element<'_, Message, Renderer> {
+        fn premier_widget(premier_date: Option<&str>) -> Element<'_, Message> {
             if let Some(premier_date) = premier_date {
                 text(format!("Premiered: {}", premier_date)).size(11).into()
             } else {
@@ -508,7 +500,7 @@ pub mod series_poster {
             }
         }
 
-        fn genres_widget(genres: &[String]) -> Element<'_, Message, Renderer> {
+        fn genres_widget(genres: &[String]) -> Element<'_, Message> {
             if genres.is_empty() {
                 Space::new(0, 0).into()
             } else {
@@ -516,7 +508,7 @@ pub mod series_poster {
             }
         }
 
-        fn hiding_button() -> Element<'static, Message, Renderer> {
+        fn hiding_button() -> Element<'static, Message> {
             let tracked_icon_handle = svg::Handle::from_memory(EYE_SLASH_FILL);
             let icon = svg(tracked_icon_handle)
                 .width(15)
@@ -537,7 +529,7 @@ pub mod title_bar {
     use iced::widget::{
         button, container, horizontal_space, mouse_area, row, svg, text, Row, Space,
     };
-    use iced::{Element, Length, Renderer};
+    use iced::{Element, Length};
 
     use crate::gui::assets::icons::CARET_LEFT_FILL;
     use crate::gui::styles;
@@ -570,34 +562,29 @@ pub mod title_bar {
             &self,
             tab_labels: &[TabLabel],
             show_back_button: bool,
-        ) -> iced::Element<'_, Message, Renderer> {
-            let tab_views = tab_labels
-                .iter()
-                .enumerate()
-                .map(|(index, tab_label)| {
-                    let svg_handle = svg::Handle::from_memory(tab_label.icon);
-                    let icon = svg(svg_handle)
-                        .width(Length::Shrink)
-                        .style(styles::svg_styles::colored_svg_theme());
-                    let text_label = text(tab_label.text);
-                    let mut tab = container(
-                        mouse_area(row![icon, text_label].spacing(5))
-                            .on_press(Message::TabSelected(index)),
-                    )
-                    .padding(5);
+        ) -> iced::Element<'_, Message> {
+            let tab_views = tab_labels.iter().enumerate().map(|(index, tab_label)| {
+                let svg_handle = svg::Handle::from_memory(tab_label.icon);
+                let icon = svg(svg_handle)
+                    .width(Length::Shrink)
+                    .style(styles::svg_styles::colored_svg_theme());
+                let text_label = text(tab_label.text);
+                let mut tab = container(
+                    mouse_area(row![icon, text_label].spacing(5))
+                        .on_press(Message::TabSelected(index)),
+                )
+                .padding(5);
 
-                    // Highlighting the tab if is active
-                    if index == self.active_tab {
-                        tab = tab
-                            .style(styles::container_styles::second_class_container_square_theme())
-                    };
-                    tab.into()
-                })
-                .collect();
+                // Highlighting the tab if is active
+                if index == self.active_tab {
+                    tab = tab.style(styles::container_styles::second_class_container_square_theme())
+                };
+                tab.into()
+            });
 
             let tab_views = Row::with_children(tab_views).spacing(10);
 
-            let back_button: Element<'_, Message, Renderer> = if show_back_button {
+            let back_button: Element<'_, Message> = if show_back_button {
                 let back_button_icon_handle = svg::Handle::from_memory(CARET_LEFT_FILL);
                 let icon = svg(back_button_icon_handle)
                     .width(20)
@@ -612,9 +599,9 @@ pub mod title_bar {
 
             container(row![
                 back_button,
-                horizontal_space(Length::Fill),
+                horizontal_space(),
                 tab_views,
-                horizontal_space(Length::Fill)
+                horizontal_space()
             ])
             .style(styles::container_styles::first_class_container_square_theme())
             .into()

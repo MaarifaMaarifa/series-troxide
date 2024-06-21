@@ -99,8 +99,7 @@ impl Seasons {
                     Column::with_children(
                         self.seasons
                             .iter()
-                            .map(|season| season.view().map(Message::Season))
-                            .collect(),
+                            .map(|season| season.view().map(Message::Season)),
                     )
                     .padding(5)
                     .spacing(5)
@@ -124,7 +123,7 @@ mod season {
     use std::rc::Rc;
 
     use iced::widget::{button, checkbox, column, container, progress_bar, row, svg, text, Column};
-    use iced::{Command, Element, Length, Renderer};
+    use iced::{Command, Element, Length};
     use iced_aw::Spinner;
 
     use crate::core::api::tv_maze::episodes_information::Episode as EpisodeInfo;
@@ -263,7 +262,7 @@ mod season {
             Command::none()
         }
 
-        pub fn view(&self) -> Element<'_, IndexedMessage<usize, Message>, Renderer> {
+        pub fn view(&self) -> Element<'_, IndexedMessage<usize, Message>> {
             let tracked_episodes = database::DB
                 .get_series(self.series_id)
                 .map(|series| {
@@ -275,11 +274,12 @@ mod season {
                 .unwrap_or_default();
 
             let track_checkbox = checkbox(
-                "",
+                "".to_owned(),
                 (self.total_episodes.get_all_watchable_episodes() == tracked_episodes)
                     && (tracked_episodes != 0),
-                |_| Message::CheckboxPressed,
-            );
+            )
+            .on_toggle(|_| Message::CheckboxPressed);
+
             let season_name = text(format!("Season {}", self.season_number)).width(80);
 
             let season_progress = progress_bar(
@@ -328,21 +328,17 @@ mod season {
                 if self.episodes.is_empty() {
                     content = content.push(container(Spinner::new()))
                 } else {
-                    content = content.push(
-                        Column::with_children(
-                            self.episodes
-                                .iter()
-                                .map(|episode| {
-                                    episode.view(PosterType::Season).map(Message::Episode)
-                                })
-                                .collect(),
-                        )
-                        .spacing(3),
-                    );
+                    content =
+                        content.push(
+                            Column::with_children(self.episodes.iter().map(|episode| {
+                                episode.view(PosterType::Season).map(Message::Episode)
+                            }))
+                            .spacing(3),
+                        );
                 }
             }
 
-            let element: Element<'_, Message, Renderer> = content.into();
+            let element: Element<'_, Message> = content.into();
             element.map(|message| IndexedMessage::new(self.index, message))
         }
     }

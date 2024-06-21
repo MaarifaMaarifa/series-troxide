@@ -1,7 +1,7 @@
 use crate::core::settings_config::{self, SETTINGS};
 use iced::widget::column;
 use iced::{Application, Command};
-use std::sync::mpsc;
+use std::sync::{mpsc, Arc};
 
 use series_page::{Message as SeriesPageControllerMessage, SeriesPageController};
 use tabs::{Message as TabsControllerMessage, TabId, TabsController};
@@ -37,7 +37,9 @@ impl<'a> Application for TroxideGui<'a> {
     type Flags = ();
 
     fn new(_flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
-        let font_command = iced::font::load(assets::fonts::NOTOSANS_REGULAR_STATIC);
+        let noto_font_command = iced::font::load(assets::fonts::NOTOSANS_REGULAR_STATIC);
+        let bootstrap_font_command = iced::font::load(iced_aw::BOOTSTRAP_FONT_BYTES);
+
         let (sender, receiver) = mpsc::channel();
         let (tabs_controller, tabs_controller_command) = TabsController::new(sender.clone());
 
@@ -49,7 +51,8 @@ impl<'a> Application for TroxideGui<'a> {
                 series_page_controller: SeriesPageController::new(sender, receiver),
             },
             Command::batch([
-                font_command.map(Message::FontLoaded),
+                noto_font_command.map(Message::FontLoaded),
+                bootstrap_font_command.map(Message::FontLoaded),
                 tabs_controller_command.map(Message::TabsController),
             ]),
         )
@@ -68,7 +71,7 @@ impl<'a> Application for TroxideGui<'a> {
     }
 
     fn theme(&self) -> iced::Theme {
-        let custom_theme = Box::new(
+        let custom_theme = Arc::new(
             match SETTINGS
                 .read()
                 .unwrap()
@@ -153,7 +156,7 @@ impl<'a> Application for TroxideGui<'a> {
         }
     }
 
-    fn view(&self) -> iced::Element<'_, Message, iced::Renderer<Self::Theme>> {
+    fn view(&self) -> iced::Element<'_, Self::Message, Self::Theme, iced::Renderer> {
         let view = if let Some(series_page_view) = self.series_page_controller.view() {
             series_page_view.map(Message::SeriesPageController)
         } else {

@@ -7,7 +7,7 @@ use crate::gui::troxide_widget::series_poster::{
 };
 
 use iced::widget::{column, container, text, Space};
-use iced::{Command, Element, Length, Renderer};
+use iced::{Command, Element, Length};
 use iced_aw::{Spinner, Wrap};
 
 #[derive(Debug, Clone)]
@@ -87,7 +87,7 @@ impl<'a> SeriesSuggestion<'a> {
         }
     }
 
-    pub fn view(&self) -> Element<'_, Message, Renderer> {
+    pub fn view(&self) -> Element<'_, Message> {
         match self.load_state {
             LoadState::Loading => container(Spinner::new())
                 .width(Length::Fill)

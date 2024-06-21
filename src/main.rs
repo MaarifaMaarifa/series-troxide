@@ -29,7 +29,7 @@ fn main() -> anyhow::Result<()> {
             icon,
             ..Default::default()
         },
-        default_text_size: 14.0,
+        default_text_size: 14.0.into(),
         ..Default::default()
     })?;
 

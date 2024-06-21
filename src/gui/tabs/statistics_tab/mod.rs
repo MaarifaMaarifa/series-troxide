@@ -2,7 +2,7 @@ use std::sync::mpsc;
 
 use iced::widget::scrollable::{RelativeOffset, Viewport};
 use iced::widget::{column, container, row, scrollable};
-use iced::{Command, Element, Length, Renderer};
+use iced::{Command, Element, Length};
 use iced_aw::Wrap;
 
 use crate::core::{api::tv_maze::series_information::SeriesMainInformation, database};
@@ -97,11 +97,11 @@ impl<'a> StatisticsTab<'a> {
             }
         }
     }
-    pub fn view(&self) -> Element<Message, Renderer> {
-        let series_list: Element<'_, Message, Renderer> = if self.series_banners.is_empty() {
+    pub fn view(&self) -> Element<Message> {
+        let series_list: Element<'_, Message> = if self.series_banners.is_empty() {
             Self::empty_statistics_posters()
         } else {
-            let series_list: Vec<Element<'_, Message, Renderer>> = self
+            let series_list: Vec<Element<'_, Message>> = self
                 .series_banners
                 .iter()
                 .filter(|banner| {
@@ -158,14 +158,14 @@ impl<'a> StatisticsTab<'a> {
         .into()
     }
 
-    fn empty_statistics_posters() -> Element<'static, Message, Renderer> {
+    fn empty_statistics_posters() -> Element<'static, Message> {
         unavailable_posters("Your watched series will appear here")
             .width(Length::Fill)
             .height(Length::Fill)
             .into()
     }
 
-    fn no_search_matches() -> Element<'static, Message, Renderer> {
+    fn no_search_matches() -> Element<'static, Message> {
         unavailable_posters("No matches found!")
             .width(Length::Fill)
             .height(Length::Fill)

@@ -1,6 +1,6 @@
 use cast_poster::{CastPoster, IndexedMessage, Message as CastMessage};
-use iced::widget::{button, column, container, horizontal_space, row, svg, text, Space};
-use iced::{Command, Element, Length, Renderer};
+use iced::widget::{button, column, container, row, svg, text, Space};
+use iced::{Command, Element, Length};
 use iced_aw::{Spinner, Wrap};
 
 use crate::core::{api::tv_maze::people::show_cast::Cast, caching};
@@ -71,7 +71,7 @@ impl CastWidget {
         }
     }
 
-    pub fn view(&self) -> Option<Element<'_, Message, Renderer>> {
+    pub fn view(&self) -> Option<Element<'_, Message>> {
         match self.load_state {
             LoadState::Loading => {
                 let spinner = container(Spinner::new())
@@ -108,7 +108,7 @@ impl CastWidget {
         }
     }
 
-    fn expansion_widget(&self) -> Element<'_, Message, Renderer> {
+    fn expansion_widget(&self) -> Element<'_, Message> {
         if self.casts.len() > INITIAL_CAST_NUMBER {
             let (info, expansion_icon, message) = if self.is_expanded {
                 let svg_handle = svg::Handle::from_memory(CHEVRON_UP);
@@ -125,10 +125,10 @@ impl CastWidget {
             };
 
             let content = row![
-                horizontal_space(5),
+                Space::with_width(5),
                 info,
                 expansion_icon,
-                horizontal_space(5),
+                Space::with_width(5),
             ]
             .spacing(10)
             .align_items(iced::Alignment::Center);
@@ -155,10 +155,8 @@ mod cast_poster {
     use bytes::Bytes;
     use iced::{
         font::Weight,
-        widget::{
-            button, column, container, horizontal_space, image, row, svg, text, Column, Row, Space,
-        },
-        Command, Element, Font, Renderer,
+        widget::{button, column, container, image, row, svg, text, Column, Row, Space},
+        Command, Element, Font,
     };
 
     pub use crate::gui::message::IndexedMessage;
@@ -247,7 +245,7 @@ mod cast_poster {
             command.map(move |message| IndexedMessage::new(index, message))
         }
 
-        pub fn view(&self) -> Element<'_, IndexedMessage<usize, Message>, Renderer> {
+        pub fn view(&self) -> Element<'_, IndexedMessage<usize, Message>> {
             let mut content = Row::new().spacing(10);
 
             let empty_image = helpers::empty_image::empty_image().width(100).height(140);
@@ -285,7 +283,7 @@ mod cast_poster {
             ]);
 
             // A little bit of space between cast name and other information
-            cast_info = cast_info.push(horizontal_space(20));
+            cast_info = cast_info.push(Space::with_width(20));
 
             if let Some(gender) = self.cast.person.gender.as_ref() {
                 cast_info = cast_info.push(cast_info_field("Gender: ", gender));
@@ -339,14 +337,14 @@ mod cast_poster {
 
             let content = content.push(cast_info);
 
-            let element: Element<'_, Message, Renderer> = container(content)
+            let element: Element<'_, Message> = container(content)
                 .style(styles::container_styles::first_class_container_square_theme())
                 .padding(7)
                 .into();
             element.map(|message| IndexedMessage::new(self.index, message))
         }
 
-        fn image_switch_button(&self) -> Element<'_, Message, Renderer> {
+        fn image_switch_button(&self) -> Element<'_, Message> {
             if self.cast.character.image.is_some() {
                 let image_switch_button_handle = svg::Handle::from_memory(ARROW_REPEAT);
                 let icon =
@@ -387,10 +385,7 @@ mod cast_poster {
         }
     }
 
-    fn cast_info_field(
-        title: &str,
-        value: impl std::fmt::Display,
-    ) -> Element<'_, Message, Renderer> {
+    fn cast_info_field(title: &str, value: impl std::fmt::Display) -> Element<'_, Message> {
         row![
             text(title)
                 .font(Font {

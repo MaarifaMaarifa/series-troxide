@@ -1,7 +1,7 @@
 use std::sync::mpsc;
 
-use iced::widget::{column, container, scrollable, text, text_input, vertical_space, Column};
-use iced::{Command, Element, Length, Renderer};
+use iced::widget::{column, container, scrollable, text, text_input, Column, Space};
+use iced::{Command, Element, Length};
 use iced_aw::Spinner;
 use search_result::{IndexedMessage, Message as SearchResultMessage, SearchResult};
 
@@ -46,17 +46,14 @@ impl Search {
     }
 
     pub fn subscription(&self) -> iced::Subscription<Message> {
-        iced::subscription::events_with(|event, _| {
-            if let iced::Event::Keyboard(iced::keyboard::Event::KeyPressed {
-                key_code,
-                modifiers,
-            }) = event
+        iced::keyboard::on_key_press(|key, modifiers| {
+            if key == iced::keyboard::key::Key::Named(iced::keyboard::key::Named::Escape)
+                && modifiers.is_empty()
             {
-                if key_code == iced::keyboard::KeyCode::Escape && modifiers.is_empty() {
-                    return Some(Message::EscapeKeyPressed);
-                }
+                Some(Message::EscapeKeyPressed)
+            } else {
+                None
             }
-            None
         })
     }
 
@@ -129,14 +126,9 @@ impl Search {
         }
     }
 
-    pub fn view(
-        &self,
-    ) -> (
-        Element<'_, Message, Renderer>,
-        Option<Element<'_, Message, Renderer>>,
-    ) {
+    pub fn view(&self) -> (Element<'_, Message>, Option<Element<'_, Message>>) {
         let search_bar = column!(
-            vertical_space(10),
+            Space::with_height(10),
             text_input("Search", &self.search_term)
                 .width(300)
                 .on_input(Message::TermChanged)
@@ -145,7 +137,7 @@ impl Search {
         .width(Length::Fill)
         .align_items(iced::Alignment::Center);
 
-        let search_results: Option<Element<'_, Message, Renderer>> = match self.load_state {
+        let search_results: Option<Element<'_, Message>> = match self.load_state {
             LoadState::Loaded => {
                 let results_display = match &self.search_results {
                     Ok(search_results) => {
@@ -205,7 +197,7 @@ mod search_result {
 
     use bytes::Bytes;
     use iced::widget::{column, image, mouse_area, row, svg, text, Space};
-    use iced::{Command, Element, Renderer};
+    use iced::{Command, Element};
 
     use crate::core::api::tv_maze::series_information::SeriesMainInformation;
     use crate::core::api::tv_maze::Rating;
@@ -268,7 +260,7 @@ mod search_result {
             }
         }
 
-        pub fn view(&self) -> Element<'_, IndexedMessage<usize, Message>, Renderer> {
+        pub fn view(&self) -> Element<'_, IndexedMessage<usize, Message>> {
             let mut row = row!().spacing(5).padding(5);
 
             if let Some(image_bytes) = self.image.clone() {
@@ -279,14 +271,13 @@ mod search_result {
             };
 
             // Getting the series genres
-            let genres: Element<'_, Message, Renderer> =
-                if !self.search_result.show.genres.is_empty() {
-                    text(helpers::genres_with_pipes(&self.search_result.show.genres))
-                        .size(11)
-                        .into()
-                } else {
-                    Space::new(0, 0).into()
-                };
+            let genres: Element<'_, Message> = if !self.search_result.show.genres.is_empty() {
+                text(helpers::genres_with_pipes(&self.search_result.show.genres))
+                    .size(11)
+                    .into()
+            } else {
+                Space::new(0, 0).into()
+            };
 
             let mut column = column![
                 text(&self.search_result.show.name)
@@ -301,13 +292,13 @@ mod search_result {
 
             column = column.push(Self::rating_widget(&self.search_result.show.rating));
 
-            let element: Element<'_, Message, Renderer> = mouse_area(row.push(column))
+            let element: Element<'_, Message> = mouse_area(row.push(column))
                 .on_press(Message::SeriesResultPressed)
                 .into();
             element.map(|message| IndexedMessage::new(self.index, message))
         }
 
-        fn rating_widget(rating: &Rating) -> Element<'_, Message, Renderer> {
+        fn rating_widget(rating: &Rating) -> Element<'_, Message> {
             if let Some(average_rating) = rating.average {
                 let star_handle = svg::Handle::from_memory(STAR_FILL);
                 let star_icon = svg(star_handle)

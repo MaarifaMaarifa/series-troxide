@@ -1,7 +1,7 @@
 use std::sync::mpsc;
 
 use iced::widget::{container, Column};
-use iced::{Command, Element, Length, Renderer};
+use iced::{Command, Element, Length};
 use iced_aw::Spinner;
 
 use crate::core::api::tv_maze::episodes_information::Episode;
@@ -108,7 +108,7 @@ impl<'a> UpcomingReleases<'a> {
         }
     }
 
-    pub fn view(&self) -> Element<'_, Message, Renderer> {
+    pub fn view(&self) -> Element<'_, Message> {
         if let LoadState::Loading = self.load_state {
             return container(Spinner::new())
                 .center_x()
@@ -120,7 +120,7 @@ impl<'a> UpcomingReleases<'a> {
         if self.upcoming_posters.is_empty() {
             Self::empty_upcoming_posters()
         } else {
-            let upcoming_posters: Vec<Element<'_, Message, Renderer>> = self
+            let upcoming_posters: Vec<Element<'_, Message>> = self
                 .upcoming_posters
                 .iter()
                 .filter(|poster| {
@@ -145,7 +145,7 @@ impl<'a> UpcomingReleases<'a> {
         }
     }
 
-    fn empty_upcoming_posters() -> Element<'static, Message, Renderer> {
+    fn empty_upcoming_posters() -> Element<'static, Message> {
         unavailable_posters("No Upcoming Episodes")
             .style(styles::container_styles::first_class_container_square_theme())
             .height(200)
@@ -153,7 +153,7 @@ impl<'a> UpcomingReleases<'a> {
             .into()
     }
 
-    fn no_search_matches() -> Element<'static, Message, Renderer> {
+    fn no_search_matches() -> Element<'static, Message> {
         unavailable_posters("No matches found!")
             .style(styles::container_styles::first_class_container_square_theme())
             .height(200)
@@ -199,10 +199,8 @@ mod upcoming_poster {
     use crate::gui::styles;
     use crate::gui::troxide_widget::series_poster::{GenericPoster, GenericPosterMessage};
 
-    use iced::widget::{
-        column, container, horizontal_space, image, mouse_area, row, text, vertical_space,
-    };
-    use iced::{Command, Element, Length, Renderer};
+    use iced::widget::{column, container, horizontal_space, image, mouse_area, row, text, Space};
+    use iced::{Command, Element};
 
     #[derive(Clone, Debug)]
     pub enum Message {
@@ -263,7 +261,7 @@ mod upcoming_poster {
             }
         }
 
-        pub fn view(&self) -> Element<'_, IndexedMessage<usize, Message>, Renderer> {
+        pub fn view(&self) -> Element<'_, IndexedMessage<usize, Message>> {
             let mut content = row!().padding(2).spacing(7);
             if let Some(image_bytes) = self.poster.get_image() {
                 let image_handle = image::Handle::from_memory(image_bytes.clone());
@@ -280,7 +278,7 @@ mod upcoming_poster {
                     .style(styles::text_styles::accent_color_theme()),
             );
             // Some separation between series name and the rest of content
-            metadata = metadata.push(vertical_space(10));
+            metadata = metadata.push(Space::with_height(10));
 
             let season_number = self.upcoming_episode.season;
             let episode_number = self
@@ -300,7 +298,7 @@ mod upcoming_poster {
 
             content = content.push(metadata);
 
-            content = content.push(horizontal_space(Length::Fill));
+            content = content.push(horizontal_space());
             let release_time_widget = container(
                 container(
                     helpers::time::NaiveTime::new(
@@ -333,7 +331,7 @@ mod upcoming_poster {
                 .style(styles::container_styles::first_class_container_rounded_theme())
                 .width(1000);
 
-            let element: Element<'_, Message, Renderer> = mouse_area(content)
+            let element: Element<'_, Message> = mouse_area(content)
                 .on_press(Message::SeriesPosterPressed)
                 .into();
             element.map(|message| IndexedMessage::new(self.index, message))
