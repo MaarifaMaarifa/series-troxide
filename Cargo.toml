@@ -36,7 +36,7 @@ chrono = { version = "0.4.38", features = ["serde"] }
 html2text = "0.12.5"
 bytes = "1.6.1"
 rfd = "0.14.1"
-image = "0.25.1"
+image = "0.25.2"
 rust_iso3166 = "0.1.13"
 webbrowser = "1.0.1"
 notify = "6.1.1"
