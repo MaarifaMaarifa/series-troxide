@@ -34,7 +34,7 @@ sha2 = "0.10.8"
 notify-rust = "4.10.0"
 chrono = { version = "0.4.38", features = ["serde"] }
 html2text = "0.12.5"
-bytes = "1.6.1"
+bytes = "1.7.0"
 rfd = "0.14.1"
 image = "0.25.2"
 rust_iso3166 = "0.1.13"
