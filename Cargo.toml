@@ -11,7 +11,7 @@ version = "0.5.1"
 edition = "2021"
 
 [dependencies]
-clap = { version = "4.5.16", features = ["derive"] }
+clap = { version = "4.5.17", features = ["derive"] }
 iced = { version = "0.12.1", features = ["image", "svg", "tokio"] }
 iced_aw = { version = "0.9.3", features = ["spinner"] }
 anyhow = "1.0.88"
