@@ -35,7 +35,7 @@ notify-rust = "4.11.3"
 chrono = { version = "0.4.38", features = ["serde"] }
 html2text = "0.12.5"
 bytes = "1.7.2"
-rfd = "0.14.1"
+rfd = "0.15.0"
 image = "0.25.2"
 rust_iso3166 = "0.1.13"
 webbrowser = "1.0.2"
