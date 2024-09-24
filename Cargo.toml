@@ -12,8 +12,8 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.5.18", features = ["derive"] }
-iced = { version = "0.12.1", features = ["image", "svg", "tokio"] }
-iced_aw = { version = "0.9.3", features = ["spinner"] }
+iced = { version = "0.13.1", features = ["image", "svg", "tokio"] }
+iced_aw = { version = "0.11", features = ["spinner"] }
 anyhow = "1.0.89"
 thiserror = "1.0.64"
 reqwest = { version = "0.12.5", features = ["json"] }

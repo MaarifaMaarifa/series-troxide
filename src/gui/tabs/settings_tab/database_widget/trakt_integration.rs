@@ -2,7 +2,7 @@ use iced::widget::{
     button, column, container, horizontal_space, progress_bar, row, svg, text, text_input, Column,
     Space,
 };
-use iced::{Alignment, Command, Element, Length};
+use iced::{Alignment, Element, Length, Task};
 use iced_aw::Spinner;
 
 use crate::core::api::trakt::authentication::{self, CodeResponse, TokenResponse};
@@ -57,7 +57,7 @@ impl TraktIntegration {
         }
     }
 
-    pub fn update(&mut self, message: Message) -> Command<Message> {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         let mut next_page = None;
 
         let command = match message {
@@ -74,11 +74,11 @@ impl TraktIntegration {
                     start_page_mode,
                 )));
                 self.sync_trakt_account = false;
-                Command::none()
+                Task::none()
             }
             Message::Cancel => {
                 self.setup_page = None;
-                Command::none()
+                Task::none()
             }
             Message::StartPage(message) => {
                 if let Some(SetupStep::Start(start_page)) = self.setup_page.as_mut() {
@@ -86,7 +86,7 @@ impl TraktIntegration {
                         .update(message, &mut next_page)
                         .map(Message::StartPage)
                 } else {
-                    Command::none()
+                    Task::none()
                 }
             }
             Message::ClientPage(message) => {
@@ -95,7 +95,7 @@ impl TraktIntegration {
                         .update(message, &mut next_page)
                         .map(Message::ClientPage)
                 } else {
-                    Command::none()
+                    Task::none()
                 }
             }
             Message::ProgramAuthenticationPage(message) => {
@@ -106,7 +106,7 @@ impl TraktIntegration {
                         .update(message, &mut next_page)
                         .map(Message::ProgramAuthenticationPage)
                 } else {
-                    Command::none()
+                    Task::none()
                 }
             }
             Message::ConfirmationPage(message) => {
@@ -115,7 +115,7 @@ impl TraktIntegration {
                         .update(message, &mut next_page)
                         .map(Message::ConfirmationPage)
                 } else {
-                    Command::none()
+                    Task::none()
                 }
             }
             Message::SyncTraktData => {
@@ -126,7 +126,7 @@ impl TraktIntegration {
                 if let Some(SetupStep::Import(import_page)) = self.setup_page.as_mut() {
                     import_page.update(message).map(Message::ImportPage)
                 } else {
-                    Command::none()
+                    Task::none()
                 }
             }
         };
@@ -142,8 +142,8 @@ impl TraktIntegration {
         command
     }
 
-    fn load_credentials() -> Command<Message> {
-        Command::perform(Credentials::load_from_file(), |res| {
+    fn load_credentials() -> Task<Message> {
+        Task::perform(Credentials::load_from_file(), |res| {
             let credentials = res.unwrap_or_else(|err| {
                 tracing::warn!("failed to load the credentials from the file: {}", err);
                 Credentials::default()
@@ -172,12 +172,11 @@ impl TraktIntegration {
             let content = column![setup_page, button("cancel").on_press(Message::Cancel),]
                 .spacing(5)
                 .width(Length::Fill)
-                .align_items(Alignment::Center);
+                .align_x(Alignment::Center);
 
             container(content)
-                .style(styles::container_styles::loading_container_theme())
-                .width(Length::Fill)
-                .center_x()
+                .style(styles::container_styles::loading_container_theme)
+                .center_x(Length::Fill)
                 .padding(10)
                 .into()
         } else {
@@ -235,15 +234,15 @@ impl StartPage {
         &mut self,
         message: StartPageMessage,
         next_page: &mut Option<SetupStep>,
-    ) -> Command<StartPageMessage> {
+    ) -> Task<StartPageMessage> {
         match message {
             StartPageMessage::ConnectAccount => {
                 let client_page = ClientPage::new(ClientPageMode::AccountConfiguration);
                 *next_page = Some(SetupStep::Client(client_page));
-                Command::none()
+                Task::none()
             }
             StartPageMessage::RemoveAccount => {
-                Command::perform(Credentials::remove_credentials(), |res| {
+                Task::perform(Credentials::remove_credentials(), |res| {
                     if let Err(err) = res {
                         tracing::error!("failed to remove credentials file: {}", err)
                     };
@@ -252,12 +251,12 @@ impl StartPage {
             }
             StartPageMessage::AccountRemoved => {
                 *next_page = Some(SetupStep::None);
-                Command::none()
+                Task::none()
             }
             StartPageMessage::ClientManualSetup => {
                 let client_page = ClientPage::new(ClientPageMode::SettingEnvironmentVariables);
                 *next_page = Some(SetupStep::Client(client_page));
-                Command::none()
+                Task::none()
             }
             StartPageMessage::ImportTraktData => match &self.page_mode {
                 StartPageMode::AccountConfiguration => unreachable!(
@@ -268,7 +267,7 @@ impl StartPage {
                     let slug = self.credentials.get_data().unwrap().0.slug.clone();
                     let import_page = ImportPage::new(client.client_id.clone(), slug);
                     *next_page = Some(SetupStep::Import(import_page));
-                    Command::none()
+                    Task::none()
                 }
             },
         }
@@ -284,7 +283,7 @@ impl StartPage {
         let trakt_icon = svg(trakt_icon_handle).height(50);
 
         column![trakt_icon, content]
-            .align_items(Alignment::Center)
+            .align_x(Alignment::Center)
             .spacing(5)
             .into()
     }
@@ -295,14 +294,14 @@ impl StartPage {
                 text("Trakt Account Status").size(18),
                 row![
                     text("Username:"),
-                    text(&user.username).style(styles::text_styles::accent_color_theme())
+                    text(&user.username).style(styles::text_styles::accent_color_theme)
                 ]
                 .spacing(10),
                 row![
                     text("Token Status:"),
                     match token.get_access_token() {
-                        Ok(_) => text("Valid").style(styles::text_styles::green_text_theme()),
-                        Err(_) => text("Expired").style(styles::text_styles::red_text_theme()),
+                        Ok(_) => text("Valid").style(styles::text_styles::green_text_theme),
+                        Err(_) => text("Expired").style(styles::text_styles::red_text_theme),
                     }
                 ]
                 .spacing(10),
@@ -310,22 +309,22 @@ impl StartPage {
                 button("Remove Trakt Account").on_press(StartPageMessage::RemoveAccount),
             ]
             .spacing(5)
-            .align_items(Alignment::Center)
+            .align_x(Alignment::Center)
         } else {
             column![
                 text("Trakt Account has not been connected yet"),
                 button("Connect Trakt Account").on_press(StartPageMessage::ConnectAccount),
             ]
             .spacing(2)
-            .align_items(Alignment::Center)
+            .align_x(Alignment::Center)
         }
         .into()
     }
 
-    fn content_when_syncing_data(
-        &self,
-        client: &Result<Client, String>,
-    ) -> Element<'_, StartPageMessage> {
+    fn content_when_syncing_data<'a>(
+        &'a self,
+        client: &'a Result<Client, String>,
+    ) -> Element<StartPageMessage> {
         match client {
             Ok(_) => {
                 if let Some((_, token)) = self.credentials.get_data() {
@@ -341,14 +340,14 @@ impl StartPage {
                 }
             }
             Err(err) => column![
-                text(err).style(styles::text_styles::red_text_theme()),
+                text(err).style(styles::text_styles::red_text_theme),
                 text("In order to sync your trakt account, Client information must be configured"),
                 text("through environment variables"),
                 Space::with_height(5),
                 button("Setup client information manually")
                     .on_press(StartPageMessage::ClientManualSetup),
             ]
-            .align_items(Alignment::Center)
+            .align_x(Alignment::Center)
             .into(),
         }
     }
@@ -401,7 +400,7 @@ impl ClientPage {
         &mut self,
         message: ClientPageMessage,
         next_page: &mut Option<SetupStep>,
-    ) -> Command<ClientPageMessage> {
+    ) -> Task<ClientPageMessage> {
         match message {
             ClientPageMessage::ClientIdChanged(text) => {
                 self.client_id = text;
@@ -414,13 +413,13 @@ impl ClientPage {
 
                 return match self.client_page_mode {
                     ClientPageMode::AccountConfiguration => match &self.client {
-                        Ok(client) => Command::perform(
+                        Ok(client) => Task::perform(
                             authentication::get_device_code_response(client.client_id.clone()),
                             |res| {
                                 ClientPageMessage::CodeReceived(res.map_err(|err| err.to_string()))
                             },
                         ),
-                        Err(_) => Command::perform(
+                        Err(_) => Task::perform(
                             authentication::get_device_code_response(self.client_id.clone()),
                             |res| {
                                 ClientPageMessage::CodeReceived(res.map_err(|err| err.to_string()))
@@ -430,7 +429,7 @@ impl ClientPage {
                     ClientPageMode::SettingEnvironmentVariables => {
                         Client::set_vars(&self.client_id, &self.client_secret);
                         *next_page = Some(SetupStep::None);
-                        Command::none()
+                        Task::none()
                     }
                 };
             }
@@ -468,13 +467,13 @@ impl ClientPage {
                 self.show_client_information = !self.show_client_information
             }
         };
-        Command::none()
+        Task::none()
     }
 
     fn view(&self) -> Element<'_, ClientPageMessage> {
         if let Some(error_msg) = self.response_error.as_ref() {
             text(format!("Error: {}", error_msg))
-                .style(styles::text_styles::red_text_theme())
+                .style(styles::text_styles::red_text_theme)
                 .into()
         } else if self.code_loading {
             Spinner::new().into()
@@ -502,17 +501,17 @@ impl ClientPage {
                                 row![
                                     text("Client ID: "),
                                     text(client.client_id.as_str())
-                                        .style(styles::text_styles::accent_color_theme())
+                                        .style(styles::text_styles::accent_color_theme)
                                 ]
                                 .spacing(5),
                                 row![
                                     text("Client Secret: "),
                                     text(client.client_secret.as_str())
-                                        .style(styles::text_styles::accent_color_theme())
+                                        .style(styles::text_styles::accent_color_theme)
                                 ]
                                 .spacing(5)
                             ]
-                            .align_items(Alignment::Center)
+                            .align_x(Alignment::Center)
                             .into(),
                             "hide",
                         )
@@ -529,7 +528,7 @@ impl ClientPage {
                         button(button_content).on_press(ClientPageMessage::ToggleClientInformation)
                     ]
                     .spacing(5)
-                    .align_items(Alignment::Center)
+                    .align_x(Alignment::Center)
                 }
                 Err(_) => column![
                     text("Trakt client information could not be loaded from environment variables"),
@@ -551,11 +550,11 @@ impl ClientPage {
                 ]
                 .width(500)
                 .spacing(5)
-                .align_items(Alignment::Center),
+                .align_x(Alignment::Center),
             };
 
             column![content, submit_button]
-                .align_items(Alignment::Center)
+                .align_x(Alignment::Center)
                 .spacing(5)
                 .into()
         }
@@ -581,7 +580,7 @@ impl ClientPage {
         row![
             text_input,
             button(button_content)
-                .style(styles::button_styles::transparent_button_with_rounded_border_theme())
+                .style(styles::button_styles::transparent_button_with_rounded_border_theme)
                 .on_press(button_message)
         ]
         .spacing(5)
@@ -616,7 +615,7 @@ impl ProgramAuthenticationPage {
     }
 
     fn subscription(&self) -> iced::Subscription<ProgramAuthenticationPageMessage> {
-        code_authentication::authenticate_code()
+        iced::Subscription::run(code_authentication::authenticate_code)
             .map(ProgramAuthenticationPageMessage::AuthenticationEvent)
     }
 
@@ -624,7 +623,7 @@ impl ProgramAuthenticationPage {
         &mut self,
         message: ProgramAuthenticationPageMessage,
         next_page: &mut Option<SetupStep>,
-    ) -> Command<ProgramAuthenticationPageMessage> {
+    ) -> Task<ProgramAuthenticationPageMessage> {
         match message {
             ProgramAuthenticationPageMessage::AuthenticationEvent(event) => match event {
                 code_authentication::Event::Ready(mut work_sender) => {
@@ -643,7 +642,7 @@ impl ProgramAuthenticationPage {
                         let access_token = token.access_token.clone();
                         let client_id = self.client.client_id.clone();
                         self.token_response = Some(token);
-                        return Command::perform(
+                        return Task::perform(
                             user_settings::get_user_settings(client_id.leak(), access_token),
                             |res| {
                                 ProgramAuthenticationPageMessage::UserSettingsLoaded(
@@ -672,7 +671,7 @@ impl ProgramAuthenticationPage {
                 )))
             }
         }
-        Command::none()
+        Task::none()
     }
 
     fn view(&self) -> Element<'_, ProgramAuthenticationPageMessage> {
@@ -680,11 +679,11 @@ impl ProgramAuthenticationPage {
             if self.token_response.is_some() {
                 column![Spinner::new(), text("Loading account settings"),]
                     .spacing(5)
-                    .align_items(Alignment::Center)
+                    .align_x(Alignment::Center)
                     .into()
             } else {
                 text("could not retrieve authentication token")
-                    .style(styles::text_styles::red_text_theme())
+                    .style(styles::text_styles::red_text_theme)
                     .into()
             }
         } else {
@@ -693,25 +692,21 @@ impl ProgramAuthenticationPage {
                     text("verification code:"),
                     text(&self.code.user_code),
                     button("copy to clipboard")
-                        .style(
-                            styles::button_styles::transparent_button_with_rounded_border_theme()
-                        )
+                        .style(styles::button_styles::transparent_button_with_rounded_border_theme)
                         .on_press(ProgramAuthenticationPageMessage::CopyCodeToClipboard)
                 ]
                 .spacing(10),
                 row![
                     text("visit this url to authenticate"),
                     button(text(&self.code.verification_url))
-                        .style(
-                            styles::button_styles::transparent_button_with_rounded_border_theme()
-                        )
+                        .style(styles::button_styles::transparent_button_with_rounded_border_theme)
                         .on_press(ProgramAuthenticationPageMessage::OpenVerificationUrl)
                 ]
                 .spacing(10),
                 text(format!("{} seconds to expiration", self.count_down))
             ]
             .spacing(5)
-            .align_items(Alignment::Center)
+            .align_x(Alignment::Center)
             .into()
         }
     }
@@ -740,7 +735,7 @@ impl ConfirmationPage {
         &mut self,
         message: ConfirmationPageMessage,
         next_page: &mut Option<SetupStep>,
-    ) -> Command<ConfirmationPageMessage> {
+    ) -> Task<ConfirmationPageMessage> {
         match message {
             ConfirmationPageMessage::SaveCredentials => {
                 let credentials = Credentials::new(
@@ -748,7 +743,7 @@ impl ConfirmationPage {
                     self.user_settings.clone().into(),
                 );
 
-                Command::perform(async move { credentials.save_credentials().await }, |res| {
+                Task::perform(async move { credentials.save_credentials().await }, |res| {
                     if let Err(err) = res {
                         tracing::error!("failed to save credentials file: {}", err)
                     };
@@ -757,7 +752,7 @@ impl ConfirmationPage {
             }
             ConfirmationPageMessage::CredentialsSaved => {
                 *next_page = Some(SetupStep::None);
-                Command::none()
+                Task::none()
             }
         }
     }
@@ -768,13 +763,13 @@ impl ConfirmationPage {
             row![
                 text("Username:"),
                 text(&self.user_settings.user.username)
-                    .style(styles::text_styles::accent_color_theme())
+                    .style(styles::text_styles::accent_color_theme)
             ]
             .spacing(10),
             button("Confirm and Save Account Information")
                 .on_press(ConfirmationPageMessage::SaveCredentials)
         ]
-        .align_items(Alignment::Center)
+        .align_x(Alignment::Center)
         .spacing(5)
         .into()
     }
@@ -805,10 +800,11 @@ impl ImportPage {
     }
 
     fn subscription(&self) -> iced::Subscription<ImportPageMessage> {
-        trakt_data_import::import_trakt_data().map(ImportPageMessage::ImportEvent)
+        iced::Subscription::run(trakt_data_import::import_trakt_data)
+            .map(ImportPageMessage::ImportEvent)
     }
 
-    fn update(&mut self, message: ImportPageMessage) -> Command<ImportPageMessage> {
+    fn update(&mut self, message: ImportPageMessage) -> Task<ImportPageMessage> {
         match message {
             ImportPageMessage::ImportEvent(event) => match event {
                 trakt_data_import::Event::Ready(mut work_sender) => {
@@ -841,7 +837,7 @@ impl ImportPage {
                 }
             },
         }
-        Command::none()
+        Task::none()
     }
 
     fn view(&self) -> Element<'_, ImportPageMessage> {
@@ -874,25 +870,25 @@ impl ImportPage {
                     })
                     .collect::<Vec<Element<'_, ImportPageMessage>>>(),
             )
-            .align_items(Alignment::Center)
+            .align_x(Alignment::Center)
             .spacing(3);
 
             column![
                 text("Failed imports")
                     .size(18)
-                    .style(styles::text_styles::red_text_theme()),
+                    .style(styles::text_styles::red_text_theme),
                 failed_imports,
             ]
-            .align_items(Alignment::Center)
+            .align_x(Alignment::Center)
             .spacing(5)
             .into()
         } else if !self.import_complete.0 {
             text("importing...").into()
         } else {
             if let Some(err) = &self.import_complete.1 {
-                text(err).style(styles::text_styles::red_text_theme())
+                text(err).style(styles::text_styles::red_text_theme)
             } else {
-                text("import successful").style(styles::text_styles::green_text_theme())
+                text("import successful").style(styles::text_styles::green_text_theme)
             }
             .into()
         }
@@ -907,7 +903,8 @@ mod code_authentication {
 
     use iced::futures::channel::mpsc;
     use iced::futures::sink::SinkExt;
-    use iced::subscription::{self, Subscription};
+    use iced::futures::Stream;
+    use iced::stream::channel;
 
     #[derive(Debug, Clone)]
     pub enum Event {
@@ -926,8 +923,9 @@ mod code_authentication {
         Ready(mpsc::Receiver<Input>),
     }
 
-    pub fn authenticate_code() -> Subscription<Event> {
-        subscription::channel("code-authenticator", 100, |mut output| async move {
+    pub fn authenticate_code() -> impl Stream<Item = Event> {
+        // channel("code-authenticator", 100, |mut output| async move {
+        channel(100, |mut output| async move {
             let mut state = State::Starting;
 
             loop {
@@ -998,7 +996,8 @@ mod trakt_data_import {
 
     use iced::futures::channel::mpsc;
     use iced::futures::sink::SinkExt;
-    use iced::subscription::{self, Subscription};
+    use iced::futures::Stream;
+    use iced::stream::channel;
 
     #[derive(Debug, Clone)]
     pub enum Event {
@@ -1026,8 +1025,9 @@ mod trakt_data_import {
         Ready(mpsc::Receiver<Input>),
     }
 
-    pub fn import_trakt_data() -> Subscription<Event> {
-        subscription::channel("trakt-data-import", 100, |mut output| async move {
+    pub fn import_trakt_data() -> impl Stream<Item = Event> {
+        // let stream = channel("trakt-data-import", 100, |mut output| async move {
+        channel(100, |mut output| async move {
             let mut state = State::Starting;
 
             loop {

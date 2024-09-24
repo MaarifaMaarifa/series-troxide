@@ -1,4 +1,4 @@
-use iced::widget::{column, container, row, scrollable, text, Row, Space};
+use iced::widget::{center, column, container, row, scrollable, text, Row, Space};
 use iced::{Alignment, Element, Length};
 use iced_aw::{Grid, GridRow};
 
@@ -16,29 +16,29 @@ pub fn watch_count() -> Element<'static, Message> {
     let episodes_count = column![
         text(episodes_total_number)
             .size(31)
-            .style(styles::text_styles::accent_color_theme()),
+            .style(styles::text_styles::accent_color_theme),
         text("Episodes").size(11),
     ]
-    .align_items(Alignment::Center);
+    .align_x(Alignment::Center);
 
     let series_seasons_count = row![
         column![
             text(series_total_number)
                 .size(31)
-                .style(styles::text_styles::accent_color_theme()),
+                .style(styles::text_styles::accent_color_theme),
             text("Series").size(11)
         ]
-        .align_items(Alignment::Center),
+        .align_x(Alignment::Center),
         Space::with_width(10),
         column![
             text(seasons_total_number)
                 .size(31)
-                .style(styles::text_styles::accent_color_theme()),
+                .style(styles::text_styles::accent_color_theme),
             text("Seasons").size(11)
         ]
-        .align_items(Alignment::Center)
+        .align_x(Alignment::Center)
     ]
-    .align_items(Alignment::Center);
+    .align_y(Alignment::Center);
 
     let content = column![
         text("You've seen a total of"),
@@ -46,16 +46,12 @@ pub fn watch_count() -> Element<'static, Message> {
         text("In exactly"),
         series_seasons_count,
     ]
-    .align_items(Alignment::Center)
+    .align_x(Alignment::Center)
     .spacing(5);
 
-    container(content)
-        .width(Length::Fill)
-        .height(Length::Fill)
+    center(content)
         .padding(10)
-        .center_x()
-        .center_y()
-        .style(styles::container_styles::first_class_container_rounded_theme())
+        .style(styles::container_styles::first_class_container_rounded_theme)
         .into()
 }
 
@@ -69,11 +65,11 @@ pub fn time_count(
 
     let total_minutes_count = column![
         text(total_average_minutes)
-            .style(styles::text_styles::accent_color_theme())
+            .style(styles::text_styles::accent_color_theme)
             .size(31),
         text("Minutes").size(11)
     ]
-    .align_items(Alignment::Center);
+    .align_x(Alignment::Center);
 
     let times = helpers::time::NaiveTime::new(total_average_minutes).as_parts();
 
@@ -86,21 +82,21 @@ pub fn time_count(
                 column![
                     text(time_value)
                         .size(31)
-                        .style(styles::text_styles::accent_color_theme()),
+                        .style(styles::text_styles::accent_color_theme),
                     text(time_text).size(11)
                 ]
-                .align_items(Alignment::Center)
+                .align_x(Alignment::Center)
                 .into()
             })
             .collect();
 
         let time_row = Row::with_children(time_values)
-            .align_items(Alignment::Center)
+            .align_y(Alignment::Center)
             .spacing(10);
 
         column![text("Which is exactly"), time_row]
             .spacing(5)
-            .align_items(Alignment::Center)
+            .align_x(Alignment::Center)
             .into()
     };
 
@@ -109,16 +105,12 @@ pub fn time_count(
         total_minutes_count,
         complete_time_count,
     ]
-    .align_items(Alignment::Center)
+    .align_x(Alignment::Center)
     .spacing(5);
 
-    container(content)
-        .width(Length::Fill)
-        .height(Length::Fill)
+    center(content)
         .padding(10)
-        .center_x()
-        .center_y()
-        .style(styles::container_styles::first_class_container_rounded_theme())
+        .style(styles::container_styles::first_class_container_rounded_theme)
         .into()
 }
 
@@ -150,15 +142,13 @@ pub fn genre_stats(series_infos: Vec<&SeriesMainInformation>) -> Element<'_, Mes
     for (genre, count) in genre_count.into_iter() {
         content = content.push(
             GridRow::new()
-                .push(
-                    text(format!("{}    ", genre)).style(styles::text_styles::accent_color_theme()),
-                )
+                .push(text(format!("{}    ", genre)).style(styles::text_styles::accent_color_theme))
                 .push(text(format!("{} series", count))),
         );
     }
 
     let content = column![text("Genre Stats"), content]
-        .align_items(Alignment::Center)
+        .align_x(Alignment::Center)
         .spacing(10)
         .width(Length::Fill)
         .padding(10);
@@ -171,7 +161,7 @@ pub fn genre_stats(series_infos: Vec<&SeriesMainInformation>) -> Element<'_, Mes
         .width(Length::Fill)
         .height(Length::Fill)
         .padding(5)
-        .style(styles::container_styles::first_class_container_rounded_theme())
+        .style(styles::container_styles::first_class_container_rounded_theme)
         .into()
 }
 
@@ -179,7 +169,7 @@ pub mod series_banner {
     use std::sync::mpsc;
 
     use iced::widget::{column, container, image, mouse_area, row, text, Row};
-    use iced::{Alignment, Command, Element, Length};
+    use iced::{Alignment, Element, Length, Task};
 
     use crate::core::{api::tv_maze::series_information::SeriesMainInformation, database};
     pub use crate::gui::message::IndexedMessage;
@@ -204,7 +194,7 @@ pub mod series_banner {
             series_info: std::borrow::Cow<'a, SeriesMainInformation>,
             watch_time: Option<u32>,
             series_page_sender: mpsc::Sender<SeriesMainInformation>,
-        ) -> (Self, Command<IndexedMessage<usize, Message>>) {
+        ) -> (Self, Task<IndexedMessage<usize, Message>>) {
             let (poster, poster_command) = GenericPoster::new(series_info, series_page_sender);
             (
                 Self {
@@ -251,41 +241,41 @@ pub mod series_banner {
                     column![
                         text(time_value)
                             .size(20)
-                            .style(styles::text_styles::accent_color_theme()),
+                            .style(styles::text_styles::accent_color_theme),
                         text(time_text).size(11)
                     ]
-                    .align_items(Alignment::Center)
+                    .align_x(Alignment::Center)
                     .spacing(5)
                     .into()
                 }))
-                .align_items(Alignment::Center)
+                .align_y(Alignment::Center)
                 .spacing(5);
 
             let count_stats = row![
                 column![
                     text(seasons)
                         .size(20)
-                        .style(styles::text_styles::accent_color_theme()),
+                        .style(styles::text_styles::accent_color_theme),
                     text("Seasons").size(11)
                 ]
-                .align_items(Alignment::Center),
+                .align_x(Alignment::Center),
                 column![
                     text(episodes)
                         .size(20)
-                        .style(styles::text_styles::accent_color_theme()),
+                        .style(styles::text_styles::accent_color_theme),
                     text("episodes").size(11)
                 ]
-                .align_items(Alignment::Center),
+                .align_x(Alignment::Center),
             ]
-            .align_items(Alignment::Center)
+            .align_y(Alignment::Center)
             .spacing(5);
 
             let metadata = column![count_stats, time_stats]
-                .align_items(Alignment::Center)
+                .align_x(Alignment::Center)
                 .spacing(5);
 
             let banner: Element<'_, Message> = if let Some(image_bytes) = self.poster.get_image() {
-                let image_handle = image::Handle::from_memory(image_bytes.clone());
+                let image_handle = image::Handle::from_bytes(image_bytes.clone());
                 image(image_handle).height(100).into()
             } else {
                 helpers::empty_image::empty_image()
@@ -296,20 +286,19 @@ pub mod series_banner {
 
             let content = column![text(series_name), metadata]
                 .spacing(5)
-                .align_items(Alignment::Center);
+                .align_x(Alignment::Center);
 
-            let content = row![banner, container(content).center_x().width(Length::Fill)]
+            let content = row![banner, container(content).center_x(Length::Fill)]
                 .spacing(5)
                 .padding(5)
                 .width(Length::Fill);
 
             let element: Element<'_, Message> = mouse_area(
                 container(content)
-                    .width(300)
-                    .style(styles::container_styles::first_class_container_rounded_theme())
+                    .style(styles::container_styles::first_class_container_rounded_theme)
                     .padding(10)
-                    .center_x()
-                    .center_y(),
+                    .center_x(300)
+                    .center_y(Length::Shrink),
             )
             .on_press(Message::Selected)
             .into();

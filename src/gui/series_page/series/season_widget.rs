@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use iced::widget::{column, container, text, Column};
-use iced::{Alignment, Command, Element, Length};
+use iced::{Alignment, Element, Length, Task};
 use iced_aw::Spinner;
 
 use crate::core::api::tv_maze::episodes_information::Episode;
@@ -24,7 +24,7 @@ pub struct Seasons {
 }
 
 impl Seasons {
-    pub fn new(series_id: u32, series_name: String) -> (Self, Command<Message>) {
+    pub fn new(series_id: u32, series_name: String) -> (Self, Task<Message>) {
         (
             Self {
                 series_name,
@@ -32,7 +32,7 @@ impl Seasons {
                 episode_list: None,
                 seasons: vec![],
             },
-            Command::perform(
+            Task::perform(
                 async move {
                     EpisodeList::new(series_id)
                         .await
@@ -49,7 +49,7 @@ impl Seasons {
             .and_then(|episode_list| episode_list.get_next_episode_to_air())
     }
 
-    pub fn update(&mut self, message: Message) -> Command<Message> {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Season(message) => self.seasons[message.index()]
                 .update(message)
@@ -75,24 +75,20 @@ impl Seasons {
                     })
                     .collect();
 
-                Command::none()
+                Task::none()
             }
         }
     }
 
     pub fn view(&self) -> Element<'_, Message> {
         let seasons_body = column![text("Seasons").size(21)]
-            .align_items(Alignment::Center)
+            .align_x(Alignment::Center)
             .spacing(10);
 
         let content = if self.episode_list.is_none() {
-            container(seasons_body.push(Spinner::new()))
-                .width(700)
-                .center_x()
+            container(seasons_body.push(Spinner::new())).center_x(700)
         } else if self.seasons.is_empty() {
-            container(seasons_body.push(text("No seasons found")))
-                .width(700)
-                .center_x()
+            container(seasons_body.push(text("No seasons found"))).center_x(700)
         } else {
             container(
                 seasons_body.push(
@@ -103,18 +99,17 @@ impl Seasons {
                     )
                     .padding(5)
                     .spacing(5)
-                    .align_items(Alignment::Center),
+                    .align_x(Alignment::Center),
                 ),
             )
         }
         .padding(10)
-        .style(styles::container_styles::first_class_container_rounded_theme());
+        .style(styles::container_styles::first_class_container_rounded_theme);
 
         container(content)
-            .width(Length::Fill)
             .padding(10)
-            .center_x()
-            .center_y()
+            .center_x(Length::Fill)
+            .center_y(Length::Shrink)
             .into()
     }
 }
@@ -123,7 +118,7 @@ mod season {
     use std::rc::Rc;
 
     use iced::widget::{button, checkbox, column, container, progress_bar, row, svg, text, Column};
-    use iced::{Alignment, Command, Element, Length};
+    use iced::{Alignment, Element, Length, Task};
     use iced_aw::Spinner;
 
     use crate::core::api::tv_maze::episodes_information::Episode as EpisodeInfo;
@@ -140,7 +135,7 @@ mod season {
     #[derive(Clone, Debug)]
     pub enum Message {
         CheckboxPressed,
-        TrackCommandComplete(AddResult),
+        TrackTaskComplete(AddResult),
         Expand,
         Episode(IndexedMessage<usize, EpisodeMessage>),
     }
@@ -180,7 +175,7 @@ mod season {
         pub fn update(
             &mut self,
             message: IndexedMessage<usize, Message>,
-        ) -> Command<IndexedMessage<usize, Message>> {
+        ) -> Task<IndexedMessage<usize, Message>> {
             match message.message() {
                 Message::CheckboxPressed => {
                     let series_id = self.series_id;
@@ -189,7 +184,7 @@ mod season {
                     let total_episodes = self.total_episodes.get_all_episodes();
                     let index = self.index;
 
-                    return Command::perform(
+                    return Task::perform(
                         async move {
                             if let Some(mut series) = database::DB.get_series(series_id) {
                                 series
@@ -202,7 +197,7 @@ mod season {
                                     .await
                             }
                         },
-                        Message::TrackCommandComplete,
+                        Message::TrackTaskComplete,
                     )
                     .map(move |message| IndexedMessage::new(index, message));
                 }
@@ -212,7 +207,7 @@ mod season {
                     // preventing reloading episodes when already loaded
                     // when expanding and shrinking the season widget multiple times
                     if !self.episodes.is_empty() {
-                        return Command::none();
+                        return Task::none();
                     }
 
                     let episode_infos: Vec<EpisodeInfo> = self
@@ -222,7 +217,7 @@ mod season {
                         .cloned()
                         .collect();
 
-                    let epis: Vec<(Episode, Command<IndexedMessage<usize, EpisodeMessage>>)> =
+                    let epis: Vec<(Episode, Task<IndexedMessage<usize, EpisodeMessage>>)> =
                         episode_infos
                             .into_iter()
                             .enumerate()
@@ -240,7 +235,7 @@ mod season {
                     }
 
                     self.episodes = episodes;
-                    return Command::batch(commands)
+                    return Task::batch(commands)
                         .map(Message::Episode)
                         .map(move |message| IndexedMessage::new(index, message));
                 }
@@ -251,7 +246,7 @@ mod season {
                         .map(Message::Episode)
                         .map(move |message| IndexedMessage::new(season_index, message));
                 }
-                Message::TrackCommandComplete(add_result) => {
+                Message::TrackTaskComplete(add_result) => {
                     if let AddResult::None = add_result {
                         if let Some(mut series) = database::DB.get_series(self.series_id) {
                             series.remove_season(self.season_number);
@@ -259,7 +254,7 @@ mod season {
                     }
                 }
             }
-            Command::none()
+            Task::none()
         }
 
         pub fn view(&self) -> Element<'_, IndexedMessage<usize, Message>> {
@@ -300,18 +295,18 @@ mod season {
                 let svg_handle = svg::Handle::from_memory(CHEVRON_UP);
                 let up_icon = svg(svg_handle)
                     .width(Length::Shrink)
-                    .style(styles::svg_styles::colored_svg_theme());
+                    .style(styles::svg_styles::colored_svg_theme);
                 button(up_icon)
                     .on_press(Message::Expand)
-                    .style(styles::button_styles::transparent_button_theme())
+                    .style(styles::button_styles::transparent_button_theme)
             } else {
                 let svg_handle = svg::Handle::from_memory(CHEVRON_DOWN);
                 let down_icon = svg(svg_handle)
                     .width(Length::Shrink)
-                    .style(styles::svg_styles::colored_svg_theme());
+                    .style(styles::svg_styles::colored_svg_theme);
                 button(down_icon)
                     .on_press(Message::Expand)
-                    .style(styles::button_styles::transparent_button_theme())
+                    .style(styles::button_styles::transparent_button_theme)
             };
 
             let content = row![
@@ -321,7 +316,7 @@ mod season {
                 episodes_progress,
                 expand_button,
             ]
-            .align_items(Alignment::Center)
+            .align_y(Alignment::Center)
             .spacing(5);
 
             let mut content = column!(content);

@@ -7,10 +7,10 @@ use full_schedule::{FullSchedulePosters, Message as FullSchedulePostersMessage};
 use searching::Message as SearchMessage;
 
 use iced::widget::scrollable::{RelativeOffset, Viewport};
-use iced::widget::{column, container, scrollable, Space};
-use iced::{Command, Element, Length};
+use iced::widget::{center, column, container, scrollable, stack, Space};
+use iced::{Element, Length, Task};
 
-use iced_aw::{floating_element, Spinner};
+use iced_aw::Spinner;
 
 use super::Tab;
 
@@ -32,9 +32,7 @@ pub struct DiscoverTab<'a> {
 }
 
 impl<'a> DiscoverTab<'a> {
-    pub fn new(
-        series_page_sender: mpsc::Sender<SeriesMainInformation>,
-    ) -> (Self, Command<Message>) {
+    pub fn new(series_page_sender: mpsc::Sender<SeriesMainInformation>) -> (Self, Task<Message>) {
         let (full_schedule_series, full_schedule_command) =
             FullSchedulePosters::new(series_page_sender.clone());
 
@@ -48,7 +46,7 @@ impl<'a> DiscoverTab<'a> {
         )
     }
 
-    pub fn refresh(&mut self) -> Command<Message> {
+    pub fn refresh(&mut self) -> Task<Message> {
         self.full_schedule_series
             .refresh_daily_local_series()
             .map(Message::FullSchedulePosters)
@@ -69,7 +67,7 @@ impl<'a> DiscoverTab<'a> {
         ])
     }
 
-    pub fn update(&mut self, message: Message) -> Command<Message> {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Reload => self
                 .full_schedule_series
@@ -82,7 +80,7 @@ impl<'a> DiscoverTab<'a> {
                 .map(Message::FullSchedulePosters),
             Message::PageScrolled(view_port) => {
                 self.scrollable_offset = view_port.relative_offset();
-                Command::none()
+                Task::none()
             }
         }
     }
@@ -97,12 +95,7 @@ impl<'a> DiscoverTab<'a> {
                     .width(Length::Fill)
                     .into()
             } else {
-                container(Spinner::new())
-                    .width(Length::Fill)
-                    .height(Length::Fill)
-                    .center_x()
-                    .center_y()
-                    .into()
+                center(Spinner::new()).into()
             };
 
         let overlay = self
@@ -112,8 +105,9 @@ impl<'a> DiscoverTab<'a> {
             .map(|element| element.map(Message::Search))
             .unwrap_or(Space::new(0, 0).into());
 
-        let content = floating_element::FloatingElement::new(underlay, overlay)
-            .anchor(floating_element::Anchor::North);
+        let overlay = container(overlay).center_x(Length::Fill);
+
+        let content = stack([underlay, overlay.into()]);
 
         column![self.search.view().0.map(Message::Search), content]
             .spacing(2)

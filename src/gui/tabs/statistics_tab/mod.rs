@@ -2,7 +2,7 @@ use std::sync::mpsc;
 
 use iced::widget::scrollable::{RelativeOffset, Viewport};
 use iced::widget::{column, container, row, scrollable};
-use iced::{Command, Element, Length};
+use iced::{Element, Length, Task};
 use iced_aw::Wrap;
 
 use crate::core::{api::tv_maze::series_information::SeriesMainInformation, database};
@@ -39,7 +39,7 @@ impl<'a> StatisticsTab<'a> {
     pub fn new(
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
         scrollable_offset: Option<RelativeOffset>,
-    ) -> (Self, Command<Message>) {
+    ) -> (Self, Task<Message>) {
         (
             Self {
                 series_infos_and_time: vec![],
@@ -49,14 +49,14 @@ impl<'a> StatisticsTab<'a> {
                 matched_id_collection: None,
                 searcher: Searcher::new("Search Statistics".to_owned()),
             },
-            Command::perform(
+            Task::perform(
                 get_series_with_runtime(),
                 Message::SeriesInfosAndTimeReceived,
             ),
         )
     }
 
-    pub fn update(&mut self, message: Message) -> Command<Message> {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::SeriesInfosAndTimeReceived(mut series_infos_and_time) => {
                 self.series_infos_and_time
@@ -79,21 +79,21 @@ impl<'a> StatisticsTab<'a> {
                     banners_commands.push(banner_command);
                 }
                 self.series_banners = banners;
-                Command::batch(banners_commands).map(Message::SeriesBanner)
+                Task::batch(banners_commands).map(Message::SeriesBanner)
             }
             Message::SeriesBanner(message) => {
                 self.series_banners[message.index()].update(message);
-                Command::none()
+                Task::none()
             }
             Message::PageScrolled(view_port) => {
                 self.scrollable_offset = view_port.relative_offset();
-                Command::none()
+                Task::none()
             }
             Message::Searcher(message) => {
                 self.searcher.update(message);
                 let current_search_term = self.searcher.current_search_term().to_owned();
                 self.update_matches(&current_search_term);
-                Command::none()
+                Task::none()
             }
         }
     }
@@ -121,16 +121,11 @@ impl<'a> StatisticsTab<'a> {
                     .spacing(5.0)
                     .line_spacing(5.0);
 
-                scrollable(
-                    container(series_list)
-                        .padding(10)
-                        .width(Length::Fill)
-                        .center_x(),
-                )
-                .id(Self::scrollable_id())
-                .on_scroll(Message::PageScrolled)
-                .direction(styles::scrollable_styles::vertical_direction())
-                .into()
+                scrollable(container(series_list).padding(10).center_x(Length::Fill))
+                    .id(Self::scrollable_id())
+                    .on_scroll(Message::PageScrolled)
+                    .direction(styles::scrollable_styles::vertical_direction())
+                    .into()
             }
         };
 

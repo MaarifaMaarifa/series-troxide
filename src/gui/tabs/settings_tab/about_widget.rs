@@ -5,9 +5,10 @@ use crate::gui::styles;
 
 use iced::font::Weight;
 use iced::widget::{
-    button, column, container, horizontal_rule, horizontal_space, mouse_area, row, svg, text, Space,
+    button, column, container, horizontal_rule, horizontal_space, mouse_area, row, svg, text,
+    Space, Text,
 };
-use iced::{Command, Element, Font, Length};
+use iced::{Element, Font, Length, Task};
 use iced_aw::{Grid, GridRow};
 use tracing::error;
 
@@ -28,7 +29,7 @@ pub struct About {
 }
 
 impl About {
-    pub fn new() -> (Self, Command<Message>) {
+    pub fn new() -> (Self, Task<Message>) {
         (
             Self {
                 crate_information: None,
@@ -36,7 +37,7 @@ impl About {
             Self::check_update(),
         )
     }
-    pub fn update(&mut self, message: Message) -> Command<Message> {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Repository => {
                 webbrowser::open(built_info::PKG_REPOSITORY)
@@ -70,7 +71,7 @@ impl About {
                             info_result.package.newest_version()
                         );
 
-                        Command::perform(
+                        Task::perform(
                             async move {
                                 use crate::core::notifications::platform_notify;
                                 // For some reasons, async version of notify-rust = "4.9.0" does not work on macos
@@ -96,10 +97,10 @@ impl About {
                             |_| Message::NotificationSent,
                         )
                     } else {
-                        Command::none()
+                        Task::none()
                     }
                 } else {
-                    Command::none()
+                    Task::none()
                 };
                 self.crate_information = Some(info_result);
                 return command;
@@ -115,13 +116,13 @@ impl About {
             Message::NotificationSent => {}
         };
 
-        Command::none()
+        Task::none()
     }
 
     pub fn view(&self) -> Element<'_, Message> {
         let content = column![
             text("About")
-                .style(styles::text_styles::accent_color_theme())
+                .style(styles::text_styles::accent_color_theme)
                 .size(21),
             update_widget(self),
             info_widget(),
@@ -134,20 +135,20 @@ impl About {
         .spacing(10);
 
         container(content)
-            .style(styles::container_styles::first_class_container_rounded_theme())
+            .style(styles::container_styles::first_class_container_rounded_theme)
             .width(1000)
             .padding(5)
             .into()
     }
 
-    fn check_update() -> Command<Message> {
-        Command::perform(get_program_info(), |result| {
+    fn check_update() -> Task<Message> {
+        Task::perform(get_program_info(), |result| {
             Message::CrateInfoLoaded(result.map_err(|err| err.to_string()))
         })
     }
 }
 
-fn update_widget(about: &About) -> Element<'static, Message> {
+fn update_widget(about: &About) -> Element<Message> {
     let series_troxide_icon_handle = svg::Handle::from_memory(SERIES_TROXIDE_ICON);
     let icon = svg(series_troxide_icon_handle).width(40);
     let program_info = column![
@@ -157,39 +158,42 @@ fn update_widget(about: &About) -> Element<'static, Message> {
                 ..Default::default()
             })
             .size(18)
-            .style(styles::text_styles::accent_color_theme()),
+            .style(styles::text_styles::accent_color_theme),
         text(built_info::PKG_DESCRIPTION),
     ];
 
     let program_main_info = row![icon, program_info].spacing(5);
 
-    let latest_version_and_container_style: (&str, iced::theme::Container, Option<bool>) =
-        match &about.crate_information {
-            Some(crate_info_result) => match crate_info_result {
-                Ok(crate_info) => {
-                    let container_style = if crate_info.package.is_up_to_date() {
-                        styles::container_styles::success_container_theme()
-                    } else {
-                        styles::container_styles::failure_container_theme()
-                    };
-                    (
-                        crate_info.package.newest_version(),
-                        container_style,
-                        Some(crate_info.package.is_up_to_date()),
-                    )
-                }
-                Err(_) => (
-                    "unavailable",
-                    styles::container_styles::failure_container_theme(),
-                    None,
-                ),
-            },
-            None => (
-                "loading...",
-                styles::container_styles::loading_container_theme(),
+    let latest_version_and_container_style: (
+        &str,
+        fn(&iced::Theme) -> iced::widget::container::Style,
+        Option<bool>,
+    ) = match &about.crate_information {
+        Some(crate_info_result) => match crate_info_result {
+            Ok(crate_info) => {
+                let container_style = if crate_info.package.is_up_to_date() {
+                    styles::container_styles::success_container_theme
+                } else {
+                    styles::container_styles::failure_container_theme
+                };
+                (
+                    crate_info.package.newest_version(),
+                    container_style,
+                    Some(crate_info.package.is_up_to_date()),
+                )
+            }
+            Err(_) => (
+                "unavailable",
+                styles::container_styles::failure_container_theme,
                 None,
             ),
-        };
+        },
+        None => (
+            "loading...",
+            styles::container_styles::loading_container_theme,
+            None,
+        ),
+    };
 
     let update_status: Element<'_, Message> =
         if let Some(is_up_to_date) = latest_version_and_container_style.2 {
@@ -209,23 +213,23 @@ fn update_widget(about: &About) -> Element<'static, Message> {
 
     let refresh_icon_handle = svg::Handle::from_memory(ARROW_REPEAT);
     let refresh_icon = svg(refresh_icon_handle)
-        .style(styles::svg_styles::colored_svg_theme())
+        .style(styles::svg_styles::colored_svg_theme)
         .width(20)
         .height(20);
 
     let refresh_button = button(refresh_icon)
-        .style(styles::button_styles::transparent_button_theme())
+        .style(styles::button_styles::transparent_button_theme)
         .on_press(Message::RecheckUpdate);
 
     let version_information = container(row![
         column![
             update_status,
             row![
-                text("Latest version: ").style(styles::text_styles::accent_color_theme()),
+                text("Latest version: ").style(styles::text_styles::accent_color_theme),
                 text(latest_version_and_container_style.0)
             ],
             row![
-                text("Program version: ").style(styles::text_styles::accent_color_theme()),
+                text("Program version: ").style(styles::text_styles::accent_color_theme),
                 text(env!("CARGO_PKG_VERSION"))
             ],
         ],
@@ -256,10 +260,9 @@ fn info_widget() -> Element<'static, Message> {
             .push(text(built_info::PKG_LICENSE)),
     );
 
-    let repository = mouse_area(
-        text(built_info::PKG_REPOSITORY).style(styles::text_styles::accent_color_theme()),
-    )
-    .on_press(Message::Repository);
+    let repository =
+        mouse_area(text(built_info::PKG_REPOSITORY).style(styles::text_styles::accent_color_theme))
+            .on_press(Message::Repository);
 
     grid = grid.push(GridRow::new().push(text("Repository")).push(repository));
 
@@ -289,44 +292,43 @@ fn info_widget() -> Element<'static, Message> {
 fn social_buttons() -> Element<'static, Message> {
     let coffee_icon_handle = svg::Handle::from_memory(CUP_HOT_FILL);
     let coffee_icon = svg(coffee_icon_handle)
-        .style(styles::svg_styles::colored_svg_theme())
+        .style(styles::svg_styles::colored_svg_theme)
         .height(30)
         .width(30);
     let coffee_button = button(coffee_icon)
-        .style(styles::button_styles::transparent_button_theme())
+        .style(styles::button_styles::transparent_button_theme)
         .on_press(Message::Coffee);
 
     let github_icon_handle = svg::Handle::from_memory(GITHUB_ICON);
     let github_icon = svg(github_icon_handle)
-        .style(styles::svg_styles::colored_svg_theme())
+        .style(styles::svg_styles::colored_svg_theme)
         .height(30)
         .width(30);
     let github_button = button(github_icon)
-        .style(styles::button_styles::transparent_button_theme())
+        .style(styles::button_styles::transparent_button_theme)
         .on_press(Message::Repository);
 
     let social_buttons = row![coffee_button, github_button].spacing(5);
 
     container(social_buttons)
-        .width(Length::Fill)
-        .center_x()
-        .center_y()
+        .center_x(Length::Fill)
+        .center_y(Length::Shrink)
         .into()
 }
 
 fn credit_widget() -> Element<'static, Message> {
     let go_to_site_text = text("here")
         .size(11)
-        .style(styles::text_styles::accent_color_theme());
+        .style(styles::text_styles::accent_color_theme);
 
     let tv_maze = row![
         text("- The API used has been provided by TVmaze, you can check out the site ").size(11),
-        mouse_area(go_to_site_text.clone()).on_press(Message::TvMaze)
+        mouse_area(here_text()).on_press(Message::TvMaze)
     ];
     let bootstrap_icons = row![
         text("- The Icons used have been provided by bootstrap icons, you can check out the site ")
             .size(11),
-        mouse_area(go_to_site_text.clone()).on_press(Message::BootstrapIcons)
+        mouse_area(here_text()).on_press(Message::BootstrapIcons)
     ];
     let iced =
         row![
@@ -335,6 +337,13 @@ fn credit_widget() -> Element<'static, Message> {
         mouse_area(go_to_site_text).on_press(Message::Iced)
     ];
     column![tv_maze, bootstrap_icons, iced].into()
+}
+
+#[inline]
+fn here_text() -> Text<'static> {
+    text("here")
+        .size(11)
+        .style(styles::text_styles::accent_color_theme)
 }
 
 mod built_info {

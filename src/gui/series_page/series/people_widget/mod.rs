@@ -1,6 +1,6 @@
 use iced::widget::{column, container, text, toggler};
 
-use iced::{Command, Element, Length};
+use iced::{Element, Length, Task};
 
 use cast_widget::{CastWidget, Message as CastWidgetMessage};
 use crew_widget::{CrewWidget, Message as CrewWidgetMessage};
@@ -42,7 +42,7 @@ pub struct PeopleWidget {
 }
 
 impl PeopleWidget {
-    pub fn new(series_id: u32) -> (Self, Command<Message>) {
+    pub fn new(series_id: u32) -> (Self, Task<Message>) {
         let (cast_widget, cast_widget_command) = CastWidget::new(series_id);
         (
             Self {
@@ -56,14 +56,14 @@ impl PeopleWidget {
         )
     }
 
-    fn fetch_crew(&mut self) -> Command<Message> {
+    fn fetch_crew(&mut self) -> Task<Message> {
         let (crew_widget, crew_widget_command) = CrewWidget::new(self.series_id);
         self.crew_widget = Some(crew_widget);
 
         crew_widget_command.map(Message::CrewWidget)
     }
 
-    pub fn update(&mut self, message: Message) -> Command<Message> {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::CastWidget(message) => {
                 self.cast_widget.update(message).map(Message::CastWidget)
@@ -72,7 +72,7 @@ impl PeopleWidget {
                 if let Some(ref mut crew_widget) = self.crew_widget {
                     crew_widget.update(message).map(Message::CrewWidget)
                 } else {
-                    Command::none()
+                    Task::none()
                 }
             }
             Message::PeopleToggled(toggled) => {
@@ -80,14 +80,14 @@ impl PeopleWidget {
                 match self.current_people {
                     People::Crew => {
                         self.current_people = People::Cast;
-                        Command::none()
+                        Task::none()
                     }
                     People::Cast => {
                         self.current_people = People::Crew;
                         if self.crew_widget.is_none() {
                             self.fetch_crew()
                         } else {
-                            Command::none()
+                            Task::none()
                         }
                     }
                 }
@@ -109,15 +109,13 @@ impl PeopleWidget {
                 .map(|view| view.map(Message::CrewWidget)),
         };
 
-        let people_toggler = toggler(
-            Some(self.current_people.to_string()),
-            self.toggled,
-            Message::PeopleToggled,
-        )
-        .spacing(5)
-        .text_size(21)
-        .style(styles::toggler_styles::always_colored_toggler_theme())
-        .width(Length::Shrink);
+        let people_toggler = toggler(self.toggled)
+            .label(self.current_people.to_string())
+            .on_toggle(Message::PeopleToggled)
+            .spacing(5)
+            .text_size(21)
+            .style(styles::toggler_styles::always_colored_toggler_theme)
+            .width(Length::Shrink);
 
         column![
             people_toggler,
@@ -129,10 +127,8 @@ impl PeopleWidget {
 
     fn people_not_found(&self) -> Element<'_, Message> {
         container(text(format!("No {} Found!", self.current_people)))
-            .center_x()
-            .center_y()
-            .width(Length::Fill)
-            .height(100)
+            .center_x(Length::Fill)
+            .center_y(100)
             .into()
     }
 }

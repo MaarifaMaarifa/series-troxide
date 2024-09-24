@@ -1,7 +1,7 @@
 use std::sync::mpsc;
 
 use iced::widget::{column, container, scrollable, text, text_input, Column, Space};
-use iced::{Command, Element, Length};
+use iced::{Element, Length, Task};
 use iced_aw::Spinner;
 use search_result::{IndexedMessage, Message as SearchResultMessage, SearchResult};
 
@@ -57,12 +57,12 @@ impl Search {
         })
     }
 
-    pub fn update(&mut self, message: Message) -> Command<Message> {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::TermChanged(term) => {
                 self.search_term = term;
                 self.load_state = LoadState::NotLoaded;
-                Command::none()
+                Task::none()
             }
             Message::TermSearched => {
                 if self.search_term == self.searched_term {
@@ -74,14 +74,14 @@ impl Search {
                     {
                         self.load_state = LoadState::Loaded;
                     }
-                    Command::none()
+                    Task::none()
                 } else {
                     self.load_state = LoadState::Loading;
                     self.searched_term.clone_from(&self.search_term);
 
                     let series_result = series_searching::search_series(self.search_term.clone());
 
-                    Command::perform(series_result, |res| {
+                    Task::perform(series_result, |res| {
                         Message::SearchResultsReceived(res.map_err(|err| err.to_string()))
                     })
                 }
@@ -102,11 +102,11 @@ impl Search {
                                 .push(search_result_command.map(Message::SearchResult));
                         }
                         self.search_results = Ok(search_results);
-                        Command::batch(search_results_commands)
+                        Task::batch(search_results_commands)
                     }
                     Err(err) => {
                         self.search_results = Err(err);
-                        Command::none()
+                        Task::none()
                     }
                 }
             }
@@ -117,11 +117,11 @@ impl Search {
                     }
                     search_results[message.index()].update(message);
                 }
-                Command::none()
+                Task::none()
             }
             Message::EscapeKeyPressed => {
                 self.load_state = LoadState::NotLoaded;
-                Command::none()
+                Task::none()
             }
         }
     }
@@ -135,7 +135,7 @@ impl Search {
                 .on_submit(Message::TermSearched)
         )
         .width(Length::Fill)
-        .align_items(iced::Alignment::Center);
+        .align_x(iced::Alignment::Center);
 
         let search_results: Option<Element<'_, Message>> = match self.load_state {
             LoadState::Loaded => {
@@ -143,8 +143,7 @@ impl Search {
                     Ok(search_results) => {
                         if search_results.is_empty() {
                             container(text("No results"))
-                                .width(Length::Fill)
-                                .center_x()
+                                .center_x(Length::Fill)
                                 .padding(10)
                                 .into()
                         } else {
@@ -159,20 +158,14 @@ impl Search {
                         }
                     }
                     Err(err) => container(text(err))
-                        .width(Length::Fill)
-                        .center_x()
+                        .center_x(Length::Fill)
                         .padding(10)
                         .into(),
                 };
 
                 Some(results_display)
             }
-            LoadState::Loading => Some(
-                container(Spinner::new())
-                    .width(Length::Fill)
-                    .center_x()
-                    .into(),
-            ),
+            LoadState::Loading => Some(container(Spinner::new()).center_x(Length::Fill).into()),
             LoadState::NotLoaded => None,
         };
 
@@ -184,7 +177,7 @@ impl Search {
             )
             .padding(5)
             .width(500)
-            .style(styles::container_styles::first_class_container_rounded_theme())
+            .style(styles::container_styles::first_class_container_rounded_theme)
             .into()
         });
 
@@ -197,7 +190,7 @@ mod search_result {
 
     use bytes::Bytes;
     use iced::widget::{column, image, mouse_area, row, svg, text, Space};
-    use iced::{Command, Element};
+    use iced::{Element, Task};
 
     use crate::core::api::tv_maze::series_information::SeriesMainInformation;
     use crate::core::api::tv_maze::Rating;
@@ -225,7 +218,7 @@ mod search_result {
             index: usize,
             search_result: series_searching::SeriesSearchResult,
             series_page_sender: mpsc::Sender<SeriesMainInformation>,
-        ) -> (Self, Command<IndexedMessage<usize, Message>>) {
+        ) -> (Self, Task<IndexedMessage<usize, Message>>) {
             let image_url = search_result.show.image.clone();
             (
                 Self {
@@ -236,7 +229,7 @@ mod search_result {
                 },
                 image_url
                     .map(|url| {
-                        Command::perform(
+                        Task::perform(
                             caching::load_image(
                                 url.medium_image_url,
                                 caching::ImageResolution::Medium,
@@ -245,7 +238,7 @@ mod search_result {
                         )
                         .map(move |message| IndexedMessage::new(index, message))
                     })
-                    .unwrap_or(Command::none()),
+                    .unwrap_or(Task::none()),
             )
         }
 
@@ -264,7 +257,7 @@ mod search_result {
             let mut row = row!().spacing(5).padding(5);
 
             if let Some(image_bytes) = self.image.clone() {
-                let image_handle = image::Handle::from_memory(image_bytes);
+                let image_handle = image::Handle::from_bytes(image_bytes);
                 row = row.push(image(image_handle).height(60))
             } else {
                 row = row.push(empty_image::empty_image().height(60).width(43))
@@ -282,7 +275,7 @@ mod search_result {
             let mut column = column![
                 text(&self.search_result.show.name)
                     .size(16)
-                    .style(styles::text_styles::accent_color_theme()),
+                    .style(styles::text_styles::accent_color_theme),
                 genres
             ];
 
@@ -304,7 +297,7 @@ mod search_result {
                 let star_icon = svg(star_handle)
                     .width(12)
                     .height(12)
-                    .style(styles::svg_styles::colored_svg_theme());
+                    .style(styles::svg_styles::colored_svg_theme);
 
                 row![star_icon, text(average_rating).size(11)]
                     .spacing(5)

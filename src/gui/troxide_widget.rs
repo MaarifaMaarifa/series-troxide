@@ -11,13 +11,13 @@ pub mod episode_widget {
     use iced::widget::{
         button, checkbox, column, container, image, row, svg, text, Row, Space, Text,
     };
-    use iced::{Command, Element, Font, Length};
+    use iced::{Element, Font, Length, Task};
 
     #[derive(Clone, Debug)]
     pub enum Message {
         ImageLoaded(Option<Bytes>),
         MarkedWatched(PosterType),
-        TrackCommandComplete(bool),
+        TrackTaskComplete(bool),
     }
 
     #[derive(Clone, Copy, Debug)]
@@ -42,7 +42,7 @@ pub mod episode_widget {
             series_id: u32,
             series_name: String,
             episode_information: EpisodeInfo,
-        ) -> (Self, Command<IndexedMessage<usize, Message>>) {
+        ) -> (Self, Task<IndexedMessage<usize, Message>>) {
             let episode_image = episode_information.image.clone();
             let episode = Self {
                 index,
@@ -54,13 +54,13 @@ pub mod episode_widget {
             };
 
             let command = if let Some(image) = episode_image {
-                Command::perform(
+                Task::perform(
                     caching::load_image(image.medium_image_url, caching::ImageResolution::Medium),
                     Message::ImageLoaded,
                 )
                 .map(move |message| IndexedMessage::new(index, message))
             } else {
-                Command::none()
+                Task::none()
             };
 
             (episode, command)
@@ -73,11 +73,11 @@ pub mod episode_widget {
         pub fn update(
             &mut self,
             message: IndexedMessage<usize, Message>,
-        ) -> Command<IndexedMessage<usize, Message>> {
+        ) -> Task<IndexedMessage<usize, Message>> {
             match message.message() {
                 Message::ImageLoaded(image) => {
                     self.episode_image = image;
-                    Command::none()
+                    Task::none()
                 }
                 Message::MarkedWatched(poster_type) => {
                     let season_number = self.episode_information.season;
@@ -96,9 +96,9 @@ pub mod episode_widget {
                                 series.add_episode_unchecked(season_number, episode_number)
                             }
 
-                            Command::none()
+                            Task::none()
                         }
-                        PosterType::Season => Command::perform(
+                        PosterType::Season => Task::perform(
                             async move {
                                 if let Some(mut series) = database::DB.get_series(series_id) {
                                     series.add_episode(season_number, episode_number).await
@@ -107,12 +107,12 @@ pub mod episode_widget {
                                     series.add_episode(season_number, episode_number).await
                                 }
                             },
-                            Message::TrackCommandComplete,
+                            Message::TrackTaskComplete,
                         )
                         .map(move |message| IndexedMessage::new(episode_index, message)),
                     }
                 }
-                Message::TrackCommandComplete(is_newly_added) => {
+                Message::TrackTaskComplete(is_newly_added) => {
                     if !is_newly_added {
                         if let Some(mut series) = database::DB.get_series(self.series_id) {
                             series.remove_episode(
@@ -121,7 +121,7 @@ pub mod episode_widget {
                             );
                         }
                     }
-                    Command::none()
+                    Task::none()
                 }
             }
         }
@@ -135,7 +135,7 @@ pub mod episode_widget {
             let mut content = row!().padding(5).spacing(5).width(poster_width);
 
             if let Some(image_bytes) = self.episode_image.clone() {
-                let image_handle = image::Handle::from_memory(image_bytes);
+                let image_handle = image::Handle::from_bytes(image_bytes);
                 let image = image(image_handle).height(image_height);
                 content = content.push(image);
             } else {
@@ -159,7 +159,7 @@ pub mod episode_widget {
 
             if let PosterType::Season = poster_type {
                 content =
-                    content.style(styles::container_styles::second_class_container_rounded_theme());
+                    content.style(styles::container_styles::second_class_container_rounded_theme);
             }
 
             let element: Element<'_, Message> = content.into();
@@ -200,9 +200,9 @@ pub mod episode_widget {
                 let icon = svg(tracked_icon_handle)
                     .width(17)
                     .height(17)
-                    .style(styles::svg_styles::colored_svg_theme());
+                    .style(styles::svg_styles::colored_svg_theme);
                 button(icon)
-                    .style(styles::button_styles::transparent_button_theme())
+                    .style(styles::button_styles::transparent_button_theme)
                     .on_press(Message::MarkedWatched(poster_type))
                     .into()
             }
@@ -238,7 +238,7 @@ pub mod episode_widget {
                 weight: Weight::Bold,
                 ..Default::default()
             })
-            .style(styles::text_styles::accent_color_theme())
+            .style(styles::text_styles::accent_color_theme)
             .width(Length::FillPortion(10)),
             mark_watched_widget
         ]
@@ -262,7 +262,7 @@ pub mod series_poster {
     use bytes::Bytes;
     use iced::font::Weight;
     use iced::widget::{button, column, container, image, mouse_area, row, svg, text, Space};
-    use iced::{Command, Element, Font};
+    use iced::{Element, Font, Task};
 
     #[derive(Debug, Clone)]
     pub enum GenericPosterMessage {
@@ -279,7 +279,7 @@ pub mod series_poster {
         pub fn new(
             series_information: Cow<'a, SeriesMainInformation>,
             series_page_sender: mpsc::Sender<SeriesMainInformation>,
-        ) -> (Self, Command<GenericPosterMessage>) {
+        ) -> (Self, Task<GenericPosterMessage>) {
             let image_url = series_information.image.clone();
 
             let poster = Self {
@@ -312,9 +312,9 @@ pub mod series_poster {
             self.image.as_ref()
         }
 
-        fn load_image(image: Option<Image>) -> Command<GenericPosterMessage> {
+        fn load_image(image: Option<Image>) -> Task<GenericPosterMessage> {
             if let Some(image) = image {
-                Command::perform(
+                Task::perform(
                     async move {
                         caching::load_image(
                             image.medium_image_url,
@@ -325,7 +325,7 @@ pub mod series_poster {
                     GenericPosterMessage::ImageLoaded,
                 )
             } else {
-                Command::none()
+                Task::none()
             }
         }
     }
@@ -351,7 +351,7 @@ pub mod series_poster {
             index: usize,
             series_information: Cow<'a, SeriesMainInformation>,
             series_page_sender: mpsc::Sender<SeriesMainInformation>,
-        ) -> (Self, Command<IndexedMessage<usize, Message>>) {
+        ) -> (Self, Task<IndexedMessage<usize, Message>>) {
             let (poster, poster_command) =
                 GenericPoster::new(series_information, series_page_sender);
             let poster = Self {
@@ -376,7 +376,7 @@ pub mod series_poster {
         pub fn update(
             &mut self,
             message: IndexedMessage<usize, Message>,
-        ) -> Command<IndexedMessage<usize, Message>> {
+        ) -> Task<IndexedMessage<usize, Message>> {
             match message.message() {
                 Message::SeriesPosterPressed => {
                     self.poster.open_series_page();
@@ -388,7 +388,7 @@ pub mod series_poster {
                     let series_name = self.poster.get_series_info().name.clone();
                     let premiered_date = self.poster.get_series_info().premiered.clone();
 
-                    return Command::perform(
+                    return Task::perform(
                         async move {
                             let mut hidden_series = HIDDEN_SERIES.write().await;
 
@@ -405,7 +405,7 @@ pub mod series_poster {
                 }
                 Message::Poster(message) => self.poster.update(message),
             }
-            Command::none()
+            Task::none()
         }
 
         pub fn is_hidden(&self) -> bool {
@@ -416,7 +416,7 @@ pub mod series_poster {
             let poster_image: Element<'_, Message> = {
                 let image_height = if self.expanded { 170 } else { 140 };
                 if let Some(image_bytes) = self.poster.get_image() {
-                    let image_handle = image::Handle::from_memory(image_bytes.clone());
+                    let image_handle = image::Handle::from_bytes(image_bytes.clone());
                     image(image_handle).height(image_height).into()
                 } else {
                     helpers::empty_image::empty_image()
@@ -434,7 +434,7 @@ pub mod series_poster {
                             weight: Weight::Bold,
                             ..Default::default()
                         })
-                        .style(styles::text_styles::accent_color_theme()),
+                        .style(styles::text_styles::accent_color_theme),
                     Self::genres_widget(&self.poster.get_series_info().genres),
                     Self::premier_widget(self.poster.get_series_info().premiered.as_deref()),
                     Self::rating_widget(&self.poster.get_series_info().rating),
@@ -456,15 +456,15 @@ pub mod series_poster {
                         .size(11)
                         .width(100)
                         .height(30)
-                        .vertical_alignment(iced::alignment::Vertical::Center)
-                        .horizontal_alignment(iced::alignment::Horizontal::Center),
+                        .align_x(iced::Alignment::Center)
+                        .align_y(iced::Alignment::Center),
                 );
                 content.into()
             };
 
             let content = container(content)
                 .padding(5)
-                .style(styles::container_styles::second_class_container_rounded_theme());
+                .style(styles::container_styles::second_class_container_rounded_theme);
 
             let mut mouse_area = mouse_area(content).on_press(Message::SeriesPosterPressed);
 
@@ -482,7 +482,7 @@ pub mod series_poster {
                 let star_icon = svg(star_handle)
                     .width(15)
                     .height(15)
-                    .style(styles::svg_styles::colored_svg_theme());
+                    .style(styles::svg_styles::colored_svg_theme);
 
                 row![star_icon, text(average_rating).size(11)]
                     .spacing(5)
@@ -513,13 +513,13 @@ pub mod series_poster {
             let icon = svg(tracked_icon_handle)
                 .width(15)
                 .height(15)
-                .style(styles::svg_styles::colored_svg_theme());
+                .style(styles::svg_styles::colored_svg_theme);
 
             let content = row![icon, text("Hide from Discover").size(11)].spacing(5);
 
             button(content)
                 .on_press(Message::Hide)
-                .style(styles::button_styles::transparent_button_with_rounded_border_theme())
+                .style(styles::button_styles::transparent_button_with_rounded_border_theme)
                 .into()
         }
     }
@@ -567,7 +567,7 @@ pub mod title_bar {
                 let svg_handle = svg::Handle::from_memory(tab_label.icon);
                 let icon = svg(svg_handle)
                     .width(Length::Shrink)
-                    .style(styles::svg_styles::colored_svg_theme());
+                    .style(styles::svg_styles::colored_svg_theme);
                 let text_label = text(tab_label.text);
                 let mut tab = container(
                     mouse_area(row![icon, text_label].spacing(5))
@@ -577,7 +577,7 @@ pub mod title_bar {
 
                 // Highlighting the tab if is active
                 if index == self.active_tab {
-                    tab = tab.style(styles::container_styles::second_class_container_square_theme())
+                    tab = tab.style(styles::container_styles::second_class_container_square_theme)
                 };
                 tab.into()
             });
@@ -588,10 +588,10 @@ pub mod title_bar {
                 let back_button_icon_handle = svg::Handle::from_memory(CARET_LEFT_FILL);
                 let icon = svg(back_button_icon_handle)
                     .width(20)
-                    .style(styles::svg_styles::colored_svg_theme());
+                    .style(styles::svg_styles::colored_svg_theme);
                 button(icon)
                     .on_press(Message::BackButtonPressed)
-                    .style(styles::button_styles::transparent_button_theme())
+                    .style(styles::button_styles::transparent_button_theme)
                     .into()
             } else {
                 Space::new(0, 0).into()
@@ -603,7 +603,7 @@ pub mod title_bar {
                 tab_views,
                 horizontal_space()
             ])
-            .style(styles::container_styles::first_class_container_square_theme())
+            .style(styles::container_styles::first_class_container_square_theme)
             .into()
         }
     }

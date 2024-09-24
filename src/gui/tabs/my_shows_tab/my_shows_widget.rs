@@ -1,7 +1,7 @@
 use std::sync::mpsc;
 
 use iced::widget::container;
-use iced::{Command, Element, Length};
+use iced::{Element, Length, Task};
 use iced_aw::{Spinner, Wrap};
 
 use crate::core::api::tv_maze::series_information::SeriesMainInformation;
@@ -36,7 +36,7 @@ pub struct MyShows<'a> {
 impl<'a> MyShows<'a> {
     pub fn new_as_ended_tracked_series(
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
-    ) -> (Self, Command<Message>) {
+    ) -> (Self, Task<Message>) {
         (
             Self {
                 load_state: LoadState::default(),
@@ -44,7 +44,7 @@ impl<'a> MyShows<'a> {
                 series_page_sender,
                 matched_id_collection: None,
             },
-            Command::perform(
+            Task::perform(
                 async {
                     caching::series_list::SeriesList::new()
                         .get_ended_tracked_series_information()
@@ -57,7 +57,7 @@ impl<'a> MyShows<'a> {
 
     pub fn new_as_waiting_release_series(
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
-    ) -> (Self, Command<Message>) {
+    ) -> (Self, Task<Message>) {
         (
             Self {
                 load_state: LoadState::default(),
@@ -65,7 +65,7 @@ impl<'a> MyShows<'a> {
                 series_page_sender,
                 matched_id_collection: None,
             },
-            Command::perform(
+            Task::perform(
                 async {
                     caching::series_list::SeriesList::new()
                         .get_waiting_release_series_information()
@@ -78,7 +78,7 @@ impl<'a> MyShows<'a> {
 
     pub fn new_as_untracked_series(
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
-    ) -> (Self, Command<Message>) {
+    ) -> (Self, Task<Message>) {
         (
             Self {
                 load_state: LoadState::default(),
@@ -86,7 +86,7 @@ impl<'a> MyShows<'a> {
                 series_page_sender,
                 matched_id_collection: None,
             },
-            Command::perform(
+            Task::perform(
                 async {
                     caching::series_list::SeriesList::new()
                         .get_untracked_series_information()
@@ -97,7 +97,7 @@ impl<'a> MyShows<'a> {
         )
     }
 
-    pub fn update(&mut self, message: Message) -> Command<Message> {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::SeriesInformationReceived(series_infos) => {
                 self.load_state = LoadState::Loaded;
@@ -119,7 +119,7 @@ impl<'a> MyShows<'a> {
                     series_posters_commands.push(command);
                 }
                 self.series_posters = series_posters;
-                Command::batch(series_posters_commands).map(Message::SeriesPosters)
+                Task::batch(series_posters_commands).map(Message::SeriesPosters)
             }
             Message::SeriesPosters(message) => self.series_posters[message.index()]
                 .update(message)
@@ -130,10 +130,8 @@ impl<'a> MyShows<'a> {
     pub fn view(&self) -> Element<'_, Message> {
         if let LoadState::Loading = self.load_state {
             return container(Spinner::new())
-                .center_x()
-                .center_y()
-                .height(100)
-                .width(Length::Fill)
+                .center_x(Length::Fill)
+                .center_y(100)
                 .into();
         }
         if self.series_posters.is_empty() {
@@ -165,7 +163,7 @@ impl<'a> MyShows<'a> {
 
     fn empty_myshows_posters() -> Element<'static, Message> {
         unavailable_posters("Nothing to show")
-            .style(styles::container_styles::first_class_container_square_theme())
+            .style(styles::container_styles::first_class_container_square_theme)
             .height(200)
             .width(Length::Fill)
             .into()
@@ -173,7 +171,7 @@ impl<'a> MyShows<'a> {
 
     fn no_search_matches() -> Element<'static, Message> {
         unavailable_posters("No matches found!")
-            .style(styles::container_styles::first_class_container_square_theme())
+            .style(styles::container_styles::first_class_container_square_theme)
             .height(200)
             .width(Length::Fill)
             .into()

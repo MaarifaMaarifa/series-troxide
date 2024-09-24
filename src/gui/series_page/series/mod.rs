@@ -15,7 +15,7 @@ use series_suggestion_widget::{Message as SeriesSuggestionMessage, SeriesSuggest
 use iced::widget::scrollable::{Id, RelativeOffset, Viewport};
 use iced::widget::Space;
 use iced::widget::{column, scrollable};
-use iced::{Command, Element};
+use iced::{Element, Task};
 
 mod data_widgets;
 mod people_widget;
@@ -52,7 +52,7 @@ impl<'a> Series<'a> {
     pub fn new(
         series_information: SeriesMainInformation,
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
-    ) -> (Self, Command<Message>) {
+    ) -> (Self, Task<Message>) {
         let series_id = series_information.id;
         let (people_widget, people_widget_command) = PeopleWidget::new(series_id);
         let (seasons, seasons_command) = Seasons::new(series_id, series_information.name.clone());
@@ -81,14 +81,14 @@ impl<'a> Series<'a> {
         let scroller_command = scrollable::snap_to(scroller_id, RelativeOffset::START);
 
         let commands = [
-            Command::batch(load_images(series_image, series_id)),
+            Task::batch(load_images(series_image, series_id)),
             seasons_command.map(Message::Seasons),
             people_widget_command.map(Message::PeopleWidget),
             series_suggestion_widget_command.map(Message::SeriesSuggestion),
             scroller_command,
         ];
 
-        (series, Command::batch(commands))
+        (series, Task::batch(commands))
     }
 
     pub fn get_series_main_information(&self) -> &SeriesMainInformation {
@@ -96,16 +96,16 @@ impl<'a> Series<'a> {
     }
 
     /// Restores the last `RelativeOffset` of the series page scroller.
-    pub fn restore_scroller_relative_offset(&self) -> Command<Message> {
+    pub fn restore_scroller_relative_offset(&self) -> Task<Message> {
         scrollable::snap_to(self.scroller_id.clone(), self.scroll_offset)
     }
 
     /// Sets the `RelativeOffset` of the series page scroller to the start.
-    pub fn set_relative_offset_to_start(&self) -> Command<Message> {
+    pub fn set_relative_offset_to_start(&self) -> Task<Message> {
         scrollable::snap_to(self.scroller_id.clone(), RelativeOffset::START)
     }
 
-    pub fn update(&mut self, message: Message) -> Command<Message> {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::SeriesImageLoaded(image) => {
                 // This blurred series image is going to be used when the background is loading or missing
@@ -161,7 +161,7 @@ impl<'a> Series<'a> {
                     .map(Message::PeopleWidget)
             }
         }
-        Command::none()
+        Task::none()
     }
 
     pub fn view(&self) -> Element<'_, Message> {
@@ -203,9 +203,9 @@ impl<'a> Series<'a> {
 }
 
 /// Returns two commands that requests series' image and seasons list
-fn load_images(series_info_image: Option<Image>, series_id: u32) -> [Command<Message>; 2] {
+fn load_images(series_info_image: Option<Image>, series_id: u32) -> [Task<Message>; 2] {
     let image_command = if let Some(image_url) = series_info_image {
-        Command::perform(
+        Task::perform(
             caching::load_image(
                 image_url.original_image_url,
                 caching::ImageResolution::Original(caching::ImageKind::Poster),
@@ -213,10 +213,10 @@ fn load_images(series_info_image: Option<Image>, series_id: u32) -> [Command<Mes
             Message::SeriesImageLoaded,
         )
     } else {
-        Command::none()
+        Task::none()
     };
 
-    let background_command = Command::perform(
+    let background_command = Task::perform(
         caching::show_images::get_recent_banner(series_id),
         Message::SeriesBackgroundLoaded,
     );

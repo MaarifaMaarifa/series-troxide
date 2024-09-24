@@ -1,5 +1,5 @@
 use iced::widget::{column, combo_box, container, text};
-use iced::{Command, Element};
+use iced::{Element, Task};
 use locale_settings::{get_country_code_from_settings, get_country_name_from_country_code};
 use rust_iso3166::ALL;
 
@@ -30,7 +30,7 @@ impl Discover {
             hidden_series: HiddenSeries,
         }
     }
-    pub fn update(&mut self, message: Message) -> Command<Message> {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::CountrySelected(country_name) => {
                 let country_code =
@@ -44,7 +44,7 @@ impl Discover {
                         .locale
                         .country_code,
                 );
-                Command::none()
+                Task::none()
             }
             Message::HiddenSeries(message) => self
                 .hidden_series
@@ -57,7 +57,7 @@ impl Discover {
         let content = column![
             text("Discover")
                 .size(21)
-                .style(styles::text_styles::accent_color_theme()),
+                .style(styles::text_styles::accent_color_theme),
             self.country_widget(),
             self.hidden_series.view().map(Message::HiddenSeries),
         ]
@@ -65,7 +65,7 @@ impl Discover {
         .spacing(10);
 
         container(content)
-            .style(styles::container_styles::first_class_container_rounded_theme())
+            .style(styles::container_styles::first_class_container_rounded_theme)
             .width(1000)
             .into()
     }
@@ -102,7 +102,7 @@ impl Default for Discover {
 
 mod hidden_series {
     use iced::widget::{button, column, container, row, scrollable, text, Column, Space};
-    use iced::{Command, Element};
+    use iced::{Element, Task};
 
     use crate::{core::posters_hiding::HIDDEN_SERIES, gui::styles};
 
@@ -115,16 +115,16 @@ mod hidden_series {
     pub struct HiddenSeries;
 
     impl HiddenSeries {
-        pub fn update(&mut self, message: Message) -> Command<Message> {
+        pub fn update(&mut self, message: Message) -> Task<Message> {
             match message {
-                Message::UnhideSeries(series_id) => Command::perform(
+                Message::UnhideSeries(series_id) => Task::perform(
                     async move {
                         let mut hidden_series = HIDDEN_SERIES.write().await;
                         hidden_series.unhide_series(series_id).await
                     },
                     |_| Message::SeriesUnhidden,
                 ),
-                Message::SeriesUnhidden => Command::none(),
+                Message::SeriesUnhidden => Task::none(),
             }
         }
 
@@ -158,7 +158,7 @@ mod hidden_series {
             let content = container(content)
                 .padding(5)
                 .max_height(500)
-                .style(styles::container_styles::second_class_container_rounded_theme());
+                .style(styles::container_styles::second_class_container_rounded_theme);
 
             column![text("Hidden Discover Posters").size(18), content]
                 .spacing(5)
@@ -166,10 +166,7 @@ mod hidden_series {
         }
 
         fn empty_posters_widget() -> Element<'static, Message> {
-            container(text("No hidden posters"))
-                .center_x()
-                .width(200)
-                .into()
+            container(text("No hidden posters")).center_x(200).into()
         }
 
         fn series_entry(
@@ -178,11 +175,11 @@ mod hidden_series {
             premier_date: Option<String>,
         ) -> Element<'static, Message> {
             let unhide_button = button(text("unhide").size(11))
-                .style(styles::button_styles::transparent_button_with_rounded_border_theme())
+                .style(styles::button_styles::transparent_button_with_rounded_border_theme)
                 .on_press(Message::UnhideSeries(series_id));
             let premier_date: Element<'_, Message> = if let Some(premier_date) = premier_date {
                 text(format!("({})", premier_date))
-                    .style(styles::text_styles::accent_color_theme())
+                    .style(styles::text_styles::accent_color_theme)
                     .into()
             } else {
                 Space::new(0, 0).into()

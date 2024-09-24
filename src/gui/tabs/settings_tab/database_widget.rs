@@ -1,5 +1,5 @@
 use iced::widget::{button, column, container, horizontal_space, progress_bar, row, text, Space};
-use iced::{Command, Element};
+use iced::{Element, Task};
 
 use crate::core::database::database_transfer::TransferData;
 use crate::core::database::DB;
@@ -44,22 +44,23 @@ impl Database {
     }
     pub fn subscription(&self) -> iced::Subscription<Message> {
         iced::Subscription::batch([
-            full_caching::import_data_cacher().map(Message::ImportCachingEvent),
+            iced::Subscription::run(full_caching::import_data_cacher)
+                .map(Message::ImportCachingEvent),
             self.trakt_widget
                 .subscription()
                 .map(Message::TraktIntegration),
         ])
     }
 
-    pub fn update(&mut self, message: Message) -> Command<Message> {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::ImportDatabasePressed => {
-                Command::perform(database_transfer::import_transfer_data(), |result| {
+                Task::perform(database_transfer::import_transfer_data(), |result| {
                     Message::ImportReceived(result.map_err(|err| err.to_string()))
                 })
             }
             Message::ExportDatabasePressed => {
-                Command::perform(database_transfer::export(), |result| {
+                Task::perform(database_transfer::export(), |result| {
                     Message::ExportComplete(result.map_err(|err| err.to_string()))
                 })
             }
@@ -83,24 +84,24 @@ impl Database {
                             .try_send(full_caching::Input::CacheSeries(ids))
                             .expect("full caching receiver disconnected");
                     }
-                    Command::none()
+                    Task::none()
                 }
                 Err(err) => {
                     self.import_status = Some(Err(err));
-                    Command::perform(status_timeout(), |_| Message::ImportTimeoutComplete)
+                    Task::perform(status_timeout(), |_| Message::ImportTimeoutComplete)
                 }
             },
             Message::ExportComplete(export_result) => {
                 self.export_status = Some(export_result);
-                Command::perform(status_timeout(), |_| Message::ExportTimeoutComplete)
+                Task::perform(status_timeout(), |_| Message::ExportTimeoutComplete)
             }
             Message::ImportTimeoutComplete => {
                 self.import_status = None;
-                Command::none()
+                Task::none()
             }
             Message::ExportTimeoutComplete => {
                 self.export_status = None;
-                Command::none()
+                Task::none()
             }
             Message::ImportCachingEvent(event) => {
                 match event {
@@ -119,15 +120,13 @@ impl Database {
                         DB.import(data);
 
                         self.import_status = Some(Ok(()));
-                        return Command::perform(status_timeout(), |_| {
-                            Message::ImportTimeoutComplete
-                        });
+                        return Task::perform(status_timeout(), |_| Message::ImportTimeoutComplete);
                     }
                     full_caching::Event::Progressing => {
                         self.import_progress.0 += 1;
                     }
                 }
-                Command::none()
+                Task::none()
             }
             Message::TraktIntegration(message) => self
                 .trakt_widget
@@ -203,14 +202,14 @@ impl Database {
         let content = column![
             text("Data")
                 .size(21)
-                .style(styles::text_styles::accent_color_theme()),
+                .style(styles::text_styles::accent_color_theme),
             series_troxide_data,
             trakt_data
         ]
         .padding(5);
 
         container(content)
-            .style(styles::container_styles::first_class_container_rounded_theme())
+            .style(styles::container_styles::first_class_container_rounded_theme)
             .width(1000)
             .into()
     }
@@ -219,12 +218,10 @@ impl Database {
 fn get_status_text(status: Option<&Result<(), String>>) -> Element<'_, Message> {
     if let Some(res) = status {
         if let Err(err) = res {
-            text(err)
-                .style(styles::text_styles::red_text_theme())
-                .into()
+            text(err).style(styles::text_styles::red_text_theme).into()
         } else {
             text("Done!")
-                .style(styles::text_styles::green_text_theme())
+                .style(styles::text_styles::green_text_theme)
                 .into()
         }
     } else {
@@ -243,7 +240,8 @@ mod full_caching {
 
     use iced::futures::channel::mpsc;
     use iced::futures::sink::SinkExt;
-    use iced::subscription::{self, Subscription};
+    use iced::futures::Stream;
+    use iced::stream::channel;
 
     #[derive(Debug, Clone)]
     pub enum Event {
@@ -262,8 +260,9 @@ mod full_caching {
         Ready(mpsc::Receiver<Input>),
     }
 
-    pub fn import_data_cacher() -> Subscription<Event> {
-        subscription::channel("settings-data-importer", 100, |mut output| async move {
+    pub fn import_data_cacher() -> impl Stream<Item = Event> {
+        // channel("settings-data-importer", 100, |mut output| async move {
+        channel(100, |mut output| async move {
             let mut state = State::Starting;
 
             loop {

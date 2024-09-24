@@ -246,7 +246,7 @@ pub mod empty_image {
     use iced::widget::{svg, Svg};
 
     /// Placeholder for an empty image
-    pub fn empty_image() -> Svg {
+    pub fn empty_image() -> Svg<'static> {
         let icon_handle = svg::Handle::from_memory(SERIES_TROXIDE_GRAY_SCALED_ICON);
         svg(icon_handle)
     }

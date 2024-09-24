@@ -1,6 +1,7 @@
 use crate::core::settings_config::{self, SETTINGS};
-use iced::widget::column;
-use iced::{Application, Command};
+use iced::window::Id;
+use iced::Task;
+use iced::{widget::column, window};
 use std::sync::{mpsc, Arc};
 
 use series_page::{Message as SeriesPageControllerMessage, SeriesPageController};
@@ -30,15 +31,16 @@ pub struct TroxideGui<'a> {
     series_page_controller: SeriesPageController<'a>,
 }
 
-impl<'a> Application for TroxideGui<'a> {
-    type Executor = iced::executor::Default;
-    type Message = Message;
-    type Theme = iced::Theme;
-    type Flags = ();
-
-    fn new(_flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
+impl<'a> TroxideGui<'a> {
+    pub fn new() -> (Self, iced::Task<Message>) {
         let noto_font_command = iced::font::load(assets::fonts::NOTOSANS_REGULAR_STATIC);
-        let bootstrap_font_command = iced::font::load(iced_aw::BOOTSTRAP_FONT_BYTES);
+
+        let icon_change_task =
+            window::icon::from_file_data(crate::gui::assets::logos::IMG_LOGO, None)
+                .map(|icon| window::change_icon(Id::unique(), icon))
+                .unwrap_or(Task::none());
+
+        // let bootstrap_font_command = iced::font::load(iced_aw::BOOTSTRAP_FONT_BYTES);
 
         let (sender, receiver) = mpsc::channel();
         let (tabs_controller, tabs_controller_command) = TabsController::new(sender.clone());
@@ -50,15 +52,16 @@ impl<'a> Application for TroxideGui<'a> {
                 tabs_controller,
                 series_page_controller: SeriesPageController::new(sender, receiver),
             },
-            Command::batch([
+            Task::batch([
                 noto_font_command.map(Message::FontLoaded),
-                bootstrap_font_command.map(Message::FontLoaded),
+                // bootstrap_font_command.map(Message::FontLoaded),
                 tabs_controller_command.map(Message::TabsController),
+                icon_change_task,
             ]),
         )
     }
 
-    fn title(&self) -> String {
+    pub fn title(&self) -> String {
         let mut program_title = String::from("Series Troxide - ");
 
         if let Some(series_page_name) = self.series_page_controller.get_series_page_name() {
@@ -70,7 +73,7 @@ impl<'a> Application for TroxideGui<'a> {
         program_title
     }
 
-    fn theme(&self) -> iced::Theme {
+    pub fn theme(&self) -> iced::Theme {
         let custom_theme = Arc::new(
             match SETTINGS
                 .read()
@@ -87,7 +90,7 @@ impl<'a> Application for TroxideGui<'a> {
         iced::Theme::Custom(custom_theme)
     }
 
-    fn scale_factor(&self) -> f64 {
+    pub fn scale_factor(&self) -> f64 {
         let scale = SETTINGS
             .read()
             .unwrap()
@@ -98,15 +101,15 @@ impl<'a> Application for TroxideGui<'a> {
         Into::<f64>::into(scale) / 100.0
     }
 
-    fn subscription(&self) -> iced::Subscription<Message> {
+    pub fn subscription(&self) -> iced::Subscription<Message> {
         self.tabs_controller
             .subscription()
             .map(Message::TabsController)
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::TabsController(message) => Command::batch([
+            Message::TabsController(message) => Task::batch([
                 self.tabs_controller
                     .update(message)
                     .map(Message::TabsController),
@@ -122,7 +125,7 @@ impl<'a> Application for TroxideGui<'a> {
                 if res.is_err() {
                     tracing::error!("failed to load font");
                 }
-                Command::none()
+                Task::none()
             }
             Message::TitleBar(message) => {
                 self.title_bar.update(message.clone());
@@ -146,17 +149,17 @@ impl<'a> Application for TroxideGui<'a> {
                                     .update_scrollables_offsets()
                                     .map(Message::TabsController)
                             } else {
-                                Command::none()
+                                Task::none()
                             };
 
-                        Command::batch([command, scrollers_offset_restore_command])
+                        Task::batch([command, scrollers_offset_restore_command])
                     }
                 }
             }
         }
     }
 
-    fn view(&self) -> iced::Element<'_, Self::Message, Self::Theme, iced::Renderer> {
+    pub fn view(&self) -> iced::Element<Message> {
         let view = if let Some(series_page_view) = self.series_page_controller.view() {
             series_page_view.map(Message::SeriesPageController)
         } else {

@@ -30,7 +30,7 @@ impl Appearance {
     pub fn view(&self) -> Element<Message> {
         let content = column![text("Appearance")
             .size(21)
-            .style(styles::text_styles::accent_color_theme())]
+            .style(styles::text_styles::accent_color_theme)]
         .padding(5)
         .spacing(5);
 
@@ -78,7 +78,7 @@ impl Appearance {
             );
 
         container(content)
-            .style(styles::container_styles::first_class_container_rounded_theme())
+            .style(styles::container_styles::first_class_container_rounded_theme)
             .width(1000)
             .into()
     }
