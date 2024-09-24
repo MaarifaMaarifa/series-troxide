@@ -1,7 +1,7 @@
 use std::sync::mpsc;
 
 use iced::widget::{container, Column};
-use iced::{Command, Element, Length};
+use iced::{Element, Length, Task};
 use iced_aw::Spinner;
 
 use crate::core::api::tv_maze::episodes_information::Episode;
@@ -36,9 +36,7 @@ pub struct UpcomingReleases<'a> {
 }
 
 impl<'a> UpcomingReleases<'a> {
-    pub fn new(
-        series_page_sender: mpsc::Sender<SeriesMainInformation>,
-    ) -> (Self, Command<Message>) {
+    pub fn new(series_page_sender: mpsc::Sender<SeriesMainInformation>) -> (Self, Task<Message>) {
         (
             Self {
                 load_state: LoadState::default(),
@@ -73,7 +71,7 @@ impl<'a> UpcomingReleases<'a> {
             .unwrap_or(iced::Subscription::none())
     }
 
-    pub fn update(&mut self, message: Message) -> Command<Message> {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::SeriesInformationReceived(series_infos) => {
                 self.load_state = LoadState::Loaded;
@@ -99,7 +97,7 @@ impl<'a> UpcomingReleases<'a> {
                     series_posters_commands.push(command);
                 }
                 self.upcoming_posters = series_posters;
-                Command::batch(series_posters_commands).map(Message::UpcomingPoster)
+                Task::batch(series_posters_commands).map(Message::UpcomingPoster)
             }
             Message::UpcomingPoster(message) => self.upcoming_posters[message.index()]
                 .update(message)
@@ -111,10 +109,8 @@ impl<'a> UpcomingReleases<'a> {
     pub fn view(&self) -> Element<'_, Message> {
         if let LoadState::Loading = self.load_state {
             return container(Spinner::new())
-                .center_x()
-                .center_y()
-                .height(100)
-                .width(Length::Fill)
+                .center_x(Length::Fill)
+                .center_y(100)
                 .into();
         }
         if self.upcoming_posters.is_empty() {
@@ -139,7 +135,7 @@ impl<'a> UpcomingReleases<'a> {
                 Column::with_children(upcoming_posters)
                     .spacing(5)
                     .width(Length::Fill)
-                    .align_items(iced::Alignment::Center)
+                    .align_x(iced::Alignment::Center)
                     .into()
             }
         }
@@ -147,7 +143,7 @@ impl<'a> UpcomingReleases<'a> {
 
     fn empty_upcoming_posters() -> Element<'static, Message> {
         unavailable_posters("No Upcoming Episodes")
-            .style(styles::container_styles::first_class_container_square_theme())
+            .style(styles::container_styles::first_class_container_square_theme)
             .height(200)
             .width(Length::Fill)
             .into()
@@ -155,7 +151,7 @@ impl<'a> UpcomingReleases<'a> {
 
     fn no_search_matches() -> Element<'static, Message> {
         unavailable_posters("No matches found!")
-            .style(styles::container_styles::first_class_container_square_theme())
+            .style(styles::container_styles::first_class_container_square_theme)
             .height(200)
             .width(Length::Fill)
             .into()
@@ -175,8 +171,8 @@ impl<'a> Searchable for UpcomingReleases<'a> {
     }
 }
 
-fn load_upcoming_releases() -> Command<Message> {
-    Command::perform(
+fn load_upcoming_releases() -> Task<Message> {
+    Task::perform(
         async {
             caching::series_list::SeriesList::new()
                 .get_upcoming_release_series_information_and_episodes()
@@ -200,7 +196,7 @@ mod upcoming_poster {
     use crate::gui::troxide_widget::series_poster::{GenericPoster, GenericPosterMessage};
 
     use iced::widget::{column, container, horizontal_space, image, mouse_area, row, text, Space};
-    use iced::{Command, Element};
+    use iced::{Element, Length, Task};
 
     #[derive(Clone, Debug)]
     pub enum Message {
@@ -222,7 +218,7 @@ mod upcoming_poster {
             series_page_sender: mpsc::Sender<SeriesMainInformation>,
             upcoming_episode: Episode,
             episode_release_time: EpisodeReleaseTime,
-        ) -> (Self, Command<IndexedMessage<usize, Message>>) {
+        ) -> (Self, Task<IndexedMessage<usize, Message>>) {
             let (poster, poster_command) = GenericPoster::new(series_info, series_page_sender);
             (
                 Self {
@@ -248,23 +244,23 @@ mod upcoming_poster {
         pub fn update(
             &mut self,
             message: IndexedMessage<usize, Message>,
-        ) -> Command<IndexedMessage<usize, Message>> {
+        ) -> Task<IndexedMessage<usize, Message>> {
             match message.message() {
                 Message::Poster(message) => {
                     self.poster.update(message);
-                    Command::none()
+                    Task::none()
                 }
                 Message::SeriesPosterPressed => {
                     self.poster.open_series_page();
-                    Command::none()
+                    Task::none()
                 }
             }
         }
 
-        pub fn view(&self) -> Element<'_, IndexedMessage<usize, Message>> {
+        pub fn view(&self) -> Element<IndexedMessage<usize, Message>> {
             let mut content = row!().padding(2).spacing(7);
             if let Some(image_bytes) = self.poster.get_image() {
-                let image_handle = image::Handle::from_memory(image_bytes.clone());
+                let image_handle = image::Handle::from_bytes(image_bytes.clone());
                 let image = image(image_handle).width(100);
                 content = content.push(image);
             } else {
@@ -273,9 +269,9 @@ mod upcoming_poster {
 
             let mut metadata = column!().spacing(5);
             metadata = metadata.push(
-                text(&self.poster.get_series_info().name)
+                text(self.poster.get_series_info().name.clone())
                     .size(18)
-                    .style(styles::text_styles::accent_color_theme()),
+                    .style(styles::text_styles::accent_color_theme),
             );
             // Some separation between series name and the rest of content
             metadata = metadata.push(Space::with_height(10));
@@ -294,7 +290,7 @@ mod upcoming_poster {
                 episode_name,
             )));
 
-            metadata = metadata.push(text(&self.episode_release_time));
+            metadata = metadata.push(text(self.episode_release_time.to_string()));
 
             content = content.push(metadata);
 
@@ -308,27 +304,23 @@ mod upcoming_poster {
                     )
                     .largest_part()
                     .map(|(time_value, time_text)| {
-                        column![text(time_value), text(time_text),]
-                            .align_items(iced::Alignment::Center)
+                        column![text(time_value), text(time_text),].align_x(iced::Alignment::Center)
                     })
                     .unwrap_or(column![text("Now")]),
                 )
-                .width(70)
-                .height(70)
                 .padding(5)
-                .center_x()
-                .center_y()
-                .style(styles::container_styles::release_time_container_theme()),
+                .center_x(70)
+                .center_y(70)
+                .style(styles::container_styles::release_time_container_theme),
             )
-            .center_x()
-            .center_y()
-            .height(140);
+            .center_x(Length::Shrink)
+            .center_y(140);
 
             content = content.push(release_time_widget);
 
             let content = container(content)
                 .padding(5)
-                .style(styles::container_styles::first_class_container_rounded_theme())
+                .style(styles::container_styles::first_class_container_rounded_theme)
                 .width(1000);
 
             let element: Element<'_, Message> = mouse_area(content)

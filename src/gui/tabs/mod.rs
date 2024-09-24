@@ -6,7 +6,7 @@ use statistics_tab::{Message as StatisticsMessage, StatisticsTab};
 use watchlist_tab::{Message as WatchlistMessage, WatchlistTab};
 
 use iced::widget::scrollable::{self, Id, RelativeOffset};
-use iced::{Command, Element};
+use iced::{Element, Task};
 use std::sync::mpsc;
 
 pub mod discover_tab;
@@ -29,7 +29,7 @@ pub trait Tab {
 
     fn get_scrollable_offset(&self) -> RelativeOffset;
 
-    fn set_scrollable_offset(scrollable_offset: RelativeOffset) -> Command<Self::Message>
+    fn set_scrollable_offset(scrollable_offset: RelativeOffset) -> Task<Self::Message>
     where
         Self::Message: 'static,
     {
@@ -125,9 +125,7 @@ pub struct TabsController<'a> {
 }
 
 impl<'a> TabsController<'a> {
-    pub fn new(
-        series_page_sender: mpsc::Sender<SeriesMainInformation>,
-    ) -> (Self, Command<Message>) {
+    pub fn new(series_page_sender: mpsc::Sender<SeriesMainInformation>) -> (Self, Task<Message>) {
         let (discover_tab, discover_command) = DiscoverTab::new(series_page_sender.clone());
         let (settings_tab, settings_command) = SettingsTab::new();
 
@@ -140,7 +138,7 @@ impl<'a> TabsController<'a> {
                 tabs_scrollable_offsets: [RelativeOffset::START; 5],
                 series_page_sender,
             },
-            Command::batch([
+            Task::batch([
                 discover_command.map(Message::Discover),
                 settings_command.map(Message::Settings),
             ]),
@@ -178,12 +176,12 @@ impl<'a> TabsController<'a> {
         }
     }
 
-    pub fn update_scrollables_offsets(&mut self) -> Command<Message> {
+    pub fn update_scrollables_offsets(&mut self) -> Task<Message> {
         self.record_tabs_scrollable_offsets();
         self.restore_scrollable_offset()
     }
 
-    fn restore_scrollable_offset(&mut self) -> Command<Message> {
+    fn restore_scrollable_offset(&mut self) -> Task<Message> {
         let index: usize = self.current_tab.into();
 
         match self.current_tab {
@@ -219,7 +217,7 @@ impl<'a> TabsController<'a> {
         }
     }
 
-    pub fn switch_to_tab(&mut self, tab: TabId) -> Command<Message> {
+    pub fn switch_to_tab(&mut self, tab: TabId) -> Task<Message> {
         self.record_tabs_scrollable_offsets();
 
         let index: usize = tab.into();
@@ -251,10 +249,10 @@ impl<'a> TabsController<'a> {
                 self.reloadable_tab = Some(ReloadableTab::Statistics(statistics_tab));
                 statistics_command.map(Message::Statistics)
             }
-            TabId::Settings => Command::none(),
+            TabId::Settings => Task::none(),
         };
 
-        Command::batch([self.restore_scrollable_offset(), tab_command])
+        Task::batch([self.restore_scrollable_offset(), tab_command])
     }
 
     pub fn subscription(&self) -> iced::Subscription<Message> {
@@ -266,10 +264,10 @@ impl<'a> TabsController<'a> {
                         ReloadableTab::MyShows(my_shows) => {
                             my_shows.subscription().map(Message::MyShows)
                         }
-                        _ => iced::subscription::Subscription::none(),
+                        _ => iced::Subscription::none(),
                     }
                 } else {
-                    iced::subscription::Subscription::none()
+                    iced::Subscription::none()
                 }
             }
         };
@@ -279,28 +277,28 @@ impl<'a> TabsController<'a> {
         ])
     }
 
-    pub fn update(&mut self, message: Message) -> Command<Message> {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Discover(message) => self.discover_tab.update(message).map(Message::Discover),
             Message::Watchlist(message) => {
                 if let Some(ReloadableTab::Watchlist(ref mut watchlist)) = self.reloadable_tab {
                     watchlist.update(message).map(Message::Watchlist)
                 } else {
-                    Command::none()
+                    Task::none()
                 }
             }
             Message::MyShows(message) => {
                 if let Some(ReloadableTab::MyShows(ref mut my_shows)) = self.reloadable_tab {
                     my_shows.update(message).map(Message::MyShows)
                 } else {
-                    Command::none()
+                    Task::none()
                 }
             }
             Message::Statistics(message) => {
                 if let Some(ReloadableTab::Statistics(ref mut statistics)) = self.reloadable_tab {
                     statistics.update(message).map(Message::Statistics)
                 } else {
-                    Command::none()
+                    Task::none()
                 }
             }
             Message::Settings(message) => self.settings_tab.update(message).map(Message::Settings),

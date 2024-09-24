@@ -1,6 +1,6 @@
 use iced::widget::scrollable::{RelativeOffset, Viewport};
 use iced::widget::{column, scrollable};
-use iced::{Alignment, Command, Element, Length};
+use iced::{Alignment, Element, Length, Task};
 
 use crate::gui::assets::icons::GEAR_WIDE_CONNECTED;
 use crate::gui::styles;
@@ -42,7 +42,7 @@ pub struct SettingsTab {
 }
 
 impl SettingsTab {
-    pub fn new() -> (Self, Command<Message>) {
+    pub fn new() -> (Self, Task<Message>) {
         let (about_widget, about_command) = About::new();
         (
             Self {
@@ -62,7 +62,7 @@ impl SettingsTab {
         self.database_settings.subscription().map(Message::Database)
     }
 
-    pub fn update(&mut self, message: Message) -> Command<Message> {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Database(message) => {
                 return self
@@ -84,7 +84,7 @@ impl SettingsTab {
                 self.scrollable_offset = view_port.relative_offset()
             }
         }
-        Command::none()
+        Task::none()
     }
     pub fn view(&self) -> Element<Message> {
         let settings_body = scrollable(
@@ -99,7 +99,7 @@ impl SettingsTab {
             ]
             .spacing(10)
             .width(Length::Fill)
-            .align_items(Alignment::Center)
+            .align_x(Alignment::Center)
             .padding(5),
         )
         .id(Self::scrollable_id())
@@ -110,7 +110,7 @@ impl SettingsTab {
             settings_body.height(Length::FillPortion(10)),
             self.controls_settings.view().map(Message::Controls)
         ]
-        .align_items(Alignment::Center)
+        .align_x(Alignment::Center)
         .spacing(5)
         .into()
     }

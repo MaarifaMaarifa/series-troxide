@@ -1,6 +1,6 @@
 use crew_poster::{CrewPoster, IndexedMessage, Message as CastMessage};
 use iced::widget::{button, column, container, row, svg, text, Space};
-use iced::{Command, Element, Length};
+use iced::{Element, Length, Task};
 use iced_aw::{Spinner, Wrap};
 
 use crate::core::{api::tv_maze::people::show_crew::Crew, caching};
@@ -29,21 +29,21 @@ pub struct CrewWidget {
 }
 
 impl CrewWidget {
-    pub fn new(series_id: u32) -> (Self, Command<Message>) {
+    pub fn new(series_id: u32) -> (Self, Task<Message>) {
         let cast_widget = Self {
             load_state: LoadState::Loading,
             casts: vec![],
             is_expanded: false,
         };
 
-        let cast_command = Command::perform(caching::people::get_show_crew(series_id), |crew| {
+        let cast_command = Task::perform(caching::people::get_show_crew(series_id), |crew| {
             Message::CrewReceived(crew.expect("failed to get show crew"))
         });
 
         (cast_widget, cast_command)
     }
 
-    pub fn update(&mut self, message: Message) -> Command<Message> {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::CrewReceived(cast) => {
                 self.load_state = LoadState::Loaded;
@@ -55,18 +55,18 @@ impl CrewWidget {
                     posters_commands.push(poster_command);
                 }
                 self.casts = cast_posters;
-                Command::batch(posters_commands).map(Message::Crew)
+                Task::batch(posters_commands).map(Message::Crew)
             }
             Message::Crew(message) => self.casts[message.index()]
                 .update(message)
                 .map(Message::Crew),
             Message::Expand => {
                 self.is_expanded = true;
-                Command::none()
+                Task::none()
             }
             Message::Shrink => {
                 self.is_expanded = false;
-                Command::none()
+                Task::none()
             }
         }
     }
@@ -75,10 +75,8 @@ impl CrewWidget {
         match self.load_state {
             LoadState::Loading => {
                 let spinner = container(Spinner::new())
-                    .center_x()
-                    .center_y()
-                    .height(100)
-                    .width(Length::Fill)
+                    .center_x(Length::Fill)
+                    .center_y(100)
                     .into();
                 Some(spinner)
             }
@@ -114,13 +112,13 @@ impl CrewWidget {
                 let svg_handle = svg::Handle::from_memory(CHEVRON_UP);
                 let up_icon = svg(svg_handle)
                     .width(Length::Shrink)
-                    .style(styles::svg_styles::colored_svg_theme());
+                    .style(styles::svg_styles::colored_svg_theme);
                 (text("show less"), up_icon, Message::Shrink)
             } else {
                 let svg_handle = svg::Handle::from_memory(CHEVRON_DOWN);
                 let down_icon = svg(svg_handle)
                     .width(Length::Shrink)
-                    .style(styles::svg_styles::colored_svg_theme());
+                    .style(styles::svg_styles::colored_svg_theme);
                 (text("show more"), down_icon, Message::Expand)
             };
 
@@ -131,18 +129,17 @@ impl CrewWidget {
                 Space::with_width(5),
             ]
             .spacing(10)
-            .align_items(iced::Alignment::Center);
+            .align_y(iced::Alignment::Center);
 
             let content = button(content)
                 .on_press(message)
-                .style(styles::button_styles::transparent_button_theme());
+                .style(styles::button_styles::transparent_button_theme);
 
             container(
                 container(content)
-                    .style(styles::container_styles::first_class_container_square_theme()),
+                    .style(styles::container_styles::first_class_container_square_theme),
             )
-            .center_x()
-            .width(Length::Fill)
+            .center_x(Length::Fill)
             .padding(20)
             .into()
         } else {
@@ -156,7 +153,7 @@ mod crew_poster {
     use iced::{
         font::Weight,
         widget::{column, container, image, row, text, Column, Row, Space},
-        Command, Element, Font,
+        Element, Font, Task,
     };
 
     pub use crate::gui::message::IndexedMessage;
@@ -183,7 +180,7 @@ mod crew_poster {
     }
 
     impl CrewPoster {
-        pub fn new(id: usize, cast: Crew) -> (Self, Command<IndexedMessage<usize, Message>>) {
+        pub fn new(id: usize, cast: Crew) -> (Self, Task<IndexedMessage<usize, Message>>) {
             let image = cast.person.image.clone();
             let poster = Self {
                 index: id,
@@ -200,11 +197,11 @@ mod crew_poster {
         pub fn update(
             &mut self,
             message: IndexedMessage<usize, Message>,
-        ) -> Command<IndexedMessage<usize, Message>> {
+        ) -> Task<IndexedMessage<usize, Message>> {
             let command = match message.message() {
                 Message::PersonImageLoaded(image) => {
                     self.person_image = image;
-                    Command::none()
+                    Task::none()
                 }
             };
             let index = self.index;
@@ -217,7 +214,7 @@ mod crew_poster {
             let empty_image = helpers::empty_image::empty_image().width(100).height(140);
 
             if let Some(image_bytes) = self.person_image.clone() {
-                let image_handle = image::Handle::from_memory(image_bytes);
+                let image_handle = image::Handle::from_bytes(image_bytes);
 
                 let image = image(image_handle).width(100);
                 content = content.push(image);
@@ -229,7 +226,7 @@ mod crew_poster {
 
             cast_info = cast_info.push(column![
                 text(&self.crew.person.name)
-                    .style(styles::text_styles::accent_color_theme())
+                    .style(styles::text_styles::accent_color_theme)
                     .size(15),
                 text(format!("as {}", &self.crew.kind)).size(11)
             ]);
@@ -288,25 +285,25 @@ mod crew_poster {
             let content = content.push(cast_info);
 
             let element: Element<'_, Message> = container(content)
-                .style(styles::container_styles::first_class_container_square_theme())
+                .style(styles::container_styles::first_class_container_square_theme)
                 .padding(7)
                 .into();
             element.map(|message| IndexedMessage::new(self.index, message))
         }
 
-        fn load_person_image(image: Option<Image>) -> Command<Message> {
+        fn load_person_image(image: Option<Image>) -> Task<Message> {
             if let Some(image) = image {
-                Command::perform(
+                Task::perform(
                     caching::load_image(image.medium_image_url, caching::ImageResolution::Medium),
                     Message::PersonImageLoaded,
                 )
             } else {
-                Command::none()
+                Task::none()
             }
         }
     }
 
-    fn crew_info_field(title: &str, value: impl std::fmt::Display) -> Element<'_, Message> {
+    fn crew_info_field<'a>(title: &'a str, value: impl text::IntoFragment<'a>) -> Element<Message> {
         row![
             text(title)
                 .font(Font {

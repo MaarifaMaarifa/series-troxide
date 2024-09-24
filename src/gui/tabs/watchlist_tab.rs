@@ -1,8 +1,8 @@
 use std::sync::mpsc;
 
 use iced::widget::scrollable::{RelativeOffset, Viewport};
-use iced::widget::{column, container, scrollable, Column, Space};
-use iced::{Command, Element, Length};
+use iced::widget::{center, column, container, scrollable, Column, Space};
+use iced::{Element, Length, Task};
 use iced_aw::Spinner;
 
 use super::tab_searching::{unavailable_posters, Message as SearcherMessage, Searchable, Searcher};
@@ -47,7 +47,7 @@ impl<'a> WatchlistTab<'a> {
     pub fn new(
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
         scrollable_offset: Option<RelativeOffset>,
-    ) -> (Self, Command<Message>) {
+    ) -> (Self, Task<Message>) {
         (
             Self {
                 watchlist_posters: vec![],
@@ -58,14 +58,14 @@ impl<'a> WatchlistTab<'a> {
                 matched_id_collection: None,
                 searcher: Searcher::new("Search Watchlist".to_owned()),
             },
-            Command::perform(
+            Task::perform(
                 get_series_information_and_watched_episodes(),
                 Message::SeriesInformationLoaded,
             ),
         )
     }
 
-    pub fn update(&mut self, message: Message) -> Command<Message> {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::SeriesInformationLoaded(mut series_infos) => {
                 self.load_state = LoadState::Loaded;
@@ -107,31 +107,26 @@ impl<'a> WatchlistTab<'a> {
 
                 self.watchlist_posters = posters;
 
-                Command::batch(commands).map(Message::WatchlistPoster)
+                Task::batch(commands).map(Message::WatchlistPoster)
             }
             Message::WatchlistPoster(message) => self.watchlist_posters[message.index()]
                 .update(message)
                 .map(Message::WatchlistPoster),
             Message::PageScrolled(view_port) => {
                 self.scrollable_offset = view_port.relative_offset();
-                Command::none()
+                Task::none()
             }
             Message::Searcher(message) => {
                 self.searcher.update(message);
                 let current_search_term = self.searcher.current_search_term().to_owned();
                 self.update_matches(&current_search_term);
-                Command::none()
+                Task::none()
             }
         }
     }
     pub fn view(&self) -> Element<Message> {
         match self.load_state {
-            LoadState::Loading => container(Spinner::new())
-                .width(Length::Fill)
-                .height(Length::Fill)
-                .center_x()
-                .center_y()
-                .into(),
+            LoadState::Loading => center(Spinner::new()).into(),
             LoadState::Loaded => {
                 if self.watchlist_posters.is_empty() {
                     Self::empty_watchlist_posters()
@@ -163,7 +158,7 @@ impl<'a> WatchlistTab<'a> {
                     } else {
                         let watchlist_items = Column::with_children(watchlist_items)
                             .spacing(5)
-                            .align_items(iced::Alignment::Center)
+                            .align_x(iced::Alignment::Center)
                             .width(Length::Fill);
 
                         // We are wrapping the watchlist_items into a container so that the scrollbar does not touch the watchlist
@@ -180,7 +175,7 @@ impl<'a> WatchlistTab<'a> {
                     column![watchlist_summary, searcher, watchlist_items]
                         .padding(5)
                         .spacing(10)
-                        .align_items(iced::Alignment::Center)
+                        .align_x(iced::Alignment::Center)
                         .into()
                 }
             }
@@ -280,7 +275,7 @@ mod watchlist_poster {
         button, column, container, horizontal_rule, image, mouse_area, progress_bar, row, text,
         Space,
     };
-    use iced::{Alignment, Command, Element, Length};
+    use iced::{Alignment, Element, Length, Task};
 
     use crate::core::api::tv_maze::series_information::SeriesMainInformation;
     use crate::core::caching::episode_list::EpisodeList;
@@ -319,7 +314,7 @@ mod watchlist_poster {
             episode_list: EpisodeList,
             total_series_episodes: usize,
             series_page_sender: mpsc::Sender<SeriesMainInformation>,
-        ) -> (Self, Command<IndexedMessage<usize, Message>>) {
+        ) -> (Self, Task<IndexedMessage<usize, Message>>) {
             let (poster, poster_command) = GenericPoster::new(series_info, series_page_sender);
 
             (
@@ -345,15 +340,15 @@ mod watchlist_poster {
         pub fn update(
             &mut self,
             message: IndexedMessage<usize, Message>,
-        ) -> Command<IndexedMessage<usize, Message>> {
+        ) -> Task<IndexedMessage<usize, Message>> {
             let command = match message.message() {
                 Message::Poster(message) => {
                     self.poster.update(message);
-                    Command::none()
+                    Task::none()
                 }
                 Message::SeriesPosterPressed => {
                     self.poster.open_series_page();
-                    Command::none()
+                    Task::none()
                 }
                 Message::ToggleEpisodeInfo => {
                     self.show_episode_info = !self.show_episode_info;
@@ -361,12 +356,12 @@ mod watchlist_poster {
                     if self.episode_poster.is_none() {
                         self.update_episode_poster()
                     } else {
-                        Command::none()
+                        Task::none()
                     }
                 }
                 Message::EpisodePoster(message) => {
                     if message.index() != self.current_poster_id {
-                        Command::none()
+                        Task::none()
                     } else if let Some(episode_poster) = self.episode_poster.as_mut() {
                         let index = self.index;
                         episode_poster.update(message).map(move |message| {
@@ -374,7 +369,7 @@ mod watchlist_poster {
                         })
                     } else {
                         // This situation can happen when all the episodes have been marked watched
-                        Command::none()
+                        Task::none()
                     }
                 }
             };
@@ -388,13 +383,13 @@ mod watchlist_poster {
                 self.episode_poster = None;
                 self.update_episode_poster()
             } else {
-                Command::none()
+                Task::none()
             };
 
-            Command::batch([episode_update_command, command])
+            Task::batch([episode_update_command, command])
         }
 
-        fn update_episode_poster(&mut self) -> Command<IndexedMessage<usize, Message>> {
+        fn update_episode_poster(&mut self) -> Task<IndexedMessage<usize, Message>> {
             self.current_poster_id += 1;
 
             if let Some(episode) = self.episode_list.get_next_episode_to_watch() {
@@ -409,14 +404,14 @@ mod watchlist_poster {
                 episode_poster_command
                     .map(move |message| IndexedMessage::new(index, Message::EpisodePoster(message)))
             } else {
-                Command::none()
+                Task::none()
             }
         }
 
         pub fn view(&self) -> Element<'_, IndexedMessage<usize, Message>> {
             let mut content = row!().padding(2).spacing(5);
             if let Some(image_bytes) = self.poster.get_image() {
-                let image_handle = image::Handle::from_memory(image_bytes.clone());
+                let image_handle = image::Handle::from_bytes(image_bytes.clone());
                 let image = image(image_handle).width(100);
                 content = content.push(image);
             } else {
@@ -428,7 +423,7 @@ mod watchlist_poster {
             metadata = metadata.push(
                 text(&self.poster.get_series_info().name)
                     .size(18)
-                    .style(styles::text_styles::accent_color_theme()),
+                    .style(styles::text_styles::accent_color_theme),
             );
 
             let watched_episodes = database::DB
@@ -448,7 +443,7 @@ mod watchlist_poster {
                     watched_episodes as f32, self.total_series_episodes as f32
                 ))
             ]
-            .align_items(Alignment::Center)
+            .align_y(Alignment::Center)
             .spacing(5);
 
             metadata = metadata.push(progress_bar);
@@ -472,9 +467,9 @@ mod watchlist_poster {
             metadata = metadata.push(text(format!("{} episodes left", episodes_left)));
 
             if let Some(runtime) = self.poster.get_series_info().average_runtime {
-                metadata = metadata.push(text(helpers::time::NaiveTime::new(
-                    runtime * episodes_left as u32,
-                )));
+                metadata = metadata.push(text(
+                    helpers::time::NaiveTime::new(runtime * episodes_left as u32).to_string(),
+                ));
             };
 
             metadata = metadata.push(self.show_episode_info_button());
@@ -490,13 +485,13 @@ mod watchlist_poster {
                         .view(PosterType::Watchlist)
                         .map(Message::EpisodePoster);
 
-                    content = content.push(container(episode_view).width(Length::Fill).center_x());
+                    content = content.push(container(episode_view).center_x(Length::Fill));
                 }
             }
 
             let content = container(content)
                 .padding(5)
-                .style(styles::container_styles::first_class_container_rounded_theme())
+                .style(styles::container_styles::first_class_container_rounded_theme)
                 .width(1000);
 
             let element: Element<'_, Message> = mouse_area(content)
@@ -513,7 +508,7 @@ mod watchlist_poster {
 
             button(content)
                 .on_press(Message::ToggleEpisodeInfo)
-                .style(styles::button_styles::transparent_button_with_rounded_border_theme())
+                .style(styles::button_styles::transparent_button_with_rounded_border_theme)
                 .into()
         }
     }
@@ -603,7 +598,7 @@ mod watchlist_summary {
                     total_episodes_watched as f32, self.total_episodes as f32
                 ))
             ]
-            .align_items(Alignment::Center)
+            .align_y(Alignment::Center)
             .spacing(5);
 
             let content = column![
@@ -617,11 +612,11 @@ mod watchlist_summary {
                 progress,
             ]
             .spacing(20)
-            .align_items(Alignment::Center);
+            .align_x(Alignment::Center);
 
             container(content)
                 .padding(20)
-                .style(styles::container_styles::first_class_container_rounded_theme())
+                .style(styles::container_styles::first_class_container_rounded_theme)
                 .into()
         }
 
@@ -629,10 +624,10 @@ mod watchlist_summary {
             column![
                 text(title),
                 text(info)
-                    .style(styles::text_styles::accent_color_theme())
+                    .style(styles::text_styles::accent_color_theme)
                     .size(18)
             ]
-            .align_items(Alignment::Center)
+            .align_x(Alignment::Center)
             .into()
         }
     }

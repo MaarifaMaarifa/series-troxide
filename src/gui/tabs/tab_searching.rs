@@ -102,7 +102,7 @@ impl Searcher {
             .width(300)
             .on_input(Message::SearchTermChanged))
         .width(Length::Fill)
-        .align_items(iced::Alignment::Center);
+        .align_x(iced::Alignment::Center);
 
         search_bar.into()
     }
@@ -111,7 +111,7 @@ impl Searcher {
 /// A helper function that produces an `Element` that indicates absence of series posters based
 /// on the supplied absence reason
 pub fn unavailable_posters<Message: 'static>(absence_reason: &str) -> Container<Message> {
-    container(text(absence_reason).horizontal_alignment(iced::alignment::Horizontal::Center))
-        .center_x()
-        .center_y()
+    container(text(absence_reason).align_x(iced::alignment::Horizontal::Center))
+        .center_x(Length::Shrink)
+        .center_y(Length::Shrink)
 }

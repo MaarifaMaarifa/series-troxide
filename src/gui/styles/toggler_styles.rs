@@ -1,28 +1,12 @@
-use super::colors::{accent_color, gray};
 use iced::{
-    theme::Toggler,
-    widget::toggler::{Appearance, StyleSheet},
+    widget::toggler::{Status, Style},
+    Theme,
 };
 
-pub fn always_colored_toggler_theme() -> Toggler {
-    Toggler::Custom(Box::new(AlwaysColoredStyle) as Box<dyn StyleSheet<Style = iced::Theme>>)
-}
+use super::colors::{accent_color, gray};
 
-struct AlwaysColoredStyle;
-
-impl StyleSheet for AlwaysColoredStyle {
-    type Style = iced::Theme;
-
-    fn active(&self, _style: &Self::Style, _is_active: bool) -> Appearance {
-        appearance()
-    }
-
-    fn hovered(&self, _style: &Self::Style, _is_active: bool) -> Appearance {
-        appearance()
-    }
-}
-fn appearance() -> Appearance {
-    Appearance {
+pub fn always_colored_toggler_theme(_theme: &Theme, _status: Status) -> Style {
+    Style {
         background: accent_color(),
         foreground: gray(),
         background_border_width: 1.0,

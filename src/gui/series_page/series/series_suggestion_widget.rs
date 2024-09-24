@@ -7,7 +7,7 @@ use crate::gui::troxide_widget::series_poster::{
 };
 
 use iced::widget::{column, container, text, Space};
-use iced::{Command, Element, Length};
+use iced::{Element, Length, Task};
 use iced_aw::{Spinner, Wrap};
 
 #[derive(Debug, Clone)]
@@ -33,7 +33,7 @@ impl<'a> SeriesSuggestion<'a> {
         series_id: u32,
         genres: Vec<Genre>,
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
-    ) -> (Self, Command<Message>) {
+    ) -> (Self, Task<Message>) {
         (
             Self {
                 genres,
@@ -42,13 +42,13 @@ impl<'a> SeriesSuggestion<'a> {
                 suggested_series: vec![],
                 series_page_sender,
             },
-            Command::perform(full_schedule::FullSchedule::new(), |schedule| {
+            Task::perform(full_schedule::FullSchedule::new(), |schedule| {
                 Message::FullScheduleLoaded(schedule.expect("failed to load the full schedule"))
             }),
         )
     }
 
-    pub fn update(&mut self, message: Message) -> Command<Message> {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::FullScheduleLoaded(full_schedule) => {
                 self.load_state = LoadState::Loaded;
@@ -79,7 +79,7 @@ impl<'a> SeriesSuggestion<'a> {
                 }
 
                 self.suggested_series = posters;
-                Command::batch(posters_commands).map(Message::SeriesPoster)
+                Task::batch(posters_commands).map(Message::SeriesPoster)
             }
             Message::SeriesPoster(message) => self.suggested_series[message.index()]
                 .update(message)
@@ -89,10 +89,7 @@ impl<'a> SeriesSuggestion<'a> {
 
     pub fn view(&self) -> Element<'_, Message> {
         match self.load_state {
-            LoadState::Loading => container(Spinner::new())
-                .width(Length::Fill)
-                .center_x()
-                .into(),
+            LoadState::Loading => container(Spinner::new()).center_x(Length::Fill).into(),
             LoadState::Loaded => {
                 if self.suggested_series.is_empty() {
                     Space::new(0, 0).into()

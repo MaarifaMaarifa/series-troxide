@@ -55,23 +55,24 @@ impl Notifications {
             .size(11)
         ];
 
-        let time_to_notify =
-            NumberInput::new(current_time_to_notify, u32::MAX, Message::TimeChanged)
-                .width(Length::Fixed(200.0));
+        let time_to_notify = NumberInput::new(
+            current_time_to_notify,
+            u32::MIN..u32::MAX,
+            Message::TimeChanged,
+        )
+        .width(Length::Fixed(200.0));
 
         let when_to_notify = column![notifications_info, time_to_notify,].spacing(5);
 
-        let notify_when_outdated = toggler(
-            Some("Notify when outdated".to_string()),
-            notify_when_outdated,
-            Message::NotifyWhenOutdated,
-        )
-        .spacing(10)
-        .width(Length::Shrink);
+        let notify_when_outdated = toggler(notify_when_outdated)
+            .label("Notify when outdated")
+            .on_toggle(Message::NotifyWhenOutdated)
+            .spacing(10)
+            .width(Length::Shrink);
 
         let content = column![
             text("Notifications")
-                .style(styles::text_styles::accent_color_theme())
+                .style(styles::text_styles::accent_color_theme)
                 .size(21),
             when_to_notify,
             notify_when_outdated,
@@ -79,7 +80,7 @@ impl Notifications {
         .spacing(10);
 
         container(content)
-            .style(styles::container_styles::first_class_container_rounded_theme())
+            .style(styles::container_styles::first_class_container_rounded_theme)
             .padding(5)
             .width(1000)
             .into()

@@ -6,7 +6,7 @@ use crate::gui::styles;
 
 use iced::widget::scrollable::{RelativeOffset, Viewport};
 use iced::widget::{column, scrollable, text};
-use iced::{Command, Element, Length};
+use iced::{Element, Length, Task};
 
 use my_shows_widget::{Message as MyShowsMessage, MyShows};
 use upcoming_releases_widget::{Message as UpcomingReleasesMessage, UpcomingReleases};
@@ -40,7 +40,7 @@ impl<'a> MyShowsTab<'a> {
     pub fn new(
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
         scrollable_offset: Option<RelativeOffset>,
-    ) -> (Self, Command<Message>) {
+    ) -> (Self, Task<Message>) {
         let (untracked_releases, untracked_releases_commands) =
             MyShows::new_as_untracked_series(series_page_sender.clone());
         let (ended_releases, ended_releases_commands) =
@@ -59,7 +59,7 @@ impl<'a> MyShowsTab<'a> {
                 scrollable_offset: scrollable_offset.unwrap_or(RelativeOffset::START),
                 searcher: Searcher::new("Search My Shows".to_owned()),
             },
-            Command::batch([
+            Task::batch([
                 untracked_releases_commands.map(Message::Untracked),
                 ended_releases_commands.map(Message::Ended),
                 waiting_releases_commands.map(Message::Waiting),
@@ -72,7 +72,7 @@ impl<'a> MyShowsTab<'a> {
         self.upcoming_releases.subscription().map(Message::Upcoming)
     }
 
-    pub fn update(&mut self, message: Message) -> Command<Message> {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Ended(message) => self.ended_releases.update(message).map(Message::Ended),
             Message::Waiting(message) => {
@@ -88,7 +88,7 @@ impl<'a> MyShowsTab<'a> {
                 .map(Message::Untracked),
             Message::PageScrolled(view_port) => {
                 self.scrollable_offset = view_port.relative_offset();
-                Command::none()
+                Task::none()
             }
             Message::Searcher(message) => {
                 self.searcher.update(message);
@@ -99,7 +99,7 @@ impl<'a> MyShowsTab<'a> {
                 self.ended_releases.update_matches(&current_search_term);
                 self.untracked_releases.update_matches(&current_search_term);
 
-                Command::none()
+                Task::none()
             }
         }
     }
@@ -110,7 +110,7 @@ impl<'a> MyShowsTab<'a> {
         let waiting_releases: Element<'_, Message> = column![
             text("Waiting for release date")
                 .size(21)
-                .style(styles::text_styles::green_text_theme()),
+                .style(styles::text_styles::green_text_theme),
             self.waiting_releases.view().map(Message::Waiting)
         ]
         .spacing(5)
@@ -119,7 +119,7 @@ impl<'a> MyShowsTab<'a> {
         let ended_releases: Element<'_, Message> = column![
             text("Ended")
                 .size(21)
-                .style(styles::text_styles::red_text_theme()),
+                .style(styles::text_styles::red_text_theme),
             self.ended_releases.view().map(Message::Ended)
         ]
         .spacing(5)
@@ -144,7 +144,7 @@ impl<'a> MyShowsTab<'a> {
             .padding(10)
             .spacing(50)
             .width(Length::Fill)
-            .align_items(iced::Alignment::Start),
+            .align_x(iced::Alignment::Start),
         )
         .direction(styles::scrollable_styles::vertical_direction())
         .id(Self::scrollable_id())

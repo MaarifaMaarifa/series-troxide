@@ -1,4 +1,4 @@
-use iced::{window, Application, Settings};
+use iced::{window, Settings};
 
 pub mod core;
 mod gui;
@@ -22,16 +22,24 @@ fn main() -> anyhow::Result<()> {
 
     std::thread::spawn(|| core::notifications::TroxideNotify::new()?.run());
 
-    let icon = window::icon::from_file_data(gui::assets::logos::IMG_LOGO, None).ok();
+    // TODO: set the window icon
+    let _icon = window::icon::from_file_data(gui::assets::logos::IMG_LOGO, None).ok();
 
-    gui::TroxideGui::run(Settings {
-        window: iced::window::Settings {
-            icon,
-            ..Default::default()
-        },
+    let settings = Settings {
         default_text_size: 14.0.into(),
         ..Default::default()
-    })?;
+    };
+
+    iced::application(
+        gui::TroxideGui::title,
+        gui::TroxideGui::update,
+        gui::TroxideGui::view,
+    )
+    .subscription(gui::TroxideGui::subscription)
+    .theme(gui::TroxideGui::theme)
+    .scale_factor(gui::TroxideGui::scale_factor)
+    .settings(settings)
+    .run_with(gui::TroxideGui::new)?;
 
     Ok(())
 }

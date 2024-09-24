@@ -1,6 +1,6 @@
 use std::sync::mpsc;
 
-use iced::{Command, Element};
+use iced::{Element, Task};
 use indexmap::IndexMap;
 
 use series::{Message as SeriesMessage, Series};
@@ -46,7 +46,7 @@ impl<'a> SeriesPageController<'a> {
     }
 
     /// Goes to the previous opened series page discarding the current one
-    pub fn go_previous(&mut self) -> Command<Message> {
+    pub fn go_previous(&mut self) -> Task<Message> {
         self.series_pages.pop();
         self.series_pages
             .last()
@@ -56,7 +56,7 @@ impl<'a> SeriesPageController<'a> {
                     .restore_scroller_relative_offset()
                     .map(move |message| Message::Series(IndexedMessage::new(id, message)))
             })
-            .unwrap_or(Command::none())
+            .unwrap_or(Task::none())
     }
 
     /// Retrieves the `Series Name` for the current active series page if available
@@ -68,7 +68,7 @@ impl<'a> SeriesPageController<'a> {
     }
 
     /// Tries to switch to series page if any has been received
-    pub fn try_series_page_switch(&mut self) -> Command<Message> {
+    pub fn try_series_page_switch(&mut self) -> Task<Message> {
         use crate::core::caching::{CacheFilePath, CACHER};
         use tokio::fs;
         use tracing::error;
@@ -138,21 +138,21 @@ impl<'a> SeriesPageController<'a> {
                     }
                 };
 
-                Command::batch([
+                Task::batch([
                     series_page_command,
-                    Command::perform(cache_file_creation_future, |_| {
+                    Task::perform(cache_file_creation_future, |_| {
                         Message::SeriesCacheFileWritten
                     }),
                 ])
             }
             Err(err) => match err {
-                mpsc::TryRecvError::Empty => Command::none(),
+                mpsc::TryRecvError::Empty => Task::none(),
                 mpsc::TryRecvError::Disconnected => panic!("series page senders disconnected"),
             },
         }
     }
 
-    pub fn update(&mut self, message: Message) -> Command<Message> {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Series(identifiable_message) => {
                 let series_page_id = identifiable_message.index();
@@ -165,12 +165,12 @@ impl<'a> SeriesPageController<'a> {
                             Message::Series(IndexedMessage::new(series_page_id, message))
                         })
                 } else {
-                    Command::none()
+                    Task::none()
                 };
 
-                Command::batch([command, self.try_series_page_switch()])
+                Task::batch([command, self.try_series_page_switch()])
             }
-            Message::SeriesCacheFileWritten => Command::none(),
+            Message::SeriesCacheFileWritten => Task::none(),
         }
     }
 

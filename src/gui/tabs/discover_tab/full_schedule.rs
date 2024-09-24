@@ -3,7 +3,7 @@ use std::ops::Range;
 use std::sync::mpsc;
 
 use iced::widget::{column, container, text, Column, Space};
-use iced::{Command, Element, Length};
+use iced::{Element, Length, Task};
 use iced_aw::Wrap;
 
 use crate::core::api::tv_maze::series_information::{
@@ -76,9 +76,7 @@ pub struct FullSchedulePosters<'a> {
 }
 
 impl<'a> FullSchedulePosters<'a> {
-    pub fn new(
-        series_page_sender: mpsc::Sender<SeriesMainInformation>,
-    ) -> (Self, Command<Message>) {
+    pub fn new(series_page_sender: mpsc::Sender<SeriesMainInformation>) -> (Self, Task<Message>) {
         (
             Self {
                 load_state: LoadState::Loading,
@@ -98,16 +96,16 @@ impl<'a> FullSchedulePosters<'a> {
         )
     }
 
-    pub fn reload(&mut self) -> Command<Message> {
+    pub fn reload(&mut self) -> Task<Message> {
         if let LoadState::Loaded = self.load_state {
             self.load_state = LoadState::Loading;
             Self::load_full_schedule()
         } else {
-            Command::none()
+            Task::none()
         }
     }
 
-    pub fn refresh_daily_local_series(&mut self) -> Command<Message> {
+    pub fn refresh_daily_local_series(&mut self) -> Task<Message> {
         let current_country_name = locale_settings::get_country_name_from_settings();
 
         if self.country_name != current_country_name {
@@ -123,16 +121,16 @@ impl<'a> FullSchedulePosters<'a> {
                 self.daily_local_series = daily_local_posters;
                 self.country_name = current_country_name;
 
-                Command::batch(daily_local_posters_commands).map(Message::LocalSeries)
+                Task::batch(daily_local_posters_commands).map(Message::LocalSeries)
             } else {
-                Command::none()
+                Task::none()
             }
         } else {
-            Command::none()
+            Task::none()
         }
     }
 
-    pub fn update(&mut self, message: Message) -> Command<Message> {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::FullScheduleLoaded(full_schedule) => {
                 self.load_state = LoadState::Loaded;
@@ -222,16 +220,16 @@ impl<'a> FullSchedulePosters<'a> {
                     })
                     .collect();
 
-                Command::batch([
-                    Command::batch(genre_posters_commands),
-                    Command::batch(webchannel_posters_commands),
-                    Command::batch(network_posters_commands),
-                    Command::batch(popular_posters_commands).map(Message::PopularPosters),
-                    Command::batch(monthly_returning_posters_commands)
+                Task::batch([
+                    Task::batch(genre_posters_commands),
+                    Task::batch(webchannel_posters_commands),
+                    Task::batch(network_posters_commands),
+                    Task::batch(popular_posters_commands).map(Message::PopularPosters),
+                    Task::batch(monthly_returning_posters_commands)
                         .map(Message::MonthlyReturningPosters),
-                    Command::batch(monthly_new_posters_commands).map(Message::MonthlyNewPosters),
-                    Command::batch(daily_global_posters_commands).map(Message::GlobalSeries),
-                    Command::batch(daily_local_posters_commands).map(Message::LocalSeries),
+                    Task::batch(monthly_new_posters_commands).map(Message::MonthlyNewPosters),
+                    Task::batch(daily_global_posters_commands).map(Message::GlobalSeries),
+                    Task::batch(daily_local_posters_commands).map(Message::LocalSeries),
                 ])
             }
             Message::MonthlyNewPosters(message) => self.monthly_new_poster[message.index()]
@@ -293,22 +291,25 @@ impl<'a> FullSchedulePosters<'a> {
             .spacing(30);
 
         let view = column![
-            series_posters_viewer("Shows Airing Today Globally", &self.daily_global_series)
-                .map(Message::GlobalSeries),
             series_posters_viewer(
-                &format!("Shows Airing Today in {}", self.country_name),
+                "Shows Airing Today Globally".into(),
+                &self.daily_global_series
+            )
+            .map(Message::GlobalSeries),
+            series_posters_viewer(
+                format!("Shows Airing Today in {}", self.country_name),
                 &self.daily_local_series
             )
             .map(Message::LocalSeries),
-            series_posters_viewer("Popular Shows", &self.popular_posters)
+            series_posters_viewer("Popular Shows".into(), &self.popular_posters)
                 .map(Message::PopularPosters),
             series_posters_viewer(
-                &format!("New Shows Airing in {}", get_current_month().name()),
+                format!("New Shows Airing in {}", get_current_month().name()),
                 &self.monthly_new_poster,
             )
             .map(Message::MonthlyNewPosters),
             series_posters_viewer(
-                &format!("Shows Returning in {}", get_current_month().name()),
+                format!("Shows Returning in {}", get_current_month().name()),
                 &self.monthly_returning_posters,
             )
             .map(Message::MonthlyReturningPosters),
@@ -323,8 +324,8 @@ impl<'a> FullSchedulePosters<'a> {
         Some(view)
     }
 
-    fn load_full_schedule() -> Command<Message> {
-        Command::perform(
+    fn load_full_schedule() -> Task<Message> {
+        Task::perform(
             caching::tv_schedule::full_schedule::FullSchedule::new(),
             |series| Message::FullScheduleLoaded(series.expect("failed to load series schedule")),
         )
@@ -335,7 +336,7 @@ impl<'a> FullSchedulePosters<'a> {
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (
         Vec<SeriesPoster<'a>>,
-        Vec<Command<IndexedMessage<usize, SeriesPosterMessage>>>,
+        Vec<Task<IndexedMessage<usize, SeriesPosterMessage>>>,
     ) {
         let mut posters = Vec::with_capacity(series_infos.len());
         let mut posters_commands = Vec::with_capacity(series_infos.len());
@@ -363,25 +364,22 @@ fn get_current_month() -> chrono::Month {
 /// Show `No Series Found` information in a discover section
 fn no_series_found() -> Element<'static, Message> {
     container(text("No Series Found"))
-        .center_x()
-        .center_y()
+        .center_x(Length::Fill)
+        .center_y(Length::Shrink)
         .height(100)
-        .width(Length::Fill)
         .into()
 }
 
 fn series_posters_viewer<'a>(
-    title: &str,
+    title: String,
     posters: &'a [SeriesPoster],
 ) -> Element<'a, IndexedMessage<usize, SeriesPosterMessage>> {
     let title = text(title).size(21);
 
     if posters.is_empty() {
         let text = container(text("No Series Found"))
-            .center_x()
-            .center_y()
-            .height(100)
-            .width(Length::Fill);
+            .center_x(Length::Fill)
+            .center_y(100);
         column!(title, Space::with_height(10), text)
             .width(Length::Fill)
             .padding(10)
@@ -427,7 +425,7 @@ where
         section_id: T,
         series_infos: Vec<&'a SeriesMainInformation>,
         message: fn(IndexedMessage<usize, SeriesPosterMessage>) -> Message,
-    ) -> Command<Message> {
+    ) -> Task<Message> {
         if self.posters.is_empty() {
             let range = 0..(series_infos.len());
             let (posters, poster_commands) = Self::generate_posters_and_commands_from_series_infos(
@@ -437,7 +435,7 @@ where
             );
             self.index.insert(section_id, range);
             self.posters = posters;
-            Command::batch(poster_commands).map(message)
+            Task::batch(poster_commands).map(message)
         } else {
             let range = self.posters.len()..(self.posters.len() + series_infos.len());
             let (mut posters, poster_commands) =
@@ -448,7 +446,7 @@ where
                 );
             self.index.insert(section_id, range);
             self.posters.append(&mut posters);
-            Command::batch(poster_commands).map(message)
+            Task::batch(poster_commands).map(message)
         }
     }
 
@@ -458,7 +456,7 @@ where
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (
         Vec<SeriesPoster<'a>>,
-        Vec<Command<IndexedMessage<usize, SeriesPosterMessage>>>,
+        Vec<Task<IndexedMessage<usize, SeriesPosterMessage>>>,
     ) {
         assert_eq!(range.clone().count(), series_infos.len());
 
@@ -490,7 +488,10 @@ where
         &self,
         section_id: &T,
         message: fn(IndexedMessage<usize, SeriesPosterMessage>) -> Message,
-    ) -> Element<'_, Message> {
+    ) -> Element<Message>
+    where
+        T: std::fmt::Display,
+    {
         let series_posters = self.get_section(section_id);
 
         let posters: Element<'_, Message> = if series_posters.is_empty() {
@@ -508,7 +509,7 @@ where
             .into()
         };
 
-        column![text(section_id).size(21), posters]
+        column![text(section_id.to_string()).size(21), posters]
             .spacing(5)
             .into()
     }
@@ -516,7 +517,7 @@ where
     pub fn update_poster(
         &mut self,
         message: IndexedMessage<usize, SeriesPosterMessage>,
-    ) -> Command<IndexedMessage<usize, SeriesPosterMessage>> {
+    ) -> Task<IndexedMessage<usize, SeriesPosterMessage>> {
         let index = message.index();
         self.posters[index].update(message)
     }
