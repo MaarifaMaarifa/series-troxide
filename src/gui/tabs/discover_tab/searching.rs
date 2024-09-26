@@ -9,12 +9,18 @@ use crate::core::api::tv_maze::series_information::SeriesMainInformation;
 use crate::core::api::tv_maze::series_searching;
 use crate::gui::styles;
 
-#[derive(Default)]
+#[derive(Default, Eq, PartialEq)]
 pub enum LoadState {
     Loaded,
     Loading,
     #[default]
     NotLoaded,
+}
+
+impl LoadState {
+    fn is_loading(&self) -> bool {
+        *self == Self::Loading
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -131,7 +137,7 @@ impl Search {
             Space::with_height(10),
             text_input("Search", &self.search_term)
                 .width(300)
-                .on_input(Message::TermChanged)
+                .on_input_maybe((!self.load_state.is_loading()).then_some(Message::TermChanged))
                 .on_submit(Message::TermSearched)
         )
         .width(Length::Fill)
