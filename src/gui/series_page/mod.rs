@@ -6,6 +6,7 @@ use indexmap::IndexMap;
 use series::{Message as SeriesMessage, Series};
 
 use crate::core::api::tv_maze::series_information::SeriesMainInformation;
+use crate::core::program_state::ProgramState;
 
 use super::troxide_widget::series_poster::IndexedMessage;
 
@@ -21,10 +22,12 @@ pub struct SeriesPageController<'a> {
     series_pages: IndexMap<u32, Series<'a>>,
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
     series_page_receiver: mpsc::Receiver<SeriesMainInformation>,
+    program_state: ProgramState,
 }
 
 impl<'a> SeriesPageController<'a> {
     pub fn new(
+        program_state: ProgramState,
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
         series_page_receiver: mpsc::Receiver<SeriesMainInformation>,
     ) -> Self {
@@ -32,6 +35,7 @@ impl<'a> SeriesPageController<'a> {
             series_pages: IndexMap::new(),
             series_page_sender,
             series_page_receiver,
+            program_state,
         }
     }
 
@@ -89,8 +93,11 @@ impl<'a> SeriesPageController<'a> {
                         Message::Series(IndexedMessage::new(series_page_id, message))
                     })
                 } else {
-                    let (series_page, series_page_command) =
-                        Series::new(series_info.clone(), self.series_page_sender.clone());
+                    let (series_page, series_page_command) = Series::new(
+                        self.program_state.clone(),
+                        series_info.clone(),
+                        self.series_page_sender.clone(),
+                    );
                     self.series_pages.insert(series_page_id, series_page);
 
                     series_page_command.map(move |message| {

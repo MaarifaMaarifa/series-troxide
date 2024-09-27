@@ -8,10 +8,10 @@ use crate::gui::{helpers, styles};
 
 use super::Message;
 
-pub fn watch_count() -> Element<'static, Message> {
-    let series_total_number = database::DB.get_total_series();
-    let seasons_total_number = database::DB.get_total_seasons();
-    let episodes_total_number = database::DB.get_total_episodes();
+pub fn watch_count(db: sled::Db) -> Element<'static, Message> {
+    let series_total_number = database::series_tree::get_total_series(db.clone());
+    let seasons_total_number = database::series_tree::get_total_seasons(db.clone());
+    let episodes_total_number = database::series_tree::get_total_episodes(db);
 
     let episodes_count = column![
         text(episodes_total_number)
@@ -171,6 +171,7 @@ pub mod series_banner {
     use iced::widget::{column, container, image, mouse_area, row, text, Row};
     use iced::{Alignment, Element, Length, Task};
 
+    use crate::core::program_state::ProgramState;
     use crate::core::{api::tv_maze::series_information::SeriesMainInformation, database};
     pub use crate::gui::message::IndexedMessage;
     use crate::gui::troxide_widget::series_poster::{GenericPoster, GenericPosterMessage};
@@ -186,10 +187,12 @@ pub mod series_banner {
         index: usize,
         poster: GenericPoster<'a>,
         watch_time: Option<u32>,
+        program_state: ProgramState,
     }
 
     impl<'a> SeriesBanner<'a> {
         pub fn new(
+            program_state: ProgramState,
             index: usize,
             series_info: std::borrow::Cow<'a, SeriesMainInformation>,
             watch_time: Option<u32>,
@@ -201,6 +204,7 @@ pub mod series_banner {
                     index,
                     poster,
                     watch_time,
+                    program_state,
                 },
                 poster_command
                     .map(Message::Poster)
@@ -221,7 +225,8 @@ pub mod series_banner {
 
         pub fn view(&self) -> Element<'_, IndexedMessage<usize, Message>> {
             let series_id = self.poster.get_series_info().id;
-            let series = database::DB.get_series(series_id).unwrap();
+            let series =
+                database::series_tree::get_series(self.program_state.get_db(), series_id).unwrap();
 
             let series_name = format!(
                 "{}: {}",

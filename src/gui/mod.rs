@@ -1,3 +1,4 @@
+use crate::core::program_state::ProgramState;
 use crate::core::settings_config::{self, SETTINGS};
 use iced::window::Id;
 use iced::Task;
@@ -32,7 +33,9 @@ pub struct TroxideGui<'a> {
 }
 
 impl<'a> TroxideGui<'a> {
-    pub fn new() -> (Self, iced::Task<Message>) {
+    pub fn new(db: sled::Db) -> (Self, iced::Task<Message>) {
+        let program_state = ProgramState::new(db);
+
         let noto_font_command = iced::font::load(assets::fonts::NOTOSANS_REGULAR_STATIC);
 
         let icon_change_task =
@@ -43,14 +46,15 @@ impl<'a> TroxideGui<'a> {
         // let bootstrap_font_command = iced::font::load(iced_aw::BOOTSTRAP_FONT_BYTES);
 
         let (sender, receiver) = mpsc::channel();
-        let (tabs_controller, tabs_controller_command) = TabsController::new(sender.clone());
+        let (tabs_controller, tabs_controller_command) =
+            TabsController::new(program_state.clone(), sender.clone());
 
         (
             Self {
                 active_tab: TabId::Discover,
                 title_bar: TitleBar::new(),
                 tabs_controller,
-                series_page_controller: SeriesPageController::new(sender, receiver),
+                series_page_controller: SeriesPageController::new(program_state, sender, receiver),
             },
             Task::batch([
                 noto_font_command.map(Message::FontLoaded),

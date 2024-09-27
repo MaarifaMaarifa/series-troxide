@@ -6,6 +6,7 @@ use iced_aw::Spinner;
 
 use crate::core::api::tv_maze::episodes_information::Episode;
 use crate::core::caching::episode_list::EpisodeList;
+use crate::core::program_state::ProgramState;
 use crate::gui::message::IndexedMessage;
 use crate::gui::styles;
 use season::{Message as SeasonMessage, Season};
@@ -21,16 +22,22 @@ pub struct Seasons {
     series_id: u32,
     episode_list: Option<Rc<EpisodeList>>,
     seasons: Vec<Season>,
+    program_state: ProgramState,
 }
 
 impl Seasons {
-    pub fn new(series_id: u32, series_name: String) -> (Self, Task<Message>) {
+    pub fn new(
+        program_state: ProgramState,
+        series_id: u32,
+        series_name: String,
+    ) -> (Self, Task<Message>) {
         (
             Self {
                 series_name,
                 series_id,
                 episode_list: None,
                 seasons: vec![],
+                program_state,
             },
             Task::perform(
                 async move {
@@ -64,6 +71,7 @@ impl Seasons {
                     .enumerate()
                     .map(|(index, season)| {
                         Season::new(
+                            self.program_state.clone(),
                             index,
                             self.series_id,
                             self.episode_list
@@ -124,7 +132,8 @@ mod season {
     use crate::core::api::tv_maze::episodes_information::Episode as EpisodeInfo;
     use crate::core::caching::episode_list::{EpisodeList, TotalEpisodes};
     use crate::core::database;
-    use crate::core::database::AddResult;
+    use crate::core::database::db_models::AddResult;
+    use crate::core::program_state::ProgramState;
     use crate::gui::assets::icons::{CHEVRON_DOWN, CHEVRON_UP};
     use crate::gui::message::IndexedMessage;
     use crate::gui::styles;
@@ -150,10 +159,12 @@ mod season {
         total_episodes: TotalEpisodes,
         episodes: Vec<Episode>,
         is_expanded: bool,
+        program_state: ProgramState,
     }
 
     impl Season {
         pub fn new(
+            program_state: ProgramState,
             index: usize,
             series_id: u32,
             episode_list: Rc<EpisodeList>,
@@ -170,6 +181,7 @@ mod season {
                 total_episodes,
                 episodes: vec![],
                 is_expanded: false,
+                program_state,
             }
         }
         pub fn update(
@@ -184,14 +196,19 @@ mod season {
                     let total_episodes = self.total_episodes.get_all_episodes();
                     let index = self.index;
 
+                    let db = self.program_state.get_db();
+
                     return Task::perform(
                         async move {
-                            if let Some(mut series) = database::DB.get_series(series_id) {
+                            if let Some(mut series) =
+                                database::series_tree::get_series(db, series_id)
+                            {
                                 series
                                     .add_episodes(season_number, 1..=total_episodes as u32)
                                     .await
                             } else {
-                                let mut series = database::Series::new(series_name, series_id);
+                                let mut series =
+                                    database::db_models::Series::new(series_name, series_id);
                                 series
                                     .add_episodes(season_number, 1..=total_episodes as u32)
                                     .await
@@ -222,7 +239,13 @@ mod season {
                             .into_iter()
                             .enumerate()
                             .map(|(index, info)| {
-                                Episode::new(index, self.series_id, self.series_name.clone(), info)
+                                Episode::new(
+                                    self.program_state.clone(),
+                                    index,
+                                    self.series_id,
+                                    self.series_name.clone(),
+                                    info,
+                                )
                             })
                             .collect();
 
@@ -248,7 +271,10 @@ mod season {
                 }
                 Message::TrackTaskComplete(add_result) => {
                     if let AddResult::None = add_result {
-                        if let Some(mut series) = database::DB.get_series(self.series_id) {
+                        if let Some(mut series) = database::series_tree::get_series(
+                            self.program_state.get_db(),
+                            self.series_id,
+                        ) {
                             series.remove_season(self.season_number);
                         }
                     }
@@ -258,15 +284,15 @@ mod season {
         }
 
         pub fn view(&self) -> Element<'_, IndexedMessage<usize, Message>> {
-            let tracked_episodes = database::DB
-                .get_series(self.series_id)
-                .map(|series| {
-                    series
-                        .get_season(self.season_number)
-                        .map(|season| season.get_total_episodes())
-                        .unwrap_or_default()
-                })
-                .unwrap_or_default();
+            let tracked_episodes =
+                database::series_tree::get_series(self.program_state.get_db(), self.series_id)
+                    .map(|series| {
+                        series
+                            .get_season(self.season_number)
+                            .map(|season| season.get_total_episodes())
+                            .unwrap_or_default()
+                    })
+                    .unwrap_or_default();
 
             let track_checkbox = checkbox(
                 "".to_owned(),

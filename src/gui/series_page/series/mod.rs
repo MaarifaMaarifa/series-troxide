@@ -5,6 +5,7 @@ use image;
 
 use crate::core::api::tv_maze::series_information::SeriesMainInformation;
 use crate::core::api::tv_maze::Image;
+use crate::core::program_state::ProgramState;
 use crate::core::{caching, database};
 use crate::gui::styles;
 use data_widgets::*;
@@ -45,17 +46,23 @@ pub struct Series<'a> {
     series_suggestion_widget: SeriesSuggestion<'a>,
     scroll_offset: RelativeOffset,
     scroller_id: Id,
+    program_state: ProgramState,
 }
 
 impl<'a> Series<'a> {
     /// Counstruct the series page by providing it with SeriesMainInformation
     pub fn new(
+        program_state: ProgramState,
         series_information: SeriesMainInformation,
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (Self, Task<Message>) {
         let series_id = series_information.id;
         let (people_widget, people_widget_command) = PeopleWidget::new(series_id);
-        let (seasons, seasons_command) = Seasons::new(series_id, series_information.name.clone());
+        let (seasons, seasons_command) = Seasons::new(
+            program_state.clone(),
+            series_id,
+            series_information.name.clone(),
+        );
 
         let (series_suggestion_widget, series_suggestion_widget_command) = SeriesSuggestion::new(
             series_id,
@@ -76,12 +83,13 @@ impl<'a> Series<'a> {
             series_suggestion_widget,
             scroll_offset: RelativeOffset::default(),
             scroller_id: scroller_id.clone(),
+            program_state,
         };
 
         let scroller_command = scrollable::snap_to(scroller_id, RelativeOffset::START);
 
         let commands = [
-            Task::batch(load_images(series_image, series_id)),
+            load_images(series_image, series_id),
             seasons_command.map(Message::Seasons),
             people_widget_command.map(Message::PeopleWidget),
             series_suggestion_widget_command.map(Message::SeriesSuggestion),
@@ -127,21 +135,40 @@ impl<'a> Series<'a> {
             Message::TrackSeries => {
                 let series_id = self.series_information.id;
 
-                if let Some(mut series) = database::DB.get_series(series_id) {
+                if let Some(mut series) =
+                    database::series_tree::get_series(self.program_state.get_db(), series_id)
+                {
                     series.mark_tracked();
+
+                    database::series_tree::add_series(
+                        self.program_state.get_db(),
+                        self.series_information.id,
+                        &series,
+                    );
                 } else {
-                    let mut series = database::Series::new(
+                    let mut series = database::db_models::Series::new(
                         self.series_information.name.to_owned(),
                         self.series_id,
                     );
                     series.mark_tracked();
-                    database::DB.add_series(self.series_information.id, &series);
+                    database::series_tree::add_series(
+                        self.program_state.get_db(),
+                        self.series_information.id,
+                        &series,
+                    );
                 }
             }
             Message::UntrackSeries => {
                 let series_id = self.series_information.id;
-                if let Some(mut series) = database::DB.get_series(series_id) {
+                if let Some(mut series) =
+                    database::series_tree::get_series(self.program_state.get_db(), series_id)
+                {
                     series.mark_untracked();
+                    database::series_tree::add_series(
+                        self.program_state.get_db(),
+                        series_id,
+                        &series,
+                    );
                 }
             }
             Message::SeriesBackgroundLoaded(background) => self.series_background = background,
@@ -171,6 +198,7 @@ impl<'a> Series<'a> {
         );
 
         let series_metadata = series_metadata(
+            self.program_state.get_db(),
             &self.series_information,
             self.series_image.clone(),
             self.seasons.get_next_episode_to_air(),
@@ -203,7 +231,7 @@ impl<'a> Series<'a> {
 }
 
 /// Returns two commands that requests series' image and seasons list
-fn load_images(series_info_image: Option<Image>, series_id: u32) -> [Task<Message>; 2] {
+fn load_images(series_info_image: Option<Image>, series_id: u32) -> Task<Message> {
     let image_command = if let Some(image_url) = series_info_image {
         Task::perform(
             caching::load_image(
@@ -221,5 +249,5 @@ fn load_images(series_info_image: Option<Image>, series_id: u32) -> [Task<Messag
         Message::SeriesBackgroundLoaded,
     );
 
-    [image_command, background_command]
+    Task::batch([image_command, background_command])
 }

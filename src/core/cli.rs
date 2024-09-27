@@ -12,7 +12,7 @@ pub mod cli_handler {
     use crate::core::settings_config;
 
     /// Handles all the logic for the command line arguments
-    pub fn handle_cli() -> anyhow::Result<()> {
+    pub fn handle_cli(db: sled::Db) -> anyhow::Result<()> {
         let mut cli = Cli::parse();
 
         let command = cli.command.take();
@@ -22,7 +22,9 @@ pub mod cli_handler {
         if let Some(command) = command {
             match command {
                 Command::ImportData { file_path } => {
-                    database::database_transfer::TransferData::blocking_import_to_db(file_path)?;
+                    database::database_transfer::TransferData::blocking_import_to_db(
+                        db, file_path,
+                    )?;
                     println!("data imported successfully!");
                     exit(0);
                 }
@@ -30,6 +32,7 @@ pub mod cli_handler {
                     file_path: path_to_data,
                 } => {
                     database::database_transfer::TransferData::blocking_export_from_db(
+                        db,
                         path_to_data,
                     )?;
                     println!("data exported successfully!");

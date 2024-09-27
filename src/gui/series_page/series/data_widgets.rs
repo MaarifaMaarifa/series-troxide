@@ -18,6 +18,7 @@ use iced_aw::{Grid, GridRow};
 
 /// Generates the Series Metadata
 pub fn series_metadata<'a>(
+    db: sled::Db,
     series_information: &'a SeriesMainInformation,
     image_bytes: Option<Bytes>,
     next_episode_to_air: Option<&Episode>,
@@ -54,7 +55,7 @@ pub fn series_metadata<'a>(
 
     let title_bar = row![
         series_name.width(Length::FillPortion(10)),
-        tracking_button(series_information.id)
+        tracking_button(db, series_information.id)
     ];
 
     let next_episode_widget = next_episode_to_air_widget(next_episode_to_air);
@@ -113,9 +114,8 @@ pub fn background(
     }
 }
 
-pub fn tracking_button(series_id: u32) -> Button<'static, Message> {
-    if database::DB
-        .get_series(series_id)
+pub fn tracking_button(db: sled::Db, series_id: u32) -> Button<'static, Message> {
+    if database::series_tree::get_series(db, series_id)
         .map(|series| series.is_tracked())
         .unwrap_or(false)
     {

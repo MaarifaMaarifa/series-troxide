@@ -9,6 +9,7 @@ use crate::core::api::trakt::authentication::{self, CodeResponse, TokenResponse}
 use crate::core::api::trakt::trakt_data::TraktShow;
 use crate::core::api::trakt::user_credentials::{self, Client, Credentials, CredentialsError};
 use crate::core::api::trakt::user_settings::{self, UserSettings};
+use crate::core::program_state::ProgramState;
 use crate::gui::assets::icons::TRAKT_ICON_RED;
 use crate::gui::styles;
 
@@ -29,13 +30,15 @@ pub enum Message {
 pub struct TraktIntegration {
     setup_page: Option<SetupStep>,
     sync_trakt_account: bool,
+    program_state: ProgramState,
 }
 
 impl TraktIntegration {
-    pub fn new() -> Self {
+    pub fn new(program_state: ProgramState) -> Self {
         Self {
             setup_page: None,
             sync_trakt_account: false,
+            program_state,
         }
     }
 
@@ -70,6 +73,7 @@ impl TraktIntegration {
                 };
 
                 self.setup_page = Some(SetupStep::Start(StartPage::new(
+                    self.program_state.clone(),
                     credentials,
                     start_page_mode,
                 )));
@@ -220,13 +224,19 @@ enum StartPageMode {
 struct StartPage {
     credentials: Credentials,
     page_mode: StartPageMode,
+    program_state: ProgramState,
 }
 
 impl StartPage {
-    pub fn new(credentials: Credentials, start_page_mode: StartPageMode) -> Self {
+    pub fn new(
+        program_state: ProgramState,
+        credentials: Credentials,
+        start_page_mode: StartPageMode,
+    ) -> Self {
         Self {
             credentials,
             page_mode: start_page_mode,
+            program_state,
         }
     }
 
@@ -265,7 +275,8 @@ impl StartPage {
                 StartPageMode::TraktDataSync(client) => {
                     let client = client.as_ref().expect("client should be ok at this point");
                     let slug = self.credentials.get_data().unwrap().0.slug.clone();
-                    let import_page = ImportPage::new(client.client_id.clone(), slug);
+                    let import_page =
+                        ImportPage::new(self.program_state.clone(), client.client_id.clone(), slug);
                     *next_page = Some(SetupStep::Import(import_page));
                     Task::none()
                 }
@@ -787,15 +798,17 @@ struct ImportPage {
     failed_imports: Vec<TraktShow>,
     // `bool` to indicate when complete, `Option` to indicate import err
     import_complete: (bool, Option<String>),
+    program_state: ProgramState,
 }
 impl ImportPage {
-    fn new(client_id: String, slug: String) -> Self {
+    fn new(program_state: ProgramState, client_id: String, slug: String) -> Self {
         Self {
             client_id,
             slug,
             progress: (0, 0),
             failed_imports: vec![],
             import_complete: (false, None),
+            program_state,
         }
     }
 
@@ -818,13 +831,17 @@ impl ImportPage {
                     }
                 }
                 trakt_data_import::Event::WorkFinished(imports) => {
-                    use crate::core::database::DB;
+                    use crate::core::database::series_tree;
 
                     match imports {
                         Ok(imports) => {
                             imports.0.into_iter().for_each(|(series_id, mut series)| {
                                 series.mark_tracked();
-                                DB.add_series(series_id, &series)
+                                series_tree::add_series(
+                                    self.program_state.get_db(),
+                                    series_id,
+                                    &series,
+                                )
                             });
                             self.failed_imports = imports.1;
                         }
@@ -992,7 +1009,7 @@ mod trakt_data_import {
 
     use crate::core::api::trakt::import_shows::{self, ProgressData};
     use crate::core::api::trakt::trakt_data::TraktShow;
-    use crate::core::database::Series;
+    use crate::core::database::db_models::Series;
 
     use iced::futures::channel::mpsc;
     use iced::futures::sink::SinkExt;

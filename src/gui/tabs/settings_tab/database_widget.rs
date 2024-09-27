@@ -1,9 +1,10 @@
 use iced::widget::{button, column, container, horizontal_space, progress_bar, row, text, Space};
 use iced::{Element, Task};
 
+use crate::core::database;
 use crate::core::database::database_transfer::TransferData;
-use crate::core::database::DB;
 
+use crate::core::program_state::ProgramState;
 use crate::gui::styles;
 
 mod trakt_integration;
@@ -28,10 +29,11 @@ pub struct Database {
     transfer_data: Option<TransferData>,
     sender: Option<iced::futures::channel::mpsc::Sender<full_caching::Input>>,
     trakt_widget: trakt_integration::TraktIntegration,
+    program_state: ProgramState,
 }
 
 impl Database {
-    pub fn new() -> Self {
+    pub fn new(program_state: ProgramState) -> Self {
         Self {
             import_status: None,
             export_status: None,
@@ -39,7 +41,8 @@ impl Database {
             importing: false,
             transfer_data: None,
             sender: None,
-            trakt_widget: trakt_integration::TraktIntegration::new(),
+            trakt_widget: trakt_integration::TraktIntegration::new(program_state.clone()),
+            program_state,
         }
     }
     pub fn subscription(&self) -> iced::Subscription<Message> {
@@ -59,11 +62,10 @@ impl Database {
                     Message::ImportReceived(result.map_err(|err| err.to_string()))
                 })
             }
-            Message::ExportDatabasePressed => {
-                Task::perform(database_transfer::export(), |result| {
-                    Message::ExportComplete(result.map_err(|err| err.to_string()))
-                })
-            }
+            Message::ExportDatabasePressed => Task::perform(
+                database_transfer::export(self.program_state.get_db()),
+                |result| Message::ExportComplete(result.map_err(|err| err.to_string())),
+            ),
             // Message::ImportReceived(import_result) => todo!(),
             Message::ImportReceived(import_result) => match import_result {
                 Ok(transfer_data) => {
@@ -117,7 +119,7 @@ impl Database {
                             .as_ref()
                             .expect("there should be transfer data at this point");
 
-                        DB.import(data);
+                        database::series_tree::import(self.program_state.get_db(), data);
 
                         self.import_status = Some(Ok(()));
                         return Task::perform(status_timeout(), |_| Message::ImportTimeoutComplete);
@@ -326,7 +328,7 @@ mod database_transfer {
     use crate::core::database::database_transfer::TransferData;
     use rfd::AsyncFileDialog;
 
-    pub async fn export() -> anyhow::Result<()> {
+    pub async fn export(db: sled::Db) -> anyhow::Result<()> {
         let chosen_path = AsyncFileDialog::new()
             .set_directory(get_home_directory()?)
             .save_file()
@@ -334,7 +336,7 @@ mod database_transfer {
             .map(|file_handle| file_handle.path().to_owned());
 
         if let Some(chosen_path) = chosen_path {
-            TransferData::async_export_from_db(chosen_path).await?;
+            TransferData::async_export_from_db(db, chosen_path).await?;
         }
 
         Ok(())

@@ -2,6 +2,7 @@ use iced::widget::scrollable::{RelativeOffset, Viewport};
 use iced::widget::{column, scrollable};
 use iced::{Alignment, Element, Length, Task};
 
+use crate::core::program_state::ProgramState;
 use crate::gui::assets::icons::GEAR_WIDE_CONNECTED;
 use crate::gui::styles;
 use about_widget::{About, Message as AboutMessage};
@@ -42,12 +43,12 @@ pub struct SettingsTab {
 }
 
 impl SettingsTab {
-    pub fn new() -> (Self, Task<Message>) {
+    pub fn new(program_state: ProgramState) -> (Self, Task<Message>) {
         let (about_widget, about_command) = About::new();
         (
             Self {
                 appearance_settings: Appearance,
-                database_settings: Database::new(),
+                database_settings: Database::new(program_state.clone()),
                 notifications_settings: Notifications,
                 discover_settings: Discover::default(),
                 about: about_widget,

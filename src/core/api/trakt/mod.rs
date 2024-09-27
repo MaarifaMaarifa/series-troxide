@@ -12,7 +12,7 @@ pub mod import_shows {
     use super::trakt_data::{TraktShow, TraktStatusCode};
     use super::ApiError as TraktApiError;
     use crate::core::api::tv_maze::ApiError as TvMazeApiError;
-    use crate::core::database::Series;
+    use crate::core::database::db_models::Series;
     use reqwest::header::HeaderValue;
 
     const USER_WATCHED_SHOWS_ADDRESS: &str = "https://api.trakt.tv/users/SLUG/watched/shows";
@@ -69,7 +69,7 @@ mod convert {
     use crate::core::api::tv_maze::show_lookup::{show_lookup, Id};
     use crate::core::api::tv_maze::ApiError as TvMazeApiError;
     use crate::core::caching::series_information::cache_series_information;
-    use crate::core::database::Series;
+    use crate::core::database::db_models::Series;
 
     async fn show_lookup_tvdb_id(
         tvdb_id: Option<u32>,

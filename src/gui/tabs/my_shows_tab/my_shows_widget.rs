@@ -6,6 +6,7 @@ use iced_aw::{Spinner, Wrap};
 
 use crate::core::api::tv_maze::series_information::SeriesMainInformation;
 use crate::core::caching;
+use crate::core::program_state::ProgramState;
 use crate::gui::styles;
 use crate::gui::tabs::tab_searching::{unavailable_posters, Searchable};
 use crate::gui::troxide_widget::series_poster::{
@@ -35,8 +36,10 @@ pub struct MyShows<'a> {
 
 impl<'a> MyShows<'a> {
     pub fn new_as_ended_tracked_series(
+        program_state: ProgramState,
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (Self, Task<Message>) {
+        let db = program_state.get_db();
         (
             Self {
                 load_state: LoadState::default(),
@@ -46,7 +49,7 @@ impl<'a> MyShows<'a> {
             },
             Task::perform(
                 async {
-                    caching::series_list::SeriesList::new()
+                    caching::series_list::SeriesList::new(db)
                         .get_ended_tracked_series_information()
                         .await
                 },
@@ -56,8 +59,10 @@ impl<'a> MyShows<'a> {
     }
 
     pub fn new_as_waiting_release_series(
+        program_state: ProgramState,
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (Self, Task<Message>) {
+        let db = program_state.get_db();
         (
             Self {
                 load_state: LoadState::default(),
@@ -67,7 +72,7 @@ impl<'a> MyShows<'a> {
             },
             Task::perform(
                 async {
-                    caching::series_list::SeriesList::new()
+                    caching::series_list::SeriesList::new(db)
                         .get_waiting_release_series_information()
                         .await
                 },
@@ -77,8 +82,10 @@ impl<'a> MyShows<'a> {
     }
 
     pub fn new_as_untracked_series(
+        program_state: ProgramState,
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (Self, Task<Message>) {
+        let db = program_state.get_db();
         (
             Self {
                 load_state: LoadState::default(),
@@ -88,7 +95,7 @@ impl<'a> MyShows<'a> {
             },
             Task::perform(
                 async {
-                    caching::series_list::SeriesList::new()
+                    caching::series_list::SeriesList::new(db)
                         .get_untracked_series_information()
                         .await
                 },

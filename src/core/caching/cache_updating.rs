@@ -13,7 +13,7 @@ use tracing::{error, info, warn};
 use super::series_info_and_episode_list::SeriesInfoAndEpisodeList;
 use super::{CacheFolderType, CACHER};
 use crate::core::api::tv_maze::updates::get_shows_updates_index;
-use crate::core::database::DB;
+use crate::core::database;
 
 async fn get_all_series_cache_directories(
 ) -> anyhow::Result<Vec<(String, path::PathBuf, time::Duration)>> {
@@ -48,7 +48,7 @@ async fn get_all_series_cache_directories(
     Ok(series_dirs)
 }
 
-pub async fn update_cache() -> anyhow::Result<()> {
+pub async fn update_cache(db: sled::Db) -> anyhow::Result<()> {
     if !should_update().await? {
         return Ok(());
     }
@@ -63,6 +63,8 @@ pub async fn update_cache() -> anyhow::Result<()> {
     for (series_id, path, cache_timestamp) in series_cache_directories {
         let time_stamp = updates_index.get(&series_id).copied();
 
+        let db = db.clone();
+
         let handle = tokio::spawn(async move {
             if let Some(time_stamp) = time_stamp {
                 let update_timestamp = time::Duration::from_secs(time_stamp as u64);
@@ -72,7 +74,7 @@ pub async fn update_cache() -> anyhow::Result<()> {
 
                     // Caching the series if it's in the database
                     let series_id: u32 = series_id.parse().expect("series id should be parsable");
-                    if DB.get_series(series_id).is_some() {
+                    if database::series_tree::get_series(db.clone(), series_id).is_some() {
                         SeriesInfoAndEpisodeList::cache_series(series_id)
                             .await
                             .unwrap_or_else(|err| {

@@ -1,4 +1,5 @@
 use crate::core::api::tv_maze::series_information::SeriesMainInformation;
+use crate::core::program_state::ProgramState;
 use discover_tab::{DiscoverTab, Message as DiscoverMessage};
 use my_shows_tab::{Message as MyShowsMessage, MyShowsTab};
 use settings_tab::{Message as SettingsMessage, SettingsTab};
@@ -122,12 +123,16 @@ pub struct TabsController<'a> {
     reloadable_tab: Option<ReloadableTab<'a>>,
     tabs_scrollable_offsets: [RelativeOffset; 5],
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
+    program_state: ProgramState,
 }
 
 impl<'a> TabsController<'a> {
-    pub fn new(series_page_sender: mpsc::Sender<SeriesMainInformation>) -> (Self, Task<Message>) {
+    pub fn new(
+        program_state: ProgramState,
+        series_page_sender: mpsc::Sender<SeriesMainInformation>,
+    ) -> (Self, Task<Message>) {
         let (discover_tab, discover_command) = DiscoverTab::new(series_page_sender.clone());
-        let (settings_tab, settings_command) = SettingsTab::new();
+        let (settings_tab, settings_command) = SettingsTab::new(program_state.clone());
 
         (
             Self {
@@ -136,6 +141,7 @@ impl<'a> TabsController<'a> {
                 reloadable_tab: None,
                 settings_tab,
                 tabs_scrollable_offsets: [RelativeOffset::START; 5],
+                program_state,
                 series_page_sender,
             },
             Task::batch([
@@ -227,6 +233,7 @@ impl<'a> TabsController<'a> {
             TabId::Discover => self.discover_tab.refresh().map(Message::Discover),
             TabId::Watchlist => {
                 let (watchlist_tab, watchlist_command) = WatchlistTab::new(
+                    self.program_state.clone(),
                     self.series_page_sender.clone(),
                     Some(self.tabs_scrollable_offsets[index]),
                 );
@@ -235,6 +242,7 @@ impl<'a> TabsController<'a> {
             }
             TabId::MyShows => {
                 let (my_shows_tab, my_shows_command) = MyShowsTab::new(
+                    self.program_state.clone(),
                     self.series_page_sender.clone(),
                     Some(self.tabs_scrollable_offsets[index]),
                 );
@@ -243,6 +251,7 @@ impl<'a> TabsController<'a> {
             }
             TabId::Statistics => {
                 let (statistics_tab, statistics_command) = StatisticsTab::new(
+                    self.program_state.clone(),
                     self.series_page_sender.clone(),
                     Some(self.tabs_scrollable_offsets[index]),
                 );

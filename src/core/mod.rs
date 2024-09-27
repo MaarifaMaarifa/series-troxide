@@ -5,4 +5,5 @@ pub mod database;
 pub mod notifications;
 pub mod paths;
 pub mod posters_hiding;
+pub mod program_state;
 pub mod settings_config;

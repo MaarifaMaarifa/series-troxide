@@ -1,6 +1,7 @@
 use std::sync::mpsc;
 
 use crate::core::api::tv_maze::series_information::SeriesMainInformation;
+use crate::core::program_state::ProgramState;
 use crate::gui::assets::icons::FILM;
 use crate::gui::styles;
 
@@ -38,17 +39,18 @@ pub struct MyShowsTab<'a> {
 
 impl<'a> MyShowsTab<'a> {
     pub fn new(
+        program_state: ProgramState,
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
         scrollable_offset: Option<RelativeOffset>,
     ) -> (Self, Task<Message>) {
         let (untracked_releases, untracked_releases_commands) =
-            MyShows::new_as_untracked_series(series_page_sender.clone());
+            MyShows::new_as_untracked_series(program_state.clone(), series_page_sender.clone());
         let (ended_releases, ended_releases_commands) =
-            MyShows::new_as_ended_tracked_series(series_page_sender.clone());
+            MyShows::new_as_ended_tracked_series(program_state.clone(), series_page_sender.clone());
         let (upcoming_releases, upcoming_releases_commands) =
-            UpcomingReleases::new(series_page_sender.clone());
+            UpcomingReleases::new(program_state.clone(), series_page_sender.clone());
         let (waiting_releases, waiting_releases_commands) =
-            MyShows::new_as_waiting_release_series(series_page_sender);
+            MyShows::new_as_waiting_release_series(program_state.clone(), series_page_sender);
 
         (
             Self {

@@ -8,6 +8,7 @@ use crate::core::api::tv_maze::episodes_information::Episode;
 use crate::core::api::tv_maze::series_information::SeriesMainInformation;
 use crate::core::caching;
 use crate::core::caching::episode_list::EpisodeReleaseTime;
+use crate::core::program_state::ProgramState;
 use crate::gui::message::IndexedMessage;
 use crate::gui::tabs::tab_searching::{unavailable_posters, Searchable};
 use crate::gui::{helpers, styles};
@@ -33,18 +34,24 @@ pub struct UpcomingReleases<'a> {
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
     /// A collection of matched series id after a fuzzy search
     matched_id_collection: Option<Vec<u32>>,
+    program_state: ProgramState,
 }
 
 impl<'a> UpcomingReleases<'a> {
-    pub fn new(series_page_sender: mpsc::Sender<SeriesMainInformation>) -> (Self, Task<Message>) {
+    pub fn new(
+        program_state: ProgramState,
+        series_page_sender: mpsc::Sender<SeriesMainInformation>,
+    ) -> (Self, Task<Message>) {
+        let db = program_state.get_db();
         (
             Self {
                 load_state: LoadState::default(),
                 upcoming_posters: vec![],
                 series_page_sender,
                 matched_id_collection: None,
+                program_state,
             },
-            load_upcoming_releases(),
+            load_upcoming_releases(db),
         )
     }
 
@@ -102,7 +109,7 @@ impl<'a> UpcomingReleases<'a> {
             Message::UpcomingPoster(message) => self.upcoming_posters[message.index()]
                 .update(message)
                 .map(Message::UpcomingPoster),
-            Message::Refresh => load_upcoming_releases(),
+            Message::Refresh => load_upcoming_releases(self.program_state.get_db()),
         }
     }
 
@@ -171,10 +178,10 @@ impl<'a> Searchable for UpcomingReleases<'a> {
     }
 }
 
-fn load_upcoming_releases() -> Task<Message> {
+fn load_upcoming_releases(db: sled::Db) -> Task<Message> {
     Task::perform(
         async {
-            caching::series_list::SeriesList::new()
+            caching::series_list::SeriesList::new(db)
                 .get_upcoming_release_series_information_and_episodes()
                 .await
         },

@@ -100,9 +100,8 @@ impl EpisodeList {
             .find(|episode| episode.is_future_release() == Ok(true))
     }
 
-    pub fn get_next_episode_to_watch(&self) -> Option<&Episode> {
-        let series = database::DB
-            .get_series(self.series_id)
+    pub fn get_next_episode_to_watch(&self, db: sled::Db) -> Option<&Episode> {
+        let series = database::series_tree::get_series(db, self.series_id)
             .expect("series not in the database");
 
         self.get_all_episodes()

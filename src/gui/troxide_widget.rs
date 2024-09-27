@@ -1,4 +1,5 @@
 pub mod episode_widget {
+    use crate::core::program_state::ProgramState;
     use crate::core::{
         api::tv_maze::episodes_information::Episode as EpisodeInfo, caching, database,
     };
@@ -34,10 +35,12 @@ pub mod episode_widget {
         series_id: u32,
         episode_image: Option<Bytes>,
         set_watched: bool,
+        program_state: ProgramState,
     }
 
     impl Episode {
         pub fn new(
+            program_state: ProgramState,
             index: usize,
             series_id: u32,
             series_name: String,
@@ -51,6 +54,7 @@ pub mod episode_widget {
                 series_id,
                 episode_image: None,
                 set_watched: false,
+                program_state,
             };
 
             let command = if let Some(image) = episode_image {
@@ -89,32 +93,47 @@ pub mod episode_widget {
                     match poster_type {
                         PosterType::Watchlist => {
                             self.set_watched = true;
-                            if let Some(mut series) = database::DB.get_series(series_id) {
+                            if let Some(mut series) = database::series_tree::get_series(
+                                self.program_state.get_db(),
+                                series_id,
+                            ) {
                                 series.add_episode_unchecked(season_number, episode_number);
                             } else {
-                                let mut series = database::Series::new(series_name, series_id);
+                                let mut series =
+                                    database::db_models::Series::new(series_name, series_id);
                                 series.add_episode_unchecked(season_number, episode_number)
                             }
 
                             Task::none()
                         }
-                        PosterType::Season => Task::perform(
-                            async move {
-                                if let Some(mut series) = database::DB.get_series(series_id) {
-                                    series.add_episode(season_number, episode_number).await
-                                } else {
-                                    let mut series = database::Series::new(series_name, series_id);
-                                    series.add_episode(season_number, episode_number).await
-                                }
-                            },
-                            Message::TrackTaskComplete,
-                        )
-                        .map(move |message| IndexedMessage::new(episode_index, message)),
+                        PosterType::Season => {
+                            let db = self.program_state.get_db();
+                            Task::perform(
+                                async move {
+                                    if let Some(mut series) =
+                                        database::series_tree::get_series(db, series_id)
+                                    {
+                                        series.add_episode(season_number, episode_number).await
+                                    } else {
+                                        let mut series = database::db_models::Series::new(
+                                            series_name,
+                                            series_id,
+                                        );
+                                        series.add_episode(season_number, episode_number).await
+                                    }
+                                },
+                                Message::TrackTaskComplete,
+                            )
+                            .map(move |message| IndexedMessage::new(episode_index, message))
+                        }
                     }
                 }
                 Message::TrackTaskComplete(is_newly_added) => {
                     if !is_newly_added {
-                        if let Some(mut series) = database::DB.get_series(self.series_id) {
+                        if let Some(mut series) = database::series_tree::get_series(
+                            self.program_state.get_db(),
+                            self.series_id,
+                        ) {
                             series.remove_episode(
                                 self.episode_information.season,
                                 self.episode_information.number.unwrap(),
@@ -147,7 +166,12 @@ pub mod episode_widget {
             };
 
             let episode_details = column!(
-                heading_widget(self.series_id, &self.episode_information, poster_type),
+                heading_widget(
+                    self.program_state.get_db(),
+                    self.series_id,
+                    &self.episode_information,
+                    poster_type
+                ),
                 date_time_widget(&self.episode_information),
                 Space::with_height(5),
                 summary_widget(&self.episode_information)
@@ -190,6 +214,7 @@ pub mod episode_widget {
     }
 
     fn heading_widget(
+        db: sled::Db,
         series_id: u32,
         episode_information: &EpisodeInfo,
         poster_type: PosterType,
@@ -207,8 +232,7 @@ pub mod episode_widget {
                     .into()
             }
             PosterType::Season => {
-                let is_tracked = database::DB
-                    .get_series(series_id)
+                let is_tracked = database::series_tree::get_series(db, series_id)
                     .map(|series| {
                         if let Some(season) = series.get_season(episode_information.season) {
                             season.is_episode_watched(episode_information.number.unwrap())

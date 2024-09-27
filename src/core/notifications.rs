@@ -17,10 +17,11 @@ enum Signal {
 pub struct TroxideNotify {
     signal_receiver: mpsc::Receiver<Signal>,
     signal_sender: mpsc::Sender<Signal>,
+    db: sled::Db,
 }
 
 impl TroxideNotify {
-    pub fn new() -> anyhow::Result<Self> {
+    pub fn new(db: sled::Db) -> anyhow::Result<Self> {
         let (signal_sender, signal_receiver) = mpsc::channel();
 
         let file_change_signal_sender = signal_sender.clone();
@@ -29,6 +30,7 @@ impl TroxideNotify {
         Ok(Self {
             signal_receiver,
             signal_sender,
+            db,
         })
     }
 
@@ -44,49 +46,50 @@ impl TroxideNotify {
 
                 // Creating a handle for each episode release notification so that we can be able to abort them at anytime
                 // we want.
-                let notification_handles: Vec<_> = get_releases_with_duration_to_release()
-                    .await
-                    .into_iter()
-                    .map(|(series_info, episode, duration)| {
-                        (series_info, episode, duration - duration_before_release)
-                    })
-                    .filter(|(_, _, duration)| duration.to_std().is_ok())
-                    .map(|(series_info, episode, duration)| {
-                        let signal_sender = self.signal_sender.clone();
-                        tokio::spawn(async move {
-                            tracing::info!(
-                                "waiting {} minutes for \"{}'s\" notification",
-                                duration.num_minutes(),
-                                series_info.name,
-                            );
-
-                            tokio::time::sleep(duration.to_std().unwrap()).await;
-
-                            // For some reasons, async version of notify-rust = "4.9.0" does not work on macos
-                            // and windows so we use the sync version here and async for the linux
-                            #[cfg(not(target_os = "linux"))]
-                            {
-                                platform_notify::not_linux::notify_episode_release(
-                                    &series_info,
-                                    &episode,
-                                    current_notification_time_setting,
-                                )
-                                .await;
-                            }
-
-                            #[cfg(target_os = "linux")]
-                            {
-                                platform_notify::linux::notify_episode_release(
-                                    &series_info,
-                                    &episode,
-                                    current_notification_time_setting,
-                                )
-                                .await;
-                            }
-                            signal_sender.send(Signal::NotificationSent).unwrap();
+                let notification_handles: Vec<_> =
+                    get_releases_with_duration_to_release(self.db.clone())
+                        .await
+                        .into_iter()
+                        .map(|(series_info, episode, duration)| {
+                            (series_info, episode, duration - duration_before_release)
                         })
-                    })
-                    .collect();
+                        .filter(|(_, _, duration)| duration.to_std().is_ok())
+                        .map(|(series_info, episode, duration)| {
+                            let signal_sender = self.signal_sender.clone();
+                            tokio::spawn(async move {
+                                tracing::info!(
+                                    "waiting {} minutes for \"{}'s\" notification",
+                                    duration.num_minutes(),
+                                    series_info.name,
+                                );
+
+                                tokio::time::sleep(duration.to_std().unwrap()).await;
+
+                                // For some reasons, async version of notify-rust = "4.9.0" does not work on macos
+                                // and windows so we use the sync version here and async for the linux
+                                #[cfg(not(target_os = "linux"))]
+                                {
+                                    platform_notify::not_linux::notify_episode_release(
+                                        &series_info,
+                                        &episode,
+                                        current_notification_time_setting,
+                                    )
+                                    .await;
+                                }
+
+                                #[cfg(target_os = "linux")]
+                                {
+                                    platform_notify::linux::notify_episode_release(
+                                        &series_info,
+                                        &episode,
+                                        current_notification_time_setting,
+                                    )
+                                    .await;
+                                }
+                                signal_sender.send(Signal::NotificationSent).unwrap();
+                            })
+                        })
+                        .collect();
 
                 match &self.signal_receiver.recv().unwrap() {
                     Signal::SettingsFileChanged => {
@@ -149,9 +152,10 @@ impl TroxideNotify {
     }
 }
 
-async fn get_releases_with_duration_to_release() -> Vec<(SeriesMainInformation, Episode, Duration)>
-{
-    series_list::SeriesList::new()
+async fn get_releases_with_duration_to_release(
+    db: sled::Db,
+) -> Vec<(SeriesMainInformation, Episode, Duration)> {
+    series_list::SeriesList::new(db)
         .get_upcoming_release_series_information_and_episodes()
         .await
         .context("failed to get upcoming series releases")

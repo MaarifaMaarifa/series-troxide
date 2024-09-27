@@ -3,7 +3,7 @@
 use super::{episode_list::EpisodeReleaseTime, series_information};
 use crate::core::{
     api::tv_maze::{episodes_information::Episode, series_information::SeriesMainInformation},
-    database::{self, Series},
+    database::{self, db_models::Series},
 };
 use lazy_static::lazy_static;
 
@@ -17,9 +17,9 @@ pub struct SeriesList {
 }
 
 impl SeriesList {
-    pub fn new() -> Self {
+    pub fn new(db: sled::Db) -> Self {
         Self {
-            series_list: database::DB.get_ids_and_series(),
+            series_list: database::series_tree::get_ids_and_series(db),
         }
     }
 
@@ -196,11 +196,5 @@ impl SeriesList {
             }
         }
         Ok(waiting_releases_series_infos)
-    }
-}
-
-impl Default for SeriesList {
-    fn default() -> Self {
-        Self::new()
     }
 }

@@ -10,6 +10,7 @@ use super::Tab;
 use crate::core::api::tv_maze::series_information::SeriesMainInformation;
 use crate::core::caching::episode_list::EpisodeList;
 use crate::core::caching::series_list;
+use crate::core::program_state::ProgramState;
 use crate::core::{caching, database};
 use crate::gui::assets::icons::CARD_CHECKLIST;
 use crate::gui::message::IndexedMessage;
@@ -41,13 +42,16 @@ pub struct WatchlistTab<'a> {
     /// A collection of matched series id after a fuzzy search
     matched_id_collection: Option<Vec<u32>>,
     searcher: Searcher,
+    program_state: ProgramState,
 }
 
 impl<'a> WatchlistTab<'a> {
     pub fn new(
+        program_state: ProgramState,
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
         scrollable_offset: Option<RelativeOffset>,
     ) -> (Self, Task<Message>) {
+        let db = program_state.get_db();
         (
             Self {
                 watchlist_posters: vec![],
@@ -57,9 +61,10 @@ impl<'a> WatchlistTab<'a> {
                 scrollable_offset: scrollable_offset.unwrap_or(RelativeOffset::START),
                 matched_id_collection: None,
                 searcher: Searcher::new("Search Watchlist".to_owned()),
+                program_state,
             },
             Task::perform(
-                get_series_information_and_watched_episodes(),
+                get_series_information_and_watched_episodes(db),
                 Message::SeriesInformationLoaded,
             ),
         )
@@ -71,6 +76,7 @@ impl<'a> WatchlistTab<'a> {
                 self.load_state = LoadState::Loaded;
 
                 self.watchlist_summary = Some(WatchlistSummary::new(
+                    self.program_state.clone(),
                     series_infos
                         .iter()
                         .map(|(_, _, total_episodes)| total_episodes)
@@ -95,6 +101,7 @@ impl<'a> WatchlistTab<'a> {
                 for (index, (info, episode, total_episodes)) in series_infos.into_iter().enumerate()
                 {
                     let (poster, command) = WatchlistPoster::new(
+                        self.program_state.clone(),
                         index,
                         std::borrow::Cow::Owned(info),
                         episode,
@@ -199,13 +206,17 @@ impl<'a> WatchlistTab<'a> {
 
 /// checks of the given series has pending episodes to be watched in the database. That given series
 /// is provided through it's EpisodeList Structure.
-fn has_pending_episodes(database_series: &database::Series, episodes_list: &EpisodeList) -> bool {
+fn has_pending_episodes(
+    database_series: &database::db_models::Series,
+    episodes_list: &EpisodeList,
+) -> bool {
     episodes_list.get_total_watchable_episodes() != database_series.get_total_episodes()
 }
 
 async fn get_series_information_and_watched_episodes(
+    db: sled::Db,
 ) -> Vec<(SeriesMainInformation, EpisodeList, usize)> {
-    let tracked_series_information = series_list::SeriesList::new()
+    let tracked_series_information = series_list::SeriesList::new(db.clone())
         .get_tracked_series_information()
         .await
         .unwrap();
@@ -229,7 +240,7 @@ async fn get_series_information_and_watched_episodes(
         .into_iter()
         .zip(episodes_lists.into_iter())
         .filter(|(series_info, episode_list)| {
-            let series = database::DB.get_series(series_info.id).unwrap();
+            let series = database::series_tree::get_series(db.clone(), series_info.id).unwrap();
             has_pending_episodes(&series, episode_list)
         })
         .map(|(series_info, episode_list)| {
@@ -280,6 +291,7 @@ mod watchlist_poster {
     use crate::core::api::tv_maze::series_information::SeriesMainInformation;
     use crate::core::caching::episode_list::EpisodeList;
     use crate::core::database;
+    use crate::core::program_state::ProgramState;
     use crate::gui::helpers::{self, season_episode_str_gen};
     use crate::gui::styles;
     use crate::gui::troxide_widget::episode_widget::{
@@ -305,10 +317,12 @@ mod watchlist_poster {
         episode_poster: Option<EpisodePoster>,
         current_poster_id: usize,
         show_episode_info: bool,
+        program_state: ProgramState,
     }
 
     impl<'a> WatchlistPoster<'a> {
         pub fn new(
+            program_state: ProgramState,
             index: usize,
             series_info: std::borrow::Cow<'a, SeriesMainInformation>,
             episode_list: EpisodeList,
@@ -326,6 +340,7 @@ mod watchlist_poster {
                     episode_poster: None,
                     current_poster_id: 0,
                     show_episode_info: false,
+                    program_state,
                 },
                 poster_command
                     .map(Message::Poster)
@@ -392,8 +407,12 @@ mod watchlist_poster {
         fn update_episode_poster(&mut self) -> Task<IndexedMessage<usize, Message>> {
             self.current_poster_id += 1;
 
-            if let Some(episode) = self.episode_list.get_next_episode_to_watch() {
+            if let Some(episode) = self
+                .episode_list
+                .get_next_episode_to_watch(self.program_state.get_db())
+            {
                 let (episode_poster, episode_poster_command) = EpisodePoster::new(
+                    self.program_state.clone(),
                     self.current_poster_id,
                     self.poster.get_series_info().id,
                     self.poster.get_series_info().name.clone(),
@@ -426,10 +445,12 @@ mod watchlist_poster {
                     .style(styles::text_styles::accent_color_theme),
             );
 
-            let watched_episodes = database::DB
-                .get_series(self.poster.get_series_info().id)
-                .map(|series| series.get_total_episodes())
-                .unwrap_or(0);
+            let watched_episodes = database::series_tree::get_series(
+                self.program_state.get_db(),
+                self.poster.get_series_info().id,
+            )
+            .map(|series| series.get_total_episodes())
+            .unwrap_or(0);
 
             let progress_bar = row![
                 progress_bar(
@@ -448,7 +469,10 @@ mod watchlist_poster {
 
             metadata = metadata.push(progress_bar);
 
-            if let Some(next_episode_to_watch) = self.episode_list.get_next_episode_to_watch() {
+            if let Some(next_episode_to_watch) = self
+                .episode_list
+                .get_next_episode_to_watch(self.program_state.get_db())
+            {
                 let season_number = next_episode_to_watch.season;
                 let episode_number = next_episode_to_watch
                     .number
@@ -516,6 +540,7 @@ mod watchlist_poster {
 
 mod watchlist_summary {
     use crate::core::database;
+    use crate::core::program_state::ProgramState;
     use crate::gui::helpers::time::NaiveTime;
     use crate::gui::styles;
 
@@ -527,11 +552,17 @@ mod watchlist_summary {
         /// Vec<(series id, total_episodes, series runtime)>
         series_ids: Vec<(u32, u32, u32)>,
         total_episodes: usize,
+        program_state: ProgramState,
     }
 
     impl WatchlistSummary {
-        pub fn new(total_episodes: usize, series_ids: Vec<(u32, u32, u32)>) -> Self {
+        pub fn new(
+            program_state: ProgramState,
+            total_episodes: usize,
+            series_ids: Vec<(u32, u32, u32)>,
+        ) -> Self {
             Self {
+                program_state,
                 total_episodes,
                 series_ids,
             }
@@ -547,10 +578,10 @@ mod watchlist_summary {
                     self.series_ids
                         .iter()
                         .map(|(id, total_episodes, time)| {
-                            let watched_episodes = database::DB
-                                .get_series(*id)
-                                .map(|series| series.get_total_episodes())
-                                .unwrap_or(0);
+                            let watched_episodes =
+                                database::series_tree::get_series(self.program_state.get_db(), *id)
+                                    .map(|series| series.get_total_episodes())
+                                    .unwrap_or(0);
 
                             (total_episodes - watched_episodes as u32) * time
                         })
@@ -563,8 +594,7 @@ mod watchlist_summary {
                 .series_ids
                 .iter()
                 .map(|tup| {
-                    database::DB
-                        .get_series(tup.0)
+                    database::series_tree::get_series(self.program_state.get_db(), tup.0)
                         .map(|series| series.get_total_episodes())
                         .unwrap_or(0)
                 })

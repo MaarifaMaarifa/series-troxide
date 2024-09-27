@@ -5,6 +5,7 @@ use iced::widget::{column, container, row, scrollable};
 use iced::{Element, Length, Task};
 use iced_aw::Wrap;
 
+use crate::core::program_state::ProgramState;
 use crate::core::{api::tv_maze::series_information::SeriesMainInformation, database};
 use crate::gui::assets::icons::GRAPH_UP_ARROW;
 use crate::gui::styles;
@@ -33,13 +34,16 @@ pub struct StatisticsTab<'a> {
     /// A collection of matched series id after a fuzzy search
     matched_id_collection: Option<Vec<u32>>,
     searcher: Searcher,
+    program_state: ProgramState,
 }
 
 impl<'a> StatisticsTab<'a> {
     pub fn new(
+        program_state: ProgramState,
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
         scrollable_offset: Option<RelativeOffset>,
     ) -> (Self, Task<Message>) {
+        let db = program_state.get_db();
         (
             Self {
                 series_infos_and_time: vec![],
@@ -48,9 +52,10 @@ impl<'a> StatisticsTab<'a> {
                 scrollable_offset: scrollable_offset.unwrap_or(RelativeOffset::START),
                 matched_id_collection: None,
                 searcher: Searcher::new("Search Statistics".to_owned()),
+                program_state,
             },
             Task::perform(
-                get_series_with_runtime(),
+                get_series_with_runtime(db),
                 Message::SeriesInfosAndTimeReceived,
             ),
         )
@@ -70,6 +75,7 @@ impl<'a> StatisticsTab<'a> {
                 let mut banners_commands = Vec::with_capacity(series_infos_and_time.len());
                 for (index, series_info_and_time) in series_infos_and_time.into_iter().enumerate() {
                     let (banner, banner_command) = SeriesBanner::new(
+                        self.program_state.clone(),
                         index,
                         std::borrow::Cow::Owned(series_info_and_time.0),
                         series_info_and_time.1,
@@ -139,7 +145,7 @@ impl<'a> StatisticsTab<'a> {
 
         column![
             row![
-                watch_count(),
+                watch_count(self.program_state.get_db()),
                 genre_stats(series_infos),
                 time_count(&self.series_infos_and_time)
             ]
@@ -170,9 +176,8 @@ impl<'a> StatisticsTab<'a> {
 
 /// Get the collection of all series with their associated total
 /// average runtime
-async fn get_series_with_runtime() -> Vec<(SeriesMainInformation, Option<u32>)> {
-    let series_ids_handles: Vec<_> = database::DB
-        .get_series_collection()
+async fn get_series_with_runtime(db: sled::Db) -> Vec<(SeriesMainInformation, Option<u32>)> {
+    let series_ids_handles: Vec<_> = database::series_tree::get_series_collection(db)
         .into_iter()
         .map(|series| tokio::spawn(async move { series.get_total_average_watchtime().await }))
         .collect();
