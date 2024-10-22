@@ -14,7 +14,7 @@ edition = "2021"
 clap = { version = "4.5.20", features = ["derive"] }
 iced = { version = "0.13.1", features = ["image", "svg", "tokio"] }
 iced_aw = { version = "0.11", features = ["spinner"] }
-anyhow = "1.0.89"
+anyhow = "1.0.91"
 thiserror = "1.0.64"
 reqwest = { version = "0.12.5", features = ["json"] }
 serde = { version = "1.0.210", features = ["derive"] }
