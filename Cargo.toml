@@ -33,7 +33,7 @@ lazy_static = "1.5.0"
 sha2 = "0.10.8"
 notify-rust = "4.11.3"
 chrono = { version = "0.4.38", features = ["serde"] }
-html2text = "0.12.5"
+html2text = "0.13.3"
 bytes = "1.8.0"
 rfd = "0.15.0"
 image = "0.25.5"
