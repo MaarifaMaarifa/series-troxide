@@ -241,7 +241,7 @@ pub fn ended_widget<'b>(
 
 pub fn summary_widget(series_info: &SeriesMainInformation) -> iced::Element<'_, Message> {
     if let Some(summary) = &series_info.summary {
-        let summary = html2text::from_read(summary.as_bytes(), 1000);
+        let summary = html2text::from_read(summary.as_bytes(), 1000).unwrap_or_default();
         text(summary).size(11).width(880).into()
     } else {
         text("").into()
