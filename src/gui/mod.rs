@@ -31,7 +31,7 @@ pub struct TroxideGui<'a> {
     series_page_controller: SeriesPageController<'a>,
 }
 
-impl<'a> TroxideGui<'a> {
+impl TroxideGui<'_> {
     pub fn new() -> (Self, iced::Task<Message>) {
         let noto_font_command = iced::font::load(assets::fonts::NOTOSANS_REGULAR_STATIC);
 

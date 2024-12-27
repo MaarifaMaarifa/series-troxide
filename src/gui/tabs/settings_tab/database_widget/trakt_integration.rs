@@ -324,7 +324,7 @@ impl StartPage {
     fn content_when_syncing_data<'a>(
         &'a self,
         client: &'a Result<Client, String>,
-    ) -> Element<StartPageMessage> {
+    ) -> Element<'a, StartPageMessage> {
         match client {
             Ok(_) => {
                 if let Some((_, token)) = self.credentials.get_data() {

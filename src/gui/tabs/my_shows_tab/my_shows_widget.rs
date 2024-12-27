@@ -33,7 +33,7 @@ pub struct MyShows<'a> {
     matched_id_collection: Option<Vec<u32>>,
 }
 
-impl<'a> MyShows<'a> {
+impl MyShows<'_> {
     pub fn new_as_ended_tracked_series(
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
     ) -> (Self, Task<Message>) {
@@ -178,7 +178,7 @@ impl<'a> MyShows<'a> {
     }
 }
 
-impl<'a> Searchable for MyShows<'a> {
+impl Searchable for MyShows<'_> {
     fn get_series_information_collection(&self) -> Vec<&SeriesMainInformation> {
         self.series_posters
             .iter()

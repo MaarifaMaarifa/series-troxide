@@ -124,7 +124,7 @@ pub struct TabsController<'a> {
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
 }
 
-impl<'a> TabsController<'a> {
+impl TabsController<'_> {
     pub fn new(series_page_sender: mpsc::Sender<SeriesMainInformation>) -> (Self, Task<Message>) {
         let (discover_tab, discover_command) = DiscoverTab::new(series_page_sender.clone());
         let (settings_tab, settings_command) = SettingsTab::new();

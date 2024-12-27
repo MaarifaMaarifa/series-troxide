@@ -35,7 +35,7 @@ pub struct UpcomingReleases<'a> {
     matched_id_collection: Option<Vec<u32>>,
 }
 
-impl<'a> UpcomingReleases<'a> {
+impl UpcomingReleases<'_> {
     pub fn new(series_page_sender: mpsc::Sender<SeriesMainInformation>) -> (Self, Task<Message>) {
         (
             Self {
@@ -158,7 +158,7 @@ impl<'a> UpcomingReleases<'a> {
     }
 }
 
-impl<'a> Searchable for UpcomingReleases<'a> {
+impl Searchable for UpcomingReleases<'_> {
     fn get_series_information_collection(&self) -> Vec<&SeriesMainInformation> {
         self.upcoming_posters
             .iter()

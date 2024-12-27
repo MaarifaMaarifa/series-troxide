@@ -43,7 +43,7 @@ pub struct WatchlistTab<'a> {
     searcher: Searcher,
 }
 
-impl<'a> WatchlistTab<'a> {
+impl WatchlistTab<'_> {
     pub fn new(
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
         scrollable_offset: Option<RelativeOffset>,
@@ -239,7 +239,7 @@ async fn get_series_information_and_watched_episodes(
         .collect()
 }
 
-impl<'a> Tab for WatchlistTab<'a> {
+impl Tab for WatchlistTab<'_> {
     type Message = Message;
 
     fn title() -> &'static str {
@@ -255,7 +255,7 @@ impl<'a> Tab for WatchlistTab<'a> {
     }
 }
 
-impl<'a> Searchable for WatchlistTab<'a> {
+impl Searchable for WatchlistTab<'_> {
     fn get_series_information_collection(&self) -> Vec<&SeriesMainInformation> {
         self.watchlist_posters
             .iter()

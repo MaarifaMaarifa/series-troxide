@@ -28,7 +28,7 @@ pub struct SeriesSuggestion<'a> {
     series_page_sender: mpsc::Sender<SeriesMainInformation>,
 }
 
-impl<'a> SeriesSuggestion<'a> {
+impl SeriesSuggestion<'_> {
     pub fn new(
         series_id: u32,
         genres: Vec<Genre>,

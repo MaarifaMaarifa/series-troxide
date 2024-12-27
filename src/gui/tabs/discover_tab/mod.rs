@@ -31,7 +31,7 @@ pub struct DiscoverTab<'a> {
     scrollable_offset: RelativeOffset,
 }
 
-impl<'a> DiscoverTab<'a> {
+impl DiscoverTab<'_> {
     pub fn new(series_page_sender: mpsc::Sender<SeriesMainInformation>) -> (Self, Task<Message>) {
         let (full_schedule_series, full_schedule_command) =
             FullSchedulePosters::new(series_page_sender.clone());
@@ -115,7 +115,7 @@ impl<'a> DiscoverTab<'a> {
     }
 }
 
-impl<'a> Tab for DiscoverTab<'a> {
+impl Tab for DiscoverTab<'_> {
     type Message = Message;
 
     fn title() -> &'static str {

@@ -36,7 +36,7 @@ pub struct MyShowsTab<'a> {
     searcher: Searcher,
 }
 
-impl<'a> MyShowsTab<'a> {
+impl MyShowsTab<'_> {
     pub fn new(
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
         scrollable_offset: Option<RelativeOffset>,
@@ -154,7 +154,7 @@ impl<'a> MyShowsTab<'a> {
     }
 }
 
-impl<'a> Tab for MyShowsTab<'a> {
+impl Tab for MyShowsTab<'_> {
     type Message = Message;
 
     fn title() -> &'static str {

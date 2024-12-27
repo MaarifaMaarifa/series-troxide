@@ -23,7 +23,7 @@ pub struct SeriesPageController<'a> {
     series_page_receiver: mpsc::Receiver<SeriesMainInformation>,
 }
 
-impl<'a> SeriesPageController<'a> {
+impl SeriesPageController<'_> {
     pub fn new(
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
         series_page_receiver: mpsc::Receiver<SeriesMainInformation>,

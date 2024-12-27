@@ -47,7 +47,7 @@ pub struct Series<'a> {
     scroller_id: Id,
 }
 
-impl<'a> Series<'a> {
+impl Series<'_> {
     /// Counstruct the series page by providing it with SeriesMainInformation
     pub fn new(
         series_information: SeriesMainInformation,

@@ -12,7 +12,6 @@ const EPISODE_LIST_ADDRESS: &str = "https://api.tvmaze.com/shows/SERIES-ID/episo
 /// This data describes an episode found in a season of a particular series
 ///
 /// ## Note
-
 /// There are two important fields to pay attention to
 ///
 /// ### show

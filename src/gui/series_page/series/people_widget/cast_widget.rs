@@ -384,7 +384,10 @@ mod cast_poster {
         }
     }
 
-    fn cast_info_field<'a>(title: &'a str, value: impl text::IntoFragment<'a>) -> Element<Message> {
+    fn cast_info_field<'a>(
+        title: impl text::IntoFragment<'a>,
+        value: impl text::IntoFragment<'a>,
+    ) -> Element<'a, Message> {
         row![
             text(title)
                 .font(Font {

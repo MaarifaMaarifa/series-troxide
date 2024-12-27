@@ -35,7 +35,7 @@ pub struct StatisticsTab<'a> {
     searcher: Searcher,
 }
 
-impl<'a> StatisticsTab<'a> {
+impl StatisticsTab<'_> {
     pub fn new(
         series_page_sender: mpsc::Sender<SeriesMainInformation>,
         scrollable_offset: Option<RelativeOffset>,
@@ -188,7 +188,7 @@ async fn get_series_with_runtime() -> Vec<(SeriesMainInformation, Option<u32>)> 
     infos_and_time
 }
 
-impl<'a> Tab for StatisticsTab<'a> {
+impl Tab for StatisticsTab<'_> {
     type Message = Message;
 
     fn title() -> &'static str {
@@ -204,7 +204,7 @@ impl<'a> Tab for StatisticsTab<'a> {
     }
 }
 
-impl<'a> Searchable for StatisticsTab<'a> {
+impl Searchable for StatisticsTab<'_> {
     fn get_series_information_collection(&self) -> Vec<&SeriesMainInformation> {
         self.series_banners
             .iter()
