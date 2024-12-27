@@ -170,7 +170,7 @@ pub mod episode_widget {
 
     fn summary_widget(episode_information: &EpisodeInfo) -> Text<'static> {
         if let Some(summary) = &episode_information.summary {
-            let summary = html2text::from_read(summary.as_bytes(), 1000);
+            let summary = html2text::from_read(summary.as_bytes(), 1000).unwrap_or_default();
             text(summary).size(11)
         } else {
             text("")
